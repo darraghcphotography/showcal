@@ -3,6 +3,7 @@
 {% block content %}
   <p><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">&larr; Back to {{ show['society_name'] }}</a></p>
   <h1>{{ show['show'] }}</h1>
+  <p><a href="{{ url_for('public.title_detail', title=show['show']) }}">See every AIMS production of this show &rarr;</a></p>
   <p class="meta">
     {{ show['society_name'] }} &middot; {{ show['season'] }}
     {% if show['section'] %}&middot; {{ show['section'] }}{% endif %}

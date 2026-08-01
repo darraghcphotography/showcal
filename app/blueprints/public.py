@@ -102,6 +102,24 @@ def show_detail(show_id):
     return render_template("show_detail.html", show=show)
 
 
+@bp.route("/titles/<path:title>")
+def title_detail(title):
+    db = get_db()
+    shows = db.execute(
+        """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.show = ? AND shows.moderation_status = 'approved'
+        ORDER BY shows.season DESC, societies.name
+        """,
+        (title,),
+    ).fetchall()
+    if not shows:
+        abort(404)
+
+    return render_template("title_detail.html", title=title, shows=shows)
+
+
 @bp.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(current_app.config["UPLOAD_DIR"], filename)

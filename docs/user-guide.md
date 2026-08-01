@@ -22,12 +22,16 @@ and a link to the AIMS review once it's published.
 
 Two other pages worth knowing about:
 
-- **This season** - every show announced so far for the current season,
-  grouped by region, next to its society. Handy for a season-at-a-glance view
-  without clicking into every society individually.
-- **Statistics** - the most-performed shows on the AIMS circuit (all-time and
-  in the last three seasons), and the list of shows that have only ever been
-  performed once.
+- **Current season** - every show announced so far for the current season,
+  grouped by region, next to its society, sorted by opening date - shows
+  already finished are dimmed and tagged "Finished". A season picker at the
+  top lets you jump to any past season the same way.
+- **Statistics** - a per-season breakdown (show counts, cancellations),
+  most-performed shows on the AIMS circuit (all-time and in the last three
+  seasons), and the list of shows that have only ever been performed once.
+  Click any show title to see every production of it across every society -
+  handy for "who else has done Sister Act?". There's also a full CSV download
+  of everything on the site, if you want the raw data.
 
 Inactive societies (registered with AIMS but with no show on record yet)
 are hidden from the browse list by default to keep it focused on active
@@ -56,6 +60,13 @@ If your society has a show to add, go to **Submit a show**.
      show on the show's page once approved.
 3. **Submit.** That's it - a moderator reviews it before it goes live.
 
+If the title you enter is a close match for one already on record (different
+capitalisation or punctuation, e.g. "rent" vs "Rent") the form will stop and
+ask you to confirm - either correct the spelling to match, or tick the box
+to say it's genuinely a different show and submit as entered. This exists
+because that exact kind of mismatch was previously splitting one show's
+history in two on the statistics page.
+
 You won't be asked for your name or email. If you need to follow something up
 after submitting, contact the moderator directly - the site doesn't collect
 who submitted what beyond which invite code was used.
@@ -64,7 +75,7 @@ who submitted what beyond which invite code was used.
 
 Nothing appears on the public site immediately. A moderator checks the
 submission first (moderation queue), and either approves it - at which point
-it appears in the society's history and on the "This season" page - or
+it appears in the society's history and on the "Current season" page - or
 rejects it. Once the show has happened and been adjudicated, a moderator
 attaches the AIMS review link, and its status changes to **Published** on the
 show's page.

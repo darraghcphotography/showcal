@@ -1,24 +1,37 @@
 {% extends "base.html" %}
-{% block title %}This season ({{ season }}) - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}{{ season }} season - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
-  <h1>This season: {{ season }}</h1>
-  <p>{{ shows|length }} show{{ '' if shows|length == 1 else 's' }} announced so far.</p>
+  <h1>
+    Current Season
+    {% if not is_current %}<span class="tag">viewing {{ season }}</span>{% endif %}
+  </h1>
+  <p>{{ shows|length }} show{{ '' if shows|length == 1 else 's' }} announced for {{ season }}{% if is_current %} (current season){% endif %}.</p>
+
+  {% if all_seasons|length > 1 %}
+    <p class="season-picker">
+      Jump to:
+      {% for s in all_seasons %}
+        <a href="{{ url_for('info.season_summary', season=s) }}" class="{{ 'current' if s == season }}">{{ s }}</a>{% if not loop.last %} &middot; {% endif %}
+      {% endfor %}
+    </p>
+  {% endif %}
 
   <table class="data-table">
     <thead>
-      <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Dates</th><th>Review</th></tr>
+      <tr><th>Opens</th><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Review</th></tr>
     </thead>
     <tbody>
       {% for show in shows %}
-        <tr>
+        <tr class="{{ 'row-past' if show['is_past'] }}">
+          <td>{{ show['opening_date']|irish_date or 'TBA' }}</td>
           <td>{{ show['region'] }}</td>
           <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
           <td>
             <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
             {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+            {% if show['is_past'] and show['status'] != 'Cancelled' %}<span class="tag tag-past">Finished</span>{% endif %}
           </td>
           <td>{{ show['section'] or '—' }}</td>
-          <td>{% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}</td>
           <td>{{ show['review_status'] }}</td>
         </tr>
       {% else %}

@@ -160,6 +160,10 @@ button.button-primary { background: var(--success); }
 .flash { padding: 0.6rem 0.9rem; border-radius: 4px; margin-bottom: 0.5rem; }
 .flash-error { background: rgba(160, 47, 47, 0.15); color: var(--danger); }
 .flash-success { background: rgba(47, 122, 63, 0.15); color: var(--success); }
+.flash-warning { background: rgba(200, 150, 0, 0.15); color: #a06c00; }
+@media (prefers-color-scheme: dark) {
+  .flash-warning { color: #e0b84a; }
+}
 
 .meta { color: var(--muted); }
 
@@ -195,6 +199,13 @@ button.button-primary { background: var(--success); }
 
 .tag-cancelled { background: rgba(160, 47, 47, 0.15); color: var(--danger); }
 .tag-active { background: rgba(47, 122, 63, 0.15); color: var(--success); }
+.tag-past { background: var(--row-alt); color: var(--muted); }
+
+.data-table tbody tr.row-past { opacity: 0.6; }
+
+.season-picker { font-size: 0.9rem; }
+.season-picker a { margin: 0 0.15rem; }
+.season-picker a.current { font-weight: 700; text-decoration: none; color: var(--fg); }
 
 .queue-item {
   border: 1px solid var(--border);

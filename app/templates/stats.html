@@ -2,6 +2,7 @@
 {% block title %}Statistics - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
   <h1>Statistics</h1>
+  <p><a href="{{ url_for('feeds.export_shows_csv') }}">Download the full dataset (CSV) &darr;</a></p>
 
   <dl class="detail-list">
     <dt>Societies on record</dt>
@@ -12,12 +13,28 @@
     <dd>{{ total_titles }}</dd>
   </dl>
 
+  <h2>Shows by season</h2>
+  <table class="data-table">
+    <thead><tr><th>Season</th><th>Shows</th><th>Distinct titles</th><th>Cancelled</th><th></th></tr></thead>
+    <tbody>
+      {% for row in by_season %}
+        <tr>
+          <td>{{ row['season'] }}</td>
+          <td>{{ row['total'] }}</td>
+          <td>{{ row['distinct_titles'] }}</td>
+          <td>{{ row['cancelled'] }}</td>
+          <td><a href="{{ url_for('info.season_summary', season=row['season']) }}">View</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <h2>Most performed shows (all time)</h2>
   <table class="data-table">
     <thead><tr><th>Show</th><th>Times performed</th></tr></thead>
     <tbody>
       {% for row in most_performed %}
-        <tr><td>{{ row['show'] }}</td><td>{{ row['n'] }}</td></tr>
+        <tr><td><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></td><td>{{ row['n'] }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -28,7 +45,7 @@
       <thead><tr><th>Show</th><th>Times performed</th></tr></thead>
       <tbody>
         {% for row in most_performed_recent %}
-          <tr><td>{{ row['show'] }}</td><td>{{ row['n'] }}</td></tr>
+          <tr><td><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></td><td>{{ row['n'] }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -38,7 +55,7 @@
   <p class="meta">Every title below has appeared on the AIMS circuit exactly once in the data on record.</p>
   <ul class="plain-list">
     {% for row in one_offs %}
-      <li>{{ row['show'] }}</li>
+      <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>
     {% endfor %}
   </ul>
 {% endblock %}

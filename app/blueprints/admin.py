@@ -267,3 +267,14 @@ def toggle_invite_code(code_id):
     db.execute("UPDATE invite_codes SET is_active = ? WHERE id = ?", (0 if row["is_active"] else 1, code_id))
     db.commit()
     return redirect(url_for("admin.invite_codes"))
+
+
+@bp.route("/traffic")
+@login_required
+def traffic():
+    db = get_db()
+    total_views = db.execute("SELECT COALESCE(SUM(views), 0) FROM page_views").fetchone()[0]
+    pages = db.execute(
+        "SELECT path, views, last_viewed FROM page_views ORDER BY views DESC LIMIT 30"
+    ).fetchall()
+    return render_template("admin/traffic.html", total_views=total_views, pages=pages)

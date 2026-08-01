@@ -31,6 +31,25 @@ comments - this is a guided tour, not a replacement for reading it.
   by default. Logged-in moderators get a "Show inactive societies" checkbox
   to reveal them - the underlying query only honours that flag for a
   logged-in session, so it can't be forced via the URL by anyone else.
+- **page_views** - one row per URL path, with a running count and last-viewed
+  timestamp. Populated by an `after_request` hook (`app/analytics.py`) on
+  every successful public GET request; admin, upload, and feed routes are
+  excluded. No cookies or per-visitor identity involved - it's a page counter,
+  not visitor analytics.
+
+## Duplicate-title detection
+
+Title deduplication (`app/similarity.py`) only ever runs a normalized exact
+match - lowercase, punctuation stripped, whitespace collapsed. It deliberately
+does *not* do fuzzy/Levenshtein matching: that would also flag genuinely
+different shows with similar names (there are several real ones in this
+dataset - `Frozen` vs `Frozen Jr.`, `Calendar Girls` vs `Calendar Girls 2.0`),
+and a false positive is a worse experience for a member filling in a form
+than an occasional missed near-duplicate that a moderator can still catch
+later. See `fix_show_titles.py` for the one-time corrections applied after
+an initial audit of the imported data turned up real duplicates and a couple
+of data entry errors (concatenated titles, stray status text) - it's
+documented there rather than as an invisible database edit.
 
 ## Column migrations
 

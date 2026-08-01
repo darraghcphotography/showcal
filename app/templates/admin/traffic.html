@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Traffic - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Traffic</h1>
+  <p>{{ total_views }} page view{{ '' if total_views == 1 else 's' }} recorded in total. Simple counts only - no
+     cookies, no visitor tracking, just how many times each page has been loaded.</p>
+
+  <table class="data-table">
+    <thead><tr><th>Page</th><th>Views</th><th>Last viewed</th></tr></thead>
+    <tbody>
+      {% for row in pages %}
+        <tr>
+          <td><a href="{{ row['path'] }}">{{ row['path'] }}</a></td>
+          <td>{{ row['views'] }}</td>
+          <td>{{ row['last_viewed'] }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3">No page views recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -44,11 +44,13 @@ def create_app(test_config=None):
     from .blueprints.submit import bp as submit_bp
     from .blueprints.admin import bp as admin_bp
     from .blueprints.info import bp as info_bp
+    from .blueprints.feeds import bp as feeds_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(submit_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(info_bp)
+    app.register_blueprint(feeds_bp)
 
     from . import auth
 
@@ -62,5 +64,13 @@ def create_app(test_config=None):
     def too_large(e):
         flash("That file is too large - posters must be under 8 MB.", "error")
         return redirect(request.referrer or url_for("public.index")), 302
+
+    from . import analytics
+
+    @app.after_request
+    def track_pageview(response):
+        if response.status_code == 200 and analytics.should_track(request):
+            analytics.record_pageview(db_module.get_db(), request.path)
+        return response
 
     return app

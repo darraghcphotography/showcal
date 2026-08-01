@@ -40,6 +40,13 @@
       <input type="text" name="show" value="{{ form.get('show', '') }}" required>
     </label>
 
+    {% if similar_title %}
+      <label class="checkbox-label">
+        <input type="checkbox" name="confirm_new_title" value="1">
+        This is a different show from "{{ similar_title }}" - submit as entered
+      </label>
+    {% endif %}
+
     <label>
       Opening date
       <input type="date" name="opening_date" value="{{ form.get('opening_date', '') }}">

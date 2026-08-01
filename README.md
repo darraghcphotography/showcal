@@ -45,14 +45,18 @@ app/
   season.py            "what season are we in" helper, shared by submit + season page
   filters.py            Jinja filter: ISO dates -> dd-mm-yyyy for display
   uploads.py            poster image validation/save (never trusts the browser's filename)
+  similarity.py          normalized-title matching for the submission duplicate warning
+  analytics.py            simple per-page view counter, no cookies/tracking
   blueprints/
-    public.py           browse societies, society detail, show detail, poster serving
-    submit.py            invite-code unlock + member submission form
-    admin.py             moderator login, queue, edit/publish, invite codes
+    public.py           browse societies, society/show detail, cross-society title view, poster serving
+    submit.py            invite-code unlock + member submission form (with duplicate-title warning)
+    admin.py             moderator login, queue, edit/publish, invite codes, traffic
     info.py               /season and /stats pages
+    feeds.py               CSV export, robots.txt, sitemap.xml
   templates/          Jinja templates (one per page)
   static/style.css     all the CSS, plain, no framework
 wsgi.py              entry point for waitress; also applies the optional URL_PREFIX middleware
+fix_show_titles.py    documented, re-runnable data-quality corrections (see docs/data-model.md)
 Dockerfile, docker-compose.yml   for QNAP Container Station / Portainer
 docs/                user guide, moderator guide, deployment, data model
 ```
@@ -60,10 +64,13 @@ docs/                user guide, moderator guide, deployment, data model
 ## Pages
 
 Public: browse/search societies, upcoming shows, a society's full history, a
-show's detail page, **This season** at a glance, **Statistics**, and the
+show's detail page, **Current season** at a glance (with a season picker for
+past seasons), **Statistics** (with per-season drill-down and a cross-society
+view of every production of a given title), a full CSV data export, and the
 member submission form. Moderator (behind `/admin/login`): the moderation
-queue, full show editing, invite code management. Full details in the
-[user guide](docs/user-guide.md) and [moderator guide](docs/moderator-guide.md).
+queue, full show editing, invite code management, and a simple traffic page.
+Full details in the [user guide](docs/user-guide.md) and
+[moderator guide](docs/moderator-guide.md).
 
 ## Quick start
 

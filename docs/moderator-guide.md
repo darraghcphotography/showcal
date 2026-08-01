@@ -71,3 +71,11 @@ Logged in, you'll see a "Show inactive societies" checkbox on that page -
 tick it to include them. This is only ever visible to you; anonymous visitors
 never see the checkbox or the inactive societies, no matter what's in the
 URL.
+
+## Traffic
+
+`/admin/traffic` shows a simple pageview count per page - no cookies, no
+visitor tracking, just "how many times has each page loaded" and when it was
+last viewed. Useful for a rough sense of whether anyone's actually using the
+site before investing more time in it. Admin pages, the CSV export, and
+`robots.txt`/`sitemap.xml` aren't counted.

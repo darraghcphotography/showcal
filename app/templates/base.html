@@ -14,12 +14,13 @@
     </a>
     <nav>
       <a href="{{ url_for('public.index') }}">Browse</a>
-      <a href="{{ url_for('info.season_summary') }}">This season</a>
+      <a href="{{ url_for('info.season_summary') }}">Current season</a>
       <a href="{{ url_for('info.stats') }}">Statistics</a>
       <a href="{{ url_for('submit.new') }}">Submit a show</a>
       {% if current_user %}
         <a href="{{ url_for('admin.queue') }}">Moderation queue</a>
         <a href="{{ url_for('admin.shows_list') }}">All shows</a>
+        <a href="{{ url_for('admin.traffic') }}">Traffic</a>
         {% if current_user['role'] == 'admin' %}
           <a href="{{ url_for('admin.invite_codes') }}">Invite codes</a>
         {% endif %}

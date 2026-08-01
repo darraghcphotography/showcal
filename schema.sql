@@ -114,3 +114,12 @@ CREATE TABLE IF NOT EXISTS invite_codes (
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     created_by      TEXT
 );
+
+-- Simple self-hosted pageview count, no cookies/sessions/third parties - just
+-- "has anyone actually looked at this page". path is the raw request path
+-- (query strings not included, so filtered variants of / all count as one).
+CREATE TABLE IF NOT EXISTS page_views (
+    path            TEXT PRIMARY KEY,
+    views           INTEGER NOT NULL DEFAULT 0,
+    last_viewed     TEXT
+);

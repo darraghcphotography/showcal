@@ -5,6 +5,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from ..auth import active_invite_code, invite_required
 from ..db import get_db
 from ..season import current_season, next_season
+from ..similarity import find_close_title
 from ..uploads import save_poster
 
 bp = Blueprint("submit", __name__, url_prefix="/submit")
@@ -70,6 +71,17 @@ def new():
         if adjudicated not in ("yes", "no"):
             errors.append("Choose whether this show is being adjudicated.")
 
+        similar_title = None
+        if show_title and not request.form.get("confirm_new_title"):
+            similar_title = find_close_title(db, show_title)
+            if similar_title:
+                flash(
+                    f'A show already on record is titled "{similar_title}" - if that\'s this '
+                    "production, please use that exact spelling. If it's genuinely a different "
+                    "show, tick the box below and submit again.",
+                    "warning",
+                )
+
         poster_filename = None
         poster_file = request.files.get("poster")
         if poster_file and poster_file.filename:
@@ -78,11 +90,12 @@ def new():
             except ValueError as e:
                 errors.append(str(e))
 
-        if errors:
+        if errors or similar_title:
             for e in errors:
                 flash(e, "error")
             return render_template(
-                "submit_new.html", societies=societies, form=request.form, season_options=season_options
+                "submit_new.html", societies=societies, form=request.form, season_options=season_options,
+                similar_title=similar_title,
             )
 
         invite_code = active_invite_code()
