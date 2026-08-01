@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Moderator login - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Moderator login</h1>
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Username
+      <input type="text" name="username" required autofocus>
+    </label>
+    <label>
+      Password
+      <input type="password" name="password" required>
+    </label>
+    <button type="submit">Log in</button>
+  </form>
+{% endblock %}

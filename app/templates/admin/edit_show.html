@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Edit show - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Edit show</h1>
+  <p class="meta">{{ show['society_name'] }} &middot; moderation status: <strong>{{ show['moderation_status'] }}</strong>
+     {% if show['source'] == 'submission' %}&middot; member submission{% endif %}</p>
+
+  <form method="post" class="stacked-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Season
+      <input type="text" name="season" value="{{ show['season'] }}" required>
+    </label>
+
+    <label>
+      Region
+      <select name="region" required>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == show['region'] %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Tier
+      <select name="section">
+        <option value="">—</option>
+        {% for s in sections %}
+          <option value="{{ s }}" {% if s == show['section'] %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Show title
+      <input type="text" name="show" value="{{ show['show'] or '' }}">
+    </label>
+
+    <label>
+      Opening date
+      <input type="date" name="opening_date" value="{{ show['opening_date'] or '' }}">
+    </label>
+
+    <label>
+      Closing date
+      <input type="date" name="closing_date" value="{{ show['closing_date'] or '' }}">
+    </label>
+
+    <label>
+      Adjudication date
+      <input type="date" name="adjudication_date" value="{{ show['adjudication_date'] or '' }}">
+    </label>
+
+    <label>
+      Venue
+      <input type="text" name="venue" value="{{ show['venue'] or '' }}">
+    </label>
+
+    <label>
+      Director
+      <input type="text" name="director" value="{{ show['director'] or '' }}">
+    </label>
+
+    <label>
+      Musical Director
+      <input type="text" name="musical_director" value="{{ show['musical_director'] or '' }}">
+    </label>
+
+    <label>
+      Choreographer
+      <input type="text" name="choreographer" value="{{ show['choreographer'] or '' }}">
+    </label>
+
+    <label>
+      Ticket link
+      <input type="url" name="ticket_url" value="{{ show['ticket_url'] or '' }}">
+    </label>
+
+    <label class="checkbox-label">
+      <input type="checkbox" name="cancelled" {% if show['status'] == 'Cancelled' %}checked{% endif %}>
+      Cancelled
+    </label>
+
+    <fieldset>
+      <legend>Poster</legend>
+      {% if show['poster_filename'] %}
+        <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="Current poster">
+        <label class="checkbox-label">
+          <input type="checkbox" name="remove_poster" value="1">
+          Remove current poster
+        </label>
+      {% endif %}
+      <label>
+        {{ 'Replace poster' if show['poster_filename'] else 'Upload poster' }}
+        <input type="file" name="poster" accept="image/png,image/jpeg,image/webp,image/gif">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Review</legend>
+      <label>
+        Review status
+        <select name="review_status">
+          {% for rs in review_statuses %}
+            <option value="{{ rs }}" {% if rs == show['review_status'] %}selected{% endif %}>{{ rs }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Review URL <span class="hint">(setting this flips the status to Published)</span>
+        <input type="url" name="review_url" value="{{ show['review_url'] or '' }}">
+      </label>
+    </fieldset>
+
+    <button type="submit">Save</button>
+  </form>
+{% endblock %}

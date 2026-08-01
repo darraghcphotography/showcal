@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ show['show'] }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">&larr; Back to {{ show['society_name'] }}</a></p>
+  <h1>{{ show['show'] }}</h1>
+  <p class="meta">
+    {{ show['society_name'] }} &middot; {{ show['season'] }}
+    {% if show['section'] %}&middot; {{ show['section'] }}{% endif %}
+    {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+  </p>
+
+  {% if show['poster_filename'] %}
+    <img class="poster" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
+  {% endif %}
+
+  <dl class="detail-list">
+    <dt>Dates</dt>
+    <dd>
+      {% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}
+    </dd>
+
+    <dt>Adjudication</dt>
+    <dd>{{ show['adjudication_date']|irish_date or show['adjudication_month_raw'] or 'Not yet scheduled' }}</dd>
+
+    <dt>Venue</dt>
+    <dd>{{ show['venue'] or '—' }}</dd>
+
+    {% if show['ticket_url'] %}
+    <dt>Tickets</dt>
+    <dd><a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a></dd>
+    {% endif %}
+
+    <dt>Director</dt>
+    <dd>{{ show['director'] or '—' }}</dd>
+
+    <dt>Musical Director</dt>
+    <dd>{{ show['musical_director'] or '—' }}</dd>
+
+    <dt>Choreographer</dt>
+    <dd>{{ show['choreographer'] or '—' }}</dd>
+
+    <dt>Review</dt>
+    <dd>
+      {% if show['review_status'] == 'Published' and show['review_url'] %}
+        <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read the AIMS review</a>
+      {% else %}
+        {{ show['review_status'] }}
+      {% endif %}
+    </dd>
+  </dl>
+{% endblock %}

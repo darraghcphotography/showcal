@@ -1,0 +1,31 @@
+services:
+  aims-web:
+    build: .
+    container_name: aims-web
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      # Set to e.g. "/showcal" if this is reachable at a sub-path of your
+      # domain rather than at its root (see README.md). Leave blank/unset
+      # for a dedicated subdomain instead.
+      URL_PREFIX: ${URL_PREFIX:-}
+    volumes:
+      - ./data:/data
+    ports:
+      # Bind to localhost only - not reachable from the internet directly.
+      # Cloudflare Tunnel (see cloudflared service below, or README) is what
+      # actually exposes this to your domain, so nothing needs a router port
+      # forward and 8000 never faces the public internet directly.
+      - "127.0.0.1:8000:8000"
+
+  # Uncomment once you have a tunnel token from the Cloudflare Zero Trust
+  # dashboard (see README.md "Exposing it publicly"). This lets Cloudflare
+  # reach aims-web over the private compose network - no exposed port needed
+  # at all, you could even drop the "ports:" block above once this is running.
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: aims-tunnel
+  #   restart: unless-stopped
+  #   command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+  #   depends_on:
+  #     - aims-web

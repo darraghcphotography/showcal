@@ -1,0 +1,129 @@
+import re
+
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
+
+from ..auth import active_invite_code, invite_required
+from ..db import get_db
+from ..season import current_season, next_season
+from ..uploads import save_poster
+
+bp = Blueprint("submit", __name__, url_prefix="/submit")
+
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _season_options(db):
+    current = current_season(db)
+    return [current, next_season(current)]
+
+
+@bp.route("/unlock", methods=("GET", "POST"))
+def unlock():
+    if request.method == "POST":
+        code = request.form.get("code", "").strip()
+        row = get_db().execute(
+            "SELECT * FROM invite_codes WHERE code = ? AND is_active = 1", (code,)
+        ).fetchone()
+        if row is None:
+            flash("That invite code isn't valid. Check with your society secretary or AIMS.", "error")
+        else:
+            session["invite_code_id"] = row["id"]
+            return redirect(url_for("submit.new"))
+    return render_template("submit_unlock.html")
+
+
+@bp.route("/new", methods=("GET", "POST"))
+@invite_required
+def new():
+    db = get_db()
+    societies = db.execute("SELECT id, name, region, section FROM societies ORDER BY name").fetchall()
+    season_options = _season_options(db)
+
+    if request.method == "POST":
+        # Honeypot: a real visitor never fills this hidden field in.
+        if request.form.get("website", ""):
+            return redirect(url_for("submit.thanks"))
+
+        errors = []
+        society_id = request.form.get("society_id", "")
+        season = request.form.get("season", "").strip()
+        show_title = request.form.get("show", "").strip()
+        opening_date = request.form.get("opening_date", "").strip()
+        closing_date = request.form.get("closing_date", "").strip()
+        venue = request.form.get("venue", "").strip()
+        director = request.form.get("director", "").strip()
+        musical_director = request.form.get("musical_director", "").strip()
+        choreographer = request.form.get("choreographer", "").strip()
+        ticket_url = request.form.get("ticket_url", "").strip()
+        adjudicated = request.form.get("adjudicated", "yes")
+
+        society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
+        if society is None:
+            errors.append("Choose a society from the list.")
+        if not show_title:
+            errors.append("Show title is required.")
+        if season not in season_options:
+            errors.append("Choose a valid season.")
+        for label, value in (("Opening date", opening_date), ("Closing date", closing_date)):
+            if value and not DATE_RE.match(value):
+                errors.append(f"{label} must be a valid date.")
+        if adjudicated not in ("yes", "no"):
+            errors.append("Choose whether this show is being adjudicated.")
+
+        poster_filename = None
+        poster_file = request.files.get("poster")
+        if poster_file and poster_file.filename:
+            try:
+                poster_filename = save_poster(poster_file, current_app.config["UPLOAD_DIR"])
+            except ValueError as e:
+                errors.append(str(e))
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "submit_new.html", societies=societies, form=request.form, season_options=season_options
+            )
+
+        invite_code = active_invite_code()
+        db.execute(
+            """
+            INSERT INTO shows (
+                society_id, season, region, section, show,
+                opening_date, closing_date,
+                venue, director, musical_director, choreographer,
+                ticket_url, poster_filename, review_status, moderation_status, source, invite_code_id
+            ) VALUES (
+                :society_id, :season, :region, :section, :show,
+                :opening_date, :closing_date,
+                :venue, :director, :musical_director, :choreographer,
+                :ticket_url, :poster_filename, :review_status, 'pending', 'submission', :invite_code_id
+            )
+            """,
+            {
+                "society_id": society["id"],
+                "season": season,
+                "region": society["region"],
+                "section": society["section"] if society["section"] != "Inactive" else None,
+                "show": show_title,
+                "opening_date": opening_date or None,
+                "closing_date": closing_date or None,
+                "venue": venue or None,
+                "director": director or None,
+                "musical_director": musical_director or None,
+                "choreographer": choreographer or None,
+                "ticket_url": ticket_url or None,
+                "poster_filename": poster_filename,
+                "review_status": "Scheduled" if adjudicated == "yes" else "Not adjudicated",
+                "invite_code_id": invite_code["id"] if invite_code else None,
+            },
+        )
+        db.commit()
+        return redirect(url_for("submit.thanks"))
+
+    return render_template("submit_new.html", societies=societies, form={}, season_options=season_options)
+
+
+@bp.route("/thanks")
+def thanks():
+    return render_template("submit_thanks.html")

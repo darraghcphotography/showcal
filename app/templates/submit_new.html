@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Submit a show - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Submit a show</h1>
+  <p>This goes to a moderator for review before it appears publicly.</p>
+
+  <form method="post" class="stacked-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- honeypot: hidden from real visitors via CSS, bots that fill every field will trip it -->
+    <div class="honeypot" aria-hidden="true">
+      <label>Leave this field blank
+        <input type="text" name="website" tabindex="-1" autocomplete="off">
+      </label>
+    </div>
+
+    <label>
+      Society
+      <select name="society_id" required>
+        <option value="">Choose a society&hellip;</option>
+        {% for s in societies %}
+          <option value="{{ s['id'] }}" {% if form.get('society_id')|string == s['id']|string %}selected{% endif %}>
+            {{ s['name'] }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Season
+      <select name="season" required>
+        {% for opt in season_options %}
+          <option value="{{ opt }}" {% if form.get('season', season_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Show title
+      <input type="text" name="show" value="{{ form.get('show', '') }}" required>
+    </label>
+
+    <label>
+      Opening date
+      <input type="date" name="opening_date" value="{{ form.get('opening_date', '') }}">
+    </label>
+
+    <label>
+      Closing date
+      <input type="date" name="closing_date" value="{{ form.get('closing_date', '') }}">
+    </label>
+
+    <fieldset>
+      <legend>Is this show being adjudicated by AIMS?</legend>
+      <label class="radio-label">
+        <input type="radio" name="adjudicated" value="yes" {% if form.get('adjudicated', 'yes') == 'yes' %}checked{% endif %}>
+        Yes
+      </label>
+      <label class="radio-label">
+        <input type="radio" name="adjudicated" value="no" {% if form.get('adjudicated') == 'no' %}checked{% endif %}>
+        No
+      </label>
+    </fieldset>
+
+    <label>
+      Venue
+      <input type="text" name="venue" value="{{ form.get('venue', '') }}">
+    </label>
+
+    <label>
+      Director
+      <input type="text" name="director" value="{{ form.get('director', '') }}">
+    </label>
+
+    <label>
+      Musical Director
+      <input type="text" name="musical_director" value="{{ form.get('musical_director', '') }}">
+    </label>
+
+    <label>
+      Choreographer
+      <input type="text" name="choreographer" value="{{ form.get('choreographer', '') }}">
+    </label>
+
+    <label>
+      Ticket link (optional)
+      <input type="url" name="ticket_url" placeholder="https://..." value="{{ form.get('ticket_url', '') }}">
+    </label>
+
+    <label>
+      Poster (optional, JPG/PNG/WEBP/GIF, max 8&nbsp;MB)
+      <input type="file" name="poster" accept="image/png,image/jpeg,image/webp,image/gif">
+    </label>
+
+    <button type="submit">Submit for review</button>
+  </form>
+{% endblock %}

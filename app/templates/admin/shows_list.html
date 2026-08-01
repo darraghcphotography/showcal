@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}All shows - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>All approved shows</h1>
+
+  <form method="get" class="filter-form">
+    <label>
+      Search
+      <input type="text" name="q" value="{{ q }}" placeholder="Show or society name">
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="needs_review" value="1" {% if needs_review %}checked{% endif %}>
+      Needs a review link
+    </label>
+    <button type="submit">Filter</button>
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Season</th><th>Society</th><th>Show</th><th>Review</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for show in shows %}
+        <tr>
+          <td>{{ show['season'] }}</td>
+          <td>{{ show['society_name'] }}</td>
+          <td>{{ show['show'] or '(TBA)' }}</td>
+          <td>{{ show['review_status'] }}</td>
+          <td><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No shows match.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

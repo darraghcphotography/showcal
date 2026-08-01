@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Invite codes - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Invite codes</h1>
+  <p>Members use one of these codes to unlock the submission form. Deactivate a code instead of
+     deleting it so past submissions keep their history.</p>
+
+  <form method="post" action="{{ url_for('admin.create_invite_code') }}" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Code
+      <input type="text" name="code" required>
+    </label>
+    <label>
+      Label
+      <input type="text" name="label" placeholder="e.g. General 2026 code">
+    </label>
+    <label>
+      Expires (optional)
+      <input type="date" name="expires_at">
+    </label>
+    <button type="submit">Create code</button>
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Code</th><th>Label</th><th>Expires</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for c in codes %}
+        <tr>
+          <td><code>{{ c['code'] }}</code></td>
+          <td>{{ c['label'] or '—' }}</td>
+          <td>{{ c['expires_at'] or 'never' }}</td>
+          <td>
+            {% if c['is_active'] and (not c['expires_at'] or c['expires_at'] >= today) %}
+              <span class="tag tag-active">Active</span>
+            {% elif c['is_active'] %}
+              <span class="tag tag-cancelled">Expired</span>
+            {% else %}
+              <span class="tag tag-cancelled">Revoked</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.toggle_invite_code', code_id=c['id']) }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit">{{ 'Revoke' if c['is_active'] else 'Reactivate' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No invite codes yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

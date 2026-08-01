@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Browse societies - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  {% if upcoming %}
+    <h2>Upcoming shows</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Opens</th><th>Show</th><th>Society</th><th>Region</th></tr>
+      </thead>
+      <tbody>
+        {% for show in upcoming %}
+          <tr>
+            <td>{{ show['opening_date']|irish_date }}</td>
+            <td><a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a></td>
+            <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
+            <td>{{ show['region'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <h1>Browse societies</h1>
+
+  <form method="get" class="filter-form">
+    <label>
+      Region
+      <select name="region">
+        <option value="">All regions</option>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == selected_region %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Tier
+      <select name="section">
+        <option value="">All tiers</option>
+        {% for s in sections %}
+          <option value="{{ s }}" {% if s == selected_section %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Society name
+      <input type="text" name="q" value="{{ q }}" placeholder="Search by name">
+    </label>
+    {% if current_user %}
+      <label class="checkbox-label">
+        <input type="checkbox" name="show_inactive" value="1" {% if show_inactive %}checked{% endif %}>
+        Show inactive societies
+      </label>
+    {% endif %}
+    <button type="submit">Filter</button>
+    {% if selected_region or selected_section or q or show_inactive %}
+      <a href="{{ url_for('public.index') }}">Clear</a>
+    {% endif %}
+  </form>
+
+  <p>{{ societies|length }} societ{{ 'y' if societies|length == 1 else 'ies' }} found.</p>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Society</th><th>Region</th><th>Tier</th></tr>
+    </thead>
+    <tbody>
+      {% for s in societies %}
+        <tr>
+          <td><a href="{{ url_for('public.society_detail', society_id=s['id']) }}">{{ s['name'] }}</a></td>
+          <td>{{ s['region'] }}</td>
+          <td>{{ s['section'] }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3">No societies match those filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Submit a show - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Submit a show</h1>
+  <p>New submissions go into a moderation queue and won't appear publicly until approved.
+     Enter your society's invite code to continue. Don't have one? Ask your society secretary,
+     or contact AIMS.</p>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Invite code
+      <input type="text" name="code" required autofocus>
+    </label>
+    <button type="submit">Continue</button>
+  </form>
+{% endblock %}

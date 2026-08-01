@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Moderation queue - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Moderation queue</h1>
+  <p>{{ shows|length }} submission{{ '' if shows|length == 1 else 's' }} pending.</p>
+
+  {% for show in shows %}
+    <article class="queue-item">
+      <h2>{{ show['show'] or '(no title given)' }}</h2>
+      <p class="meta">{{ show['society_name'] }} &middot; {{ show['season'] }} &middot; {{ show['review_status'] }}</p>
+      {% if show['poster_filename'] %}
+        <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="Poster">
+      {% endif %}
+      <dl class="detail-list compact">
+        <dt>Dates</dt>
+        <dd>{{ show['opening_date']|irish_date or '?' }} &ndash; {{ show['closing_date']|irish_date or '?' }}</dd>
+        <dt>Venue</dt>
+        <dd>{{ show['venue'] or '—' }}</dd>
+        <dt>Director</dt>
+        <dd>{{ show['director'] or '—' }}</dd>
+        <dt>Musical Director</dt>
+        <dd>{{ show['musical_director'] or '—' }}</dd>
+        <dt>Choreographer</dt>
+        <dd>{{ show['choreographer'] or '—' }}</dd>
+        <dt>Tickets</dt>
+        <dd>{% if show['ticket_url'] %}<a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ show['ticket_url'] }}</a>{% else %}—{% endif %}</dd>
+      </dl>
+      <div class="actions">
+        <a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit details</a>
+        <form method="post" action="{{ url_for('admin.approve', show_id=show['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button-primary">Approve</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.reject', show_id=show['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button-danger">Reject</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <p>Nothing waiting for review.</p>
+  {% endfor %}
+{% endblock %}

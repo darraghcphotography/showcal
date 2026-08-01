@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ society['name'] }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('public.index') }}">&larr; Back to browse</a></p>
+  <h1>{{ society['name'] }}</h1>
+  <p class="meta">
+    {{ society['region'] }} &middot; {{ society['section'] }}
+    {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
+  </p>
+  {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
+
+  <h2>Show history</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>Season</th><th>Show</th><th>Tier</th><th>Dates</th><th>Review</th></tr>
+    </thead>
+    <tbody>
+      {% for show in shows %}
+        <tr>
+          <td>{{ show['season'] }}</td>
+          <td>
+            {% if show['show'] %}
+              <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+            {% else %}
+              <em>TBA</em>
+            {% endif %}
+            {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+          </td>
+          <td>{{ show['section'] or '—' }}</td>
+          <td>
+            {% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}
+          </td>
+          <td>
+            {% if show['review_status'] == 'Published' and show['review_url'] %}
+              <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
+            {% else %}
+              {{ show['review_status'] }}
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No shows on record yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

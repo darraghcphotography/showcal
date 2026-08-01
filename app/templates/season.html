@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}This season ({{ season }}) - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>This season: {{ season }}</h1>
+  <p>{{ shows|length }} show{{ '' if shows|length == 1 else 's' }} announced so far.</p>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Dates</th><th>Review</th></tr>
+    </thead>
+    <tbody>
+      {% for show in shows %}
+        <tr>
+          <td>{{ show['region'] }}</td>
+          <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
+          <td>
+            <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+            {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+          </td>
+          <td>{{ show['section'] or '—' }}</td>
+          <td>{% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}</td>
+          <td>{{ show['review_status'] }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">No shows announced yet for this season.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
