@@ -73,21 +73,31 @@ links) automatically account for it. This was tested locally before it
 shipped - hitting `/showcal/` serves the homepage and every link on the page
 correctly points back under `/showcal/...`.
 
-Setup:
+Setup (Cloudflare's dashboard wording has shifted over time - look for
+"Published application routes" under a tunnel if "Public Hostname" isn't
+what you see):
 1. In the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/),
    under **Networks -> Tunnels**, either reuse an existing tunnel on this NAS
-   or create one, and install/run `cloudflared` on the NAS (as a Portainer
-   stack alongside this one, or as its own container) using the token from
-   that tunnel.
-2. Add a **Public Hostname** on the tunnel:
-   - Domain: `darraghc.ie`
-   - Path: `showcal*`
-   - Service: `HTTP` -> `aims-web:8000` (the compose service name - if
-     `cloudflared` is a separate stack, put both stacks on the same Docker
-     network so it can resolve that name, or use the NAS's LAN IP instead).
-3. Confirm `URL_PREFIX=/showcal` is set on the `aims-web` stack (step 4
+   or create one, and install/run `cloudflared` on the NAS using the token
+   from that tunnel.
+2. Add a route on the tunnel: Domain `darraghc.ie`, Path `^/showcal` (the
+   `^` anchors it to a path *prefix* - Cloudflare's path field is regex, so
+   without it "showcal" would also match anywhere else that text appears in
+   a URL), Service `HTTP` -> `aims-web:8000`.
+3. **If `cloudflared` runs in a different Portainer stack** (common if you
+   already use a tunnel for other services), it needs to be on the *same*
+   Docker network as `aims-web` for the container-name lookup above to
+   resolve - `docker-compose.yml`'s `networks:` section declares this as an
+   external network named `media-net` (edit the `name:` there to match
+   whatever your existing stack's network is actually called; check
+   Portainer -> Networks). Pointing the route at the NAS's LAN IP instead
+   (`http://<nas-ip>:8000`) looks like it should work as a shortcut, but
+   containers often can't loop back through the host's own LAN IP to reach
+   another container's published port ("hairpin NAT") - joining the network
+   properly avoids that entirely.
+4. Confirm `URL_PREFIX=/showcal` is set on the `aims-web` stack (step 4
    above) and redeploy if you added it after the first deploy.
-4. Visit `https://darraghc.ie/showcal/` - you should see the homepage, and
+5. Visit `https://darraghc.ie/showcal/` - you should see the homepage, and
    clicking around should never drop back to a bare unprefixed URL.
 
 If darraghc.ie already serves something else at its root, this path rule

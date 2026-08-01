@@ -12,14 +12,19 @@ services:
     volumes:
       - ./data:/data
     ports:
-      # Published on the NAS's LAN interface (not just loopback) so an
-      # existing cloudflared container running in a *different* Docker
-      # network/stack can still reach it via the NAS's own IP - there's no
-      # router port-forward, so this is LAN-reachable only, never exposed to
-      # the internet directly. If cloudflared instead lives in this same
-      # stack (see below), you can drop back to "127.0.0.1:8000:8000" or
-      # remove this entirely and reach it via "aims-web:8000" internally.
+      # Kept published on the NAS's LAN interface for convenience/direct
+      # debugging - there's no router port-forward, so this is LAN-reachable
+      # only, never exposed to the internet directly. Not what the tunnel
+      # actually uses any more, see "networks:" below.
       - "8000:8000"
+    networks:
+      - default
+      # aims-web joins the same Docker network an existing cloudflared
+      # container (running in a different stack, e.g. media-stack3) is
+      # already on, so it's reachable as "aims-web:8000" by container name -
+      # avoids relying on the host's LAN IP, which containers on a *different*
+      # bridge network often can't loop back through (hairpin NAT).
+      - media-net
 
   # Uncomment if you don't already have a cloudflared tunnel running
   # elsewhere on the NAS. Being in this same stack puts it on the same
@@ -32,3 +37,8 @@ services:
   #   command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
   #   depends_on:
   #     - aims-web
+
+networks:
+  media-net:
+    external: true
+    name: media-stack3_media-net
