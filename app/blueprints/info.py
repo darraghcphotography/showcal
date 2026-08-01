@@ -23,10 +23,36 @@ def stats():
         "SELECT COUNT(DISTINCT show) FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'"
     ).fetchone()[0]
 
+    # All-time counts fold in historical_results (AIMS awards archive, 1977
+    # through the season before shows.csv's own coverage begins - see
+    # schema.sql for why that split can't double-count a production).
     most_performed = db.execute(
         """
-        SELECT show, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved'
+        SELECT show, COUNT(*) AS n FROM (
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            UNION ALL
+            SELECT show FROM historical_results WHERE show IS NOT NULL
+        )
+        GROUP BY show ORDER BY n DESC, show LIMIT ?
+        """,
+        (TOP_N,),
+    ).fetchall()
+
+    # "Most selected" = how many *different* societies have put this show on,
+    # as opposed to "most performed" which also counts a society doing the
+    # same show twice. Usually close to the same list, but a cleaner measure
+    # of a show's popularity across the circuit rather than raw staging count.
+    # A historical society without a societies.id match still counts as a
+    # distinct selector, keyed by its name instead.
+    most_selected = db.execute(
+        """
+        SELECT show, COUNT(DISTINCT society_key) AS n FROM (
+            SELECT show, 'id:' || society_id AS society_key FROM shows
+            WHERE show IS NOT NULL AND moderation_status = 'approved'
+            UNION ALL
+            SELECT show, COALESCE('id:' || society_id, 'name:' || society_name) AS society_key
+            FROM historical_results WHERE show IS NOT NULL
+        )
         GROUP BY show ORDER BY n DESC, show LIMIT ?
         """,
         (TOP_N,),
@@ -52,12 +78,20 @@ def stats():
 
     one_offs = db.execute(
         """
-        SELECT show FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved'
+        SELECT show FROM (
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            UNION ALL
+            SELECT show FROM historical_results WHERE show IS NOT NULL
+        )
         GROUP BY show HAVING COUNT(*) = 1
         ORDER BY show
         """
     ).fetchall()
+
+    historical_years = db.execute(
+        "SELECT MIN(year), MAX(year), COUNT(DISTINCT year || show || society_name) FROM historical_results"
+    ).fetchone()
+    historical_from, historical_to, historical_productions = historical_years
 
     by_season = db.execute(
         """
@@ -78,10 +112,14 @@ def stats():
         total_shows=total_shows,
         total_titles=total_titles,
         most_performed=most_performed,
+        most_selected=most_selected,
         most_performed_recent=most_performed_recent,
         recent_season_list=recent_season_list,
         one_offs=one_offs,
         by_season=by_season,
+        historical_from=historical_from,
+        historical_to=historical_to,
+        historical_productions=historical_productions,
     )
 
 

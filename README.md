@@ -63,12 +63,15 @@ docs/                user guide, moderator guide, deployment, data model
 
 ## Pages
 
-Public: browse/search societies, upcoming shows, a society's full history, a
-show's detail page, **Current season** at a glance (with a season picker for
-past seasons), **Statistics** (with per-season drill-down and a cross-society
-view of every production of a given title), a full CSV data export, and the
-member submission form. Moderator (behind `/admin/login`): the moderation
-queue, full show editing, invite code management, and a simple traffic page.
+Public: browse/search societies, upcoming shows (with an .ics calendar feed),
+a society's full history, a show's detail page, site-wide show search,
+**Current season** at a glance (with a season picker for past seasons),
+**Statistics** (with per-season drill-down, a cross-society view of every
+production of a given title, and all-time counts enriched with AIMS's
+1977-onward awards archive), a full CSV data export, a feature-suggestion
+box, and the member submission form. Moderator (behind `/admin/login`): the
+moderation queue, full show/society editing, a bulk date-fix workspace,
+invite code management, suggestion review, and a simple traffic page.
 Full details in the [user guide](docs/user-guide.md) and
 [moderator guide](docs/moderator-guide.md).
 

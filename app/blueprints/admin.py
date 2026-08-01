@@ -6,7 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from werkzeug.security import check_password_hash
 
 from ..auth import current_user, login_required
-from ..constants import REGIONS, REVIEW_STATUSES, SHOW_SECTIONS
+from ..constants import REGIONS, REVIEW_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
 from ..uploads import save_poster
 
@@ -267,6 +267,150 @@ def toggle_invite_code(code_id):
     db.execute("UPDATE invite_codes SET is_active = ? WHERE id = ?", (0 if row["is_active"] else 1, code_id))
     db.commit()
     return redirect(url_for("admin.invite_codes"))
+
+
+@bp.route("/societies")
+@login_required
+def societies_list():
+    q = request.args.get("q", "").strip()
+    query = "SELECT * FROM societies WHERE 1=1"
+    params = []
+    if q:
+        query += " AND name LIKE ? ESCAPE '\\'"
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        params.append(f"%{escaped}%")
+    query += " ORDER BY name"
+    societies = get_db().execute(query, params).fetchall()
+    return render_template("admin/societies_list.html", societies=societies, q=q)
+
+
+@bp.route("/societies/<int:society_id>/edit", methods=("GET", "POST"))
+@login_required
+def edit_society(society_id):
+    db = get_db()
+    society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
+    if society is None:
+        abort(404)
+
+    if request.method == "POST":
+        errors = []
+        name = request.form.get("name", "").strip()
+        region = request.form.get("region", "")
+        section = request.form.get("section", "")
+        section_as_of = request.form.get("section_as_of", "").strip() or None
+        section_history = request.form.get("section_history", "").strip() or None
+        notes = request.form.get("notes", "").strip() or None
+
+        if not name:
+            errors.append("Name is required.")
+        elif db.execute(
+            "SELECT id FROM societies WHERE name = ? AND id != ?", (name, society_id)
+        ).fetchone():
+            errors.append("Another society already has that exact name.")
+        if region not in REGIONS:
+            errors.append("Choose a valid region.")
+        if section not in SOCIETY_SECTIONS:
+            errors.append("Choose a valid tier.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "admin/edit_society.html", society=society, regions=REGIONS, sections=SOCIETY_SECTIONS
+            )
+
+        db.execute(
+            """
+            UPDATE societies SET name = ?, region = ?, section = ?,
+                section_as_of = ?, section_history = ?, notes = ?
+            WHERE id = ?
+            """,
+            (name, region, section, section_as_of, section_history, notes, society_id),
+        )
+        db.commit()
+        flash("Society updated.", "success")
+        return redirect(url_for("admin.societies_list"))
+
+    return render_template(
+        "admin/edit_society.html", society=society, regions=REGIONS, sections=SOCIETY_SECTIONS
+    )
+
+
+@bp.route("/shows/dates", methods=("GET", "POST"))
+@login_required
+def fix_dates():
+    db = get_db()
+
+    if request.method == "POST":
+        show_id = request.form.get("show_id", "")
+        opening_date = request.form.get("opening_date", "").strip() or None
+        closing_date = request.form.get("closing_date", "").strip() or None
+        errors = []
+        for label, value in (("Opening date", opening_date), ("Closing date", closing_date)):
+            if value and not DATE_RE.match(value):
+                errors.append(f"{label} must be a valid date.")
+        if errors:
+            for e in errors:
+                flash(e, "error")
+        else:
+            db.execute(
+                "UPDATE shows SET opening_date = ?, closing_date = ?, updated_at = ? WHERE id = ?",
+                (opening_date, closing_date, datetime.utcnow().isoformat(), show_id),
+            )
+            db.commit()
+            flash("Dates updated.", "success")
+        return redirect(url_for("admin.fix_dates", **request.args))
+
+    q = request.args.get("q", "").strip()
+    season = request.args.get("season", "").strip()
+    query = """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.moderation_status = 'approved' AND shows.show IS NOT NULL
+    """
+    params = []
+    if q:
+        query += " AND (shows.show LIKE ? ESCAPE '\\' OR societies.name LIKE ? ESCAPE '\\')"
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        like = f"%{escaped}%"
+        params += [like, like]
+    if season:
+        query += " AND shows.season = ?"
+        params.append(season)
+    query += " ORDER BY shows.season DESC, societies.name"
+    shows = db.execute(query, params).fetchall()
+
+    seasons = [
+        r["season"]
+        for r in db.execute(
+            "SELECT DISTINCT season FROM shows WHERE show IS NOT NULL ORDER BY season DESC"
+        ).fetchall()
+    ]
+
+    return render_template("admin/fix_dates.html", shows=shows, q=q, season=season, seasons=seasons)
+
+
+@bp.route("/suggestions")
+@login_required
+def suggestions():
+    db = get_db()
+    rows = db.execute(
+        "SELECT * FROM feature_suggestions ORDER BY status = 'reviewed', created_at DESC"
+    ).fetchall()
+    return render_template("admin/suggestions.html", suggestions=rows)
+
+
+@bp.route("/suggestions/<int:suggestion_id>/toggle", methods=("POST",))
+@login_required
+def toggle_suggestion(suggestion_id):
+    db = get_db()
+    row = db.execute("SELECT * FROM feature_suggestions WHERE id = ?", (suggestion_id,)).fetchone()
+    if row is None:
+        abort(404)
+    new_status = "new" if row["status"] == "reviewed" else "reviewed"
+    db.execute("UPDATE feature_suggestions SET status = ? WHERE id = ?", (new_status, suggestion_id))
+    db.commit()
+    return redirect(url_for("admin.suggestions"))
 
 
 @bp.route("/traffic")

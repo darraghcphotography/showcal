@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Societies - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Societies</h1>
+
+  <form method="get" class="filter-form">
+    <label>
+      Search
+      <input type="text" name="q" value="{{ q }}" placeholder="Society name">
+    </label>
+    <button type="submit">Filter</button>
+  </form>
+
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>Region</th><th>Tier</th><th></th></tr></thead>
+    <tbody>
+      {% for s in societies %}
+        <tr>
+          <td>{{ s['name'] }}</td>
+          <td>{{ s['region'] }}</td>
+          <td>{{ s['section'] }}</td>
+          <td><a href="{{ url_for('admin.edit_society', society_id=s['id']) }}">Edit</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">No societies match.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

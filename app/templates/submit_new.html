@@ -16,14 +16,13 @@
 
     <label>
       Society
-      <select name="society_id" required>
-        <option value="">Choose a society&hellip;</option>
+      <input type="text" name="society" list="society-options" value="{{ form.get('society', '') }}"
+             placeholder="Start typing..." autocomplete="off" required>
+      <datalist id="society-options">
         {% for s in societies %}
-          <option value="{{ s['id'] }}" {% if form.get('society_id')|string == s['id']|string %}selected{% endif %}>
-            {{ s['name'] }}
-          </option>
+          <option value="{{ s['name'] }}">
         {% endfor %}
-      </select>
+      </datalist>
     </label>
 
     <label>

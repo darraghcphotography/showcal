@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import Blueprint, abort, current_app, render_template, request, send_from_directory
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
 from ..auth import current_user
 from ..constants import REGIONS, SOCIETY_SECTIONS
@@ -102,6 +102,31 @@ def show_detail(show_id):
     return render_template("show_detail.html", show=show)
 
 
+@bp.route("/search")
+def search():
+    q = request.args.get("q", "").strip()
+    titles = []
+    if q:
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        like = f"%{escaped}%"
+        titles = [
+            r["show"]
+            for r in get_db().execute(
+                """
+                SELECT DISTINCT show FROM (
+                    SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+                    UNION
+                    SELECT show FROM historical_results WHERE show IS NOT NULL
+                )
+                WHERE show LIKE ? ESCAPE '\\'
+                ORDER BY show
+                """,
+                (like,),
+            ).fetchall()
+        ]
+    return render_template("search.html", q=q, titles=titles)
+
+
 @bp.route("/titles/<path:title>")
 def title_detail(title):
     db = get_db()
@@ -114,10 +139,51 @@ def title_detail(title):
         """,
         (title,),
     ).fetchall()
-    if not shows:
+
+    # Distinct (year, society) - historical_results has one row per award
+    # category, not per production, so this collapses back to one row per
+    # actual staging.
+    historical = db.execute(
+        """
+        SELECT DISTINCT year, society_name FROM historical_results
+        WHERE show = ? ORDER BY year DESC
+        """,
+        (title,),
+    ).fetchall()
+
+    if not shows and not historical:
         abort(404)
 
-    return render_template("title_detail.html", title=title, shows=shows)
+    return render_template("title_detail.html", title=title, shows=shows, historical=historical)
+
+
+@bp.route("/suggest", methods=("GET", "POST"))
+def suggest():
+    if request.method == "POST":
+        # Honeypot - same pattern as the show submission form.
+        if request.form.get("website", ""):
+            return redirect(url_for("public.suggest_thanks"))
+
+        message = request.form.get("message", "").strip()
+        submitted_name = request.form.get("submitted_name", "").strip() or None
+
+        if not message:
+            flash("Enter your suggestion before submitting.", "error")
+            return render_template("suggest.html", form=request.form)
+
+        get_db().execute(
+            "INSERT INTO feature_suggestions (message, submitted_name) VALUES (?, ?)",
+            (message, submitted_name),
+        )
+        get_db().commit()
+        return redirect(url_for("public.suggest_thanks"))
+
+    return render_template("suggest.html", form={})
+
+
+@bp.route("/suggest/thanks")
+def suggest_thanks():
+    return render_template("suggest_thanks.html")
 
 
 @bp.route("/uploads/<path:filename>")

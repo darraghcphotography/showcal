@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Fix dates - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Fix dates</h1>
+  <p class="meta">Edit opening/closing dates directly and save row by row - handy for working through a batch of
+     wrong dates without opening each show's full edit page.</p>
+
+  <form method="get" class="filter-form">
+    <label>
+      Search
+      <input type="text" name="q" value="{{ q }}" placeholder="Show or society name">
+    </label>
+    <label>
+      Season
+      <select name="season">
+        <option value="">All seasons</option>
+        {% for s in seasons %}
+          <option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+  </form>
+
+  <table class="data-table">
+    <thead><tr><th>Season</th><th>Society</th><th>Show</th><th>Opening</th><th>Closing</th><th></th></tr></thead>
+    <tbody>
+      {% for show in shows %}
+        <tr>
+          <td>{{ show['season'] }}</td>
+          <td>{{ show['society_name'] }}</td>
+          <td>{{ show['show'] }}</td>
+          <td><input type="date" name="opening_date" form="row-{{ show['id'] }}" value="{{ show['opening_date'] or '' }}"></td>
+          <td><input type="date" name="closing_date" form="row-{{ show['id'] }}" value="{{ show['closing_date'] or '' }}"></td>
+          <td><button type="submit" form="row-{{ show['id'] }}">Save</button></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">No shows match.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- One real <form> per row, referenced by the inputs above via the form="" attribute -
+       keeps the table itself valid HTML (a <tr> can't directly contain a <form>). -->
+  {% for show in shows %}
+    <form id="row-{{ show['id'] }}" method="post" action="{{ url_for('admin.fix_dates', q=q, season=season) }}" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="show_id" value="{{ show['id'] }}">
+    </form>
+  {% endfor %}
+{% endblock %}

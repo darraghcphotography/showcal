@@ -51,6 +51,20 @@ an initial audit of the imported data turned up real duplicates and a couple
 of data entry errors (concatenated titles, stray status text) - it's
 documented there rather than as an invisible database edit.
 
+## Historical awards data (1977-)
+
+`historical_results` holds AIMS's awards archive, imported by `import_awards.py`
+from `AIMS_Awards - Results.csv` - one row per award *nomination*, not per
+production (a single show can have several rows: Best Director, Best Actor,
+etc.). Only years strictly before `shows.csv`'s own coverage (season 23/24 =
+award Year 2024) are imported, so it can never double-count a production
+already in `shows` - see the comment on the table in `schema.sql`. Statistics
+queries `UNION` both tables to get accurate all-time counts; `society_name`
+is plain text (not just a FK) since many historical societies are defunct or
+renamed and don't match a row in `societies` - `society_id` is filled in only
+when an exact name match was found (125 of 204 distinct historical names, at
+last import).
+
 ## Column migrations
 
 SQLite's `CREATE TABLE IF NOT EXISTS` only creates a table the *first* time -

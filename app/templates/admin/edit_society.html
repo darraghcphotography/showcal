@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ society['name'] }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.societies_list') }}">&larr; Back to societies</a></p>
+  <h1>Edit society</h1>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Name
+      <input type="text" name="name" value="{{ society['name'] }}" required>
+    </label>
+
+    <label>
+      Region
+      <select name="region" required>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == society['region'] %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Tier
+      <select name="section" required>
+        {% for s in sections %}
+          <option value="{{ s }}" {% if s == society['section'] %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Section as of (season, e.g. 26/27)
+      <input type="text" name="section_as_of" value="{{ society['section_as_of'] or '' }}">
+    </label>
+
+    <label>
+      Section history
+      <input type="text" name="section_history" value="{{ society['section_history'] or '' }}">
+    </label>
+
+    <label>
+      Notes
+      <input type="text" name="notes" value="{{ society['notes'] or '' }}">
+    </label>
+
+    <button type="submit">Save</button>
+  </form>
+{% endblock %}

@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Statistics - Unofficial AIMS Show Tracker{% endblock %}
+
+{% macro bar_chart(rows) %}
+  {% set top = rows[0]['n'] if rows else 1 %}
+  <div class="bar-list">
+    {% for row in rows %}
+      <div class="bar-row">
+        <a class="bar-label" href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ (row['n'] / top * 100)|round(1) }}%"></div></div>
+        <span class="bar-count">{{ row['n'] }}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
 {% block content %}
   <h1>Statistics</h1>
   <p><a href="{{ url_for('feeds.export_shows_csv') }}">Download the full dataset (CSV) &darr;</a></p>
@@ -29,26 +43,18 @@
     </tbody>
   </table>
 
+  <h2>Most selected shows</h2>
+  <p class="meta">By number of different societies that have put it on - a cleaner read on popularity than raw
+     staging count, since it doesn't get inflated by one society repeating the same show.</p>
+  {{ bar_chart(most_selected) }}
+
   <h2>Most performed shows (all time)</h2>
-  <table class="data-table">
-    <thead><tr><th>Show</th><th>Times performed</th></tr></thead>
-    <tbody>
-      {% for row in most_performed %}
-        <tr><td><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></td><td>{{ row['n'] }}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <p class="meta">Total number of productions, all-time.</p>
+  {{ bar_chart(most_performed) }}
 
   {% if recent_season_list %}
     <h2>Most performed shows (seasons {{ recent_season_list|reverse|join(', ') }})</h2>
-    <table class="data-table">
-      <thead><tr><th>Show</th><th>Times performed</th></tr></thead>
-      <tbody>
-        {% for row in most_performed_recent %}
-          <tr><td><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></td><td>{{ row['n'] }}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {{ bar_chart(most_performed_recent) }}
   {% endif %}
 
   <h2>Performed only once ({{ one_offs|length }} shows)</h2>

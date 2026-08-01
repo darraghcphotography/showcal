@@ -4,22 +4,28 @@
   --bg: #ffffff;
   --muted: #666;
   --border: #ddd;
-  --accent: #2a5db0;
+  --accent: #8c1f3f;
+  --accent-contrast: #ffffff;
+  --gold: #b8860b;
   --danger: #a02f2f;
   --success: #2f7a3f;
   --row-alt: #f7f7f8;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fg: #e8e8e8;
-    --bg: #1b1b1d;
-    --muted: #a0a0a0;
-    --border: #3a3a3d;
-    --accent: #7aa7ff;
+    --fg: #ececec;
+    --bg: #17161a;
+    --muted: #a4a0a8;
+    --border: #38343c;
+    --accent: #f0a8c0;
+    --accent-contrast: #2a0f18;
+    --gold: #dcb84f;
     --danger: #ff8b8b;
     --success: #7fd48f;
-    --row-alt: #232326;
+    --row-alt: #221f26;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -39,6 +45,16 @@ body {
   padding: 1.5rem 1rem 3rem;
 }
 
+.container h1 {
+  font-size: 1.7rem;
+  letter-spacing: -0.01em;
+  padding-bottom: 0.5rem;
+  border-bottom: 3px solid var(--gold);
+  display: inline-block;
+}
+
+.container h2 { font-size: 1.2rem; margin-top: 2rem; }
+
 .site-header {
   display: flex;
   flex-wrap: wrap;
@@ -47,6 +63,8 @@ body {
   gap: 0.5rem 1.5rem;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  box-shadow: var(--shadow);
 }
 
 .site-header .brand {
@@ -98,6 +116,7 @@ table.data-table {
 }
 
 .data-table tbody tr:nth-child(even) { background: var(--row-alt); }
+.data-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
 .filter-form, .stacked-form {
   display: flex;
@@ -120,7 +139,7 @@ table.data-table {
 .checkbox-label, .radio-label { flex-direction: row !important; align-items: center; gap: 0.5rem !important; }
 .radio-label { display: inline-flex !important; margin-right: 1rem; }
 
-input, select, button {
+input, select, button, textarea {
   font: inherit;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--border);
@@ -129,15 +148,20 @@ input, select, button {
   color: var(--fg);
 }
 
+textarea { resize: vertical; }
+
 button {
   cursor: pointer;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   border: none;
+  transition: filter 0.15s ease, transform 0.05s ease;
 }
+button:hover { filter: brightness(1.1); }
+button:active { transform: translateY(1px); }
 
-button.button-danger { background: var(--danger); }
-button.button-primary { background: var(--success); }
+button.button-danger { background: var(--danger); color: #fff; }
+button.button-primary { background: var(--success); color: #fff; }
 
 .link-button {
   background: none;
@@ -175,6 +199,7 @@ button.button-primary { background: var(--success); }
   border: 1px solid var(--border);
   margin-bottom: 1rem;
   display: block;
+  box-shadow: var(--shadow);
 }
 
 .poster-thumb {
@@ -212,13 +237,38 @@ button.button-primary { background: var(--success); }
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow);
 }
 
 .queue-item .actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; align-items: center; }
+.queue-item.reviewed { opacity: 0.6; }
 
 fieldset { border: 1px solid var(--border); border-radius: 6px; }
 
 code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
+
+.bar-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) 1fr 2.5rem;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.bar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  color: var(--fg);
+}
+.bar-label:hover { text-decoration: underline; }
+
+.bar-track { background: var(--row-alt); border-radius: 4px; height: 0.9rem; overflow: hidden; }
+.bar-fill { background: var(--accent); height: 100%; border-radius: 4px 0 0 4px; }
+.bar-count { text-align: right; color: var(--muted); }
 
 .plain-list {
   columns: 2;
@@ -227,4 +277,5 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 }
 @media (max-width: 600px) {
   .plain-list { columns: 1; }
+  .bar-row { grid-template-columns: minmax(0, 120px) 1fr 2rem; }
 }

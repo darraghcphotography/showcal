@@ -46,7 +46,7 @@ def new():
             return redirect(url_for("submit.thanks"))
 
         errors = []
-        society_id = request.form.get("society_id", "")
+        society_name = request.form.get("society", "").strip()
         season = request.form.get("season", "").strip()
         show_title = request.form.get("show", "").strip()
         opening_date = request.form.get("opening_date", "").strip()
@@ -58,9 +58,12 @@ def new():
         ticket_url = request.form.get("ticket_url", "").strip()
         adjudicated = request.form.get("adjudicated", "yes")
 
-        society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
+        # society is a free-text input backed by a <datalist> (searchable on
+        # mobile, unlike a 179-option <select>) - so unlike a dropdown, the
+        # browser doesn't guarantee the value is actually one of the options.
+        society = db.execute("SELECT * FROM societies WHERE name = ?", (society_name,)).fetchone()
         if society is None:
-            errors.append("Choose a society from the list.")
+            errors.append("Choose a society from the list (start typing and pick a suggestion).")
         if not show_title:
             errors.append("Show title is required.")
         if season not in season_options:

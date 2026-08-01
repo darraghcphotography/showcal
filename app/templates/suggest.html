@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Suggest a feature - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Suggest a feature</h1>
+  <p>Got an idea for something this site should do? Drop it here - no invite code needed, just a quick note.</p>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="honeypot" aria-hidden="true">
+      <label>Leave this field blank
+        <input type="text" name="website" tabindex="-1" autocomplete="off">
+      </label>
+    </div>
+
+    <label>
+      Your idea
+      <textarea name="message" rows="5" required>{{ form.get('message', '') }}</textarea>
+    </label>
+
+    <label>
+      Name (optional)
+      <input type="text" name="submitted_name" value="{{ form.get('submitted_name', '') }}">
+    </label>
+
+    <button type="submit">Send it</button>
+  </form>
+{% endblock %}

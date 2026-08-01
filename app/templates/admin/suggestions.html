@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Suggestions - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Feature suggestions</h1>
+
+  {% for s in suggestions %}
+    <article class="queue-item {{ 'reviewed' if s['status'] == 'reviewed' }}">
+      <p>{{ s['message'] }}</p>
+      <p class="meta">
+        {{ s['submitted_name'] or 'anonymous' }} &middot; {{ s['created_at'] }}
+        {% if s['status'] == 'reviewed' %}<span class="tag tag-past">Reviewed</span>{% endif %}
+      </p>
+      <form method="post" action="{{ url_for('admin.toggle_suggestion', suggestion_id=s['id']) }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">{{ 'Mark as new' if s['status'] == 'reviewed' else 'Mark as reviewed' }}</button>
+      </form>
+    </article>
+  {% else %}
+    <p>No suggestions yet.</p>
+  {% endfor %}
+{% endblock %}

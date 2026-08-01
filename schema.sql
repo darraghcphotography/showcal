@@ -123,3 +123,36 @@ CREATE TABLE IF NOT EXISTS page_views (
     views           INTEGER NOT NULL DEFAULT 0,
     last_viewed     TEXT
 );
+
+-- Freeform "here's an idea" box - no invite code needed (lower risk than a
+-- show submission: it never appears publicly, just a list only moderators
+-- see), just a honeypot against basic bots.
+CREATE TABLE IF NOT EXISTS feature_suggestions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    message         TEXT NOT NULL,
+    submitted_name  TEXT,
+    status          TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'reviewed')),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- One row per award nomination/result from AIMS's historical awards archive
+-- (1977 onward), imported by import_awards.py. Only years strictly BEFORE
+-- shows.csv's own coverage (season 23/24 = award Year 2024) are imported, so
+-- this never double-counts a production already in the shows table.
+-- society_name is a plain string, not just a FK, because many historical
+-- societies are defunct/renamed and don't match a current societies row -
+-- society_id is filled in only when an exact name match was found.
+CREATE TABLE IF NOT EXISTS historical_results (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    year                INTEGER NOT NULL,
+    tier                TEXT,                 -- 'Gilbert' / 'Sullivan', when known
+    category_name       TEXT,                 -- e.g. 'Best Overall Show', 'Best Director'
+    result              TEXT,                 -- 'Winner' / 'Nominee' / 'Third Place' etc.
+    show                TEXT,
+    society_name        TEXT,
+    society_id          INTEGER REFERENCES societies(id),
+    nominee_name        TEXT,                 -- person, for individual-award categories
+    role                TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_historical_results_show ON historical_results(show);
