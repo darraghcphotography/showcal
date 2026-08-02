@@ -32,7 +32,15 @@ Docker / Portainer:
 docker compose up -d --build
 docker compose exec aims-web python import_csv.py --db /data/aims.db --societies /data/societies.csv --shows /data/shows.csv
 docker compose exec aims-web python seed_admin.py yourname --role admin --db /data/aims.db
+docker compose exec aims-web python import_awards.py --db /data/aims.db
 ```
+**Always pass `--db /data/aims.db` explicitly in the container** - every management script's default `--db`
+points at a bare `aims.db` relative to the image's `/app` working directory, not the volume-mounted real
+database. Forgetting the flag doesn't error - it silently creates/uses a fresh, empty throwaway database
+inside the container's writable layer and reports success against *that*, so nothing actually changes on
+the live site. (`docker compose exec` also needs to be run from the directory holding `docker-compose.yml`;
+if it says "no configuration file provided", `docker exec <container-name>` works from anywhere once you
+have the container name from `docker ps`.)
 
 ## Rules for Claude working in this repo
 
