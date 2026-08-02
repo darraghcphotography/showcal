@@ -104,13 +104,16 @@ def society_detail(society_id):
         (society_id,),
     ).fetchall()
 
-    # Pre-2024 history from the AIMS awards archive, distinct by (year, show) -
-    # historical_results has one row per award category, not per production.
+    # Pre-2024 award/nomination history from the AIMS awards archive - one row
+    # per category (so a single production can appear several times, once per
+    # category it was up for). show can be NULL here (person-level awards like
+    # the Mary Kelly/Unsung Hero Award aren't tied to a specific production).
     historical = db.execute(
         """
-        SELECT DISTINCT year, show FROM historical_results
-        WHERE society_id = ? AND show IS NOT NULL
-        ORDER BY year DESC
+        SELECT year, tier, category_name, result, show, nominee_name, role
+        FROM historical_results
+        WHERE society_id = ?
+        ORDER BY year DESC, category_name
         """,
         (society_id,),
     ).fetchall()

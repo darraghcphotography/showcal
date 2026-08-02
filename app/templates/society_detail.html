@@ -53,14 +53,27 @@
   </table>
 
   {% if historical %}
-    <h2>Earlier history (AIMS awards archive)</h2>
-    <p class="meta">{{ historical|length }} more production{{ '' if historical|length == 1 else 's' }} on record
-       before 23/24{% if historical|length > 1 %}, back to {{ historical[-1]['year'] }}{% endif %}.</p>
+    <h2>Awards &amp; nominations (AIMS awards archive)</h2>
+    <p class="meta">{{ historical|length }} record{{ '' if historical|length == 1 else 's' }} before 23/24
+       {% if historical|length > 1 %}, back to {{ historical[-1]['year'] }}{% endif %}.</p>
     <table class="data-table">
-      <thead><tr><th>Year</th><th>Show</th></tr></thead>
+      <thead><tr><th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th><th>Nominee</th></tr></thead>
       <tbody>
         {% for row in historical %}
-          <tr><td>{{ row['year'] }}</td><td><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></td></tr>
+          <tr>
+            <td>{{ row['year'] }}</td>
+            <td>{{ row['tier'] or '—' }}</td>
+            <td>{{ row['category_name'] or '—' }}</td>
+            <td>{{ row['result'] or '—' }}</td>
+            <td>
+              {% if row['show'] %}
+                <a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ row['nominee_name'] or '—' }}{% if row['role'] %} ({{ row['role'] }}){% endif %}</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>

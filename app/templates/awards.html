@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Awards - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Awards</h1>
+  <p>{{ rows|length }} record{{ '' if rows|length == 1 else 's' }} from the AIMS awards archive (1977 onward).
+     Award-level detail isn't yet tracked for the current DC database era (23/24 onward) - see the
+     <a href="{{ url_for('info.stats') }}">Statistics</a> page for recent show counts.</p>
+
+  <form method="get" class="filter-form">
+    <label>
+      Year
+      <select name="year">
+        <option value="">All years</option>
+        {% for y in years %}
+          <option value="{{ y }}" {% if y|string == selected_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Category
+      <select name="category">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Tier
+      <select name="tier">
+        <option value="">All tiers</option>
+        <option value="Gilbert" {% if selected_tier == 'Gilbert' %}selected{% endif %}>Gilbert</option>
+        <option value="Sullivan" {% if selected_tier == 'Sullivan' %}selected{% endif %}>Sullivan</option>
+      </select>
+    </label>
+    <label>
+      Result
+      <select name="result">
+        <option value="" {% if not selected_result %}selected{% endif %}>All results</option>
+        {% for r in results %}
+          <option value="{{ r }}" {% if r == selected_result %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Search
+      <input type="text" name="q" value="{{ q }}" placeholder="Society, show or nominee">
+    </label>
+    <button type="submit">Filter</button>
+    {% if selected_year or selected_category or selected_tier or q or selected_result != 'Winner' %}
+      <a href="{{ url_for('info.awards') }}">Clear</a>
+    {% endif %}
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th><th>Society</th><th>Nominee</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r['year'] }}</td>
+          <td>{{ r['tier'] or '—' }}</td>
+          <td>{{ r['category_name'] or '—' }}</td>
+          <td>{{ r['result'] or '—' }}</td>
+          <td>
+            {% if r['show'] %}
+              <a href="{{ url_for('public.title_detail', title=r['show']) }}">{{ r['show'] }}</a>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if r['resolved_society_id'] %}
+              <a href="{{ url_for('public.society_detail', society_id=r['resolved_society_id']) }}">{{ r['society_name'] }}</a>
+            {% else %}
+              {{ r['society_name'] or '—' }}
+            {% endif %}
+          </td>
+          <td>{{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7">No award records match those filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

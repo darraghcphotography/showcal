@@ -14,3 +14,6 @@ SOCIETY_SECTIONS = ["Gilbert", "Sullivan", "Non-AIMS", "Inactive"]
 SHOW_SECTIONS = ["Gilbert", "Sullivan", "Non-AIMS"]
 
 REVIEW_STATUSES = ["Published", "Scheduled", "Not adjudicated", "None"]
+
+# Result values as they appear in historical_results (AIMS awards archive).
+AWARD_RESULTS = ["Winner", "Second Place", "Third Place", "Nominee"]

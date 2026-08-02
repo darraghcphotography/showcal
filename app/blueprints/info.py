@@ -2,7 +2,7 @@ from datetime import date
 
 from flask import Blueprint, render_template, request
 
-from ..constants import REGIONS, SHOW_SECTIONS
+from ..constants import AWARD_RESULTS, REGIONS, SHOW_SECTIONS
 from ..db import get_db
 from ..season import current_season
 
@@ -174,4 +174,55 @@ def season_summary():
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
         is_current=(season == current),
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
+    )
+
+
+@bp.route("/awards")
+def awards():
+    db = get_db()
+
+    year = request.args.get("year", "").strip()
+    category = request.args.get("category", "")
+    tier = request.args.get("tier", "")
+    result = request.args.get("result", "Winner")
+    q = request.args.get("q", "").strip()
+
+    years = [r[0] for r in db.execute(
+        "SELECT DISTINCT year FROM historical_results ORDER BY year DESC"
+    ).fetchall()]
+    categories = [r[0] for r in db.execute(
+        "SELECT DISTINCT category_name FROM historical_results WHERE category_name IS NOT NULL ORDER BY category_name"
+    ).fetchall()]
+
+    query = """
+        SELECT historical_results.*, societies.id AS resolved_society_id
+        FROM historical_results
+        LEFT JOIN societies ON societies.id = historical_results.society_id
+        WHERE 1=1
+    """
+    params = []
+    if year.isdigit():
+        query += " AND year = ?"
+        params.append(int(year))
+    if category:
+        query += " AND category_name = ?"
+        params.append(category)
+    if tier in ("Gilbert", "Sullivan"):
+        query += " AND tier = ?"
+        params.append(tier)
+    if result in AWARD_RESULTS:
+        query += " AND result = ?"
+        params.append(result)
+    if q:
+        query += " AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\' OR nominee_name LIKE ? ESCAPE '\\')"
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        like = f"%{escaped}%"
+        params += [like, like, like]
+    query += " ORDER BY year DESC, category_name, society_name"
+
+    rows = db.execute(query, params).fetchall()
+
+    return render_template(
+        "awards.html", rows=rows, years=years, categories=categories, results=AWARD_RESULTS,
+        selected_year=year, selected_category=category, selected_tier=tier, selected_result=result, q=q,
     )
