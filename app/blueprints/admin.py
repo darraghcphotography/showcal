@@ -882,6 +882,93 @@ def awards_list():
     )
 
 
+BULK_AWARD_ROWS = 5
+
+
+@bp.route("/awards/bulk", methods=("GET", "POST"))
+@login_required
+def bulk_award():
+    db = get_db()
+    societies = db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
+    categories = _award_categories(db)
+
+    if request.method == "POST":
+        year = request.form.get("year", "").strip()
+        tier = request.form.get("tier") or None
+        category = request.form.get("category", "")
+        if category == "__other__":
+            category = request.form.get("category_other", "").strip()
+        category = category or None
+        winner_row = request.form.get("winner_row", "")
+
+        errors = []
+        if not year.isdigit():
+            errors.append("Enter a valid year.")
+        if tier and tier not in ("Gilbert", "Sullivan"):
+            errors.append("Choose a valid tier.")
+        if not category:
+            errors.append("Enter a category.")
+
+        rows = []
+        for i in range(BULK_AWARD_ROWS):
+            society_id = request.form.get(f"society_id_{i}", "").strip() or None
+            show = request.form.get(f"show_{i}", "").strip() or None
+            nominee_name = request.form.get(f"nominee_name_{i}", "").strip() or None
+            role = request.form.get(f"role_{i}", "").strip() or None
+
+            if not any((society_id, show, nominee_name, role)):
+                rows.append(None)
+                continue
+
+            society_name = None
+            if society_id:
+                society_row = db.execute("SELECT name FROM societies WHERE id = ?", (society_id,)).fetchone()
+                if society_row is None:
+                    errors.append(f"Row {i + 1}: choose a valid society.")
+                else:
+                    society_name = society_row["name"]
+
+            result = "Winner" if winner_row == str(i) else "Nominee"
+            rows.append({
+                "society_id": society_id, "society_name": society_name, "show": show,
+                "nominee_name": nominee_name, "role": role, "result": result,
+            })
+
+        filled_rows = [r for r in rows if r is not None]
+        if not filled_rows:
+            errors.append("Fill in at least one row.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "admin/award_bulk_form.html", societies=societies, categories=categories,
+                bulk_rows=BULK_AWARD_ROWS, form=request.form,
+            )
+
+        for row in filled_rows:
+            db.execute(
+                """
+                INSERT INTO historical_results (
+                    year, tier, category_name, result, show, society_name, society_id,
+                    nominee_name, role, source
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')
+                """,
+                (
+                    int(year), tier, category, row["result"], row["show"],
+                    row["society_name"], row["society_id"], row["nominee_name"], row["role"],
+                ),
+            )
+        db.commit()
+        flash(f"Added {len(filled_rows)} award record{'s' if len(filled_rows) != 1 else ''}.", "success")
+        return redirect(url_for("admin.awards_list"))
+
+    return render_template(
+        "admin/award_bulk_form.html", societies=societies, categories=categories,
+        bulk_rows=BULK_AWARD_ROWS, form={},
+    )
+
+
 @bp.route("/awards/new", methods=("GET", "POST"))
 @login_required
 def new_award():

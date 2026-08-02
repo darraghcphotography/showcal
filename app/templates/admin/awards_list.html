@@ -2,7 +2,11 @@
 {% block title %}Awards - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
   <h1>Awards</h1>
-  <p><a href="{{ url_for('admin.new_award') }}">+ Add award result</a></p>
+  <p>
+    <a href="{{ url_for('admin.new_award') }}">+ Add award result</a>
+    &middot;
+    <a href="{{ url_for('admin.bulk_award') }}">+ Add a whole category's results at once</a>
+  </p>
 
   <form method="get" class="filter-form">
     <label>

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Bulk add award results - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.awards_list') }}">&larr; Back to awards</a></p>
+  <h1>Bulk add award results</h1>
+  <p>Enter one category's results for a whole year at once - pick the year/tier/category once below, then fill
+     in each nominee. Mark exactly one row as the winner; every other filled row is saved as a nominee. Leave a
+     row blank to skip it.</p>
+
+  <form method="post" class="bulk-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Year
+      <input type="number" name="year" value="{{ form.get('year', '') }}" min="1977" max="2036" required>
+    </label>
+
+    <label>
+      Tier
+      <select name="tier">
+        <option value="">—</option>
+        <option value="Gilbert" {% if form.get('tier') == 'Gilbert' %}selected{% endif %}>Gilbert</option>
+        <option value="Sullivan" {% if form.get('tier') == 'Sullivan' %}selected{% endif %}>Sullivan</option>
+      </select>
+    </label>
+
+    <label>
+      Category
+      <select name="category" onchange="document.getElementById('category-other').style.display = this.value === '__other__' ? 'inline-block' : 'none';">
+        <option value="">—</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if c == form.get('category') %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+        <option value="__other__" {% if form.get('category') == '__other__' %}selected{% endif %}>Other (type below)</option>
+      </select>
+      <input type="text" name="category_other" id="category-other" placeholder="New category name"
+             value="{{ form.get('category_other', '') }}"
+             style="display: {{ 'inline-block' if form.get('category') == '__other__' else 'none' }}; margin-left: 0.5rem;">
+    </label>
+
+    <table class="data-table bulk-table">
+      <thead>
+        <tr><th>Winner</th><th>Society</th><th>Show</th><th>Nominee name</th><th>Role</th></tr>
+      </thead>
+      <tbody>
+        {% for i in range(bulk_rows) %}
+          <tr>
+            <td>
+              <input type="radio" name="winner_row" value="{{ i }}"
+                     {% if form.get('winner_row')|string == i|string %}checked{% endif %}>
+            </td>
+            <td>
+              <select name="society_id_{{ i }}">
+                <option value="">—</option>
+                {% for s in societies %}
+                  <option value="{{ s['id'] }}" {% if form.get('society_id_' ~ i)|string == s['id']|string %}selected{% endif %}>{{ s['name'] }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input type="text" name="show_{{ i }}" value="{{ form.get('show_' ~ i, '') }}"></td>
+            <td><input type="text" name="nominee_name_{{ i }}" value="{{ form.get('nominee_name_' ~ i, '') }}"></td>
+            <td><input type="text" name="role_{{ i }}" value="{{ form.get('role_' ~ i, '') }}"></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button type="submit">Save these results</button>
+  </form>
+{% endblock %}
