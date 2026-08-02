@@ -4,3 +4,12 @@ __pycache__/
 aims.db
 data/
 uploads/
+
+# Images dropped straight in the project root for manual testing (e.g. a
+# sample poster/logo to try an upload with) - not source files. Root-only
+# (leading /), so this doesn't touch real image assets under app/static/.
+/*.jpg
+/*.jpeg
+/*.png
+/*.gif
+/*.webp
