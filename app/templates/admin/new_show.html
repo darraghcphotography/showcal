@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Add show - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.edit_society', society_id=society['id']) }}">&larr; Back to {{ society['name'] }}</a></p>
+  <h1>Add show for {{ society['name'] }}</h1>
+
+  <form method="post" class="stacked-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Season
+      <select name="season" required>
+        <option value="">—</option>
+        {% for s in seasons %}
+          <option value="{{ s }}" {% if s == form.get('season') %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Region
+      <select name="region" required>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == form.get('region') %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Tier
+      <select name="section">
+        <option value="">—</option>
+        {% for s in sections %}
+          <option value="{{ s }}" {% if s == form.get('section') %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Show title
+      <input type="text" name="show" value="{{ form.get('show', '') }}">
+    </label>
+
+    <label>
+      Opening date
+      <input type="date" name="opening_date" value="{{ form.get('opening_date', '') }}" min="1970-01-01" max="2036-12-31">
+    </label>
+
+    <label>
+      Closing date
+      <input type="date" name="closing_date" value="{{ form.get('closing_date', '') }}" min="1970-01-01" max="2036-12-31">
+    </label>
+
+    <label>
+      Adjudication date
+      <input type="date" name="adjudication_date" value="{{ form.get('adjudication_date', '') }}" min="1970-01-01" max="2036-12-31">
+    </label>
+
+    <label>
+      Venue <span class="hint">(leave blank to use the society's default venue)</span>
+      <input type="text" name="venue" value="{{ form.get('venue', '') }}">
+    </label>
+
+    <label>
+      Director
+      <input type="text" name="director" value="{{ form.get('director', '') }}">
+    </label>
+
+    <label>
+      Musical Director
+      <input type="text" name="musical_director" value="{{ form.get('musical_director', '') }}">
+    </label>
+
+    <label>
+      Choreographer
+      <input type="text" name="choreographer" value="{{ form.get('choreographer', '') }}">
+    </label>
+
+    <label>
+      Ticket link
+      <input type="url" name="ticket_url" value="{{ form.get('ticket_url', '') }}">
+    </label>
+
+    <label class="checkbox-label">
+      <input type="checkbox" name="cancelled" {% if form.get('cancelled') %}checked{% endif %}>
+      Cancelled
+    </label>
+
+    <fieldset>
+      <legend>Poster</legend>
+      <label>
+        Upload poster
+        <input type="file" name="poster" accept="image/png,image/jpeg,image/webp,image/gif">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Review</legend>
+      <label>
+        Review status
+        <select name="review_status">
+          {% for rs in review_statuses %}
+            <option value="{{ rs }}" {% if rs == form.get('review_status') %}selected{% endif %}>{{ rs }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Review URL <span class="hint">(setting this flips the status to Published)</span>
+        <input type="url" name="review_url" value="{{ form.get('review_url', '') }}">
+      </label>
+    </fieldset>
+
+    <button type="submit">Add show</button>
+  </form>
+{% endblock %}

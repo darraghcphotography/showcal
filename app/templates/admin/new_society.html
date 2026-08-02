@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Add society - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.societies_list') }}">&larr; Back to societies</a></p>
+  <h1>Add society</h1>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Name
+      <input type="text" name="name" value="{{ form.get('name', '') }}" required>
+    </label>
+
+    <label>
+      Region
+      <select name="region" required>
+        <option value="">—</option>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == form.get('region') %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Tier
+      <select name="section" required>
+        <option value="">—</option>
+        {% for s in sections %}
+          <option value="{{ s }}" {% if s == form.get('section') %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Section as of (season, e.g. 26/27) <span class="hint">(optional)</span>
+      <input type="text" name="section_as_of" value="{{ form.get('section_as_of', '') }}">
+    </label>
+
+    <label>
+      Notes <span class="hint">(optional)</span>
+      <input type="text" name="notes" value="{{ form.get('notes', '') }}">
+    </label>
+
+    <label>
+      Default venue <span class="hint">(optional - prefilled on a new show whenever venue is left blank)</span>
+      <input type="text" name="default_venue" value="{{ form.get('default_venue', '') }}">
+    </label>
+
+    <button type="submit">Add society</button>
+  </form>
+{% endblock %}

@@ -1,5 +1,6 @@
 import functools
 import re
+import sqlite3
 from datetime import date, datetime
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
@@ -9,6 +10,7 @@ from ..auth import current_user, login_required
 from ..constants import REGIONS, REVIEW_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
 from ..dedupe import find_candidates
+from ..season import season_range
 from ..uploads import save_poster
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -128,6 +130,124 @@ def shows_list():
 
     shows = get_db().execute(query, params).fetchall()
     return render_template("admin/shows_list.html", shows=shows, q=q, needs_review=needs_review)
+
+
+@bp.route("/societies/<int:society_id>/shows/new", methods=("GET", "POST"))
+@login_required
+def new_show(society_id):
+    db = get_db()
+    society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
+    if society is None:
+        abort(404)
+
+    if request.method == "POST":
+        errors = []
+        season = request.form.get("season", "").strip()
+        region = request.form.get("region", "")
+        section = request.form.get("section") or None
+        show_title = request.form.get("show", "").strip() or None
+        opening_date = request.form.get("opening_date", "").strip() or None
+        closing_date = request.form.get("closing_date", "").strip() or None
+        adjudication_date = request.form.get("adjudication_date", "").strip() or None
+        venue = request.form.get("venue", "").strip() or None
+        director = request.form.get("director", "").strip() or None
+        musical_director = request.form.get("musical_director", "").strip() or None
+        choreographer = request.form.get("choreographer", "").strip() or None
+        review_url = request.form.get("review_url", "").strip() or None
+        review_status = request.form.get("review_status", "None")
+        ticket_url = request.form.get("ticket_url", "").strip() or None
+        cancelled = bool(request.form.get("cancelled"))
+
+        if not season:
+            errors.append("Choose a season.")
+        if region not in REGIONS:
+            errors.append("Choose a valid region.")
+        if section is not None and section not in SHOW_SECTIONS:
+            errors.append("Choose a valid tier.")
+        for label, value in (
+            ("Opening date", opening_date),
+            ("Closing date", closing_date),
+            ("Adjudication date", adjudication_date),
+        ):
+            if value and not DATE_RE.match(value):
+                errors.append(f"{label} must be a valid date.")
+
+        if review_url:
+            review_status = "Published"
+        elif review_status not in REVIEW_STATUSES:
+            errors.append("Choose a valid review status.")
+
+        poster_filename = None
+        poster_file = request.files.get("poster")
+        if poster_file and poster_file.filename:
+            try:
+                poster_filename = save_poster(poster_file, current_app.config["UPLOAD_DIR"])
+            except ValueError as e:
+                errors.append(str(e))
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "admin/new_show.html", society=society, regions=REGIONS, sections=SHOW_SECTIONS,
+                review_statuses=REVIEW_STATUSES, seasons=season_range(db), form=request.form,
+            )
+
+        try:
+            db.execute(
+                """
+                INSERT INTO shows (
+                    society_id, season, region, section, show,
+                    opening_date, closing_date, adjudication_date,
+                    venue, director, musical_director, choreographer,
+                    review_url, review_status, ticket_url, poster_filename, status,
+                    moderation_status, source, moderated_by, moderated_at
+                ) VALUES (
+                    :society_id, :season, :region, :section, :show,
+                    :opening_date, :closing_date, :adjudication_date,
+                    :venue, :director, :musical_director, :choreographer,
+                    :review_url, :review_status, :ticket_url, :poster_filename, :status,
+                    'approved', 'submission', :moderated_by, :moderated_at
+                )
+                """,
+                {
+                    "society_id": society_id,
+                    "season": season,
+                    "region": region,
+                    "section": section,
+                    "show": show_title,
+                    "opening_date": opening_date,
+                    "closing_date": closing_date,
+                    "adjudication_date": adjudication_date,
+                    "venue": venue or society["default_venue"],
+                    "director": director,
+                    "musical_director": musical_director,
+                    "choreographer": choreographer,
+                    "review_url": review_url,
+                    "review_status": review_status,
+                    "ticket_url": ticket_url,
+                    "poster_filename": poster_filename,
+                    "status": "Cancelled" if cancelled else None,
+                    "moderated_by": current_user()["username"],
+                    "moderated_at": datetime.utcnow().isoformat(),
+                },
+            )
+        except sqlite3.IntegrityError:
+            flash("This society already has a show with that exact title in that season.", "error")
+            return render_template(
+                "admin/new_show.html", society=society, regions=REGIONS, sections=SHOW_SECTIONS,
+                review_statuses=REVIEW_STATUSES, seasons=season_range(db), form=request.form,
+            )
+
+        db.commit()
+        flash("Show added.", "success")
+        return redirect(url_for("admin.edit_society", society_id=society_id))
+
+    return render_template(
+        "admin/new_show.html", society=society, regions=REGIONS, sections=SHOW_SECTIONS,
+        review_statuses=REVIEW_STATUSES, seasons=season_range(db),
+        form={"region": society["region"]},
+    )
 
 
 @bp.route("/shows/<int:show_id>/edit", methods=("GET", "POST"))
@@ -298,6 +418,56 @@ def societies_list():
     query += " ORDER BY name"
     societies = get_db().execute(query, params).fetchall()
     return render_template("admin/societies_list.html", societies=societies, q=q)
+
+
+@bp.route("/societies/new", methods=("GET", "POST"))
+@login_required
+def new_society():
+    db = get_db()
+
+    if request.method == "POST":
+        errors = []
+        name = request.form.get("name", "").strip()
+        region = request.form.get("region", "")
+        section = request.form.get("section", "")
+        section_as_of = request.form.get("section_as_of", "").strip() or None
+        notes = request.form.get("notes", "").strip() or None
+        default_venue = request.form.get("default_venue", "").strip() or None
+
+        if not name:
+            errors.append("Name is required.")
+        elif db.execute("SELECT id FROM societies WHERE name = ?", (name,)).fetchone():
+            errors.append("A society with that exact name already exists.")
+        if region not in REGIONS:
+            errors.append("Choose a valid region.")
+        if section not in SOCIETY_SECTIONS:
+            errors.append("Choose a valid tier.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "admin/new_society.html", regions=REGIONS, sections=SOCIETY_SECTIONS, form=request.form
+            )
+
+        # societies.id is the stable id from the AIMS CSV export, not an
+        # autoincrement column (see schema.sql) - keep manually-added societies
+        # in their own id range so a future CSV re-import can never collide.
+        max_id = db.execute("SELECT MAX(id) FROM societies").fetchone()[0] or 0
+        new_id = max(10000, max_id + 1)
+
+        db.execute(
+            """
+            INSERT INTO societies (id, name, region, section, section_as_of, notes, default_venue)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (new_id, name, region, section, section_as_of, notes, default_venue),
+        )
+        db.commit()
+        flash(f'"{name}" added.', "success")
+        return redirect(url_for("admin.edit_society", society_id=new_id))
+
+    return render_template("admin/new_society.html", regions=REGIONS, sections=SOCIETY_SECTIONS, form={})
 
 
 @bp.route("/societies/<int:society_id>/edit", methods=("GET", "POST"))

@@ -3,6 +3,8 @@
 {% block content %}
   <h1>Societies</h1>
 
+  <p><a href="{{ url_for('admin.new_society') }}">+ Add society</a></p>
+
   <form method="get" class="filter-form">
     <label>
       Search
@@ -12,7 +14,7 @@
   </form>
 
   <table class="data-table">
-    <thead><tr><th>Name</th><th>Region</th><th>Tier</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Region</th><th>Tier</th><th></th><th></th></tr></thead>
     <tbody>
       {% for s in societies %}
         <tr>
@@ -20,9 +22,10 @@
           <td>{{ s['region'] }}</td>
           <td>{{ s['section'] }}</td>
           <td><a href="{{ url_for('admin.edit_society', society_id=s['id']) }}">Edit</a></td>
+          <td><a href="{{ url_for('admin.new_show', society_id=s['id']) }}">Add show</a></td>
         </tr>
       {% else %}
-        <tr><td colspan="4">No societies match.</td></tr>
+        <tr><td colspan="5">No societies match.</td></tr>
       {% endfor %}
     </tbody>
   </table>

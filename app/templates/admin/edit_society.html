@@ -4,6 +4,12 @@
   <p><a href="{{ url_for('admin.societies_list') }}">&larr; Back to societies</a></p>
   <h1>Edit society</h1>
 
+  <p>
+    <a href="{{ url_for('admin.new_show', society_id=society['id']) }}">+ Add a show for this society</a>
+    &middot;
+    <a href="{{ url_for('admin.shows_list', q=society['name']) }}">View this society's shows</a>
+  </p>
+
   <form method="post" class="stacked-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
