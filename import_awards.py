@@ -34,6 +34,7 @@ SHOW_RENAMES = {
     "Shrek The Musical": "Shrek",
     "Shrek the Musical": "Shrek",
     "Pirates of Penzance": "The Pirates of Penzance",  # 81 rows use "The", only a handful drop it
+    "Me & My Girl": "Me and My Girl",  # official title spells out "and" - found while auditing top titles
 }
 
 # Rows where the source data genuinely concatenated two separate real
