@@ -48,6 +48,8 @@ RENAMES = {
     "The Witches of Eastwick Footloose": "Footloose",
     "Michael Collins: A Musical Drama FROZEN": "Frozen",
     "Oklahoma Annie": "Annie",
+
+    "American Idiot!": "American Idiot",  # official title has no exclamation mark
 }
 
 # Not a real show title - a stray placeholder that should be NULL, like the

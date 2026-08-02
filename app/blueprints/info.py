@@ -2,6 +2,7 @@ from datetime import date
 
 from flask import Blueprint, render_template, request
 
+from ..constants import REGIONS, SHOW_SECTIONS
 from ..db import get_db
 from ..season import current_season
 
@@ -40,10 +41,21 @@ def stats():
 
     # "Most selected" = how many *different* societies have put this show on,
     # as opposed to "most performed" which also counts a society doing the
-    # same show twice. Usually close to the same list, but a cleaner measure
-    # of a show's popularity across the circuit rather than raw staging count.
-    # A historical society without a societies.id match still counts as a
+    # same show twice - a cleaner measure of a show's popularity across the
+    # circuit than raw staging count. Split into two eras: the site's own
+    # tracked data (23/24 onward - the "DC Database") on its own, and an
+    # all-time view folding in the pre-2024 AIMS awards archive too. A
+    # historical society without a societies.id match still counts as a
     # distinct selector, keyed by its name instead.
+    most_selected_recent_era = db.execute(
+        """
+        SELECT show, COUNT(DISTINCT society_id) AS n FROM shows
+        WHERE show IS NOT NULL AND moderation_status = 'approved'
+        GROUP BY show ORDER BY n DESC, show LIMIT ?
+        """,
+        (TOP_N,),
+    ).fetchall()
+
     most_selected = db.execute(
         """
         SELECT show, COUNT(DISTINCT society_key) AS n FROM (
@@ -106,6 +118,22 @@ def stats():
         """
     ).fetchall()
 
+    by_region = db.execute(
+        """
+        SELECT region AS label, COUNT(*) AS n FROM shows
+        WHERE show IS NOT NULL AND moderation_status = 'approved'
+        GROUP BY region ORDER BY n DESC
+        """
+    ).fetchall()
+
+    by_tier = db.execute(
+        """
+        SELECT section AS label, COUNT(*) AS n FROM shows
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND section IS NOT NULL
+        GROUP BY section ORDER BY n DESC
+        """
+    ).fetchall()
+
     return render_template(
         "stats.html",
         total_societies=total_societies,
@@ -113,10 +141,13 @@ def stats():
         total_titles=total_titles,
         most_performed=most_performed,
         most_selected=most_selected,
+        most_selected_recent_era=most_selected_recent_era,
         most_performed_recent=most_performed_recent,
         recent_season_list=recent_season_list,
         one_offs=one_offs,
         by_season=by_season,
+        by_region=by_region,
+        by_tier=by_tier,
         historical_from=historical_from,
         historical_to=historical_to,
         historical_productions=historical_productions,
@@ -138,17 +169,27 @@ def season_summary():
     requested = request.args.get("season", "")
     season = requested if requested in all_seasons else current
 
-    shows = db.execute(
-        """
+    region = request.args.get("region", "")
+    tier = request.args.get("tier", "")
+
+    query = """
         SELECT shows.*, societies.name AS society_name,
             (COALESCE(shows.closing_date, shows.opening_date) < ?) AS is_past
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.season = ? AND shows.moderation_status = 'approved' AND shows.show IS NOT NULL
-        ORDER BY (shows.opening_date IS NULL), shows.opening_date
-        """,
-        (date.today().isoformat(), season),
-    ).fetchall()
+    """
+    params = [date.today().isoformat(), season]
+    if region in REGIONS:
+        query += " AND shows.region = ?"
+        params.append(region)
+    if tier in SHOW_SECTIONS:
+        query += " AND shows.section = ?"
+        params.append(tier)
+    query += " ORDER BY (shows.opening_date IS NULL), shows.opening_date"
+
+    shows = db.execute(query, params).fetchall()
 
     return render_template(
-        "season.html", season=season, shows=shows, all_seasons=all_seasons, is_current=(season == current)
+        "season.html", season=season, shows=shows, all_seasons=all_seasons, is_current=(season == current),
+        regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
     )

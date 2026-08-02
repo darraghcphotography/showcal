@@ -9,10 +9,14 @@
   </p>
   {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
 
+  {% if current_user %}
+    <p><a href="{{ url_for('admin.edit_society', society_id=society['id']) }}" class="edit-callout">Edit this society &rarr;</a></p>
+  {% endif %}
+
   <h2>Show history</h2>
   <table class="data-table">
     <thead>
-      <tr><th>Season</th><th>Show</th><th>Tier</th><th>Dates</th><th>Review</th></tr>
+      <tr><th>Season</th><th>Show</th><th>Tier</th><th>Dates</th><th>Review</th>{% if current_user %}<th></th>{% endif %}</tr>
     </thead>
     <tbody>
       {% for show in shows %}
@@ -37,9 +41,10 @@
               {{ show['review_status'] }}
             {% endif %}
           </td>
+          {% if current_user %}<td><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit</a></td>{% endif %}
         </tr>
       {% else %}
-        <tr><td colspan="5">No shows on record yet.</td></tr>
+        <tr><td colspan="6">No shows on record yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -19,6 +19,10 @@
         {% endfor %}
       </select>
     </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="missing" value="1" {% if missing %}checked{% endif %}>
+      Missing a date only
+    </label>
     <button type="submit">Filter</button>
   </form>
 
@@ -43,7 +47,7 @@
   <!-- One real <form> per row, referenced by the inputs above via the form="" attribute -
        keeps the table itself valid HTML (a <tr> can't directly contain a <form>). -->
   {% for show in shows %}
-    <form id="row-{{ show['id'] }}" method="post" action="{{ url_for('admin.fix_dates', q=q, season=season) }}" hidden>
+    <form id="row-{{ show['id'] }}" method="post" action="{{ url_for('admin.fix_dates', q=q, season=season, missing=missing) }}" hidden>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="show_id" value="{{ show['id'] }}">
     </form>

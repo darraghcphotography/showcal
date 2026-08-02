@@ -363,6 +363,7 @@ def fix_dates():
 
     q = request.args.get("q", "").strip()
     season = request.args.get("season", "").strip()
+    missing = request.args.get("missing", "")
     query = """
         SELECT shows.*, societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
@@ -377,6 +378,8 @@ def fix_dates():
     if season:
         query += " AND shows.season = ?"
         params.append(season)
+    if missing:
+        query += " AND (shows.opening_date IS NULL OR shows.closing_date IS NULL)"
     query += " ORDER BY shows.season DESC, societies.name"
     shows = db.execute(query, params).fetchall()
 
@@ -387,7 +390,9 @@ def fix_dates():
         ).fetchall()
     ]
 
-    return render_template("admin/fix_dates.html", shows=shows, q=q, season=season, seasons=seasons)
+    return render_template(
+        "admin/fix_dates.html", shows=shows, q=q, season=season, seasons=seasons, missing=missing
+    )
 
 
 @bp.route("/suggestions")

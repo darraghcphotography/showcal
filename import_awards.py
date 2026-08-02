@@ -16,10 +16,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 
+# Known duplicate/mangled show titles found by auditing the one-off list
+# after import - same idea as fix_show_titles.py's RENAMES, but applied here
+# at import time since historical_results is fully regenerated on every run.
+SHOW_RENAMES = {
+    "Title Of Show": "Title of Show",
+    "Michael Collins -  A Musical Drama": "Michael Collins",  # matches the canonical merge in fix_show_titles.py
+    "Made In Dagenham": "Made in Dagenham",
+    "Oliver": "Oliver!",
+    "Die Fliedermaus": "Die Fledermaus",  # German for "the bat" - "Fliedermaus" isn't a word
+    "Finians Rainbow": "Finian's Rainbow",
+    "Kipp Half a Sixpence": "Half a Sixpence",
+    "Shrek The Musical": "Shrek",
+}
+
 
 def normalize(value):
     value = (value or "").strip()
     return value or None
+
+
+def normalize_show(value):
+    value = normalize(value)
+    if value is None:
+        return None
+    return SHOW_RENAMES.get(value, value)
 
 
 def main():
@@ -67,7 +88,7 @@ def main():
                 normalize(row.get("SchemeName")),
                 normalize(row.get("CategoryName")),
                 normalize(row.get("ResultText")),
-                normalize(row.get("Showname")),
+                normalize_show(row.get("Showname")),
                 society_name,
                 name_to_id.get(society_name) if society_name else None,
                 normalize(row.get("NomineeName")),

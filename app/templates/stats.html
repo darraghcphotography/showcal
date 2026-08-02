@@ -1,12 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Statistics - Unofficial AIMS Show Tracker{% endblock %}
 
-{% macro bar_chart(rows) %}
+{% macro bar_chart(rows, linked=true) %}
   {% set top = rows[0]['n'] if rows else 1 %}
   <div class="bar-list">
     {% for row in rows %}
       <div class="bar-row">
-        <a class="bar-label" href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a>
+        {% if linked %}
+          <a class="bar-label" href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a>
+        {% else %}
+          <span class="bar-label">{{ row['label'] }}</span>
+        {% endif %}
         <div class="bar-track"><div class="bar-fill" style="width: {{ (row['n'] / top * 100)|round(1) }}%"></div></div>
         <span class="bar-count">{{ row['n'] }}</span>
       </div>
@@ -18,14 +22,23 @@
   <h1>Statistics</h1>
   <p><a href="{{ url_for('feeds.export_shows_csv') }}">Download the full dataset (CSV) &darr;</a></p>
 
-  <dl class="detail-list">
-    <dt>Societies on record</dt>
-    <dd>{{ total_societies }}</dd>
-    <dt>Shows on record</dt>
-    <dd>{{ total_shows }}</dd>
-    <dt>Distinct show titles</dt>
-    <dd>{{ total_titles }}</dd>
-  </dl>
+  <div class="stat-tiles">
+    <div class="stat-tile"><span class="stat-value">{{ total_societies }}</span><span class="stat-label">Societies</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ total_shows }}</span><span class="stat-label">Shows since 23/24</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ total_titles }}</span><span class="stat-label">Distinct titles since 23/24</span></div>
+    {% if historical_productions %}
+      <div class="stat-tile stat-tile-gold">
+        <span class="stat-value">{{ historical_productions }}</span>
+        <span class="stat-label">More productions on record, {{ historical_from }}&ndash;{{ historical_to }}</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <h2>Shows by region</h2>
+  {{ bar_chart(by_region, linked=false) }}
+
+  <h2>Shows by tier</h2>
+  {{ bar_chart(by_tier, linked=false) }}
 
   <h2>Shows by season</h2>
   <table class="data-table">
@@ -43,13 +56,19 @@
     </tbody>
   </table>
 
-  <h2>Most selected shows</h2>
+  <h2>Most selected shows since the DC Database (23/24&ndash;current season)</h2>
   <p class="meta">By number of different societies that have put it on - a cleaner read on popularity than raw
      staging count, since it doesn't get inflated by one society repeating the same show.</p>
-  {{ bar_chart(most_selected) }}
+  {{ bar_chart(most_selected_recent_era) }}
+
+  {% if historical_productions %}
+    <h2>Most selected shows, all time (since {{ historical_from }})</h2>
+    <p class="meta">The same measure, extended back through AIMS's awards archive.</p>
+    {{ bar_chart(most_selected) }}
+  {% endif %}
 
   <h2>Most performed shows (all time)</h2>
-  <p class="meta">Total number of productions, all-time.</p>
+  <p class="meta">Total number of productions{% if historical_productions %}, including the AIMS awards archive back to {{ historical_from }}{% endif %}.</p>
   {{ bar_chart(most_performed) }}
 
   {% if recent_season_list %}
@@ -58,7 +77,8 @@
   {% endif %}
 
   <h2>Performed only once ({{ one_offs|length }} shows)</h2>
-  <p class="meta">Every title below has appeared on the AIMS circuit exactly once in the data on record.</p>
+  <p class="meta">Every title below has appeared on the AIMS circuit exactly once in the data on record
+     (including the historical archive) - some may be spelling variants worth double-checking.</p>
   <ul class="plain-list">
     {% for row in one_offs %}
       <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>

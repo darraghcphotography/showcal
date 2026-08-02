@@ -10,6 +10,10 @@
     {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
   </p>
 
+  {% if current_user %}
+    <p><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}" class="edit-callout">Edit this show &rarr;</a></p>
+  {% endif %}
+
   {% if show['poster_filename'] %}
     <img class="poster" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
   {% endif %}
