@@ -59,6 +59,20 @@ SOCIETY_RENAMES = {
     "Fusion Theatre Group": "Fusion Theatre, Lisburn",  # same defunct/inactive group, consolidating the name only
 }
 
+# Rows where the source data left CategoryName blank - found by auditing the
+# 2026 Mary Kelly/Unsung Hero Award nominees (blank category + blank show is
+# otherwise a near-unique signature of that category, 162 of 167 such rows -
+# confirmed against these specific ones with the maintainer). Keyed by
+# (year, society_name, nominee_name) since that uniquely identifies a row
+# without a category to key off in the source data.
+CATEGORY_FIXES = {
+    (2026, "Oyster Lane Theatre Group", "Paddy & Marie Hayes"): "Mary Kelly/Unsung Hero Award",
+    (2026, "Harolds Cross Tallaght Musical Society", "Máirín Heffernan"): "Mary Kelly/Unsung Hero Award",
+    (2026, "Newcastle Glees Musical Society", "Edna Howard"): "Mary Kelly/Unsung Hero Award",
+    (2026, "Inish Theatre Group", "Adrian McMyler"): "Mary Kelly/Unsung Hero Award",
+    (2026, "Baldoyle Musical Society", "James & Nina O’Keeffe"): "Mary Kelly/Unsung Hero Award",
+}
+
 
 def normalize(value):
     value = (value or "").strip()
@@ -109,6 +123,11 @@ def main():
         society_name = normalize_society(row.get("ResolvedSocietyName"))
         raw_show = normalize(row.get("Showname"))
         show_titles = SHOW_SPLITS.get(raw_show) or [normalize_show(row.get("Showname"))]
+        nominee_name = normalize(row.get("NomineeName"))
+
+        category_name = normalize(row.get("CategoryName"))
+        if category_name is None:
+            category_name = CATEGORY_FIXES.get((year, society_name, nominee_name))
 
         for show_title in show_titles:
             conn.execute(
@@ -121,12 +140,12 @@ def main():
                 (
                     year,
                     normalize(row.get("SchemeName")),
-                    normalize(row.get("CategoryName")),
+                    category_name,
                     normalize(row.get("ResultText")),
                     show_title,
                     society_name,
                     name_to_id.get(society_name) if society_name else None,
-                    normalize(row.get("NomineeName")),
+                    nominee_name,
                     normalize(row.get("Role")),
                     normalize(row.get("Reason")),
                 ),
