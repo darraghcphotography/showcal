@@ -45,18 +45,20 @@ def create_app(test_config=None):
     from .blueprints.admin import bp as admin_bp
     from .blueprints.info import bp as info_bp
     from .blueprints.feeds import bp as feeds_bp
+    from .blueprints.society import bp as society_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(submit_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(info_bp)
     app.register_blueprint(feeds_bp)
+    app.register_blueprint(society_bp)
 
     from . import auth
 
     @app.context_processor
     def inject_globals():
-        return {"current_user": auth.current_user()}
+        return {"current_user": auth.current_user(), "society_session": auth.active_society_code()}
 
     from flask import flash, redirect, request, url_for
 

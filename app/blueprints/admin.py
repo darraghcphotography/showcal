@@ -227,8 +227,18 @@ def edit_show(show_id):
 @bp.route("/invite-codes")
 @admin_required
 def invite_codes():
-    codes = get_db().execute("SELECT * FROM invite_codes ORDER BY created_at DESC").fetchall()
-    return render_template("admin/invite_codes.html", codes=codes, today=date.today().isoformat())
+    db = get_db()
+    codes = db.execute(
+        """
+        SELECT invite_codes.*, societies.name AS society_name
+        FROM invite_codes LEFT JOIN societies ON societies.id = invite_codes.society_id
+        ORDER BY invite_codes.created_at DESC
+        """
+    ).fetchall()
+    societies = db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
+    return render_template(
+        "admin/invite_codes.html", codes=codes, societies=societies, today=date.today().isoformat()
+    )
 
 
 @bp.route("/invite-codes/create", methods=("POST",))
@@ -237,6 +247,7 @@ def create_invite_code():
     code = request.form.get("code", "").strip()
     label = request.form.get("label", "").strip() or None
     expires_at = request.form.get("expires_at", "").strip() or None
+    society_id = request.form.get("society_id", "").strip() or None
 
     if not code:
         flash("Enter a code.", "error")
@@ -248,9 +259,13 @@ def create_invite_code():
         flash("That code already exists.", "error")
         return redirect(url_for("admin.invite_codes"))
 
+    if society_id and not db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone():
+        flash("Choose a valid society.", "error")
+        return redirect(url_for("admin.invite_codes"))
+
     db.execute(
-        "INSERT INTO invite_codes (code, label, expires_at, created_by) VALUES (?, ?, ?, ?)",
-        (code, label, expires_at, current_user()["username"]),
+        "INSERT INTO invite_codes (code, label, expires_at, society_id, created_by) VALUES (?, ?, ?, ?, ?)",
+        (code, label, expires_at, society_id, current_user()["username"]),
     )
     db.commit()
     flash("Invite code created.", "success")
@@ -300,6 +315,7 @@ def edit_society(society_id):
         section_as_of = request.form.get("section_as_of", "").strip() or None
         section_history = request.form.get("section_history", "").strip() or None
         notes = request.form.get("notes", "").strip() or None
+        default_venue = request.form.get("default_venue", "").strip() or None
 
         if not name:
             errors.append("Name is required.")
@@ -322,10 +338,10 @@ def edit_society(society_id):
         db.execute(
             """
             UPDATE societies SET name = ?, region = ?, section = ?,
-                section_as_of = ?, section_history = ?, notes = ?
+                section_as_of = ?, section_history = ?, notes = ?, default_venue = ?
             WHERE id = ?
             """,
-            (name, region, section, section_as_of, section_history, notes, society_id),
+            (name, region, section, section_as_of, section_history, notes, default_venue, society_id),
         )
         db.commit()
         flash("Society updated.", "success")

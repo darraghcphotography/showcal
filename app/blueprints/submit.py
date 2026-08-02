@@ -124,7 +124,7 @@ def new():
                 "show": show_title,
                 "opening_date": opening_date or None,
                 "closing_date": closing_date or None,
-                "venue": venue or None,
+                "venue": venue or society["default_venue"],
                 "director": director or None,
                 "musical_director": musical_director or None,
                 "choreographer": choreographer or None,

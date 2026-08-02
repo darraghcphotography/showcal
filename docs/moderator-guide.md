@@ -79,3 +79,20 @@ visitor tracking, just "how many times has each page loaded" and when it was
 last viewed. Useful for a rough sense of whether anyone's actually using the
 site before investing more time in it. Admin pages, the CSV export, and
 `robots.txt`/`sitemap.xml` aren't counted.
+
+## Society logins
+
+`/admin/invite-codes` doubles as where you create these: pick a society when
+creating a code (instead of leaving it blank) and it becomes a **society
+login** rather than a one-off submission code. Share it with that society's
+secretary and they can log in at `/society/login` to manage their own show
+history directly at `/society/` - add or edit past seasons, dates, tier,
+production team, poster, ticket link. Changes go **live immediately**, no
+moderation queue, but they can never set or see the review status/URL fields
+- those stay yours to attach, same as for a CSV-imported or publicly
+submitted show. They also can't touch any other society's shows (enforced
+server-side, not just hidden in the UI).
+
+A society's **default venue** (set on their edit page under `/admin/societies`)
+prefills automatically whenever venue is left blank on a new show - by them,
+or by a public member submission for that society.

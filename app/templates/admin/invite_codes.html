@@ -2,8 +2,11 @@
 {% block title %}Invite codes - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
   <h1>Invite codes</h1>
-  <p>Members use one of these codes to unlock the submission form. Deactivate a code instead of
-     deleting it so past submissions keep their history.</p>
+  <p>Members use a plain code to unlock the one-off submission form (goes to the moderation queue).
+     Pick a society when creating a code instead, and it becomes a <strong>society login</strong> -
+     that society can add/edit their own show history directly at <code>/society/login</code>, live
+     immediately, no queue (but they can never touch review status/links). Deactivate a code instead
+     of deleting it so past submissions/edits keep their history.</p>
 
   <form method="post" action="{{ url_for('admin.create_invite_code') }}" class="stacked-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -13,7 +16,16 @@
     </label>
     <label>
       Label
-      <input type="text" name="label" placeholder="e.g. General 2026 code">
+      <input type="text" name="label" placeholder="e.g. General 2026 code, or a society name">
+    </label>
+    <label>
+      Society login for <span class="hint">(leave blank for a regular one-off submission code)</span>
+      <select name="society_id">
+        <option value="">— none, regular code —</option>
+        {% for s in societies %}
+          <option value="{{ s['id'] }}">{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
     </label>
     <label>
       Expires (optional)
@@ -24,13 +36,14 @@
 
   <table class="data-table">
     <thead>
-      <tr><th>Code</th><th>Label</th><th>Expires</th><th>Status</th><th></th></tr>
+      <tr><th>Code</th><th>Label</th><th>Society login</th><th>Expires</th><th>Status</th><th></th></tr>
     </thead>
     <tbody>
       {% for c in codes %}
         <tr>
           <td><code>{{ c['code'] }}</code></td>
           <td>{{ c['label'] or '—' }}</td>
+          <td>{{ c['society_name'] or '—' }}</td>
           <td>{{ c['expires_at'] or 'never' }}</td>
           <td>
             {% if c['is_active'] and (not c['expires_at'] or c['expires_at'] >= today) %}
@@ -49,7 +62,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5">No invite codes yet.</td></tr>
+        <tr><td colspan="6">No invite codes yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

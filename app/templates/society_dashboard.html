@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ society['name'] }} dashboard - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>{{ society['name'] }}</h1>
+  <p class="meta">
+    {{ society['region'] }} &middot; {{ society['section'] }}
+    <form method="post" action="{{ url_for('society.logout') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="link-button">Log out</button>
+    </form>
+  </p>
+  <p>Add or fix your own show history here - changes go live immediately. Review links/status stay
+     under AIMS moderator control.</p>
+
+  <p><a href="{{ url_for('society.new_show') }}" class="edit-callout">+ Add a show &rarr;</a></p>
+
+  <table class="data-table">
+    <thead><tr><th>Season</th><th>Show</th><th>Tier</th><th>Dates</th><th></th></tr></thead>
+    <tbody>
+      {% for show in shows %}
+        <tr>
+          <td>{{ show['season'] }}</td>
+          <td>
+            {{ show['show'] or 'TBA' }}
+            {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+          </td>
+          <td>{{ show['section'] or '—' }}</td>
+          <td>{% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}</td>
+          <td><a href="{{ url_for('society.edit_show', show_id=show['id']) }}">Edit</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No shows on record yet - add your first one above.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

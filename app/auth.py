@@ -57,3 +57,37 @@ def invite_required(view):
         return view(**kwargs)
 
     return wrapped
+
+
+def active_society_code():
+    """Return the invite_codes row for a society login, if one's unlocked in
+    this session and still valid. Distinct from active_invite_code()'s
+    session key - a browser could plausibly hold both a one-off submission
+    code and a society login at once, no reason to make them collide."""
+    code_id = session.get("society_code_id")
+    if code_id is None:
+        return None
+    row = get_db().execute(
+        "SELECT * FROM invite_codes WHERE id = ? AND is_active = 1 AND society_id IS NOT NULL",
+        (code_id,),
+    ).fetchone()
+    if row is None:
+        session.pop("society_code_id", None)
+        return None
+    if row["expires_at"] and row["expires_at"] < date.today().isoformat():
+        session.pop("society_code_id", None)
+        return None
+    return row
+
+
+def society_required(view):
+    """Gate a society-dashboard route behind an unlocked, still-valid society
+    login code."""
+
+    @functools.wraps(view)
+    def wrapped(**kwargs):
+        if active_society_code() is None:
+            return redirect(url_for("society.login"))
+        return view(**kwargs)
+
+    return wrapped

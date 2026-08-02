@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Add a show' if mode == 'new' else 'Edit show' }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }}</a></p>
+  <h1>{{ 'Add a show' if mode == 'new' else 'Edit show' }}</h1>
+
+  {% set values = show if show is defined else form %}
+
+  <form method="post" class="stacked-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% if mode == 'new' %}
+      <div class="honeypot" aria-hidden="true">
+        <label>Leave this field blank
+          <input type="text" name="website" tabindex="-1" autocomplete="off">
+        </label>
+      </div>
+    {% endif %}
+
+    <label>
+      Season (e.g. 04/05)
+      <input type="text" name="season" pattern="\d{2}/\d{2}" value="{{ values['season'] or '' }}" required>
+    </label>
+
+    <label>
+      Show title
+      <input type="text" name="show" value="{{ values['show'] or '' }}" {% if mode == 'new' %}required{% endif %}>
+    </label>
+
+    {% if mode == 'new' and similar_title %}
+      <label class="checkbox-label">
+        <input type="checkbox" name="confirm_new_title" value="1">
+        This is a different show from "{{ similar_title }}" - save as entered
+      </label>
+    {% endif %}
+
+    <label>
+      Tier
+      <select name="section">
+        <option value="">—</option>
+        {% for s in sections %}
+          <option value="{{ s }}" {% if s == values['section'] %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Opening date
+      <input type="date" name="opening_date" value="{{ values['opening_date'] or '' }}">
+    </label>
+
+    <label>
+      Closing date
+      <input type="date" name="closing_date" value="{{ values['closing_date'] or '' }}">
+    </label>
+
+    <label>
+      Venue {% if society['default_venue'] %}<span class="hint">(defaults to {{ society['default_venue'] }} if left blank)</span>{% endif %}
+      <input type="text" name="venue" value="{{ values['venue'] or '' }}">
+    </label>
+
+    <label>
+      Director
+      <input type="text" name="director" value="{{ values['director'] or '' }}">
+    </label>
+
+    <label>
+      Musical Director
+      <input type="text" name="musical_director" value="{{ values['musical_director'] or '' }}">
+    </label>
+
+    <label>
+      Choreographer
+      <input type="text" name="choreographer" value="{{ values['choreographer'] or '' }}">
+    </label>
+
+    <label>
+      Ticket link
+      <input type="url" name="ticket_url" value="{{ values['ticket_url'] or '' }}">
+    </label>
+
+    <label class="checkbox-label">
+      <input type="checkbox" name="cancelled" {% if values['status'] == 'Cancelled' %}checked{% endif %}>
+      Cancelled
+    </label>
+
+    <fieldset>
+      <legend>Poster</legend>
+      {% if mode == 'edit' and show['poster_filename'] %}
+        <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="Current poster">
+        <label class="checkbox-label">
+          <input type="checkbox" name="remove_poster" value="1">
+          Remove current poster
+        </label>
+      {% endif %}
+      <label>
+        {{ 'Replace poster' if (mode == 'edit' and show['poster_filename']) else 'Upload poster' }}
+        <input type="file" name="poster" accept="image/png,image/jpeg,image/webp,image/gif">
+      </label>
+    </fieldset>
+
+    <button type="submit">{{ 'Add show' if mode == 'new' else 'Save' }}</button>
+  </form>
+{% endblock %}

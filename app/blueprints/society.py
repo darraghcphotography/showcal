@@ -1,0 +1,220 @@
+import re
+from datetime import datetime
+
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+
+from ..auth import active_society_code, society_required
+from ..constants import SHOW_SECTIONS
+from ..db import get_db
+from ..similarity import find_close_title
+from ..uploads import save_poster
+
+bp = Blueprint("society", __name__, url_prefix="/society")
+
+SEASON_RE = re.compile(r"^\d{2}/\d{2}$")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _current_society(db):
+    code = active_society_code()
+    return db.execute("SELECT * FROM societies WHERE id = ?", (code["society_id"],)).fetchone(), code
+
+
+@bp.route("/login", methods=("GET", "POST"))
+def login():
+    if request.method == "POST":
+        code = request.form.get("code", "").strip()
+        row = get_db().execute(
+            "SELECT * FROM invite_codes WHERE code = ? AND is_active = 1 AND society_id IS NOT NULL",
+            (code,),
+        ).fetchone()
+        if row is None:
+            flash("That's not a valid society login code. Check with AIMS if you think this is wrong.", "error")
+        else:
+            session["society_code_id"] = row["id"]
+            return redirect(url_for("society.dashboard"))
+    return render_template("society_login.html")
+
+
+@bp.route("/logout", methods=("POST",))
+def logout():
+    session.pop("society_code_id", None)
+    return redirect(url_for("public.index"))
+
+
+@bp.route("/")
+@society_required
+def dashboard():
+    db = get_db()
+    society, _ = _current_society(db)
+    shows = db.execute(
+        "SELECT * FROM shows WHERE society_id = ? ORDER BY season DESC, show",
+        (society["id"],),
+    ).fetchall()
+    return render_template("society_dashboard.html", society=society, shows=shows)
+
+
+def _read_form(form):
+    return {
+        "season": form.get("season", "").strip(),
+        "show": form.get("show", "").strip(),
+        "section": form.get("section") or None,
+        "opening_date": form.get("opening_date", "").strip() or None,
+        "closing_date": form.get("closing_date", "").strip() or None,
+        "venue": form.get("venue", "").strip() or None,
+        "director": form.get("director", "").strip() or None,
+        "musical_director": form.get("musical_director", "").strip() or None,
+        "choreographer": form.get("choreographer", "").strip() or None,
+        "ticket_url": form.get("ticket_url", "").strip() or None,
+        "cancelled": bool(form.get("cancelled")),
+    }
+
+
+def _validate(fields, require_title):
+    errors = []
+    if require_title and not fields["show"]:
+        errors.append("Show title is required.")
+    if not SEASON_RE.match(fields["season"]):
+        errors.append("Season must be in the form YY/YY, e.g. 04/05.")
+    for label, key in (("Opening date", "opening_date"), ("Closing date", "closing_date")):
+        if fields[key] and not DATE_RE.match(fields[key]):
+            errors.append(f"{label} must be a valid date.")
+    if fields["section"] and fields["section"] not in SHOW_SECTIONS:
+        errors.append("Choose a valid tier.")
+    return errors
+
+
+@bp.route("/shows/new", methods=("GET", "POST"))
+@society_required
+def new_show():
+    db = get_db()
+    society, code = _current_society(db)
+
+    if request.method == "POST":
+        if request.form.get("website", ""):  # honeypot
+            return redirect(url_for("society.dashboard"))
+
+        fields = _read_form(request.form)
+        errors = _validate(fields, require_title=True)
+
+        similar_title = None
+        if fields["show"] and not request.form.get("confirm_new_title"):
+            similar_title = find_close_title(db, fields["show"])
+            if similar_title:
+                flash(
+                    f'A show already on record is titled "{similar_title}" - if that\'s this '
+                    "production, please use that exact spelling. If it's genuinely a different "
+                    "show, tick the box below and save again.",
+                    "warning",
+                )
+
+        poster_filename = None
+        poster_file = request.files.get("poster")
+        if poster_file and poster_file.filename:
+            try:
+                poster_filename = save_poster(poster_file, current_app.config["UPLOAD_DIR"])
+            except ValueError as e:
+                errors.append(str(e))
+
+        if errors or similar_title:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "society_show_form.html", society=society, sections=SHOW_SECTIONS,
+                form=request.form, similar_title=similar_title, mode="new",
+            )
+
+        db.execute(
+            """
+            INSERT INTO shows (
+                society_id, season, region, section, show,
+                opening_date, closing_date, venue, director, musical_director, choreographer,
+                ticket_url, poster_filename, status, review_status, moderation_status, source, invite_code_id
+            ) VALUES (
+                :society_id, :season, :region, :section, :show,
+                :opening_date, :closing_date, :venue, :director, :musical_director, :choreographer,
+                :ticket_url, :poster_filename, :status, 'None', 'approved', 'submission', :invite_code_id
+            )
+            """,
+            {
+                "society_id": society["id"],
+                "season": fields["season"],
+                "region": society["region"],
+                "section": fields["section"],
+                "show": fields["show"],
+                "opening_date": fields["opening_date"],
+                "closing_date": fields["closing_date"],
+                "venue": fields["venue"] or society["default_venue"],
+                "director": fields["director"],
+                "musical_director": fields["musical_director"],
+                "choreographer": fields["choreographer"],
+                "ticket_url": fields["ticket_url"],
+                "poster_filename": poster_filename,
+                "status": "Cancelled" if fields["cancelled"] else None,
+                "invite_code_id": code["id"],
+            },
+        )
+        db.commit()
+        flash("Show added - it's live now.", "success")
+        return redirect(url_for("society.dashboard"))
+
+    return render_template("society_show_form.html", society=society, sections=SHOW_SECTIONS, form={}, mode="new")
+
+
+@bp.route("/shows/<int:show_id>/edit", methods=("GET", "POST"))
+@society_required
+def edit_show(show_id):
+    db = get_db()
+    society, _ = _current_society(db)
+    show = db.execute(
+        "SELECT * FROM shows WHERE id = ? AND society_id = ?", (show_id, society["id"])
+    ).fetchone()
+    if show is None:
+        abort(404)
+
+    if request.method == "POST":
+        fields = _read_form(request.form)
+        errors = _validate(fields, require_title=False)
+
+        poster_filename = show["poster_filename"]
+        poster_file = request.files.get("poster")
+        if poster_file and poster_file.filename:
+            try:
+                poster_filename = save_poster(poster_file, current_app.config["UPLOAD_DIR"])
+            except ValueError as e:
+                errors.append(str(e))
+        elif request.form.get("remove_poster"):
+            poster_filename = None
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "society_show_form.html", society=society, sections=SHOW_SECTIONS, show=show, mode="edit"
+            )
+
+        # Deliberately no review_status/review_url here - a society login can
+        # never touch those, regardless of what a tampered POST body sends.
+        db.execute(
+            """
+            UPDATE shows SET
+                season = ?, section = ?, show = ?, opening_date = ?, closing_date = ?,
+                venue = ?, director = ?, musical_director = ?, choreographer = ?,
+                ticket_url = ?, poster_filename = ?, status = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                fields["season"], fields["section"], fields["show"] or None,
+                fields["opening_date"], fields["closing_date"],
+                fields["venue"], fields["director"], fields["musical_director"], fields["choreographer"],
+                fields["ticket_url"], poster_filename, "Cancelled" if fields["cancelled"] else None,
+                datetime.utcnow().isoformat(), show_id,
+            ),
+        )
+        db.commit()
+        flash("Show updated.", "success")
+        return redirect(url_for("society.dashboard"))
+
+    return render_template(
+        "society_show_form.html", society=society, sections=SHOW_SECTIONS, show=show, mode="edit"
+    )

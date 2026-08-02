@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS societies (
                     )),
     section_as_of   TEXT,      -- season string e.g. '26/27', nullable
     section_history TEXT,      -- free-text log e.g. '23/24: Sullivan · 24/25: Gilbert · ...'
-    notes           TEXT
+    notes           TEXT,
+    default_venue   TEXT       -- prefilled as a show's venue when left blank at submission time
 );
 
 CREATE TABLE IF NOT EXISTS shows (
@@ -105,10 +106,16 @@ CREATE TABLE IF NOT EXISTS users (
 -- Shareable codes that gate the public submission form (no login required for
 -- members, but no code = no form). Revoke by flipping is_active to 0 rather
 -- than deleting, so past submissions keep their provenance link.
+-- A code with society_id NULL is a generic member-submission gate (unlocks
+-- the one-off /submit form, lands as 'pending'). A code with society_id SET
+-- is a society login code instead: unlocking it opens that society's own
+-- dashboard, where edits/additions to their own history go live immediately
+-- (no moderation queue) - see app/blueprints/society.py.
 CREATE TABLE IF NOT EXISTS invite_codes (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     code            TEXT NOT NULL UNIQUE,
     label           TEXT,                 -- e.g. 'General 2026 code', 'Eastern region reps'
+    society_id      INTEGER REFERENCES societies(id),
     is_active       INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
     expires_at      TEXT,                 -- ISO date, nullable = never expires
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),

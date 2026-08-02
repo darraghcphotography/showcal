@@ -82,7 +82,18 @@ def society_detail(society_id):
         (society_id,),
     ).fetchall()
 
-    return render_template("society_detail.html", society=society, shows=shows)
+    # Pre-2024 history from the AIMS awards archive, distinct by (year, show) -
+    # historical_results has one row per award category, not per production.
+    historical = db.execute(
+        """
+        SELECT DISTINCT year, show FROM historical_results
+        WHERE society_id = ? AND show IS NOT NULL
+        ORDER BY year DESC
+        """,
+        (society_id,),
+    ).fetchall()
+
+    return render_template("society_detail.html", society=society, shows=shows, historical=historical)
 
 
 @bp.route("/shows/<int:show_id>")
