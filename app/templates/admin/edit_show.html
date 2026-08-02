@@ -39,17 +39,17 @@
 
     <label>
       Opening date
-      <input type="date" name="opening_date" value="{{ show['opening_date'] or '' }}">
+      <input type="date" name="opening_date" value="{{ show['opening_date'] or '' }}" min="1970-01-01" max="2036-12-31">
     </label>
 
     <label>
       Closing date
-      <input type="date" name="closing_date" value="{{ show['closing_date'] or '' }}">
+      <input type="date" name="closing_date" value="{{ show['closing_date'] or '' }}" min="1970-01-01" max="2036-12-31">
     </label>
 
     <label>
       Adjudication date
-      <input type="date" name="adjudication_date" value="{{ show['adjudication_date'] or '' }}">
+      <input type="date" name="adjudication_date" value="{{ show['adjudication_date'] or '' }}" min="1970-01-01" max="2036-12-31">
     </label>
 
     <label>

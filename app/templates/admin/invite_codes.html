@@ -29,7 +29,7 @@
     </label>
     <label>
       Expires (optional)
-      <input type="date" name="expires_at">
+      <input type="date" name="expires_at" min="{{ today }}" max="2036-12-31">
     </label>
     <button type="submit">Create code</button>
   </form>

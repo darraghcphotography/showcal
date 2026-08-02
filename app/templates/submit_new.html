@@ -48,12 +48,12 @@
 
     <label>
       Opening date
-      <input type="date" name="opening_date" value="{{ form.get('opening_date', '') }}">
+      <input type="date" name="opening_date" value="{{ form.get('opening_date', '') }}" min="1970-01-01" max="2036-12-31">
     </label>
 
     <label>
       Closing date
-      <input type="date" name="closing_date" value="{{ form.get('closing_date', '') }}">
+      <input type="date" name="closing_date" value="{{ form.get('closing_date', '') }}" min="1970-01-01" max="2036-12-31">
     </label>
 
     <fieldset>
