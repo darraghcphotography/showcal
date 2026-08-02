@@ -2,21 +2,13 @@ from datetime import date
 
 from flask import Blueprint, render_template, request
 
-from ..constants import AWARD_RESULTS, REGIONS, SHOW_SECTIONS
+from ..constants import AWARD_RESULTS, REGIONS, SHOW_SECTIONS, SHOWS_COVERAGE_START_YEAR
 from ..db import get_db
 from ..season import current_season
 
 bp = Blueprint("info", __name__)
 
 TOP_N = 10
-
-# shows.csv's own coverage begins at season 23/24, i.e. award-archive Year
-# 2024 (see schema.sql). Any stat that treats a historical_results row as
-# equivalent to a shows-table row (counting productions/stagings) must stay
-# below this year to avoid counting a 23/24+ show twice - the Awards page and
-# society pages don't have this problem since they show award-category detail
-# that isn't tracked in shows at all, so they use the full archive instead.
-SHOWS_COVERAGE_START_YEAR = 2024
 
 
 @bp.route("/stats")

@@ -4,7 +4,7 @@ from urllib.parse import quote_plus
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
 from ..auth import current_user
-from ..constants import REGIONS, SOCIETY_SECTIONS
+from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS
 from ..db import get_db
 
 bp = Blueprint("public", __name__)
@@ -157,10 +157,10 @@ def titles_list():
         SELECT show, COUNT(*) AS n FROM (
             SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
             UNION ALL
-            SELECT show FROM historical_results WHERE show IS NOT NULL
+            SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
         )
     """
-    params = []
+    params = [SHOWS_COVERAGE_START_YEAR]
     if q:
         query += " WHERE show LIKE ? ESCAPE '\\'"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -198,15 +198,17 @@ def title_detail(title):
         (title,),
     ).fetchall()
 
-    # Distinct (year, society) - historical_results has one row per award
-    # category, not per production, so this collapses back to one row per
-    # actual staging.
+    # Distinct (year, society) before 23/24 - historical_results has one row
+    # per award category, not per production, so this collapses back to one
+    # row per actual staging. Stops before SHOWS_COVERAGE_START_YEAR so a
+    # 23/24+ production already listed above under "full detail" doesn't
+    # also show up a second time down here.
     historical = db.execute(
         """
         SELECT DISTINCT year, society_name FROM historical_results
-        WHERE show = ? ORDER BY year DESC
+        WHERE show = ? AND year < ? ORDER BY year DESC
         """,
-        (title,),
+        (title, SHOWS_COVERAGE_START_YEAR),
     ).fetchall()
 
     if not shows and not historical:
