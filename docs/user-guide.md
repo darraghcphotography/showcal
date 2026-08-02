@@ -40,15 +40,16 @@ Other pages worth knowing about:
   winners only.
 - **Statistics** - only counts shows that have actually happened (announced-
   but-not-yet-run and cancelled shows don't count until/unless they do). A
-  region filter re-scopes the recent-era numbers (shows since 23/24); the
-  awards-archive sections stay whole-country, since older/defunct societies
-  don't always resolve to a region. Covers per-season breakdowns,
-  most-selected/performed shows, each society's own "signature show", the
-  most prolific societies of all time, award wins by region, societies
-  nominated often but never won, and a win-rate leaderboard. Click any show
-  title to see every production of it across every society - handy for "who
-  else has done Sister Act?". There's also a full CSV download of everything
-  on the site, if you want the raw data.
+  region filter re-scopes almost everything on the page, including the
+  awards-archive sections (a historical society not matched to a region is
+  excluded from those totals when you filter, rather than the whole section
+  disappearing). Covers per-season breakdowns, most-selected/performed
+  shows, each society's own "signature show", the most prolific societies of
+  all time, award wins by region, societies nominated often but never won, a
+  win-rate leaderboard, and a few computed "did you know" highlights. Click
+  any show title to see every production of it across every society -
+  handy for "who else has done Sister Act?". There's also a full CSV
+  download of everything on the site, if you want the raw data.
 
 Inactive societies (registered with AIMS but with no show on record yet)
 are hidden from the browse list by default to keep it focused on active

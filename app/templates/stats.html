@@ -57,7 +57,11 @@
   {% endif %}
 
   <h2>Shows by tier{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-  {{ bar_chart(by_tier, linked=false) }}
+  {% if by_tier %}
+    {{ bar_chart(by_tier, linked=false) }}
+  {% else %}
+    <p class="meta">No shows on record for {{ selected_region }}.</p>
+  {% endif %}
 
   <h2>Shows by season{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
   <p class="meta">"Shows" only counts productions that have actually opened - cancelled slots are shown
@@ -82,17 +86,16 @@
      staging count, since it doesn't get inflated by one society repeating the same show.</p>
   {{ bar_chart(most_selected_recent_era) }}
 
-  {% if not selected_region %}
-    {% if historical_productions %}
-      <h2>Most selected shows, all time (since {{ historical_from }})</h2>
-      <p class="meta">The same measure, extended back through AIMS's awards archive.</p>
-      {{ bar_chart(most_selected) }}
-    {% endif %}
-
-    <h2>Most performed shows (all time)</h2>
-    <p class="meta">Total number of productions{% if historical_productions %}, including the AIMS awards archive back to {{ historical_from }}{% endif %}.</p>
-    {{ bar_chart(most_performed) }}
+  {% if historical_productions %}
+    <h2>Most selected shows, all time (since {{ historical_from }}){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+    <p class="meta">The same measure, extended back through AIMS's awards archive
+       {% if selected_region %}- historical societies not matched to a region are excluded{% endif %}.</p>
+    {{ bar_chart(most_selected) }}
   {% endif %}
+
+  <h2>Most performed shows (all time){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  <p class="meta">Total number of productions{% if historical_productions %}, including the AIMS awards archive back to {{ historical_from }}{% endif %}.</p>
+  {{ bar_chart(most_performed) }}
 
   <h2>Signature show{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
   <p class="meta">Each society's own most-repeated title since 23/24 - their "usual suspect" (at least 2 stagings to count).</p>
@@ -102,25 +105,22 @@
     {% endfor %}
   </ul>
 
-  {% if not selected_region %}
-    <h2>Most prolific societies (all time)</h2>
-    <p class="meta">Total real productions ever staged, including the AIMS awards archive.</p>
-    {{ bar_chart(most_prolific_society, linked=false) }}
-  {% endif %}
+  <h2>Most prolific societies (all time){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  <p class="meta">Total real productions ever staged, including the AIMS awards archive.</p>
+  {{ bar_chart(most_prolific_society, linked=false) }}
 
-  {% if not selected_region %}
-    <h2>One-off productions ({{ one_offs|length }} shows)</h2>
-    <p class="meta">Every title below has had exactly one production on the AIMS circuit in the data on
-       record (including the historical archive) - a nice list of shows worth a revival.</p>
-    <ul class="plain-list">
-      {% for row in one_offs %}
-        <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+  <h2>One-off productions ({{ one_offs|length }} shows){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  <p class="meta">Every title below has had exactly one production on the AIMS circuit in the data on
+     record (including the historical archive) - a nice list of shows worth a revival.</p>
+  <ul class="plain-list">
+    {% for row in one_offs %}
+      <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>
+    {% endfor %}
+  </ul>
 
-  <h2>Awards</h2>
-  <p class="meta">From the full AIMS awards archive, {{ award_from }}&ndash;{{ award_to }} - see the
+  <h2>Awards{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  <p class="meta">From the full AIMS awards archive, {{ award_from }}&ndash;{{ award_to }}
+     {% if selected_region %}- only societies matched to {{ selected_region }} on record{% endif %} - see the
      <a href="{{ url_for('info.awards') }}">Awards page</a> to browse or filter every record.</p>
 
   <div class="stat-tiles">
@@ -135,10 +135,12 @@
   <h3>Most "Best Overall Show" wins</h3>
   {{ bar_chart(most_best_show_wins, linked=false) }}
 
-  <h3>Award wins by region</h3>
-  <p class="meta">Only counts societies matched to a region on record - some older/defunct historical
-     societies aren't, so this undercounts the earliest years.</p>
-  {{ bar_chart(wins_by_region, linked=false) }}
+  {% if not selected_region %}
+    <h3>Award wins by region</h3>
+    <p class="meta">Only counts societies matched to a region on record - some older/defunct historical
+       societies aren't, so this undercounts the earliest years.</p>
+    {{ bar_chart(wins_by_region, linked=false) }}
+  {% endif %}
 
   <h3>Most nominated, never won</h3>
   <p class="meta">At least 3 nominations on record, zero wins.</p>
@@ -149,6 +151,13 @@
   <ul class="plain-list">
     {% for row in win_rate_leaderboard %}
       <li>{{ row['label'] }} &mdash; {{ row['pct']|int }}% ({{ row['wins'] }} of {{ row['total'] }})</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Did you know?</h2>
+  <ul class="plain-list">
+    {% for fact in fun_facts %}
+      <li>{{ fact }}</li>
     {% endfor %}
   </ul>
 {% endblock %}
