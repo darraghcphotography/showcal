@@ -22,30 +22,53 @@ SHOWS_COVERAGE_START_YEAR = 2024
 @bp.route("/stats")
 def stats():
     db = get_db()
+    today = date.today().isoformat()
+    region = request.args.get("region", "")
+    if region not in REGIONS:
+        region = ""
+
+    # A show only counts toward "how many have actually happened" once it's
+    # opened and wasn't cancelled - excludes announced-but-not-yet-run shows
+    # (which may still fall through) and cancelled slots from every count/
+    # chart below that isn't explicitly about the awards archive (which is
+    # inherently already-happened, since an award implies it was judged).
+    happened = "shows.status IS NOT 'Cancelled' AND COALESCE(shows.closing_date, shows.opening_date) <= ?"
+
+    def region_clause(params):
+        if region:
+            params.append(region)
+            return " AND shows.region = ?"
+        return ""
 
     total_societies = db.execute("SELECT COUNT(*) FROM societies").fetchone()[0]
-    total_shows = db.execute(
-        "SELECT COUNT(*) FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'"
-    ).fetchone()[0]
-    total_titles = db.execute(
-        "SELECT COUNT(DISTINCT show) FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'"
-    ).fetchone()[0]
+
+    params = [today]
+    query = f"SELECT COUNT(*) FROM shows WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}"
+    query += region_clause(params)
+    total_shows = db.execute(query, params).fetchone()[0]
+
+    params = [today]
+    query = f"SELECT COUNT(DISTINCT shows.show) FROM shows WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}"
+    query += region_clause(params)
+    total_titles = db.execute(query, params).fetchone()[0]
 
     # All-time counts fold in historical_results (AIMS awards archive, 1977
     # through the season before shows.csv's own coverage begins - see
     # SHOWS_COVERAGE_START_YEAR above for why that split can't double-count
     # a production, even though historical_results itself now holds the full
     # archive through the present day for the Awards page/society pages).
+    # Region isn't applied here - historical societies only resolve to a
+    # region for the ones matched to a current society (see the Awards page).
     most_performed = db.execute(
-        """
+        f"""
         SELECT show, COUNT(*) AS n FROM (
-            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
             UNION ALL
             SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
         )
         GROUP BY show ORDER BY n DESC, show LIMIT ?
         """,
-        (SHOWS_COVERAGE_START_YEAR, TOP_N),
+        (today, SHOWS_COVERAGE_START_YEAR, TOP_N),
     ).fetchall()
 
     # "Most selected" = how many *different* societies have put this show on,
@@ -56,40 +79,41 @@ def stats():
     # all-time view folding in the pre-2024 AIMS awards archive too. A
     # historical society without a societies.id match still counts as a
     # distinct selector, keyed by its name instead.
-    most_selected_recent_era = db.execute(
-        """
+    params = [today]
+    query = f"""
         SELECT show, COUNT(DISTINCT society_id) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved'
-        GROUP BY show ORDER BY n DESC, show LIMIT ?
-        """,
-        (TOP_N,),
-    ).fetchall()
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
+    """
+    query += region_clause(params)
+    query += " GROUP BY show ORDER BY n DESC, show LIMIT ?"
+    params.append(TOP_N)
+    most_selected_recent_era = db.execute(query, params).fetchall()
 
     most_selected = db.execute(
-        """
+        f"""
         SELECT show, COUNT(DISTINCT society_key) AS n FROM (
             SELECT show, 'id:' || society_id AS society_key FROM shows
-            WHERE show IS NOT NULL AND moderation_status = 'approved'
+            WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
             UNION ALL
             SELECT show, COALESCE('id:' || society_id, 'name:' || society_name) AS society_key
             FROM historical_results WHERE show IS NOT NULL AND year < ?
         )
         GROUP BY show ORDER BY n DESC, show LIMIT ?
         """,
-        (SHOWS_COVERAGE_START_YEAR, TOP_N),
+        (today, SHOWS_COVERAGE_START_YEAR, TOP_N),
     ).fetchall()
 
     one_offs = db.execute(
-        """
+        f"""
         SELECT show FROM (
-            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
             UNION ALL
             SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
         )
         GROUP BY show HAVING COUNT(*) = 1
         ORDER BY show
         """,
-        (SHOWS_COVERAGE_START_YEAR,),
+        (today, SHOWS_COVERAGE_START_YEAR),
     ).fetchall()
 
     historical_years = db.execute(
@@ -100,6 +124,7 @@ def stats():
 
     # Full archive (1977-present) - award-category detail isn't tracked in
     # shows at all, so no double-counting risk here, unlike the stats above.
+    # Not region-filtered - see the region_clause() note above.
     award_totals = db.execute(
         """
         SELECT COUNT(*), SUM(CASE WHEN result = 'Winner' THEN 1 ELSE 0 END), MIN(year), MAX(year)
@@ -132,34 +157,137 @@ def stats():
         (TOP_N,),
     ).fetchall()
 
-    by_season = db.execute(
+    # Winner counts grouped BY region (not filtered to the page's selected
+    # region - this chart shows every region side by side). Only covers
+    # societies matched to a current societies row (roughly 131 of 210
+    # distinct historical names) - unmatched/defunct societies have no
+    # region on record and are necessarily left out.
+    wins_by_region = db.execute(
         """
+        SELECT societies.region AS label, COUNT(*) AS n
+        FROM historical_results JOIN societies ON societies.id = historical_results.society_id
+        WHERE historical_results.result = 'Winner'
+        GROUP BY societies.region ORDER BY n DESC
+        """
+    ).fetchall()
+
+    # Full archive, unmatched societies included by name - a society with
+    # several nominations but not a single win. Aggregates over every result
+    # type per society (not just pre-filtered to 'Nominee' rows) since the
+    # HAVING clause needs to see the Winner rows too, to confirm there are
+    # none - filtering them out in WHERE would make that check vacuously true.
+    most_nominated_no_wins = db.execute(
+        """
+        SELECT COALESCE(society_name, 'Unknown') AS label,
+               SUM(CASE WHEN result = 'Nominee' THEN 1 ELSE 0 END) AS n
+        FROM historical_results
+        WHERE society_name IS NOT NULL
+        GROUP BY COALESCE(society_id, society_name)
+        HAVING SUM(CASE WHEN result = 'Winner' THEN 1 ELSE 0 END) = 0 AND n >= 3
+        ORDER BY n DESC, label
+        LIMIT ?
+        """,
+        (TOP_N,),
+    ).fetchall()
+
+    # Wins as a share of (wins + nominations) - rewards a strong hit rate
+    # over sheer volume. Minimum 5 nominations so one lucky nomination can't
+    # look like a 100% record.
+    win_rate_leaderboard = db.execute(
+        """
+        SELECT COALESCE(society_name, 'Unknown') AS label,
+               SUM(CASE WHEN result = 'Winner' THEN 1 ELSE 0 END) AS wins,
+               COUNT(*) AS total,
+               ROUND(SUM(CASE WHEN result = 'Winner' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS pct
+        FROM historical_results
+        WHERE result IN ('Winner', 'Nominee') AND society_name IS NOT NULL
+        GROUP BY COALESCE(society_id, society_name)
+        HAVING total >= 5
+        ORDER BY pct DESC, wins DESC
+        LIMIT ?
+        """,
+        (TOP_N,),
+    ).fetchall()
+
+    # Recent era only (region-filterable, like the other shows-table stats) -
+    # each society's own most-repeated title, i.e. their "usual suspect".
+    # Needs at least 2 stagings of the same title to count as a real signature.
+    params = [today]
+    region_sql = ""
+    if region:
+        region_sql = " AND region = ?"
+        params.append(region)
+    signature_show = db.execute(
+        f"""
+        WITH counts AS (
+            SELECT society_id, show, COUNT(*) AS n,
+                   ROW_NUMBER() OVER (PARTITION BY society_id ORDER BY COUNT(*) DESC, show) AS rn
+            FROM shows
+            WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}{region_sql}
+            GROUP BY society_id, show
+        )
+        SELECT societies.name AS label, counts.show, counts.n
+        FROM counts JOIN societies ON societies.id = counts.society_id
+        WHERE counts.rn = 1 AND counts.n >= 2
+        ORDER BY counts.n DESC, label
+        LIMIT ?
+        """,
+        (*params, TOP_N),
+    ).fetchall()
+
+    # All-time, combining both eras like most_selected/most_performed above -
+    # not region-filtered (the historical half can't be).
+    most_prolific_society = db.execute(
+        f"""
+        SELECT label, COUNT(*) AS n FROM (
+            SELECT 'id:' || shows.society_id AS key, societies.name AS label
+            FROM shows JOIN societies ON societies.id = shows.society_id
+            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
+            UNION ALL
+            SELECT COALESCE('id:' || historical_results.society_id, 'name:' || historical_results.society_name) AS key,
+                   COALESCE(societies.name, historical_results.society_name) AS label
+            FROM historical_results LEFT JOIN societies ON societies.id = historical_results.society_id
+            WHERE historical_results.show IS NOT NULL AND historical_results.year < ?
+        )
+        GROUP BY key ORDER BY n DESC, label LIMIT ?
+        """,
+        (today, SHOWS_COVERAGE_START_YEAR, TOP_N),
+    ).fetchall()
+
+    # total/distinct_titles only count shows that have actually happened
+    # (see `happened` above) - cancelled is still shown as its own
+    # informational count, separate from that total, not folded into it.
+    params = [today, today]
+    query = f"""
         SELECT
             season,
-            COUNT(*) AS total,
+            SUM(CASE WHEN {happened} THEN 1 ELSE 0 END) AS total,
             SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled,
-            COUNT(DISTINCT show) AS distinct_titles
+            COUNT(DISTINCT CASE WHEN {happened} THEN show END) AS distinct_titles
         FROM shows
         WHERE show IS NOT NULL AND moderation_status = 'approved'
-        GROUP BY season ORDER BY season DESC
-        """
-    ).fetchall()
+    """
+    query += region_clause(params)
+    query += " GROUP BY season ORDER BY season DESC"
+    by_season = db.execute(query, params).fetchall()
 
     by_region = db.execute(
-        """
+        f"""
         SELECT region AS label, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved'
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
         GROUP BY region ORDER BY n DESC
-        """
+        """,
+        (today,),
     ).fetchall()
 
-    by_tier = db.execute(
-        """
+    params = [today]
+    query = f"""
         SELECT section AS label, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND section IS NOT NULL
-        GROUP BY section ORDER BY n DESC
-        """
-    ).fetchall()
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND section IS NOT NULL AND {happened}
+    """
+    query += region_clause(params)
+    query += " GROUP BY section ORDER BY n DESC"
+    by_tier = db.execute(query, params).fetchall()
 
     return render_template(
         "stats.html",
@@ -182,6 +310,13 @@ def stats():
         award_to=award_to,
         most_award_wins=most_award_wins,
         most_best_show_wins=most_best_show_wins,
+        wins_by_region=wins_by_region,
+        most_nominated_no_wins=most_nominated_no_wins,
+        win_rate_leaderboard=win_rate_leaderboard,
+        signature_show=signature_show,
+        most_prolific_society=most_prolific_society,
+        regions=REGIONS,
+        selected_region=region,
     )
 
 
