@@ -828,6 +828,20 @@ def duplicate_titles():
     return render_template("admin/duplicate_titles.html", candidates=candidates, counts=counts)
 
 
+def _merge_titles(db, canonical, other):
+    db.execute("UPDATE shows SET show = ? WHERE show = ?", (canonical, other))
+    db.execute("UPDATE historical_results SET show = ? WHERE show = ?", (canonical, other))
+    db.execute(
+        "DELETE FROM dismissed_duplicate_pairs WHERE title_a IN (?, ?) OR title_b IN (?, ?)",
+        (canonical, other, canonical, other),
+    )
+
+
+def _dismiss_pair(db, title_a, title_b):
+    pair = tuple(sorted((title_a, title_b)))
+    db.execute("INSERT OR IGNORE INTO dismissed_duplicate_pairs (title_a, title_b) VALUES (?, ?)", pair)
+
+
 @bp.route("/duplicate-titles/merge", methods=("POST",))
 @login_required
 def merge_duplicate_titles():
@@ -838,12 +852,7 @@ def merge_duplicate_titles():
         flash("Something went wrong picking which title is correct - try again.", "error")
         return redirect(url_for("admin.duplicate_titles"))
 
-    db.execute("UPDATE shows SET show = ? WHERE show = ?", (canonical, other))
-    db.execute("UPDATE historical_results SET show = ? WHERE show = ?", (canonical, other))
-    db.execute(
-        "DELETE FROM dismissed_duplicate_pairs WHERE title_a IN (?, ?) OR title_b IN (?, ?)",
-        (canonical, other, canonical, other),
-    )
+    _merge_titles(db, canonical, other)
     db.commit()
     flash(f'Merged "{other}" into "{canonical}".', "success")
     return redirect(url_for("admin.duplicate_titles"))
@@ -856,9 +865,38 @@ def dismiss_duplicate_pair():
     title_a = request.form.get("title_a", "").strip()
     title_b = request.form.get("title_b", "").strip()
     if title_a and title_b:
-        pair = tuple(sorted((title_a, title_b)))
-        db.execute("INSERT OR IGNORE INTO dismissed_duplicate_pairs (title_a, title_b) VALUES (?, ?)", pair)
+        _dismiss_pair(db, title_a, title_b)
         db.commit()
+    return redirect(url_for("admin.duplicate_titles"))
+
+
+@bp.route("/duplicate-titles/bulk", methods=("POST",))
+@login_required
+def bulk_duplicate_titles():
+    db = get_db()
+    merged = 0
+    dismissed = 0
+    i = 0
+    while f"pair_{i}_a" in request.form:
+        a = request.form.get(f"pair_{i}_a", "").strip()
+        b = request.form.get(f"pair_{i}_b", "").strip()
+        decision = request.form.get(f"decision_{i}", "skip")
+        if a and b:
+            if decision == "keep_a":
+                _merge_titles(db, a, b)
+                merged += 1
+            elif decision == "keep_b":
+                _merge_titles(db, b, a)
+                merged += 1
+            elif decision == "dismiss":
+                _dismiss_pair(db, a, b)
+                dismissed += 1
+        i += 1
+    db.commit()
+    if merged or dismissed:
+        flash(f"Merged {merged} pair(s), dismissed {dismissed} pair(s).", "success")
+    else:
+        flash("No changes selected.", "warning")
     return redirect(url_for("admin.duplicate_titles"))
 
 

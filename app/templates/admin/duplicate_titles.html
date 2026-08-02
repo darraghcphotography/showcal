@@ -2,41 +2,45 @@
 {% block title %}Duplicate titles - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
   <h1>Possible duplicate titles</h1>
-  <p class="meta">Suggestions only - nothing here changes anything until you pick a side or dismiss a pair.
-     Similar-looking pairs that are genuinely different shows (like "Frozen" vs "Frozen Jr.") are expected
-     to show up; just dismiss those and they won't be suggested again.</p>
+  <p class="meta">Suggestions only - nothing changes until you pick decisions below and submit them all at
+     once. Similar-looking pairs that are genuinely different shows (like "Frozen" vs "Frozen Jr.") are
+     expected to show up; mark those "Not a duplicate" so they won't be suggested again. Leave a pair on
+     "Skip" to decide later.</p>
 
-  {% for a, b, score in candidates %}
-    <article class="queue-item">
-      <p>
-        <strong>{{ a }}</strong> ({{ counts[a] }} on record) &nbsp;vs&nbsp;
-        <strong>{{ b }}</strong> ({{ counts[b] }} on record)
-        <span class="meta">&middot; similarity {{ (score * 100)|round|int }}%</span>
-      </p>
-      <div class="actions">
-        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form"
-              onsubmit="return confirm('Rename every occurrence of the other title (current shows and the awards archive) to this one? This cannot be undone.');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="canonical" value="{{ a }}">
-          <input type="hidden" name="other" value="{{ b }}">
-          <button type="submit">"{{ a }}" is correct</button>
-        </form>
-        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form"
-              onsubmit="return confirm('Rename every occurrence of the other title (current shows and the awards archive) to this one? This cannot be undone.');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="canonical" value="{{ b }}">
-          <input type="hidden" name="other" value="{{ a }}">
-          <button type="submit">"{{ b }}" is correct</button>
-        </form>
-        <form method="post" action="{{ url_for('admin.dismiss_duplicate_pair') }}" class="inline-form">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="title_a" value="{{ a }}">
-          <input type="hidden" name="title_b" value="{{ b }}">
-          <button type="submit" class="button-danger">Not a duplicate</button>
-        </form>
-      </div>
-    </article>
+  {% if candidates %}
+    <form method="post" action="{{ url_for('admin.bulk_duplicate_titles') }}"
+          onsubmit="return confirm('Apply every merge/dismiss decision selected below? Merges rename every occurrence across current shows and the awards archive, and cannot be undone.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% for a, b, score in candidates %}
+        <input type="hidden" name="pair_{{ loop.index0 }}_a" value="{{ a }}">
+        <input type="hidden" name="pair_{{ loop.index0 }}_b" value="{{ b }}">
+        <article class="queue-item">
+          <p>
+            <strong>{{ a }}</strong> ({{ counts[a] }} on record) &nbsp;vs&nbsp;
+            <strong>{{ b }}</strong> ({{ counts[b] }} on record)
+            <span class="meta">&middot; similarity {{ (score * 100)|round|int }}%</span>
+          </p>
+          <div class="actions">
+            <label class="checkbox-label">
+              <input type="radio" name="decision_{{ loop.index0 }}" value="skip" checked> Skip
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="decision_{{ loop.index0 }}" value="keep_a"> "{{ a }}" is correct
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="decision_{{ loop.index0 }}" value="keep_b"> "{{ b }}" is correct
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="decision_{{ loop.index0 }}" value="dismiss"> Not a duplicate
+            </label>
+          </div>
+        </article>
+      {% endfor %}
+
+      <button type="submit">Apply selected decisions</button>
+    </form>
   {% else %}
     <p>No candidate duplicates found - either everything's clean, or they've all been reviewed already.</p>
-  {% endfor %}
+  {% endif %}
 {% endblock %}
