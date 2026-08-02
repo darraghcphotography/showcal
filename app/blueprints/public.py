@@ -110,7 +110,7 @@ def society_detail(society_id):
     # the Mary Kelly/Unsung Hero Award aren't tied to a specific production).
     historical = db.execute(
         """
-        SELECT year, tier, category_name, result, show, nominee_name, role
+        SELECT year, tier, category_name, result, show, nominee_name, role, reason
         FROM historical_results
         WHERE society_id = ?
         ORDER BY year DESC, category_name

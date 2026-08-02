@@ -73,6 +73,9 @@
             </td>
             <td>{{ row['nominee_name'] or '—' }}{% if row['role'] %} ({{ row['role'] }}){% endif %}</td>
           </tr>
+          {% if row['reason'] %}
+            <tr class="row-note"><td colspan="6"><em>{{ row['reason'] }}</em></td></tr>
+          {% endif %}
         {% endfor %}
       </tbody>
     </table>

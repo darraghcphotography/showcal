@@ -160,7 +160,8 @@ CREATE TABLE IF NOT EXISTS historical_results (
     society_name        TEXT,
     society_id          INTEGER REFERENCES societies(id),
     nominee_name        TEXT,                 -- person, for individual-award categories
-    role                TEXT
+    role                TEXT,
+    reason              TEXT                  -- adjudicator's free-text note, mostly on discretionary awards
 );
 
 CREATE INDEX IF NOT EXISTS idx_historical_results_show ON historical_results(show);

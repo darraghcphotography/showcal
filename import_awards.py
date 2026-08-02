@@ -92,8 +92,8 @@ def main():
                 """
                 INSERT INTO historical_results (
                     year, tier, category_name, result, show, society_name, society_id,
-                    nominee_name, role
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    nominee_name, role, reason
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     year,
@@ -105,6 +105,7 @@ def main():
                     name_to_id.get(society_name) if society_name else None,
                     normalize(row.get("NomineeName")),
                     normalize(row.get("Role")),
+                    normalize(row.get("Reason")),
                 ),
             )
             inserted += 1

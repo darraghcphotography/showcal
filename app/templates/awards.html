@@ -78,6 +78,9 @@
           </td>
           <td>{{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}</td>
         </tr>
+        {% if r['reason'] %}
+          <tr class="row-note"><td colspan="7"><em>{{ r['reason'] }}</em></td></tr>
+        {% endif %}
       {% else %}
         <tr><td colspan="7">No award records match those filters.</td></tr>
       {% endfor %}

@@ -31,6 +31,7 @@ COLUMN_MIGRATIONS = [
     ("societies", "default_venue", "ALTER TABLE societies ADD COLUMN default_venue TEXT"),
     ("societies", "logo_filename", "ALTER TABLE societies ADD COLUMN logo_filename TEXT"),
     ("invite_codes", "society_id", "ALTER TABLE invite_codes ADD COLUMN society_id INTEGER REFERENCES societies(id)"),
+    ("historical_results", "reason", "ALTER TABLE historical_results ADD COLUMN reason TEXT"),
 ]
 
 

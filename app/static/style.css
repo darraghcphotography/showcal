@@ -276,6 +276,7 @@ button.button-primary { background: var(--success); color: #fff; }
 .tag-past { background: var(--row-alt); color: var(--muted); }
 
 .data-table tbody tr.row-past { opacity: 0.6; }
+.data-table tbody tr.row-note td { padding-top: 0; color: var(--muted); font-size: 0.9rem; background: none; }
 
 .season-picker { font-size: 0.9rem; }
 .season-picker a { margin: 0 0.15rem; }
