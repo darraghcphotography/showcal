@@ -10,7 +10,7 @@ from ..auth import current_user, login_required
 from ..constants import REGIONS, REVIEW_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
 from ..dedupe import find_candidates
-from ..season import season_range
+from ..season import current_season, season_range
 from ..uploads import save_poster
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -110,8 +110,14 @@ def reject(show_id):
 @bp.route("/shows")
 @login_required
 def shows_list():
+    db = get_db()
     q = request.args.get("q", "").strip()
     needs_review = request.args.get("needs_review", "")
+    # "" (default) = current season and earlier only - keeps seasons still mostly
+    # placeholder "TBA" slots (e.g. next season, signalled early) out of the way.
+    # "all" = no season filter. Anything else = an exact season match.
+    season = request.args.get("season", "")
+    current = current_season(db)
 
     query = """
         SELECT shows.*, societies.name AS society_name
@@ -126,10 +132,25 @@ def shows_list():
         params += [like, like]
     if needs_review:
         query += " AND shows.review_status != 'Published' AND shows.show IS NOT NULL"
+    if season == "":
+        query += " AND shows.season <= ?"
+        params.append(current)
+    elif season != "all":
+        query += " AND shows.season = ?"
+        params.append(season)
     query += " ORDER BY shows.season DESC, societies.name"
 
-    shows = get_db().execute(query, params).fetchall()
-    return render_template("admin/shows_list.html", shows=shows, q=q, needs_review=needs_review)
+    shows = db.execute(query, params).fetchall()
+
+    seasons = [
+        r["season"]
+        for r in db.execute("SELECT DISTINCT season FROM shows ORDER BY season DESC").fetchall()
+    ]
+
+    return render_template(
+        "admin/shows_list.html", shows=shows, q=q, needs_review=needs_review,
+        season=season, seasons=seasons, current_season=current,
+    )
 
 
 @bp.route("/societies/<int:society_id>/shows/new", methods=("GET", "POST"))
@@ -560,6 +581,7 @@ def fix_dates():
 
     q = request.args.get("q", "").strip()
     season = request.args.get("season", "").strip()
+    region = request.args.get("region", "")
     missing = request.args.get("missing", "")
     query = """
         SELECT shows.*, societies.name AS society_name
@@ -575,6 +597,9 @@ def fix_dates():
     if season:
         query += " AND shows.season = ?"
         params.append(season)
+    if region in REGIONS:
+        query += " AND shows.region = ?"
+        params.append(region)
     if missing:
         query += " AND (shows.opening_date IS NULL OR shows.closing_date IS NULL)"
     query += " ORDER BY shows.season DESC, societies.name"
@@ -588,7 +613,8 @@ def fix_dates():
     ]
 
     return render_template(
-        "admin/fix_dates.html", shows=shows, q=q, season=season, seasons=seasons, missing=missing
+        "admin/fix_dates.html", shows=shows, q=q, season=season, region=region,
+        seasons=seasons, regions=REGIONS, missing=missing,
     )
 
 

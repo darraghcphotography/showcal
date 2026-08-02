@@ -19,6 +19,15 @@
         {% endfor %}
       </select>
     </label>
+    <label>
+      Region
+      <select name="region">
+        <option value="">All regions</option>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == region %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
     <label class="checkbox-label">
       <input type="checkbox" name="missing" value="1" {% if missing %}checked{% endif %}>
       Missing a date only
@@ -47,7 +56,7 @@
   <!-- One real <form> per row, referenced by the inputs above via the form="" attribute -
        keeps the table itself valid HTML (a <tr> can't directly contain a <form>). -->
   {% for show in shows %}
-    <form id="row-{{ show['id'] }}" method="post" action="{{ url_for('admin.fix_dates', q=q, season=season, missing=missing) }}" hidden>
+    <form id="row-{{ show['id'] }}" method="post" action="{{ url_for('admin.fix_dates', q=q, season=season, region=region, missing=missing) }}" hidden>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="show_id" value="{{ show['id'] }}">
     </form>

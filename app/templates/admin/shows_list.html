@@ -2,11 +2,25 @@
 {% block title %}All shows - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
   <h1>All approved shows</h1>
+  {% if season == "" %}
+    <p class="meta">Showing {{ current_season }} and earlier. Future seasons (mostly unannounced "TBA" slots) are
+       hidden by default - pick "All seasons" below to see them too.</p>
+  {% endif %}
 
   <form method="get" class="filter-form">
     <label>
       Search
       <input type="text" name="q" value="{{ q }}" placeholder="Show or society name">
+    </label>
+    <label>
+      Season
+      <select name="season">
+        <option value="" {% if season == "" %}selected{% endif %}>{{ current_season }} and earlier</option>
+        <option value="all" {% if season == "all" %}selected{% endif %}>All seasons</option>
+        {% for s in seasons %}
+          <option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }} only</option>
+        {% endfor %}
+      </select>
     </label>
     <label class="checkbox-label">
       <input type="checkbox" name="needs_review" value="1" {% if needs_review %}checked{% endif %}>
