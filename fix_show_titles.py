@@ -43,6 +43,8 @@ RENAMES = {
     "Michael Collins": "Michael Collins - A Musical Drama",  # catches rows already shortened by an earlier version of this rename
     "Annie The Musical": "Annie",
     "Sister Act  CANCELLED": "Sister Act",  # status column already says Cancelled
+    "Everyone's Talking about Jamie": "Everybody's Talking About Jamie",  # official title says "Everybody's"
+    "Everyone's Talking about Jamie - Teen": "Everybody's Talking About Jamie (Teen Edition)",
 
     # Confirmed with the maintainer:
     "Penzane! The Pirates Musical (New)": "Pirates! The Penzance Musical",  # correct title of a new show
