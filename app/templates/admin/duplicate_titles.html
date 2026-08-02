@@ -14,13 +14,15 @@
         <span class="meta">&middot; similarity {{ (score * 100)|round|int }}%</span>
       </p>
       <div class="actions">
-        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form">
+        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form"
+              onsubmit="return confirm('Rename every occurrence of the other title (current shows and the awards archive) to this one? This cannot be undone.');">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="canonical" value="{{ a }}">
           <input type="hidden" name="other" value="{{ b }}">
           <button type="submit">"{{ a }}" is correct</button>
         </form>
-        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form">
+        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form"
+              onsubmit="return confirm('Rename every occurrence of the other title (current shows and the awards archive) to this one? This cannot be undone.');">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="canonical" value="{{ b }}">
           <input type="hidden" name="other" value="{{ a }}">
