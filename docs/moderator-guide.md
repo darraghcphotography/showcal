@@ -16,6 +16,14 @@ There are two roles:
   codes.
 - **moderator** - queue and show editing, but not invite codes.
 
+## Dashboard
+
+`/admin/` (the single "Admin" link in the nav once logged in) is the
+landing page - a "Needs attention" summary (pending submissions, shows
+missing a review link or a date, possible duplicate titles, award records
+with no society match), each linking straight to the relevant filtered
+view, plus a plain list of links to every other admin tool below.
+
 ## The moderation queue
 
 `/admin/queue` (also in the nav once logged in) lists every pending member
@@ -36,7 +44,10 @@ For each one you can:
 
 `/admin/shows` lists every approved show, searchable by show or society name,
 with a "needs a review link" filter to find shows that have happened but
-don't have a published review yet. Click **Edit** on any row to open the full
+don't have a published review yet. It defaults to the **current season and
+earlier** - seasons announced far in advance are mostly blank "TBA" slots, so
+they're hidden by default; pick "All seasons" or a specific one from the
+season dropdown to see them. Click **Edit** on any row to open the full
 form - every field a submission has, plus:
 
 - **Review status and Review URL.** Pick a status from the dropdown, or paste
@@ -48,8 +59,21 @@ form - every field a submission has, plus:
 - **Cancelled.** Ticking this shows a "Cancelled" tag next to the show
   everywhere it appears, without removing it from the record.
 
-This is also where you'd fix up a CSV-imported historical show (all 570
+This is also where you'd fix up a CSV-imported historical show (all
 originally-imported shows are editable here too, not just new submissions).
+`/admin/shows/dates` (linked from the dashboard) is a quicker, row-by-row
+workspace just for opening/closing dates, filterable by season and region.
+
+## Adding a society or show directly
+
+`/admin/societies` has a **+ Add society** link for registering a new
+society that isn't in the imported data yet. Each row also has an **Add
+show** link, and a society's own edit page has "+ Add a show for this
+society" - both open the same full show-edit form (review status included,
+since this is you entering it, not a member submission) pre-scoped to that
+society. A manually-added society gets an id of 10000 or higher, well clear
+of the range imported from the original CSV export, so a future CSV
+re-import can never collide with it.
 
 ## Invite codes
 
@@ -96,3 +120,45 @@ server-side, not just hidden in the UI).
 A society's **default venue** (set on their edit page under `/admin/societies`)
 prefills automatically whenever venue is left blank on a new show - by them,
 or by a public member submission for that society.
+
+## Awards
+
+`/admin/awards` is where you maintain AIMS's adjudication archive yourself
+now - there's no longer an external database to re-import from. It has the
+same filters as the public Awards page, plus:
+
+- **+ Add award result** - one record at a time: year, tier, category (pick
+  an existing one, or "Other" to type a new category name), result, show,
+  society, nominee/role, and an optional adjudicator's note. Edit or delete
+  any existing record from here too.
+- **+ Add a whole category's results at once** - the way you'll use this
+  most: set the year/tier/category once, then fill in up to 5 nominee rows
+  (society, show, nominee, role) and tick a single "Winner" radio button -
+  every other filled-in row saves as a Nominee. Blank rows are skipped.
+- **"No society match only"** filter - a record whose society name never
+  matched a row in `societies` (common for older/defunct/renamed societies).
+
+Editing or adding a record through this page marks it `manual` - it's
+permanently safe from ever being overwritten, even if `import_awards.py`
+(the old CSV importer, kept only as a historical bootstrap script) is ever
+run again.
+
+## Duplicate titles
+
+`/admin/duplicate-titles` suggests pairs of show titles that look like
+spelling variants of the same show (e.g. "Beauty & The Beast" vs "Beauty
+and the Beast"), alongside genuinely different shows with similar names
+(e.g. "Frozen" vs "Frozen Jr.") that you'd dismiss instead. Picking a side
+to merge **permanently renames every occurrence** of the other spelling,
+across both current shows and the awards archive, with a confirmation
+prompt first since there's no undo.
+
+## Show info
+
+Each title's own page can show a synopsis and amateur rights/licensing
+info (a link to the actual MTI/Concord Theatricals catalog page, and a
+rough availability status) - genuinely useful for a society browsing Shows
+A-Z for their next production. Nothing here is fetched automatically; look
+the title up yourself and add it via the "Add show info" link on that
+title's page. Titles with info filled in get a small "info" tag on Shows
+A-Z.

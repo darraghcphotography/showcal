@@ -52,6 +52,27 @@ it would via the `docker compose` CLI.
    python seed_admin.py yourname --role admin --db /data/aims.db
    ```
 
+### Redeploying after a code update
+
+Push to GitHub, then in Portainer use the stack's **Pull and redeploy**
+button - confirmed working for this stack (container name `aims-web`). If
+it ever fails for a `Dockerfile`-only change, the fallback is removing the
+stack and adding it again with the same repository/branch/env settings.
+
+**Running a one-off script against the real database** (`import_csv.py`,
+`import_awards.py`, `seed_admin.py`, `fix_show_titles.py`) always needs an
+explicit `--db /data/aims.db` (and `--csv /data/...` where relevant):
+```bash
+docker exec aims-web python <script>.py --db /data/aims.db
+```
+Every script's default `--db` points at a throwaway path inside the image's
+`/app` working directory, not the volume-mounted real database - forgetting
+the flag doesn't error, it silently creates/uses an empty database inside
+the container and reports success against *that*, so nothing on the live
+site actually changes. `docker compose exec` needs to run from the directory
+holding `docker-compose.yml`; plain `docker exec aims-web ...` works from
+anywhere over SSH once you know the container name.
+
 ### Exposing it at darraghc.ie/showcal via Cloudflare Tunnel
 
 Since Blacknight is just the registrar and DNS already runs on Cloudflare,

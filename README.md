@@ -36,43 +36,60 @@ the hand-maintained spreadsheet over time. A project by Darragh C.
 ```
 schema.sql          canonical DB schema (tables, constraints, indexes)
 import_csv.py        one-time/re-runnable import from societies.csv + shows.csv
+import_awards.py      one-time/re-runnable import of AIMS's awards archive (see docs/data-model.md)
 seed_admin.py         create/update a moderator or admin login
+fix_show_titles.py    documented, re-runnable data-quality corrections (see docs/data-model.md)
 app/
   __init__.py         Flask app factory
   db.py               SQLite connection + schema/migration helpers
-  auth.py             login + invite-code gating decorators
-  constants.py         regions/tiers, kept in sync with schema.sql's CHECKs
-  season.py            "what season are we in" helper, shared by submit + season page
+  auth.py             login + invite-code + society-code gating decorators
+  constants.py         regions/tiers/etc, kept in sync with schema.sql's CHECKs
+  season.py            "what season are we in" + season-dropdown helpers
   filters.py            Jinja filter: ISO dates -> dd-mm-yyyy for display
-  uploads.py            poster image validation/save (never trusts the browser's filename)
+  uploads.py            poster/logo image validation/save (never trusts the browser's filename)
   similarity.py          normalized-title matching for the submission duplicate warning
+  dedupe.py              fuzzy near-duplicate title finder for the admin merge tool
   analytics.py            simple per-page view counter, no cookies/tracking
   blueprints/
-    public.py           browse societies, society/show detail, cross-society title view, poster serving
+    public.py           browse societies, society/show/title detail, poster serving
     submit.py            invite-code unlock + member submission form (with duplicate-title warning)
-    admin.py             moderator login, queue, edit/publish, invite codes, traffic
-    info.py               /season and /stats pages
+    society.py            society self-service login: add/edit/bulk-add their own shows, logo upload
+    admin.py             moderator login, dashboard, queue, edit/publish, societies, awards CRUD,
+                          invite codes, fix-dates, duplicate titles, traffic, show info
+    info.py               /season, /stats, and /awards pages
     feeds.py               CSV export, robots.txt, sitemap.xml
   templates/          Jinja templates (one per page)
   static/style.css     all the CSS, plain, no framework
 wsgi.py              entry point for waitress; also applies the optional URL_PREFIX middleware
-fix_show_titles.py    documented, re-runnable data-quality corrections (see docs/data-model.md)
 Dockerfile, docker-compose.yml   for QNAP Container Station / Portainer
 docs/                user guide, moderator guide, deployment, data model
 ```
 
 ## Pages
 
-Public: browse/search societies, upcoming shows (with an .ics calendar feed),
-a society's full history, a show's detail page, site-wide show search,
-**Current season** at a glance (with a season picker for past seasons),
-**Statistics** (with per-season drill-down, a cross-society view of every
-production of a given title, and all-time counts enriched with AIMS's
-1977-onward awards archive), a full CSV data export, a feature-suggestion
-box, and the member submission form. Moderator (behind `/admin/login`): the
-moderation queue, full show/society editing, a bulk date-fix workspace,
-invite code management, suggestion review, and a simple traffic page.
-Full details in the [user guide](docs/user-guide.md) and
+Public: browse/search societies with a poster gallery and upcoming-shows
+region filter, a society's full history (shows plus their awards archive
+record), a show's detail page, **Shows A-Z** (search/sort, times-performed
+count, an optional synopsis/amateur-rights info panel), **Current season**
+at a glance (region/tier filters, upcoming and already-finished split),
+**Statistics** (region drill-down, per-season breakdown, most
+selected/performed, signature show per society, win-rate leaderboards, and
+more - see the [user guide](docs/user-guide.md)), an **Awards** page
+(browse/filter AIMS's full 1977-present adjudication archive), a full CSV
+data export, a feature-suggestion box, and the member submission form.
+
+Society login (behind `/society/login`, code issued by a moderator): a
+dashboard to add/edit that society's own show history live (no moderation
+queue), bulk-add past seasons, and upload a society logo.
+
+Moderator (behind `/admin/login`): a dashboard summarising what needs
+attention (pending submissions, missing review links/dates, possible
+duplicate titles, unmatched award records), the moderation queue, full
+show/society/award editing (including adding a new society or show
+directly, and bulk-entering a whole award category's results at once), a
+bulk date-fix workspace, invite/society-login code management, suggestion
+review, and a simple traffic page. Full details in the
+[user guide](docs/user-guide.md) and
 [moderator guide](docs/moderator-guide.md).
 
 ## Quick start

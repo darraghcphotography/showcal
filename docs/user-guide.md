@@ -12,26 +12,43 @@ The homepage lists every AIMS member society. You can narrow it down:
   see below).
 - **Society name** - a text search box.
 
-Above the society list, **Upcoming shows** lists the next few announced
-productions across every society, soonest first.
+Above the society list, a **poster gallery** shows recent show posters, and
+**Upcoming shows** lists the next few announced productions across every
+society, soonest first (with its own region filter, separate from the main
+browse filters above).
 
-Click a society to see its full show history. Click a show to see its
-production team (director, musical director, choreographer), dates, venue,
-poster (if one was uploaded), a ticket link (if the society provided one),
-and a link to the AIMS review once it's published.
+Click a society to see its full show history, plus its record from AIMS's
+awards archive (nominations and wins, 1977-present) if it has one. Click a
+show to see its production team (director, musical director, choreographer),
+dates, venue, poster (if one was uploaded), a ticket link (if the society
+provided one), and a link to the AIMS review once it's published.
 
-Two other pages worth knowing about:
+Other pages worth knowing about:
 
+- **Shows A-Z** - every distinct title ever performed, searchable and
+  sortable (A-Z, most/least performed). A small "info" tag next to a title
+  means a moderator has added a synopsis and/or amateur rights/licensing
+  info for it - click through to the title's page to see it. Otherwise the
+  "More info" link is a best-guess Wikipedia search, not a verified match.
 - **Current season** - every show announced so far for the current season,
-  grouped by region, next to its society, sorted by opening date - shows
-  already finished are dimmed and tagged "Finished". A season picker at the
-  top lets you jump to any past season the same way.
-- **Statistics** - a per-season breakdown (show counts, cancellations),
-  most-performed shows on the AIMS circuit (all-time and in the last three
-  seasons), and the list of shows that have only ever been performed once.
-  Click any show title to see every production of it across every society -
-  handy for "who else has done Sister Act?". There's also a full CSV download
-  of everything on the site, if you want the raw data.
+  with region/tier filters, split into upcoming and already-finished
+  sections. A season picker at the top lets you jump to any past season the
+  same way.
+- **Awards** - browse AIMS's full adjudication archive (1977-present):
+  filter by year, category, tier, result, or search across society/show/
+  nominee/the adjudicator's own notes on discretionary awards. Defaults to
+  winners only.
+- **Statistics** - only counts shows that have actually happened (announced-
+  but-not-yet-run and cancelled shows don't count until/unless they do). A
+  region filter re-scopes the recent-era numbers (shows since 23/24); the
+  awards-archive sections stay whole-country, since older/defunct societies
+  don't always resolve to a region. Covers per-season breakdowns,
+  most-selected/performed shows, each society's own "signature show", the
+  most prolific societies of all time, award wins by region, societies
+  nominated often but never won, and a win-rate leaderboard. Click any show
+  title to see every production of it across every society - handy for "who
+  else has done Sister Act?". There's also a full CSV download of everything
+  on the site, if you want the raw data.
 
 Inactive societies (registered with AIMS but with no show on record yet)
 are hidden from the browse list by default to keep it focused on active
@@ -79,3 +96,15 @@ it appears in the society's history and on the "Current season" page - or
 rejects it. Once the show has happened and been adjudicated, a moderator
 attaches the AIMS review link, and its status changes to **Published** on the
 show's page.
+
+## If your society has its own login
+
+Some societies have a dedicated login (a code from your moderator, used at
+`/society/login`) instead of the one-off submission form above. If your
+secretary has one, you can add or edit your society's own show history
+directly - it goes live immediately, no moderation queue - including
+bulk-adding several past seasons at once and uploading your society's logo.
+The one thing you still can't touch is the review status/link field - that
+stays with the moderator, same as everyone else's shows. See the
+[moderator guide](moderator-guide.md#society-logins) for how a society login
+gets set up.
