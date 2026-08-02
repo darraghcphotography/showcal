@@ -1,11 +1,39 @@
 {% extends "base.html" %}
 {% block title %}{{ season }} season - Unofficial AIMS Show Tracker{% endblock %}
+
+{% macro show_rows(shows) %}
+  {% for show in shows %}
+    <tr>
+      <td>{{ show['region'] }}</td>
+      <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
+      <td>
+        <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+        {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+      </td>
+      <td>{{ show['section'] or '—' }}</td>
+      <td>{{ show['opening_date']|irish_date or 'TBA' }}</td>
+      <td>
+        {% if show['review_status'] == 'Published' and show['review_url'] %}
+          <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
+        {% elif show['review_status'] == 'Not adjudicated' %}
+          Not adjudicated
+        {% else %}
+          Not yet
+        {% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">None.</td></tr>
+  {% endfor %}
+{% endmacro %}
+
 {% block content %}
+  {% set total = upcoming|length + finished|length %}
   <h1>
     Current Season
     {% if not is_current %}<span class="tag">viewing {{ season }}</span>{% endif %}
   </h1>
-  <p>{{ shows|length }} show{{ '' if shows|length == 1 else 's' }} announced for {{ season }}{% if is_current %} (current season){% endif %}.</p>
+  <p>{{ total }} show{{ '' if total == 1 else 's' }} announced for {{ season }}{% if is_current %} (current season){% endif %}.</p>
 
   {% if all_seasons|length > 1 %}
     <p class="season-picker">
@@ -46,31 +74,16 @@
     <thead>
       <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Opens</th><th>Review</th></tr>
     </thead>
-    <tbody>
-      {% for show in shows %}
-        <tr class="{{ 'row-past' if show['is_past'] }}">
-          <td>{{ show['region'] }}</td>
-          <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
-          <td>
-            <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-            {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
-            {% if show['is_past'] and show['status'] != 'Cancelled' %}<span class="tag tag-past">Finished</span>{% endif %}
-          </td>
-          <td>{{ show['section'] or '—' }}</td>
-          <td>{{ show['opening_date']|irish_date or 'TBA' }}</td>
-          <td>
-            {% if show['review_status'] == 'Published' and show['review_url'] %}
-              <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
-            {% elif show['review_status'] == 'Not adjudicated' %}
-              Not adjudicated
-            {% else %}
-              Not yet
-            {% endif %}
-          </td>
-        </tr>
-      {% else %}
-        <tr><td colspan="6">No shows match those filters.</td></tr>
-      {% endfor %}
-    </tbody>
+    <tbody>{{ show_rows(upcoming) }}</tbody>
   </table>
+
+  {% if finished %}
+    <h2>Already finished</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Opened</th><th>Review</th></tr>
+      </thead>
+      <tbody>{{ show_rows(finished) }}</tbody>
+    </table>
+  {% endif %}
 {% endblock %}

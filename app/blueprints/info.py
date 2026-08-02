@@ -166,9 +166,12 @@ def season_summary():
         params.append(tier)
     query += " ORDER BY (shows.opening_date IS NULL), shows.opening_date"
 
-    shows = db.execute(query, params).fetchall()
+    rows = db.execute(query, params).fetchall()
+    upcoming = [r for r in rows if not r["is_past"]]
+    finished = [r for r in rows if r["is_past"]]
 
     return render_template(
-        "season.html", season=season, shows=shows, all_seasons=all_seasons, is_current=(season == current),
+        "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
+        is_current=(season == current),
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
     )

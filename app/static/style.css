@@ -128,6 +128,19 @@ table.data-table {
 
 .stacked-form { flex-direction: column; align-items: stretch; max-width: 480px; }
 
+/* Unlike .stacked-form, this isn't width-capped - it wraps a wide multi-row
+   table (bulk show entry), not a narrow single-column form. */
+.bulk-form { margin-bottom: 1.5rem; }
+
+.bulk-table th, .bulk-table td { padding: 0.35rem 0.5rem; }
+.bulk-table select, .bulk-table input[type="text"], .bulk-table input[type="date"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+.bulk-table th:nth-child(1), .bulk-table td:nth-child(1) { width: 6.5rem; }
+.bulk-table th:nth-child(3), .bulk-table td:nth-child(3),
+.bulk-table th:nth-child(4), .bulk-table td:nth-child(4) { width: 9rem; }
+
 .filter-form label, .stacked-form label {
   display: flex;
   flex-direction: column;

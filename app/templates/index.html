@@ -11,9 +11,22 @@
     </div>
   {% endif %}
 
+  <h2>Upcoming shows</h2>
+  <form method="get" class="filter-form">
+    <label>
+      Region
+      <select name="upcoming_region" onchange="this.form.submit()">
+        <option value="">All regions</option>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == upcoming_region %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <noscript><button type="submit">Filter</button></noscript>
+  </form>
+  <p class="meta"><a href="{{ url_for('feeds.calendar_ics') }}">Subscribe in your calendar app (.ics) &darr;</a></p>
+
   {% if upcoming %}
-    <h2>Upcoming shows</h2>
-    <p class="meta"><a href="{{ url_for('feeds.calendar_ics') }}">Subscribe in your calendar app (.ics) &darr;</a></p>
     <table class="data-table">
       <thead>
         <tr><th>Show</th><th>Society</th><th>Region</th><th>Opens</th><th>Closes</th><th>Tickets</th></tr>
@@ -37,6 +50,8 @@
         {% endfor %}
       </tbody>
     </table>
+  {% else %}
+    <p>No upcoming shows{% if upcoming_region %} in {{ upcoming_region }} right now{% endif %}.</p>
   {% endif %}
 
   <h1>Browse societies</h1>

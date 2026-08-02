@@ -41,19 +41,26 @@ def index():
     db = get_db()
     societies = db.execute(query, params).fetchall()
 
-    upcoming = db.execute(
-        """
+    # Deliberately separate from the Browse filters above (region/section/q) -
+    # "what's coming up near me" and "which societies are in a region" are
+    # different questions, so this gets its own small filter rather than
+    # reusing/overloading the same one.
+    upcoming_region = request.args.get("upcoming_region", "")
+    upcoming_query = """
         SELECT shows.*, societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.moderation_status = 'approved'
           AND shows.show IS NOT NULL
           AND shows.opening_date >= ?
           AND shows.status IS NOT 'Cancelled'
-        ORDER BY shows.opening_date
-        LIMIT ?
-        """,
-        (date.today().isoformat(), UPCOMING_LIMIT),
-    ).fetchall()
+    """
+    upcoming_params = [date.today().isoformat()]
+    if upcoming_region in REGIONS:
+        upcoming_query += " AND shows.region = ?"
+        upcoming_params.append(upcoming_region)
+    upcoming_query += " ORDER BY shows.opening_date LIMIT ?"
+    upcoming_params.append(UPCOMING_LIMIT)
+    upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
 
     poster_gallery = db.execute(
         """
@@ -77,6 +84,7 @@ def index():
         selected_section=section,
         q=q,
         show_inactive=show_inactive,
+        upcoming_region=upcoming_region,
     )
 
 
@@ -127,44 +135,36 @@ def show_detail(show_id):
     return render_template("show_detail.html", show=show)
 
 
-@bp.route("/search")
-def search():
-    q = request.args.get("q", "").strip()
-    titles = []
-    if q:
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        like = f"%{escaped}%"
-        titles = [
-            r["show"]
-            for r in get_db().execute(
-                """
-                SELECT DISTINCT show FROM (
-                    SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
-                    UNION
-                    SELECT show FROM historical_results WHERE show IS NOT NULL
-                )
-                WHERE show LIKE ? ESCAPE '\\'
-                ORDER BY show
-                """,
-                (like,),
-            ).fetchall()
-        ]
-    return render_template("search.html", q=q, titles=titles)
+TITLES_SORT_OPTIONS = {
+    "title": "show COLLATE NOCASE",
+    "most": "n DESC, show COLLATE NOCASE",
+    "least": "n ASC, show COLLATE NOCASE",
+}
 
 
 @bp.route("/titles")
 def titles_list():
     db = get_db()
-    rows = db.execute(
-        """
+    q = request.args.get("q", "").strip()
+    sort = request.args.get("sort", "title")
+    if sort not in TITLES_SORT_OPTIONS:
+        sort = "title"
+
+    query = """
         SELECT show, COUNT(*) AS n FROM (
             SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
             UNION ALL
             SELECT show FROM historical_results WHERE show IS NOT NULL
         )
-        GROUP BY show ORDER BY show COLLATE NOCASE
-        """
-    ).fetchall()
+    """
+    params = []
+    if q:
+        query += " WHERE show LIKE ? ESCAPE '\\'"
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        params.append(f"%{escaped}%")
+    query += f" GROUP BY show ORDER BY {TITLES_SORT_OPTIONS[sort]}"
+
+    rows = db.execute(query, params).fetchall()
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
 
@@ -179,7 +179,7 @@ def titles_list():
         for r in rows
     ]
 
-    return render_template("titles_list.html", shows=shows)
+    return render_template("titles_list.html", shows=shows, q=q, sort=sort)
 
 
 @bp.route("/titles/<path:title>")

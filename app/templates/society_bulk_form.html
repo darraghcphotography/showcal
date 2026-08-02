@@ -6,7 +6,7 @@
   <p>Quickly add the basics for several past shows at once - season, dates, and title. Leave a row blank
      to skip it. Add production team, tier, poster, ticket link etc. later from the dashboard.</p>
 
-  <form method="post" class="stacked-form">
+  <form method="post" class="bulk-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="honeypot" aria-hidden="true">
       <label>Leave this field blank
@@ -14,7 +14,7 @@
       </label>
     </div>
 
-    <table class="data-table">
+    <table class="data-table bulk-table">
       <thead>
         <tr><th>Season</th><th>Show title</th><th>Opening date</th><th>Closing date</th></tr>
       </thead>
@@ -23,8 +23,12 @@
           {% set row = rows[i] %}
           <tr>
             <td>
-              <input type="text" name="season_{{ i }}" pattern="\d{2}/\d{2}" placeholder="e.g. 04/05"
-                     value="{{ row.season if row else '' }}">
+              <select name="season_{{ i }}">
+                <option value="">&mdash;</option>
+                {% for s in seasons %}
+                  <option value="{{ s }}" {% if row and row.season == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
             </td>
             <td>
               <input type="text" name="show_{{ i }}" value="{{ row.show if row else '' }}">

@@ -6,6 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from ..auth import active_society_code, society_required
 from ..constants import SHOW_SECTIONS
 from ..db import get_db
+from ..season import season_range
 from ..similarity import find_close_title
 from ..uploads import save_poster
 
@@ -140,7 +141,7 @@ def new_show():
             for e in errors:
                 flash(e, "error")
             return render_template(
-                "society_show_form.html", society=society, sections=SHOW_SECTIONS,
+                "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
                 form=request.form, similar_title=similar_title, mode="new",
             )
 
@@ -178,7 +179,10 @@ def new_show():
         flash("Show added - it's live now.", "success")
         return redirect(url_for("society.dashboard"))
 
-    return render_template("society_show_form.html", society=society, sections=SHOW_SECTIONS, form={}, mode="new")
+    return render_template(
+        "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
+        form={}, mode="new",
+    )
 
 
 @bp.route("/shows/<int:show_id>/edit", methods=("GET", "POST"))
@@ -210,7 +214,8 @@ def edit_show(show_id):
             for e in errors:
                 flash(e, "error")
             return render_template(
-                "society_show_form.html", society=society, sections=SHOW_SECTIONS, show=show, mode="edit"
+                "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
+                show=show, mode="edit",
             )
 
         # Deliberately no review_status/review_url here - a society login can
@@ -236,7 +241,8 @@ def edit_show(show_id):
         return redirect(url_for("society.dashboard"))
 
     return render_template(
-        "society_show_form.html", society=society, sections=SHOW_SECTIONS, show=show, mode="edit"
+        "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
+        show=show, mode="edit",
     )
 
 
@@ -295,7 +301,8 @@ def bulk_add():
                         "warning",
                     )
             return render_template(
-                "society_bulk_form.html", society=society, rows=rows, bulk_rows=BULK_ROWS
+                "society_bulk_form.html", society=society, rows=rows, bulk_rows=BULK_ROWS,
+                seasons=season_range(db),
             )
 
         inserted = 0
@@ -331,4 +338,7 @@ def bulk_add():
         )
         return redirect(url_for("society.bulk_add"))
 
-    return render_template("society_bulk_form.html", society=society, rows=[None] * BULK_ROWS, bulk_rows=BULK_ROWS)
+    return render_template(
+        "society_bulk_form.html", society=society, rows=[None] * BULK_ROWS, bulk_rows=BULK_ROWS,
+        seasons=season_range(db),
+    )

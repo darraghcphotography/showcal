@@ -18,8 +18,13 @@
     {% endif %}
 
     <label>
-      Season (e.g. 04/05)
-      <input type="text" name="season" pattern="\d{2}/\d{2}" value="{{ values['season'] or '' }}" required>
+      Season
+      <select name="season" required>
+        <option value="">Choose a season&hellip;</option>
+        {% for s in seasons %}
+          <option value="{{ s }}" {% if s == values['season'] %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
     </label>
 
     <label>

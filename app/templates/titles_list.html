@@ -6,6 +6,23 @@
      Wikipedia search{% if current_user %} unless a moderator has confirmed the exact page{% endif %} -
      it's a best guess, not a verified match.</p>
 
+  <form method="get" class="filter-form">
+    <label>
+      Search
+      <input type="text" name="q" value="{{ q }}" placeholder="e.g. Sister Act">
+    </label>
+    <label>
+      Sort by
+      <select name="sort">
+        <option value="title" {% if sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
+        <option value="most" {% if sort == 'most' %}selected{% endif %}>Most performed first</option>
+        <option value="least" {% if sort == 'least' %}selected{% endif %}>Least performed first</option>
+      </select>
+    </label>
+    <button type="submit">Apply</button>
+    {% if q %}<a href="{{ url_for('public.titles_list', sort=sort) }}">Clear search</a>{% endif %}
+  </form>
+
   <table class="data-table">
     <thead><tr><th>Show</th><th>Times performed</th><th>More info</th>{% if current_user %}<th></th>{% endif %}</tr></thead>
     <tbody>
