@@ -79,4 +79,20 @@
       <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>
     {% endfor %}
   </ul>
+
+  <h2>Awards</h2>
+  <p class="meta">From the full AIMS awards archive, {{ award_from }}&ndash;{{ award_to }} - see the
+     <a href="{{ url_for('info.awards') }}">Awards page</a> to browse or filter every record.</p>
+
+  <div class="stat-tiles">
+    <div class="stat-tile"><span class="stat-value">{{ award_total_records }}</span><span class="stat-label">Award records on file</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ award_total_winners }}</span><span class="stat-label">Category wins</span></div>
+  </div>
+
+  <h3>Most award wins</h3>
+  <p class="meta">Every category win counted, across the whole archive.</p>
+  {{ bar_chart(most_award_wins, linked=false) }}
+
+  <h3>Most "Best Overall Show" wins</h3>
+  {{ bar_chart(most_best_show_wins, linked=false) }}
 {% endblock %}

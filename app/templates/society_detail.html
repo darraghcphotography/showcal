@@ -54,8 +54,7 @@
 
   {% if historical %}
     <h2>Awards &amp; nominations (AIMS awards archive)</h2>
-    <p class="meta">{{ historical|length }} record{{ '' if historical|length == 1 else 's' }} before 23/24
-       {% if historical|length > 1 %}, back to {{ historical[-1]['year'] }}{% endif %}.</p>
+    <p class="meta">{{ historical|length }} record{{ '' if historical|length == 1 else 's' }}{% if historical|length > 1 %}, {{ historical[-1]['year'] }}&ndash;{{ historical[0]['year'] }}{% else %}, {{ historical[0]['year'] }}{% endif %}.</p>
     <table class="data-table">
       <thead><tr><th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th><th>Nominee</th></tr></thead>
       <tbody>

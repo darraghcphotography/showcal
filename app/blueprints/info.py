@@ -10,6 +10,14 @@ bp = Blueprint("info", __name__)
 
 TOP_N = 10
 
+# shows.csv's own coverage begins at season 23/24, i.e. award-archive Year
+# 2024 (see schema.sql). Any stat that treats a historical_results row as
+# equivalent to a shows-table row (counting productions/stagings) must stay
+# below this year to avoid counting a 23/24+ show twice - the Awards page and
+# society pages don't have this problem since they show award-category detail
+# that isn't tracked in shows at all, so they use the full archive instead.
+SHOWS_COVERAGE_START_YEAR = 2024
+
 
 @bp.route("/stats")
 def stats():
@@ -25,17 +33,19 @@ def stats():
 
     # All-time counts fold in historical_results (AIMS awards archive, 1977
     # through the season before shows.csv's own coverage begins - see
-    # schema.sql for why that split can't double-count a production).
+    # SHOWS_COVERAGE_START_YEAR above for why that split can't double-count
+    # a production, even though historical_results itself now holds the full
+    # archive through the present day for the Awards page/society pages).
     most_performed = db.execute(
         """
         SELECT show, COUNT(*) AS n FROM (
             SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
             UNION ALL
-            SELECT show FROM historical_results WHERE show IS NOT NULL
+            SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
         )
         GROUP BY show ORDER BY n DESC, show LIMIT ?
         """,
-        (TOP_N,),
+        (SHOWS_COVERAGE_START_YEAR, TOP_N),
     ).fetchall()
 
     # "Most selected" = how many *different* societies have put this show on,
@@ -62,11 +72,11 @@ def stats():
             WHERE show IS NOT NULL AND moderation_status = 'approved'
             UNION ALL
             SELECT show, COALESCE('id:' || society_id, 'name:' || society_name) AS society_key
-            FROM historical_results WHERE show IS NOT NULL
+            FROM historical_results WHERE show IS NOT NULL AND year < ?
         )
         GROUP BY show ORDER BY n DESC, show LIMIT ?
         """,
-        (TOP_N,),
+        (SHOWS_COVERAGE_START_YEAR, TOP_N),
     ).fetchall()
 
     one_offs = db.execute(
@@ -74,17 +84,53 @@ def stats():
         SELECT show FROM (
             SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
             UNION ALL
-            SELECT show FROM historical_results WHERE show IS NOT NULL
+            SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
         )
         GROUP BY show HAVING COUNT(*) = 1
         ORDER BY show
-        """
+        """,
+        (SHOWS_COVERAGE_START_YEAR,),
     ).fetchall()
 
     historical_years = db.execute(
-        "SELECT MIN(year), MAX(year), COUNT(DISTINCT year || show || society_name) FROM historical_results"
+        "SELECT MIN(year), MAX(year), COUNT(DISTINCT year || show || society_name) FROM historical_results WHERE year < ?",
+        (SHOWS_COVERAGE_START_YEAR,),
     ).fetchone()
     historical_from, historical_to, historical_productions = historical_years
+
+    # Full archive (1977-present) - award-category detail isn't tracked in
+    # shows at all, so no double-counting risk here, unlike the stats above.
+    award_totals = db.execute(
+        """
+        SELECT COUNT(*), SUM(CASE WHEN result = 'Winner' THEN 1 ELSE 0 END), MIN(year), MAX(year)
+        FROM historical_results
+        """
+    ).fetchone()
+    award_total_records, award_total_winners, award_from, award_to = award_totals
+
+    most_award_wins = db.execute(
+        """
+        SELECT COALESCE(society_name, 'Unknown') AS label, COUNT(*) AS n
+        FROM historical_results
+        WHERE result = 'Winner' AND society_name IS NOT NULL
+        GROUP BY COALESCE(society_id, society_name)
+        ORDER BY n DESC, label
+        LIMIT ?
+        """,
+        (TOP_N,),
+    ).fetchall()
+
+    most_best_show_wins = db.execute(
+        """
+        SELECT COALESCE(society_name, 'Unknown') AS label, COUNT(*) AS n
+        FROM historical_results
+        WHERE result = 'Winner' AND category_name = 'Best Overall Show' AND society_name IS NOT NULL
+        GROUP BY COALESCE(society_id, society_name)
+        ORDER BY n DESC, label
+        LIMIT ?
+        """,
+        (TOP_N,),
+    ).fetchall()
 
     by_season = db.execute(
         """
@@ -130,6 +176,12 @@ def stats():
         historical_from=historical_from,
         historical_to=historical_to,
         historical_productions=historical_productions,
+        award_total_records=award_total_records,
+        award_total_winners=award_total_winners,
+        award_from=award_from,
+        award_to=award_to,
+        most_award_wins=most_award_wins,
+        most_best_show_wins=most_best_show_wins,
     )
 
 

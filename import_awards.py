@@ -1,13 +1,17 @@
-"""Import AIMS's historical awards archive (1977-) into historical_results.
+"""Import AIMS's full historical awards archive (1977-) into historical_results.
 
-Only imports rows for years strictly before shows.csv's own coverage, so
-this can never double-count a production already in the shows table - see
-the comment on historical_results in schema.sql for how that cutoff works
-and why. Re-running this wipes and reloads historical_results from the CSV
-(safe: nothing in the app writes to this table, unlike shows/societies).
+Imports every row in the CSV, including years that overlap shows.csv's own
+coverage (23/24 onward, i.e. award Year 2024+) - award-level detail (who was
+nominated/won which category) isn't tracked anywhere in the shows table, so
+there's nothing to double-count there. The one place that DOES need care is
+stats: any query that counts historical_results rows as equivalent to a
+shows-table row (e.g. "most performed shows") must add `year < 2024` itself
+to avoid counting a 23/24+ production twice - see info.py's stats(). Re-running
+this wipes and reloads historical_results from the CSV (safe: nothing in the
+app writes to this table, unlike shows/societies).
 
 Usage:
-    py import_awards.py [--db aims.db] [--csv "AIMS_Awards - Results.csv"] [--cutoff-year 2024]
+    py import_awards.py [--db aims.db] [--csv "AIMS_Awards - Results.csv"]
 """
 import argparse
 import csv
@@ -58,11 +62,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", default=str(ROOT / "aims.db"))
     parser.add_argument("--csv", default=str(ROOT / "AIMS_Awards - Results.csv"))
-    parser.add_argument(
-        "--cutoff-year", type=int, default=2024,
-        help="Only import rows with Year strictly less than this (default 2024, "
-             "matching shows.csv's earliest season 23/24).",
-    )
     args = parser.parse_args()
 
     conn = sqlite3.connect(args.db)
@@ -83,8 +82,6 @@ def main():
             skipped_bad_year += 1
             continue
         year = int(year_str)
-        if year >= args.cutoff_year:
-            continue
 
         society_name = normalize(row.get("ResolvedSocietyName"))
         raw_show = normalize(row.get("Showname"))
@@ -126,7 +123,7 @@ def main():
 
     conn.close()
 
-    print(f"Imported {inserted} award-result rows (years before {args.cutoff_year})")
+    print(f"Imported {inserted} award-result rows")
     if skipped_bad_year:
         print(f"Skipped {skipped_bad_year} row(s) with no valid Year")
     print(f"Distinct historical productions: {distinct_productions}")

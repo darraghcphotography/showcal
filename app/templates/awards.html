@@ -2,9 +2,8 @@
 {% block title %}Awards - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
   <h1>Awards</h1>
-  <p>{{ rows|length }} record{{ '' if rows|length == 1 else 's' }} from the AIMS awards archive (1977 onward).
-     Award-level detail isn't yet tracked for the current DC database era (23/24 onward) - see the
-     <a href="{{ url_for('info.stats') }}">Statistics</a> page for recent show counts.</p>
+  <p>{{ rows|length }} record{{ '' if rows|length == 1 else 's' }} from the full AIMS awards archive, 1977
+     through the most recently adjudicated season.</p>
 
   <form method="get" class="filter-form">
     <label>
