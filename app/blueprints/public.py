@@ -170,6 +170,7 @@ def titles_list():
     rows = db.execute(query, params).fetchall()
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
+    has_info = {r[0] for r in db.execute("SELECT show FROM show_info").fetchall()}
 
     shows = [
         {
@@ -177,6 +178,7 @@ def titles_list():
             "count": r["n"],
             "url": manual_links.get(r["show"]),
             "is_manual": r["show"] in manual_links,
+            "has_info": r["show"] in has_info,
             "search_url": f"https://en.wikipedia.org/w/index.php?search={quote_plus(r['show'] + ' musical')}",
         }
         for r in rows
@@ -214,7 +216,9 @@ def title_detail(title):
     if not shows and not historical:
         abort(404)
 
-    return render_template("title_detail.html", title=title, shows=shows, historical=historical)
+    info = db.execute("SELECT * FROM show_info WHERE show = ?", (title,)).fetchone()
+
+    return render_template("title_detail.html", title=title, shows=shows, historical=historical, info=info)
 
 
 @bp.route("/suggest", methods=("GET", "POST"))

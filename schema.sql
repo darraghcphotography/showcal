@@ -189,3 +189,19 @@ CREATE TABLE IF NOT EXISTS show_links (
     url             TEXT NOT NULL,
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Moderator-curated editorial content for a show title - synopsis and amateur
+-- rights/licensing info, meant to help a society browsing Shows A-Z decide on
+-- their next production. Nothing here is auto-fetched (no reliable public API
+-- for amateur theatre licensing exists); a moderator looks the title up on
+-- the actual rights holder's site (MTI, Concord Theatricals, etc.) and enters
+-- it once, same trust model as show_links above.
+CREATE TABLE IF NOT EXISTS show_info (
+    show            TEXT PRIMARY KEY,
+    synopsis        TEXT,
+    rights_url      TEXT,
+    rights_status   TEXT CHECK (rights_status IN (
+                        'Available', 'Contact publisher', 'Restricted'
+                    ) OR rights_status IS NULL),
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);

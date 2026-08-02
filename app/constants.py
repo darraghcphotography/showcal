@@ -24,3 +24,8 @@ AWARD_RESULTS = ["Winner", "Second Place", "Third Place", "Nominee"]
 # row - counting/listing a production, not showing award-category detail -
 # must stay below this year to avoid counting/listing a 23/24+ show twice.
 SHOWS_COVERAGE_START_YEAR = 2024
+
+# Amateur licensing status for show_info.rights_status - deliberately coarse,
+# since this is a moderator's manual read of a rights holder's site (MTI,
+# Concord Theatricals, etc.), not a live/automated availability check.
+RIGHTS_STATUSES = ["Available", "Contact publisher", "Restricted"]

@@ -7,7 +7,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from werkzeug.security import check_password_hash
 
 from ..auth import current_user, login_required
-from ..constants import AWARD_RESULTS, REGIONS, REVIEW_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
+from ..constants import AWARD_RESULTS, REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
 from ..dedupe import find_candidates
 from ..season import current_season, season_range
@@ -715,6 +715,52 @@ def clear_show_link():
         get_db().execute("DELETE FROM show_links WHERE show = ?", (show,))
         get_db().commit()
     return redirect(url_for("public.titles_list"))
+
+
+@bp.route("/titles/<path:title>/info", methods=("GET", "POST"))
+@login_required
+def edit_show_info(title):
+    db = get_db()
+    info = db.execute("SELECT * FROM show_info WHERE show = ?", (title,)).fetchone()
+
+    if request.method == "POST":
+        synopsis = request.form.get("synopsis", "").strip() or None
+        rights_url = request.form.get("rights_url", "").strip() or None
+        rights_status = request.form.get("rights_status") or None
+
+        if rights_status and rights_status not in RIGHTS_STATUSES:
+            flash("Choose a valid rights status.", "error")
+            return render_template(
+                "admin/show_info_form.html", title=title, statuses=RIGHTS_STATUSES, form=request.form
+            )
+
+        db.execute(
+            """
+            INSERT INTO show_info (show, synopsis, rights_url, rights_status, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(show) DO UPDATE SET
+                synopsis = excluded.synopsis, rights_url = excluded.rights_url,
+                rights_status = excluded.rights_status, updated_at = excluded.updated_at
+            """,
+            (title, synopsis, rights_url, rights_status),
+        )
+        db.commit()
+        flash("Show info updated.", "success")
+        return redirect(url_for("public.title_detail", title=title))
+
+    return render_template(
+        "admin/show_info_form.html", title=title, statuses=RIGHTS_STATUSES,
+        form=dict(info) if info else {},
+    )
+
+
+@bp.route("/titles/<path:title>/info/clear", methods=("POST",))
+@login_required
+def clear_show_info(title):
+    get_db().execute("DELETE FROM show_info WHERE show = ?", (title,))
+    get_db().commit()
+    flash("Show info cleared.", "success")
+    return redirect(url_for("public.title_detail", title=title))
 
 
 @bp.route("/traffic")

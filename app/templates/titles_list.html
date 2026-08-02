@@ -28,7 +28,10 @@
     <tbody>
       {% for s in shows %}
         <tr>
-          <td><a href="{{ url_for('public.title_detail', title=s['title']) }}">{{ s['title'] }}</a></td>
+          <td>
+            <a href="{{ url_for('public.title_detail', title=s['title']) }}">{{ s['title'] }}</a>
+            {% if s['has_info'] %}<span class="tag" title="Synopsis/rights info available">info</span>{% endif %}
+          </td>
           <td>{{ s['count'] }}</td>
           <td>
             <a href="{{ s['url'] or s['search_url'] }}" rel="noopener" target="_blank">

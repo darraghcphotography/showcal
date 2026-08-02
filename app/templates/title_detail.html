@@ -6,6 +6,23 @@
   <p>{{ shows|length + historical|length }} production{{ '' if (shows|length + historical|length) == 1 else 's' }}
      on record{% if historical %}, including {{ historical|length }} from AIMS's awards history before 23/24{% endif %}.</p>
 
+  {% if current_user %}
+    <p><a href="{{ url_for('admin.edit_show_info', title=title) }}" class="edit-callout">
+      {{ 'Edit' if info else 'Add' }} show info &rarr;
+    </a></p>
+  {% endif %}
+
+  {% if info and (info['synopsis'] or info['rights_url'] or info['rights_status']) %}
+    <h2>About this show</h2>
+    {% if info['synopsis'] %}<p>{{ info['synopsis'] }}</p>{% endif %}
+    {% if info['rights_status'] or info['rights_url'] %}
+      <p class="meta">
+        Amateur rights: {{ info['rights_status'] or 'Unknown' }}
+        {% if info['rights_url'] %} &middot; <a href="{{ info['rights_url'] }}" rel="noopener" target="_blank">Licensing page</a>{% endif %}
+      </p>
+    {% endif %}
+  {% endif %}
+
   {% if shows %}
     <h2>Since 23/24 (full detail)</h2>
     <table class="data-table">
