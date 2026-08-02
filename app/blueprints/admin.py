@@ -54,7 +54,56 @@ def logout():
 @bp.route("/")
 @login_required
 def dashboard():
-    return redirect(url_for("admin.queue"))
+    db = get_db()
+    current = current_season(db)
+
+    pending_count = db.execute(
+        "SELECT COUNT(*) FROM shows WHERE moderation_status = 'pending'"
+    ).fetchone()[0]
+
+    needs_review_count = db.execute(
+        """
+        SELECT COUNT(*) FROM shows
+        WHERE moderation_status = 'approved' AND show IS NOT NULL
+          AND review_status != 'Published' AND season <= ?
+        """,
+        (current,),
+    ).fetchone()[0]
+
+    missing_dates_count = db.execute(
+        """
+        SELECT COUNT(*) FROM shows
+        WHERE moderation_status = 'approved' AND show IS NOT NULL
+          AND (opening_date IS NULL OR closing_date IS NULL)
+        """
+    ).fetchone()[0]
+
+    titles = {
+        r[0] for r in db.execute(
+            """
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            UNION
+            SELECT show FROM historical_results WHERE show IS NOT NULL
+            """
+        ).fetchall()
+    }
+    dismissed = {
+        (r[0], r[1]) for r in db.execute("SELECT title_a, title_b FROM dismissed_duplicate_pairs").fetchall()
+    }
+    duplicate_count = len(find_candidates(titles, dismissed))
+
+    unmatched_award_societies_count = db.execute(
+        "SELECT COUNT(*) FROM historical_results WHERE society_name IS NOT NULL AND society_id IS NULL"
+    ).fetchone()[0]
+
+    return render_template(
+        "admin/dashboard.html",
+        pending_count=pending_count,
+        needs_review_count=needs_review_count,
+        missing_dates_count=missing_dates_count,
+        duplicate_count=duplicate_count,
+        unmatched_award_societies_count=unmatched_award_societies_count,
+    )
 
 
 @bp.route("/queue")
@@ -790,6 +839,7 @@ def awards_list():
     category = request.args.get("category", "")
     tier = request.args.get("tier", "")
     result = request.args.get("result", "")
+    unmatched = request.args.get("unmatched", "")
 
     years = [r[0] for r in db.execute("SELECT DISTINCT year FROM historical_results ORDER BY year DESC").fetchall()]
     categories = _award_categories(db)
@@ -813,6 +863,8 @@ def awards_list():
     if result in AWARD_RESULTS:
         query += " AND result = ?"
         params.append(result)
+    if unmatched:
+        query += " AND historical_results.society_name IS NOT NULL AND historical_results.society_id IS NULL"
     if q:
         query += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
                      OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
@@ -825,7 +877,8 @@ def awards_list():
 
     return render_template(
         "admin/awards_list.html", rows=rows, years=years, categories=categories, results=AWARD_RESULTS,
-        selected_year=year, selected_category=category, selected_tier=tier, selected_result=result, q=q,
+        selected_year=year, selected_category=category, selected_tier=tier, selected_result=result,
+        unmatched=unmatched, q=q,
     )
 
 

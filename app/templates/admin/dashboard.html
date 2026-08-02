@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Admin - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Admin</h1>
+
+  <h2>Needs attention</h2>
+  <table class="data-table">
+    <tbody>
+      <tr>
+        <td>Pending submissions</td>
+        <td>{{ pending_count }}</td>
+        <td><a href="{{ url_for('admin.queue') }}">Moderation queue</a></td>
+      </tr>
+      <tr>
+        <td>Shows missing a review link</td>
+        <td>{{ needs_review_count }}</td>
+        <td><a href="{{ url_for('admin.shows_list', needs_review=1) }}">All shows</a></td>
+      </tr>
+      <tr>
+        <td>Shows missing a date</td>
+        <td>{{ missing_dates_count }}</td>
+        <td><a href="{{ url_for('admin.fix_dates', missing=1) }}">Fix dates</a></td>
+      </tr>
+      <tr>
+        <td>Possible duplicate titles</td>
+        <td>{{ duplicate_count }}</td>
+        <td><a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a></td>
+      </tr>
+      <tr>
+        <td>Award records with no society match</td>
+        <td>{{ unmatched_award_societies_count }}</td>
+        <td><a href="{{ url_for('admin.awards_list', unmatched=1) }}">Awards</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Tools</h2>
+  <p class="meta">
+    <a href="{{ url_for('admin.shows_list') }}">All shows</a> &middot;
+    <a href="{{ url_for('admin.societies_list') }}">Societies</a> &middot;
+    <a href="{{ url_for('admin.awards_list') }}">Awards</a> &middot;
+    <a href="{{ url_for('admin.fix_dates') }}">Fix dates</a> &middot;
+    <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a> &middot;
+    <a href="{{ url_for('admin.traffic') }}">Traffic</a> &middot;
+    <a href="{{ url_for('admin.suggestions') }}">Suggestions</a>
+    {% if current_user['role'] == 'admin' %}
+      &middot; <a href="{{ url_for('admin.invite_codes') }}">Invite codes</a>
+    {% endif %}
+  </p>
+{% endblock %}

@@ -24,17 +24,7 @@
         <a href="{{ url_for('society.dashboard') }}">My society</a>
       {% endif %}
       {% if current_user %}
-        <a href="{{ url_for('admin.queue') }}">Moderation queue</a>
-        <a href="{{ url_for('admin.shows_list') }}">All shows</a>
-        <a href="{{ url_for('admin.fix_dates') }}">Fix dates</a>
-        <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a>
-        <a href="{{ url_for('admin.societies_list') }}">Societies</a>
-        <a href="{{ url_for('admin.awards_list') }}">Awards</a>
-        <a href="{{ url_for('admin.traffic') }}">Traffic</a>
-        <a href="{{ url_for('admin.suggestions') }}">Suggestions</a>
-        {% if current_user['role'] == 'admin' %}
-          <a href="{{ url_for('admin.invite_codes') }}">Invite codes</a>
-        {% endif %}
+        <a href="{{ url_for('admin.dashboard') }}" class="nav-admin">Admin</a>
         <form method="post" action="{{ url_for('admin.logout') }}" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="link-button">Log out ({{ current_user['username'] }})</button>

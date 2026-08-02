@@ -44,8 +44,12 @@
       Search
       <input type="text" name="q" value="{{ q }}" placeholder="Society, show, nominee or reason">
     </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="unmatched" value="1" {% if unmatched %}checked{% endif %}>
+      No society match only
+    </label>
     <button type="submit">Filter</button>
-    {% if selected_year or selected_category or selected_tier or selected_result or q %}
+    {% if selected_year or selected_category or selected_tier or selected_result or unmatched or q %}
       <a href="{{ url_for('admin.awards_list') }}">Clear</a>
     {% endif %}
   </form>
