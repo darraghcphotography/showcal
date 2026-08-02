@@ -1,7 +1,7 @@
 import functools
 import re
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
@@ -10,6 +10,7 @@ from ..auth import current_user, login_required
 from ..constants import AWARD_RESULTS, REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
 from ..dedupe import find_candidates
+from ..rate_limit import limiter
 from ..season import current_season, season_range
 from ..similarity import find_close_title
 from ..uploads import save_poster
@@ -31,6 +32,7 @@ def admin_required(view):
 
 
 @bp.route("/login", methods=("GET", "POST"))
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -96,6 +98,28 @@ def dashboard():
         "SELECT COUNT(*) FROM historical_results WHERE society_name IS NOT NULL AND society_id IS NULL"
     ).fetchone()[0]
 
+    # The most recent season where every show has safely concluded (closed
+    # at least 60 days ago, giving adjudication time to happen) - if there's
+    # still no historical_results row for its award year, those results
+    # probably just haven't been entered yet via /admin/awards.
+    cutoff = (date.today() - timedelta(days=60)).isoformat()
+    concluded = db.execute(
+        """
+        SELECT season FROM shows
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND status IS NOT 'Cancelled'
+        GROUP BY season
+        HAVING MAX(COALESCE(closing_date, opening_date)) <= ?
+        ORDER BY season DESC LIMIT 1
+        """,
+        (cutoff,),
+    ).fetchone()
+    awards_pending_season = None
+    if concluded:
+        award_year = 2000 + int(concluded["season"].split("/")[1])
+        has_awards = db.execute("SELECT 1 FROM historical_results WHERE year = ?", (award_year,)).fetchone()
+        if not has_awards:
+            awards_pending_season = concluded["season"]
+
     return render_template(
         "admin/dashboard.html",
         pending_count=pending_count,
@@ -103,6 +127,7 @@ def dashboard():
         missing_dates_count=missing_dates_count,
         duplicate_count=duplicate_count,
         unmatched_award_societies_count=unmatched_award_societies_count,
+        awards_pending_season=awards_pending_season,
     )
 
 

@@ -5,6 +5,7 @@ from flask import Flask
 from flask_wtf import CSRFProtect
 
 from . import db as db_module
+from .rate_limit import limiter
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 csrf = CSRFProtect()
@@ -19,6 +20,14 @@ def create_app(test_config=None):
         SCHEMA_PATH=str(BASE_DIR / "schema.sql"),
         UPLOAD_DIR=os.environ.get("AIMS_UPLOAD_DIR", str(BASE_DIR / "uploads")),
         MAX_CONTENT_LENGTH=8 * 1024 * 1024,  # 8 MB - generous for a poster photo, not for abuse
+        # Secure only in Docker/production (signalled by AIMS_DB_PATH being
+        # set, per docker-compose.yml - local dev per docs/deployment.md
+        # never sets it) - the site is HTTPS-only there via Cloudflare
+        # Tunnel. Local `flask run` stays plain http, where a Secure cookie
+        # would never be sent back by the browser at all, breaking login.
+        SESSION_COOKIE_SECURE=bool(os.environ.get("AIMS_DB_PATH")),
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_HTTPONLY=True,
     )
     if test_config:
         app.config.update(test_config)
@@ -31,6 +40,7 @@ def create_app(test_config=None):
 
     db_module.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     from . import filters
     filters.register(app)

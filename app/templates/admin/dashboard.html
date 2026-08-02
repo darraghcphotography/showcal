@@ -31,6 +31,13 @@
         <td>{{ unmatched_award_societies_count }}</td>
         <td><a href="{{ url_for('admin.awards_list', unmatched=1) }}">Awards</a></td>
       </tr>
+      {% if awards_pending_season %}
+        <tr>
+          <td>Awards not yet entered for {{ awards_pending_season }} (concluded 60+ days ago)</td>
+          <td>&mdash;</td>
+          <td><a href="{{ url_for('admin.bulk_award') }}">Add results</a></td>
+        </tr>
+      {% endif %}
     </tbody>
   </table>
 

@@ -221,6 +221,14 @@ def title_detail(title):
     return render_template("title_detail.html", title=title, shows=shows, historical=historical, info=info)
 
 
+@bp.route("/about")
+def about():
+    db = get_db()
+    total_societies = db.execute("SELECT COUNT(*) FROM societies").fetchone()[0]
+    historical_from = db.execute("SELECT MIN(year) FROM historical_results").fetchone()[0]
+    return render_template("about.html", total_societies=total_societies, historical_from=historical_from)
+
+
 @bp.route("/suggest", methods=("GET", "POST"))
 def suggest():
     if request.method == "POST":

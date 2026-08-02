@@ -6,6 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from ..auth import active_society_code, society_required
 from ..constants import SHOW_SECTIONS
 from ..db import get_db
+from ..rate_limit import limiter
 from ..season import season_range
 from ..similarity import find_close_title
 from ..uploads import save_poster
@@ -23,6 +24,7 @@ def _current_society(db):
 
 
 @bp.route("/login", methods=("GET", "POST"))
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         code = request.form.get("code", "").strip()

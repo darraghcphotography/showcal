@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}About - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>About this site</h1>
+
+  <p>The Unofficial AIMS Show Tracker is a personal project by Darragh C, built to give AIMS member
+     societies, their members, and audiences a single place to browse show history, upcoming
+     productions, and AIMS's adjudication record - {{ total_societies }} societies and awards data
+     back to {{ historical_from }}.</p>
+
+  <p><strong>This is not an official AIMS website.</strong> It isn't run or endorsed by the Association
+     of Irish Musical Societies - it's an independent project, built and maintained separately. For
+     anything official - membership, insurance, the adjudication scheme itself, AIMS's own news and
+     events - the place to go is AIMS's own site and channels.</p>
+
+  <h2>Where the data comes from</h2>
+  <p>Current show listings come from AIMS member societies themselves - either imported from the show
+     season spreadsheet, submitted by a member and checked by a moderator, or entered directly by a
+     society's own login. The awards archive (1977-present) was originally bootstrapped from AIMS's own
+     historical adjudication records, and is now maintained directly going forward. Synopses and rights
+     information on individual show pages are added by a moderator, not automatically generated.</p>
+
+  <h2>Something wrong, or an idea?</h2>
+  <p>Use <a href="{{ url_for('public.suggest') }}">Suggest a feature</a> for anything about the site
+     itself, or the "Get in touch" link in the footer to reach Darragh directly.</p>
+{% endblock %}

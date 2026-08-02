@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from ..auth import active_invite_code, invite_required
 from ..db import get_db
+from ..rate_limit import limiter
 from ..season import current_season, next_season
 from ..similarity import find_close_title
 from ..uploads import save_poster
@@ -19,6 +20,7 @@ def _season_options(db):
 
 
 @bp.route("/unlock", methods=("GET", "POST"))
+@limiter.limit("10 per minute")
 def unlock():
     if request.method == "POST":
         code = request.form.get("code", "").strip()
