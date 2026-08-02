@@ -56,9 +56,23 @@ def create_app(test_config=None):
 
     from . import auth
 
+    # Cache-busting for static/style.css: a version string baked from the
+    # file's own mtime, appended as a query string on the <link> tag. Changes
+    # automatically on every deploy (the file gets a fresh mtime when the
+    # image is rebuilt), so browsers and Cloudflare's edge cache always fetch
+    # the new CSS instead of serving a stale copy under the same URL.
+    try:
+        asset_version = str(int((BASE_DIR / "app" / "static" / "style.css").stat().st_mtime))
+    except OSError:
+        asset_version = "1"
+
     @app.context_processor
     def inject_globals():
-        return {"current_user": auth.current_user(), "society_session": auth.active_society_code()}
+        return {
+            "current_user": auth.current_user(),
+            "society_session": auth.active_society_code(),
+            "asset_version": asset_version,
+        }
 
     from flask import flash, redirect, request, url_for
 
