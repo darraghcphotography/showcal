@@ -6,7 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
-COPY schema.sql wsgi.py import_csv.py import_awards.py seed_admin.py ./
+COPY schema.sql wsgi.py import_csv.py import_awards.py seed_admin.py fix_show_titles.py ./
 COPY ["AIMS_Awards - Results.csv", "./"]
 
 # aims.db and uploaded posters live under /data, outside the image, so

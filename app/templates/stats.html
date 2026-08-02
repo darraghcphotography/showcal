@@ -71,9 +71,9 @@
   <p class="meta">Total number of productions{% if historical_productions %}, including the AIMS awards archive back to {{ historical_from }}{% endif %}.</p>
   {{ bar_chart(most_performed) }}
 
-  <h2>Performed only once ({{ one_offs|length }} shows)</h2>
-  <p class="meta">Every title below has appeared on the AIMS circuit exactly once in the data on record
-     (including the historical archive) - some may be spelling variants worth double-checking.</p>
+  <h2>One-off productions ({{ one_offs|length }} shows)</h2>
+  <p class="meta">Every title below has had exactly one production on the AIMS circuit in the data on
+     record (including the historical archive) - a nice list of shows worth a revival.</p>
   <ul class="plain-list">
     {% for row in one_offs %}
       <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>

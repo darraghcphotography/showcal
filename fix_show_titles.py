@@ -12,7 +12,15 @@ This intentionally only includes exact-match, unambiguous same-show renames
 production). It does NOT touch the handful of rows that look like two show
 titles concatenated together, or ambiguous naming - those need a human who
 knows what the show actually was; see the conversation/README notes.
+
+Usage:
+    py fix_show_titles.py [--db aims.db] [--csv shows.csv]
+
+In Docker, pass the real paths explicitly - the default --db/--csv are a
+throwaway path inside the image, not the volume-mounted real files:
+    docker exec <container> python fix_show_titles.py --db /data/aims.db --csv /data/shows.csv
 """
+import argparse
 import csv
 import sqlite3
 from pathlib import Path
@@ -65,8 +73,8 @@ BLANK_OUT = {
 }
 
 
-def fix_db():
-    conn = sqlite3.connect(ROOT / "aims.db")
+def fix_db(db_path):
+    conn = sqlite3.connect(db_path)
     changed = 0
     for old, new in RENAMES.items():
         cur = conn.execute("UPDATE shows SET show = ? WHERE show = ?", (new, old))
@@ -76,11 +84,15 @@ def fix_db():
         changed += cur.rowcount
     conn.commit()
     conn.close()
-    print(f"aims.db: {changed} row(s) updated")
+    print(f"{db_path}: {changed} row(s) updated")
 
 
-def fix_csv():
-    path = ROOT / "shows.csv"
+def fix_csv(csv_path):
+    path = Path(csv_path)
+    if not path.exists():
+        print(f"{path}: not found, skipping (only the database was updated)")
+        return
+
     with open(path, encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
         fieldnames = reader.fieldnames
@@ -100,9 +112,14 @@ def fix_csv():
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"shows.csv: {changed} row(s) updated")
+    print(f"{path}: {changed} row(s) updated")
 
 
 if __name__ == "__main__":
-    fix_db()
-    fix_csv()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--db", default=str(ROOT / "aims.db"))
+    parser.add_argument("--csv", default=str(ROOT / "shows.csv"))
+    args = parser.parse_args()
+
+    fix_db(args.db)
+    fix_csv(args.csv)
