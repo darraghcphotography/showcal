@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Bulk add shows - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }}</a></p>
+  <h1>Bulk add shows</h1>
+  <p>Quickly add the basics for several past shows at once - season, dates, and title. Leave a row blank
+     to skip it. Add production team, tier, poster, ticket link etc. later from the dashboard.</p>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="honeypot" aria-hidden="true">
+      <label>Leave this field blank
+        <input type="text" name="website" tabindex="-1" autocomplete="off">
+      </label>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr><th>Season</th><th>Show title</th><th>Opening date</th><th>Closing date</th></tr>
+      </thead>
+      <tbody>
+        {% for i in range(bulk_rows) %}
+          {% set row = rows[i] %}
+          <tr>
+            <td>
+              <input type="text" name="season_{{ i }}" pattern="\d{2}/\d{2}" placeholder="e.g. 04/05"
+                     value="{{ row.season if row else '' }}">
+            </td>
+            <td>
+              <input type="text" name="show_{{ i }}" value="{{ row.show if row else '' }}">
+              {% if row and row.similar_title %}
+                <label class="checkbox-label">
+                  <input type="checkbox" name="confirm_{{ i }}" value="1">
+                  Different show from "{{ row.similar_title }}"
+                </label>
+              {% endif %}
+            </td>
+            <td><input type="date" name="opening_date_{{ i }}" value="{{ row.opening_date if row else '' }}"></td>
+            <td><input type="date" name="closing_date_{{ i }}" value="{{ row.closing_date if row else '' }}"></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button type="submit">Save these shows</button>
+  </form>
+{% endblock %}

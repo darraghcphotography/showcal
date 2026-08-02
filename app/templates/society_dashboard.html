@@ -10,9 +10,24 @@
     </form>
   </p>
   <p>Add or fix your own show history here - changes go live immediately. Review links/status stay
-     under AIMS moderator control.</p>
+     under moderator control.</p>
 
-  <p><a href="{{ url_for('society.new_show') }}" class="edit-callout">+ Add a show &rarr;</a></p>
+  {% if society['logo_filename'] %}
+    <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=society['logo_filename']) }}" alt="{{ society['name'] }} logo">
+  {% endif %}
+  <form method="post" action="{{ url_for('society.set_logo') }}" enctype="multipart/form-data" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      {{ 'Replace your logo' if society['logo_filename'] else 'Upload a logo' }} <span class="hint">(shows on your public society page)</span>
+      <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif">
+    </label>
+    <button type="submit">Save logo</button>
+  </form>
+
+  <p>
+    <a href="{{ url_for('society.new_show') }}" class="edit-callout">+ Add a show &rarr;</a>
+    <a href="{{ url_for('society.bulk_add') }}" class="edit-callout">+ Bulk add past shows &rarr;</a>
+  </p>
 
   <table class="data-table">
     <thead><tr><th>Season</th><th>Show</th><th>Tier</th><th>Dates</th><th></th></tr></thead>

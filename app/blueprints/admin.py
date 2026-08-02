@@ -318,6 +318,16 @@ def edit_society(society_id):
         notes = request.form.get("notes", "").strip() or None
         default_venue = request.form.get("default_venue", "").strip() or None
 
+        logo_filename = society["logo_filename"]
+        logo_file = request.files.get("logo")
+        if logo_file and logo_file.filename:
+            try:
+                logo_filename = save_poster(logo_file, current_app.config["UPLOAD_DIR"])
+            except ValueError as e:
+                errors.append(str(e))
+        elif request.form.get("remove_logo"):
+            logo_filename = None
+
         if not name:
             errors.append("Name is required.")
         elif db.execute(
@@ -339,10 +349,10 @@ def edit_society(society_id):
         db.execute(
             """
             UPDATE societies SET name = ?, region = ?, section = ?,
-                section_as_of = ?, section_history = ?, notes = ?, default_venue = ?
+                section_as_of = ?, section_history = ?, notes = ?, default_venue = ?, logo_filename = ?
             WHERE id = ?
             """,
-            (name, region, section, section_as_of, section_history, notes, default_venue, society_id),
+            (name, region, section, section_as_of, section_history, notes, default_venue, logo_filename, society_id),
         )
         db.commit()
         flash("Society updated.", "success")

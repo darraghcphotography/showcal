@@ -4,7 +4,7 @@
   <p><a href="{{ url_for('admin.societies_list') }}">&larr; Back to societies</a></p>
   <h1>Edit society</h1>
 
-  <form method="post" class="stacked-form">
+  <form method="post" class="stacked-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <label>
@@ -49,6 +49,21 @@
       Default venue <span class="hint">(prefilled on a new show whenever venue is left blank)</span>
       <input type="text" name="default_venue" value="{{ society['default_venue'] or '' }}">
     </label>
+
+    <fieldset>
+      <legend>Logo</legend>
+      {% if society['logo_filename'] %}
+        <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=society['logo_filename']) }}" alt="Current logo">
+        <label class="checkbox-label">
+          <input type="checkbox" name="remove_logo" value="1">
+          Remove current logo
+        </label>
+      {% endif %}
+      <label>
+        {{ 'Replace logo' if society['logo_filename'] else 'Upload logo' }}
+        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif">
+      </label>
+    </fieldset>
 
     <button type="submit">Save</button>
   </form>

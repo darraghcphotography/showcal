@@ -29,6 +29,7 @@ COLUMN_MIGRATIONS = [
     ("shows", "ticket_url", "ALTER TABLE shows ADD COLUMN ticket_url TEXT"),
     ("shows", "poster_filename", "ALTER TABLE shows ADD COLUMN poster_filename TEXT"),
     ("societies", "default_venue", "ALTER TABLE societies ADD COLUMN default_venue TEXT"),
+    ("societies", "logo_filename", "ALTER TABLE societies ADD COLUMN logo_filename TEXT"),
     ("invite_codes", "society_id", "ALTER TABLE invite_codes ADD COLUMN society_id INTEGER REFERENCES societies(id)"),
 ]
 

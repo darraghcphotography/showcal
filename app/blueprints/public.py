@@ -10,6 +10,7 @@ from ..db import get_db
 bp = Blueprint("public", __name__)
 
 UPCOMING_LIMIT = 6
+POSTER_GALLERY_LIMIT = 8
 
 
 @bp.route("/")
@@ -54,10 +55,22 @@ def index():
         (date.today().isoformat(), UPCOMING_LIMIT),
     ).fetchall()
 
+    poster_gallery = db.execute(
+        """
+        SELECT shows.id, shows.show, shows.poster_filename, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.moderation_status = 'approved' AND shows.poster_filename IS NOT NULL
+        ORDER BY shows.created_at DESC
+        LIMIT ?
+        """,
+        (POSTER_GALLERY_LIMIT,),
+    ).fetchall()
+
     return render_template(
         "index.html",
         societies=societies,
         upcoming=upcoming,
+        poster_gallery=poster_gallery,
         regions=REGIONS,
         sections=SOCIETY_SECTIONS,
         selected_region=region,

@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS societies (
     section_as_of   TEXT,      -- season string e.g. '26/27', nullable
     section_history TEXT,      -- free-text log e.g. '23/24: Sullivan · 24/25: Gilbert · ...'
     notes           TEXT,
-    default_venue   TEXT       -- prefilled as a show's venue when left blank at submission time
+    default_venue   TEXT,      -- prefilled as a show's venue when left blank at submission time
+    logo_filename   TEXT       -- filename under the uploads dir, not a user path (see shows.poster_filename)
 );
 
 CREATE TABLE IF NOT EXISTS shows (

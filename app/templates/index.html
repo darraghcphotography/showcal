@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Browse societies - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
+  {% if poster_gallery %}
+    <div class="poster-gallery">
+      {% for show in poster_gallery %}
+        <a href="{{ url_for('public.show_detail', show_id=show['id']) }}" class="poster-gallery-item" title="{{ show['show'] }} - {{ show['society_name'] }}">
+          <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% if upcoming %}
     <h2>Upcoming shows</h2>
     <p class="meta"><a href="{{ url_for('feeds.calendar_ics') }}">Subscribe in your calendar app (.ics) &darr;</a></p>

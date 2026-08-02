@@ -13,6 +13,7 @@ bp = Blueprint("society", __name__, url_prefix="/society")
 
 SEASON_RE = re.compile(r"^\d{2}/\d{2}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+BULK_ROWS = 10
 
 
 def _current_society(db):
@@ -29,7 +30,7 @@ def login():
             (code,),
         ).fetchone()
         if row is None:
-            flash("That's not a valid society login code. Check with AIMS if you think this is wrong.", "error")
+            flash("That's not a valid society login code. Check with your site admin if you think this is wrong.", "error")
         else:
             session["society_code_id"] = row["id"]
             return redirect(url_for("society.dashboard"))
@@ -82,6 +83,25 @@ def _validate(fields, require_title):
     if fields["section"] and fields["section"] not in SHOW_SECTIONS:
         errors.append("Choose a valid tier.")
     return errors
+
+
+@bp.route("/logo", methods=("POST",))
+@society_required
+def set_logo():
+    db = get_db()
+    society, _ = _current_society(db)
+
+    logo_file = request.files.get("logo")
+    if logo_file and logo_file.filename:
+        try:
+            filename = save_poster(logo_file, current_app.config["UPLOAD_DIR"])
+        except ValueError as e:
+            flash(str(e), "error")
+            return redirect(url_for("society.dashboard"))
+        db.execute("UPDATE societies SET logo_filename = ? WHERE id = ?", (filename, society["id"]))
+        db.commit()
+        flash("Logo updated.", "success")
+    return redirect(url_for("society.dashboard"))
 
 
 @bp.route("/shows/new", methods=("GET", "POST"))
@@ -218,3 +238,97 @@ def edit_show(show_id):
     return render_template(
         "society_show_form.html", society=society, sections=SHOW_SECTIONS, show=show, mode="edit"
     )
+
+
+@bp.route("/shows/bulk", methods=("GET", "POST"))
+@society_required
+def bulk_add():
+    db = get_db()
+    society, code = _current_society(db)
+
+    if request.method == "POST":
+        if request.form.get("website", ""):  # honeypot
+            return redirect(url_for("society.dashboard"))
+
+        rows = []
+        has_problems = False
+        for i in range(BULK_ROWS):
+            season = request.form.get(f"season_{i}", "").strip()
+            show = request.form.get(f"show_{i}", "").strip()
+            opening_date = request.form.get(f"opening_date_{i}", "").strip() or None
+            closing_date = request.form.get(f"closing_date_{i}", "").strip() or None
+
+            if not any((season, show, opening_date, closing_date)):
+                rows.append(None)
+                continue
+
+            errors = []
+            if not show:
+                errors.append("Show title is required.")
+            if not SEASON_RE.match(season):
+                errors.append("Season must be in the form YY/YY, e.g. 04/05.")
+            for label, value in (("Opening date", opening_date), ("Closing date", closing_date)):
+                if value and not DATE_RE.match(value):
+                    errors.append(f"{label} must be a valid date.")
+
+            similar_title = None
+            if show and not request.form.get(f"confirm_{i}"):
+                similar_title = find_close_title(db, show)
+
+            rows.append({
+                "season": season, "show": show, "opening_date": opening_date, "closing_date": closing_date,
+                "errors": errors, "similar_title": similar_title,
+            })
+            if errors or similar_title:
+                has_problems = True
+
+        if has_problems:
+            for i, row in enumerate(rows):
+                if row is None:
+                    continue
+                for e in row["errors"]:
+                    flash(f"Row {i + 1}: {e}", "error")
+                if row["similar_title"]:
+                    flash(
+                        f'Row {i + 1}: a show already on record is titled "{row["similar_title"]}" - '
+                        "tick that row's confirm box if it's genuinely a different show, or fix the spelling.",
+                        "warning",
+                    )
+            return render_template(
+                "society_bulk_form.html", society=society, rows=rows, bulk_rows=BULK_ROWS
+            )
+
+        inserted = 0
+        for row in rows:
+            if row is None:
+                continue
+            db.execute(
+                """
+                INSERT INTO shows (
+                    society_id, season, region, show, opening_date, closing_date, venue,
+                    review_status, moderation_status, source, invite_code_id
+                ) VALUES (
+                    :society_id, :season, :region, :show, :opening_date, :closing_date, :venue,
+                    'None', 'approved', 'submission', :invite_code_id
+                )
+                """,
+                {
+                    "society_id": society["id"],
+                    "season": row["season"],
+                    "region": society["region"],
+                    "show": row["show"],
+                    "opening_date": row["opening_date"],
+                    "closing_date": row["closing_date"],
+                    "venue": society["default_venue"],
+                    "invite_code_id": code["id"],
+                },
+            )
+            inserted += 1
+        db.commit()
+        flash(
+            f"Added {inserted} show{'s' if inserted != 1 else ''} - keep going below, or head back to the dashboard.",
+            "success",
+        )
+        return redirect(url_for("society.bulk_add"))
+
+    return render_template("society_bulk_form.html", society=society, rows=[None] * BULK_ROWS, bulk_rows=BULK_ROWS)
