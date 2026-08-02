@@ -64,17 +64,15 @@
   {% endif %}
 
   <h2>Shows by season{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-  <p class="meta">"Shows" only counts productions that have actually opened - cancelled slots are shown
-     separately, not folded into that total.</p>
+  <p class="meta">Only counts productions that have actually opened - cancelled slots aren't counted here.</p>
   <table class="data-table">
-    <thead><tr><th>Season</th><th>Shows</th><th>Distinct titles</th><th>Cancelled</th><th></th></tr></thead>
+    <thead><tr><th>Season</th><th>Shows</th><th>Distinct titles</th><th></th></tr></thead>
     <tbody>
       {% for row in by_season %}
         <tr>
           <td>{{ row['season'] }}</td>
           <td>{{ row['total'] }}</td>
           <td>{{ row['distinct_titles'] }}</td>
-          <td>{{ row['cancelled'] }}</td>
           <td><a href="{{ url_for('info.season_summary', season=row['season'], region=selected_region) }}">View</a></td>
         </tr>
       {% endfor %}

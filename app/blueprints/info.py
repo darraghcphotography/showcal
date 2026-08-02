@@ -299,14 +299,13 @@ def stats():
     most_prolific_society = db.execute(query, params + hist_params + [TOP_N]).fetchall()
 
     # total/distinct_titles only count shows that have actually happened
-    # (see `happened` above) - cancelled is still shown as its own
-    # informational count, separate from that total, not folded into it.
+    # (see `happened` above) - cancelled shows aren't counted or referenced
+    # here at all.
     params = [today, today]
     query = f"""
         SELECT
             season,
             SUM(CASE WHEN {happened} THEN 1 ELSE 0 END) AS total,
-            SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled,
             COUNT(DISTINCT CASE WHEN {happened} THEN show END) AS distinct_titles
         FROM shows
         WHERE show IS NOT NULL AND moderation_status = 'approved'
