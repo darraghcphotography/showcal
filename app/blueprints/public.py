@@ -1,4 +1,5 @@
 from datetime import date
+from urllib.parse import quote_plus
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
@@ -136,6 +137,36 @@ def search():
             ).fetchall()
         ]
     return render_template("search.html", q=q, titles=titles)
+
+
+@bp.route("/titles")
+def titles_list():
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT show, COUNT(*) AS n FROM (
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            UNION ALL
+            SELECT show FROM historical_results WHERE show IS NOT NULL
+        )
+        GROUP BY show ORDER BY show COLLATE NOCASE
+        """
+    ).fetchall()
+
+    manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
+
+    shows = [
+        {
+            "title": r["show"],
+            "count": r["n"],
+            "url": manual_links.get(r["show"]),
+            "is_manual": r["show"] in manual_links,
+            "search_url": f"https://en.wikipedia.org/w/index.php?search={quote_plus(r['show'] + ' musical')}",
+        }
+        for r in rows
+    ]
+
+    return render_template("titles_list.html", shows=shows)
 
 
 @bp.route("/titles/<path:title>")

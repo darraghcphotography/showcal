@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}All shows - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>All shows</h1>
+  <p>{{ shows|length }} distinct titles performed on the AIMS circuit. The "More info" link goes to a
+     Wikipedia search{% if current_user %} unless a moderator has confirmed the exact page{% endif %} -
+     it's a best guess, not a verified match.</p>
+
+  <table class="data-table">
+    <thead><tr><th>Show</th><th>Times performed</th><th>More info</th>{% if current_user %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+      {% for s in shows %}
+        <tr>
+          <td><a href="{{ url_for('public.title_detail', title=s['title']) }}">{{ s['title'] }}</a></td>
+          <td>{{ s['count'] }}</td>
+          <td>
+            <a href="{{ s['url'] or s['search_url'] }}" rel="noopener" target="_blank">
+              {{ 'Wikipedia' if s['is_manual'] else 'Search' }}
+            </a>
+          </td>
+          {% if current_user %}
+            <td>
+              <form method="post" action="{{ url_for('admin.set_show_link') }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="show" value="{{ s['title'] }}">
+                <input type="url" name="url" placeholder="Confirm exact URL" value="{{ s['url'] or '' }}" size="20">
+                <button type="submit">Set</button>
+              </form>
+              {% if s['is_manual'] %}
+                <form method="post" action="{{ url_for('admin.clear_show_link') }}" class="inline-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="show" value="{{ s['title'] }}">
+                  <button type="submit" class="button-danger">Clear</button>
+                </form>
+              {% endif %}
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

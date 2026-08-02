@@ -8,6 +8,7 @@ from werkzeug.security import check_password_hash
 from ..auth import current_user, login_required
 from ..constants import REGIONS, REVIEW_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
+from ..dedupe import find_candidates
 from ..uploads import save_poster
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -434,6 +435,32 @@ def toggle_suggestion(suggestion_id):
     return redirect(url_for("admin.suggestions"))
 
 
+@bp.route("/show-links/set", methods=("POST",))
+@login_required
+def set_show_link():
+    show = request.form.get("show", "").strip()
+    url = request.form.get("url", "").strip()
+    if show and url:
+        get_db().execute(
+            "INSERT INTO show_links (show, url, updated_at) VALUES (?, ?, datetime('now')) "
+            "ON CONFLICT(show) DO UPDATE SET url = excluded.url, updated_at = excluded.updated_at",
+            (show, url),
+        )
+        get_db().commit()
+        flash(f'Link set for "{show}".', "success")
+    return redirect(url_for("public.titles_list"))
+
+
+@bp.route("/show-links/clear", methods=("POST",))
+@login_required
+def clear_show_link():
+    show = request.form.get("show", "").strip()
+    if show:
+        get_db().execute("DELETE FROM show_links WHERE show = ?", (show,))
+        get_db().commit()
+    return redirect(url_for("public.titles_list"))
+
+
 @bp.route("/traffic")
 @login_required
 def traffic():
@@ -443,3 +470,66 @@ def traffic():
         "SELECT path, views, last_viewed FROM page_views ORDER BY views DESC LIMIT 30"
     ).fetchall()
     return render_template("admin/traffic.html", total_views=total_views, pages=pages)
+
+
+@bp.route("/duplicate-titles")
+@login_required
+def duplicate_titles():
+    db = get_db()
+    titles = {
+        r[0]
+        for r in db.execute(
+            """
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            UNION
+            SELECT show FROM historical_results WHERE show IS NOT NULL
+            """
+        ).fetchall()
+    }
+    dismissed = {
+        (r[0], r[1]) for r in db.execute("SELECT title_a, title_b FROM dismissed_duplicate_pairs").fetchall()
+    }
+    candidates = find_candidates(titles, dismissed)
+
+    relevant = {t for pair in candidates for t in pair[:2]}
+    counts = {}
+    for title in relevant:
+        cur = db.execute("SELECT COUNT(*) FROM shows WHERE show = ?", (title,)).fetchone()[0]
+        hist = db.execute("SELECT COUNT(*) FROM historical_results WHERE show = ?", (title,)).fetchone()[0]
+        counts[title] = cur + hist
+
+    return render_template("admin/duplicate_titles.html", candidates=candidates, counts=counts)
+
+
+@bp.route("/duplicate-titles/merge", methods=("POST",))
+@login_required
+def merge_duplicate_titles():
+    db = get_db()
+    canonical = request.form.get("canonical", "").strip()
+    other = request.form.get("other", "").strip()
+    if not canonical or not other or canonical == other:
+        flash("Something went wrong picking which title is correct - try again.", "error")
+        return redirect(url_for("admin.duplicate_titles"))
+
+    db.execute("UPDATE shows SET show = ? WHERE show = ?", (canonical, other))
+    db.execute("UPDATE historical_results SET show = ? WHERE show = ?", (canonical, other))
+    db.execute(
+        "DELETE FROM dismissed_duplicate_pairs WHERE title_a IN (?, ?) OR title_b IN (?, ?)",
+        (canonical, other, canonical, other),
+    )
+    db.commit()
+    flash(f'Merged "{other}" into "{canonical}".', "success")
+    return redirect(url_for("admin.duplicate_titles"))
+
+
+@bp.route("/duplicate-titles/dismiss", methods=("POST",))
+@login_required
+def dismiss_duplicate_pair():
+    db = get_db()
+    title_a = request.form.get("title_a", "").strip()
+    title_b = request.form.get("title_b", "").strip()
+    if title_a and title_b:
+        pair = tuple(sorted((title_a, title_b)))
+        db.execute("INSERT OR IGNORE INTO dismissed_duplicate_pairs (title_a, title_b) VALUES (?, ?)", pair)
+        db.commit()
+    return redirect(url_for("admin.duplicate_titles"))

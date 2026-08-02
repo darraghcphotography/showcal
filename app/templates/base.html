@@ -15,6 +15,7 @@
     <nav>
       <a href="{{ url_for('public.index') }}">Browse</a>
       <a href="{{ url_for('public.search') }}">Search shows</a>
+      <a href="{{ url_for('public.titles_list') }}">Shows A-Z</a>
       <a href="{{ url_for('info.season_summary') }}">Current season</a>
       <a href="{{ url_for('info.stats') }}">Statistics</a>
       <a href="{{ url_for('submit.new') }}">Submit a show</a>
@@ -26,6 +27,7 @@
         <a href="{{ url_for('admin.queue') }}">Moderation queue</a>
         <a href="{{ url_for('admin.shows_list') }}">All shows</a>
         <a href="{{ url_for('admin.fix_dates') }}">Fix dates</a>
+        <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a>
         <a href="{{ url_for('admin.societies_list') }}">Societies</a>
         <a href="{{ url_for('admin.traffic') }}">Traffic</a>
         <a href="{{ url_for('admin.suggestions') }}">Suggestions</a>

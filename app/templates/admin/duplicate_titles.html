@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Duplicate titles - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Possible duplicate titles</h1>
+  <p class="meta">Suggestions only - nothing here changes anything until you pick a side or dismiss a pair.
+     Similar-looking pairs that are genuinely different shows (like "Frozen" vs "Frozen Jr.") are expected
+     to show up; just dismiss those and they won't be suggested again.</p>
+
+  {% for a, b, score in candidates %}
+    <article class="queue-item">
+      <p>
+        <strong>{{ a }}</strong> ({{ counts[a] }} on record) &nbsp;vs&nbsp;
+        <strong>{{ b }}</strong> ({{ counts[b] }} on record)
+        <span class="meta">&middot; similarity {{ (score * 100)|round|int }}%</span>
+      </p>
+      <div class="actions">
+        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="canonical" value="{{ a }}">
+          <input type="hidden" name="other" value="{{ b }}">
+          <button type="submit">"{{ a }}" is correct</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="canonical" value="{{ b }}">
+          <input type="hidden" name="other" value="{{ a }}">
+          <button type="submit">"{{ b }}" is correct</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.dismiss_duplicate_pair') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="title_a" value="{{ a }}">
+          <input type="hidden" name="title_b" value="{{ b }}">
+          <button type="submit" class="button-danger">Not a duplicate</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <p>No candidate duplicates found - either everything's clean, or they've all been reviewed already.</p>
+  {% endfor %}
+{% endblock %}

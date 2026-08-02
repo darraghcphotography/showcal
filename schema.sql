@@ -163,3 +163,24 @@ CREATE TABLE IF NOT EXISTS historical_results (
 );
 
 CREATE INDEX IF NOT EXISTS idx_historical_results_show ON historical_results(show);
+
+-- Remembers "these two titles are NOT the same show" decisions from the
+-- duplicate-title finder (/admin/duplicate-titles), so a legitimately
+-- similar pair (e.g. 'Frozen' / 'Frozen Jr.') doesn't keep getting flagged
+-- every time the page loads. Always stored with title_a < title_b so a pair
+-- only needs checking one way round.
+CREATE TABLE IF NOT EXISTS dismissed_duplicate_pairs (
+    title_a         TEXT NOT NULL,
+    title_b         TEXT NOT NULL,
+    PRIMARY KEY (title_a, title_b)
+);
+
+-- Moderator-confirmed link (Wikipedia or elsewhere) for a show title, shown
+-- on the /titles browse page. Titles without a row here fall back to an
+-- auto-generated Wikipedia search link at render time - nothing is ever
+-- auto-resolved to a specific article and stored as if confirmed.
+CREATE TABLE IF NOT EXISTS show_links (
+    show            TEXT PRIMARY KEY,
+    url             TEXT NOT NULL,
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);

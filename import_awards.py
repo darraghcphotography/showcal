@@ -28,6 +28,16 @@ SHOW_RENAMES = {
     "Finians Rainbow": "Finian's Rainbow",
     "Kipp Half a Sixpence": "Half a Sixpence",
     "Shrek The Musical": "Shrek",
+    "Shrek the Musical": "Shrek",
+}
+
+# Rows where the source data genuinely concatenated two separate real
+# productions into one Showname field (not a mistaken/replaced title, like
+# SHOW_RENAMES above - both shows actually happened). Each entry here gets
+# turned into two rows instead of one, same year/society/category, one per
+# real show. Confirmed with the maintainer.
+SHOW_SPLITS = {
+    "Annie & Pirates Of Penzance": ["Annie", "Pirates of Penzance"],
 }
 
 
@@ -76,26 +86,30 @@ def main():
             continue
 
         society_name = normalize(row.get("ResolvedSocietyName"))
-        conn.execute(
-            """
-            INSERT INTO historical_results (
-                year, tier, category_name, result, show, society_name, society_id,
-                nominee_name, role
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                year,
-                normalize(row.get("SchemeName")),
-                normalize(row.get("CategoryName")),
-                normalize(row.get("ResultText")),
-                normalize_show(row.get("Showname")),
-                society_name,
-                name_to_id.get(society_name) if society_name else None,
-                normalize(row.get("NomineeName")),
-                normalize(row.get("Role")),
-            ),
-        )
-        inserted += 1
+        raw_show = normalize(row.get("Showname"))
+        show_titles = SHOW_SPLITS.get(raw_show) or [normalize_show(row.get("Showname"))]
+
+        for show_title in show_titles:
+            conn.execute(
+                """
+                INSERT INTO historical_results (
+                    year, tier, category_name, result, show, society_name, society_id,
+                    nominee_name, role
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    year,
+                    normalize(row.get("SchemeName")),
+                    normalize(row.get("CategoryName")),
+                    normalize(row.get("ResultText")),
+                    show_title,
+                    society_name,
+                    name_to_id.get(society_name) if society_name else None,
+                    normalize(row.get("NomineeName")),
+                    normalize(row.get("Role")),
+                ),
+            )
+            inserted += 1
 
     conn.commit()
 
