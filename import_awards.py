@@ -25,7 +25,9 @@ ROOT = Path(__file__).parent
 # at import time since historical_results is fully regenerated on every run.
 SHOW_RENAMES = {
     "Title Of Show": "Title of Show",
-    "Michael Collins -  A Musical Drama": "Michael Collins",  # matches the canonical merge in fix_show_titles.py
+    "Michael Collins -  A Musical Drama": "Michael Collins - A Musical Drama",  # double-space typo
+    "Michael Collins, A Musical Drama": "Michael Collins - A Musical Drama",  # older records use a comma, not a hyphen
+    "Michael Collins": "Michael Collins - A Musical Drama",  # never shorten this one - see fix_show_titles.py
     "Made In Dagenham": "Made in Dagenham",
     "Oliver": "Oliver!",
     "Die Fliedermaus": "Die Fledermaus",  # German for "the bat" - "Fliedermaus" isn't a word

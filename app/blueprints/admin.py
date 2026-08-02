@@ -446,6 +446,19 @@ def edit_show(show_id):
                             sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES)
 
 
+@bp.route("/shows/<int:show_id>/delete", methods=("POST",))
+@login_required
+def delete_show(show_id):
+    db = get_db()
+    show = db.execute("SELECT id FROM shows WHERE id = ?", (show_id,)).fetchone()
+    if show is None:
+        abort(404)
+    db.execute("DELETE FROM shows WHERE id = ?", (show_id,))
+    db.commit()
+    flash("Show deleted.", "success")
+    return redirect(url_for("admin.shows_list"))
+
+
 @bp.route("/invite-codes")
 @admin_required
 def invite_codes():

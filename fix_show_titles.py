@@ -39,7 +39,8 @@ RENAMES = {
     "Sound of Music": "The Sound of Music",
     "Little Mermaid": "The Little Mermaid",
     "Seussical! The Musical": "Seussical",
-    "Michael Collins: A Musical Drama": "Michael Collins",
+    "Michael Collins: A Musical Drama": "Michael Collins - A Musical Drama",  # never shorten - it's been done several times under the full title
+    "Michael Collins": "Michael Collins - A Musical Drama",  # catches rows already shortened by an earlier version of this rename
     "Annie The Musical": "Annie",
     "Sister Act  CANCELLED": "Sister Act",  # status column already says Cancelled
 
