@@ -28,7 +28,16 @@ def find_candidates(titles, dismissed, threshold=0.55, limit=60):
                 continue
             ratio = difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()
             wb = _words(b)
-            is_word_subset = bool(wa) and bool(wb) and wa != wb and (wa <= wb or wb <= wa)
+            # Word-subset match, but only when the longer title adds at most
+            # one extra word - this is what catches genuine "X" vs "X Jr."/
+            # "X 2.0"/"X Teen" suffix variants without also flagging any
+            # short, generic word that happens to appear inside an unrelated
+            # longer title (e.g. "Gypsy" is NOT meaningfully similar to "The
+            # Gypsy Baron" just because both contain the word "gypsy").
+            is_word_subset = (
+                bool(wa) and bool(wb) and wa != wb and (wa <= wb or wb <= wa)
+                and abs(len(wa) - len(wb)) <= 1
+            )
             if ratio >= threshold or is_word_subset:
                 score = max(ratio, 0.9) if is_word_subset else ratio
                 candidates.append((a, b, round(score, 2)))

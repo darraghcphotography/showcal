@@ -38,6 +38,7 @@ RENAMES = {
     # Confirmed with the maintainer:
     "Penzane! The Pirates Musical (New)": "Pirates! The Penzance Musical",  # correct title of a new show
     "Guys and Dolls: Guy Harder": "Guys and Dolls",  # was a joking subtitle, not part of the real title
+    "Pirates of Penzance": "The Pirates of Penzance",  # matches the historical archive's dominant spelling
     # Concatenated titles were a struck-through-original + actual-replacement in the
     # source spreadsheet (a show changed after being announced); strikethrough
     # formatting doesn't survive CSV export, so both runs of text landed in one

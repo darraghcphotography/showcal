@@ -29,6 +29,7 @@ SHOW_RENAMES = {
     "Kipp Half a Sixpence": "Half a Sixpence",
     "Shrek The Musical": "Shrek",
     "Shrek the Musical": "Shrek",
+    "Pirates of Penzance": "The Pirates of Penzance",  # 81 rows use "The", only a handful drop it
 }
 
 # Rows where the source data genuinely concatenated two separate real
@@ -37,7 +38,7 @@ SHOW_RENAMES = {
 # turned into two rows instead of one, same year/society/category, one per
 # real show. Confirmed with the maintainer.
 SHOW_SPLITS = {
-    "Annie & Pirates Of Penzance": ["Annie", "Pirates of Penzance"],
+    "Annie & Pirates Of Penzance": ["Annie", "The Pirates of Penzance"],
 }
 
 
