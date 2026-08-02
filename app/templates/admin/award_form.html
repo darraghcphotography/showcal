@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} award result - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.awards_list') }}">&larr; Back to awards</a></p>
+  <h1>{{ 'Edit' if mode == 'edit' else 'Add' }} award result</h1>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Year
+      <input type="number" name="year" value="{{ form.get('year', '') }}" min="1977" max="2036" required>
+    </label>
+
+    <label>
+      Tier
+      <select name="tier">
+        <option value="">—</option>
+        <option value="Gilbert" {% if form.get('tier') == 'Gilbert' %}selected{% endif %}>Gilbert</option>
+        <option value="Sullivan" {% if form.get('tier') == 'Sullivan' %}selected{% endif %}>Sullivan</option>
+      </select>
+    </label>
+
+    <label>
+      Category
+      <select name="category" onchange="document.getElementById('category-other').style.display = this.value === '__other__' ? 'inline-block' : 'none';">
+        <option value="">—</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if c == (form.get('category') or form.get('category_name')) %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+        <option value="__other__" {% if form.get('category') == '__other__' %}selected{% endif %}>Other (type below)</option>
+      </select>
+      <input type="text" name="category_other" id="category-other" placeholder="New category name"
+             value="{{ form.get('category_other', '') }}"
+             style="display: {{ 'inline-block' if form.get('category') == '__other__' else 'none' }}; margin-left: 0.5rem;">
+    </label>
+
+    <label>
+      Result
+      <select name="result">
+        <option value="">—</option>
+        {% for r in results %}
+          <option value="{{ r }}" {% if r == form.get('result') %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Show title
+      <input type="text" name="show" value="{{ form.get('show', '') }}">
+    </label>
+    {% if similar_title %}
+      <label class="checkbox-label">
+        <input type="checkbox" name="confirm_new_title" value="1">
+        Different show from "{{ similar_title }}"
+      </label>
+    {% endif %}
+
+    <label>
+      Society
+      <select name="society_id">
+        <option value="">—</option>
+        {% for s in societies %}
+          <option value="{{ s['id'] }}" {% if form.get('society_id')|string == s['id']|string %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Nominee name <span class="hint">(for individual-award categories)</span>
+      <input type="text" name="nominee_name" value="{{ form.get('nominee_name', '') }}">
+    </label>
+
+    <label>
+      Role <span class="hint">(character played, if relevant)</span>
+      <input type="text" name="role" value="{{ form.get('role', '') }}">
+    </label>
+
+    <label>
+      Reason <span class="hint">(adjudicator's note - mostly used for discretionary awards)</span>
+      <input type="text" name="reason" value="{{ form.get('reason', '') }}">
+    </label>
+
+    <button type="submit">{{ 'Save' if mode == 'edit' else 'Add result' }}</button>
+  </form>
+
+  {% if mode == 'edit' %}
+    <form method="post" action="{{ url_for('admin.delete_award', award_id=award['id']) }}" class="inline-form"
+          onsubmit="return confirm('Delete this award record? This cannot be undone.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="button-danger">Delete this record</button>
+    </form>
+  {% endif %}
+{% endblock %}

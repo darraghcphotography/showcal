@@ -161,7 +161,10 @@ CREATE TABLE IF NOT EXISTS historical_results (
     society_id          INTEGER REFERENCES societies(id),
     nominee_name        TEXT,                 -- person, for individual-award categories
     role                TEXT,
-    reason              TEXT                  -- adjudicator's free-text note, mostly on discretionary awards
+    reason              TEXT,                 -- adjudicator's free-text note, mostly on discretionary awards
+    source              TEXT NOT NULL DEFAULT 'import' CHECK (source IN ('import', 'manual'))
+                                              -- 'import' rows are wiped/reloaded by import_awards.py on every
+                                              -- run; 'manual' rows (added via /admin/awards) never are
 );
 
 CREATE INDEX IF NOT EXISTS idx_historical_results_show ON historical_results(show);

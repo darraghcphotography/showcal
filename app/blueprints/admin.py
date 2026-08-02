@@ -7,10 +7,11 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from werkzeug.security import check_password_hash
 
 from ..auth import current_user, login_required
-from ..constants import REGIONS, REVIEW_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
+from ..constants import AWARD_RESULTS, REGIONS, REVIEW_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
 from ..dedupe import find_candidates
 from ..season import current_season, season_range
+from ..similarity import find_close_title
 from ..uploads import save_poster
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -739,3 +740,220 @@ def dismiss_duplicate_pair():
         db.execute("INSERT OR IGNORE INTO dismissed_duplicate_pairs (title_a, title_b) VALUES (?, ?)", pair)
         db.commit()
     return redirect(url_for("admin.duplicate_titles"))
+
+
+def _award_categories(db):
+    return [
+        r[0] for r in db.execute(
+            "SELECT DISTINCT category_name FROM historical_results "
+            "WHERE category_name IS NOT NULL ORDER BY category_name"
+        ).fetchall()
+    ]
+
+
+def _read_award_form(form):
+    category = form.get("category", "")
+    if category == "__other__":
+        category = form.get("category_other", "").strip()
+    return {
+        "year": form.get("year", "").strip(),
+        "tier": form.get("tier") or None,
+        "category_name": category or None,
+        "result": form.get("result") or None,
+        "show": form.get("show", "").strip() or None,
+        "society_id": form.get("society_id", "").strip() or None,
+        "nominee_name": form.get("nominee_name", "").strip() or None,
+        "role": form.get("role", "").strip() or None,
+        "reason": form.get("reason", "").strip() or None,
+    }
+
+
+def _validate_award(fields):
+    errors = []
+    if not fields["year"].isdigit():
+        errors.append("Enter a valid year.")
+    if fields["tier"] and fields["tier"] not in ("Gilbert", "Sullivan"):
+        errors.append("Choose a valid tier.")
+    if fields["result"] and fields["result"] not in AWARD_RESULTS:
+        errors.append("Choose a valid result.")
+    if not fields["category_name"]:
+        errors.append("Enter a category.")
+    return errors
+
+
+@bp.route("/awards")
+@login_required
+def awards_list():
+    db = get_db()
+    q = request.args.get("q", "").strip()
+    year = request.args.get("year", "").strip()
+    category = request.args.get("category", "")
+    tier = request.args.get("tier", "")
+    result = request.args.get("result", "")
+
+    years = [r[0] for r in db.execute("SELECT DISTINCT year FROM historical_results ORDER BY year DESC").fetchall()]
+    categories = _award_categories(db)
+
+    query = """
+        SELECT historical_results.*, societies.id AS resolved_society_id
+        FROM historical_results
+        LEFT JOIN societies ON societies.id = historical_results.society_id
+        WHERE 1=1
+    """
+    params = []
+    if year.isdigit():
+        query += " AND year = ?"
+        params.append(int(year))
+    if category:
+        query += " AND category_name = ?"
+        params.append(category)
+    if tier in ("Gilbert", "Sullivan"):
+        query += " AND tier = ?"
+        params.append(tier)
+    if result in AWARD_RESULTS:
+        query += " AND result = ?"
+        params.append(result)
+    if q:
+        query += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
+                     OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        like = f"%{escaped}%"
+        params += [like, like, like, like]
+    query += " ORDER BY year DESC, category_name, society_name"
+
+    rows = db.execute(query, params).fetchall()
+
+    return render_template(
+        "admin/awards_list.html", rows=rows, years=years, categories=categories, results=AWARD_RESULTS,
+        selected_year=year, selected_category=category, selected_tier=tier, selected_result=result, q=q,
+    )
+
+
+@bp.route("/awards/new", methods=("GET", "POST"))
+@login_required
+def new_award():
+    db = get_db()
+    societies = db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
+    categories = _award_categories(db)
+
+    if request.method == "POST":
+        fields = _read_award_form(request.form)
+        errors = _validate_award(fields)
+
+        society_id = fields["society_id"]
+        society_name = None
+        if society_id:
+            society_row = db.execute("SELECT name FROM societies WHERE id = ?", (society_id,)).fetchone()
+            if society_row is None:
+                errors.append("Choose a valid society.")
+            else:
+                society_name = society_row["name"]
+
+        similar_title = None
+        if fields["show"] and not request.form.get("confirm_new_title"):
+            similar_title = find_close_title(db, fields["show"])
+            if similar_title:
+                flash(
+                    f'A show already on record is titled "{similar_title}" - if that\'s this '
+                    "production, use that exact spelling. If it's genuinely a different show, "
+                    "tick the box below and save again.",
+                    "warning",
+                )
+
+        if errors or similar_title:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "admin/award_form.html", societies=societies, categories=categories, results=AWARD_RESULTS,
+                form=request.form, similar_title=similar_title, mode="new",
+            )
+
+        db.execute(
+            """
+            INSERT INTO historical_results (
+                year, tier, category_name, result, show, society_name, society_id,
+                nominee_name, role, reason, source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')
+            """,
+            (
+                int(fields["year"]), fields["tier"], fields["category_name"], fields["result"],
+                fields["show"], society_name, society_id,
+                fields["nominee_name"], fields["role"], fields["reason"],
+            ),
+        )
+        db.commit()
+        flash("Award result added.", "success")
+        return redirect(url_for("admin.awards_list"))
+
+    return render_template(
+        "admin/award_form.html", societies=societies, categories=categories, results=AWARD_RESULTS,
+        form={}, mode="new",
+    )
+
+
+@bp.route("/awards/<int:award_id>/edit", methods=("GET", "POST"))
+@login_required
+def edit_award(award_id):
+    db = get_db()
+    award = db.execute("SELECT * FROM historical_results WHERE id = ?", (award_id,)).fetchone()
+    if award is None:
+        abort(404)
+
+    societies = db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
+    categories = _award_categories(db)
+
+    if request.method == "POST":
+        fields = _read_award_form(request.form)
+        errors = _validate_award(fields)
+
+        society_id = fields["society_id"]
+        society_name = None
+        if society_id:
+            society_row = db.execute("SELECT name FROM societies WHERE id = ?", (society_id,)).fetchone()
+            if society_row is None:
+                errors.append("Choose a valid society.")
+            else:
+                society_name = society_row["name"]
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "admin/award_form.html", societies=societies, categories=categories, results=AWARD_RESULTS,
+                award=award, form=request.form, mode="edit",
+            )
+
+        # Editing through this form - regardless of where the row originally
+        # came from - makes it 'manual' from now on, so a future re-run of
+        # import_awards.py can never silently discard the edit.
+        db.execute(
+            """
+            UPDATE historical_results SET
+                year = ?, tier = ?, category_name = ?, result = ?, show = ?,
+                society_name = ?, society_id = ?, nominee_name = ?, role = ?, reason = ?, source = 'manual'
+            WHERE id = ?
+            """,
+            (
+                int(fields["year"]), fields["tier"], fields["category_name"], fields["result"],
+                fields["show"], society_name, society_id,
+                fields["nominee_name"], fields["role"], fields["reason"], award_id,
+            ),
+        )
+        db.commit()
+        flash("Award result updated.", "success")
+        return redirect(url_for("admin.awards_list"))
+
+    return render_template(
+        "admin/award_form.html", societies=societies, categories=categories, results=AWARD_RESULTS,
+        award=award, form=dict(award), mode="edit",
+    )
+
+
+@bp.route("/awards/<int:award_id>/delete", methods=("POST",))
+@login_required
+def delete_award(award_id):
+    db = get_db()
+    db.execute("DELETE FROM historical_results WHERE id = ?", (award_id,))
+    db.commit()
+    flash("Award result deleted.", "success")
+    return redirect(url_for("admin.awards_list"))

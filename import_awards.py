@@ -72,7 +72,9 @@ def main():
     with open(args.csv, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
 
-    conn.execute("DELETE FROM historical_results")
+    # Only ever touches 'import' rows - anything added by hand via /admin/awards
+    # (source='manual') survives every re-run of this script untouched.
+    conn.execute("DELETE FROM historical_results WHERE source = 'import'")
 
     inserted = 0
     skipped_bad_year = 0

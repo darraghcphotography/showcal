@@ -32,6 +32,11 @@ COLUMN_MIGRATIONS = [
     ("societies", "logo_filename", "ALTER TABLE societies ADD COLUMN logo_filename TEXT"),
     ("invite_codes", "society_id", "ALTER TABLE invite_codes ADD COLUMN society_id INTEGER REFERENCES societies(id)"),
     ("historical_results", "reason", "ALTER TABLE historical_results ADD COLUMN reason TEXT"),
+    (
+        "historical_results", "source",
+        "ALTER TABLE historical_results ADD COLUMN source TEXT NOT NULL DEFAULT 'import' "
+        "CHECK (source IN ('import', 'manual'))",
+    ),
 ]
 
 

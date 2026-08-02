@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Awards - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Awards</h1>
+  <p><a href="{{ url_for('admin.new_award') }}">+ Add award result</a></p>
+
+  <form method="get" class="filter-form">
+    <label>
+      Year
+      <select name="year">
+        <option value="">All years</option>
+        {% for y in years %}
+          <option value="{{ y }}" {% if y|string == selected_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Category
+      <select name="category">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Tier
+      <select name="tier">
+        <option value="">All tiers</option>
+        <option value="Gilbert" {% if selected_tier == 'Gilbert' %}selected{% endif %}>Gilbert</option>
+        <option value="Sullivan" {% if selected_tier == 'Sullivan' %}selected{% endif %}>Sullivan</option>
+      </select>
+    </label>
+    <label>
+      Result
+      <select name="result">
+        <option value="">All results</option>
+        {% for r in results %}
+          <option value="{{ r }}" {% if r == selected_result %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Search
+      <input type="text" name="q" value="{{ q }}" placeholder="Society, show, nominee or reason">
+    </label>
+    <button type="submit">Filter</button>
+    {% if selected_year or selected_category or selected_tier or selected_result or q %}
+      <a href="{{ url_for('admin.awards_list') }}">Clear</a>
+    {% endif %}
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th>
+        <th>Society</th><th>Nominee</th><th></th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r['year'] }}</td>
+          <td>{{ r['tier'] or '—' }}</td>
+          <td>{{ r['category_name'] or '—' }}</td>
+          <td>{{ r['result'] or '—' }}</td>
+          <td>{{ r['show'] or '—' }}</td>
+          <td>{{ r['society_name'] or '—' }}</td>
+          <td>{{ r['nominee_name'] or '—' }}{% if r['role'] %} ({{ r['role'] }}){% endif %}</td>
+          <td>{% if r['source'] == 'manual' %}<span class="tag">manual</span>{% endif %}</td>
+          <td><a href="{{ url_for('admin.edit_award', award_id=r['id']) }}">Edit</a></td>
+        </tr>
+        {% if r['reason'] %}
+          <tr class="row-note"><td colspan="9"><em>{{ r['reason'] }}</em></td></tr>
+        {% endif %}
+      {% else %}
+        <tr><td colspan="9">No award records match those filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
