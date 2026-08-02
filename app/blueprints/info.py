@@ -266,10 +266,11 @@ def awards():
         query += " AND result = ?"
         params.append(result)
     if q:
-        query += " AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\' OR nominee_name LIKE ? ESCAPE '\\')"
+        query += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
+                     OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         like = f"%{escaped}%"
-        params += [like, like, like]
+        params += [like, like, like, like]
     query += " ORDER BY year DESC, category_name, society_name"
 
     rows = db.execute(query, params).fetchall()
