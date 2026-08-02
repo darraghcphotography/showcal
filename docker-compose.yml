@@ -17,13 +17,14 @@ services:
       # only, never exposed to the internet directly. Not what the tunnel
       # actually uses any more, see "networks:" below.
       - "8000:8000"
+    # Only on the shared network (not also on a separate "default" network
+    # Compose would otherwise create for this stack) - aims-web joins the
+    # same Docker network an existing cloudflared container (running in a
+    # different stack, e.g. media-stack3) is already on, so it's reachable
+    # as "aims-web:8000" by container name. Avoids relying on the host's LAN
+    # IP, which containers on a *different* bridge network often can't loop
+    # back through (hairpin NAT).
     networks:
-      - default
-      # aims-web joins the same Docker network an existing cloudflared
-      # container (running in a different stack, e.g. media-stack3) is
-      # already on, so it's reachable as "aims-web:8000" by container name -
-      # avoids relying on the host's LAN IP, which containers on a *different*
-      # bridge network often can't loop back through (hairpin NAT).
       - media-net
 
   # Uncomment if you don't already have a cloudflared tunnel running
