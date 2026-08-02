@@ -205,3 +205,24 @@ CREATE TABLE IF NOT EXISTS show_info (
                     ) OR rights_status IS NULL),
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- A best-guess region for a historical society that never resolved to a row
+-- in societies (defunct/renamed/never re-registered) - historical_results
+-- itself has no region column, since a show's region snapshot only exists on
+-- the shows table. suggested_region is a one-time guess (from the name
+-- itself or a web search); confirmed_region is set once a moderator has
+-- actually reviewed it via /admin/historical-societies - only confirmed_region
+-- feeds into region-filtered stats, never the raw suggestion.
+CREATE TABLE IF NOT EXISTS historical_society_regions (
+    society_name        TEXT PRIMARY KEY,
+    suggested_region     TEXT CHECK (suggested_region IN (
+                            'Eastern', 'Western', 'Northern',
+                            'South-West', 'South-East', 'Midlands'
+                        ) OR suggested_region IS NULL),
+    confirmed_region     TEXT CHECK (confirmed_region IN (
+                            'Eastern', 'Western', 'Northern',
+                            'South-West', 'South-East', 'Midlands'
+                        ) OR confirmed_region IS NULL),
+    note                 TEXT,   -- why this region was guessed, e.g. "name references Waterford"
+    updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
+);

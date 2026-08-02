@@ -46,6 +46,19 @@ SHOW_SPLITS = {
     "Annie & Pirates Of Penzance": ["Annie", "The Pirates of Penzance"],
 }
 
+# Known duplicate/mangled society names found by fuzzy-matching unmatched
+# historical societies against the current societies roster - same idea as
+# SHOW_RENAMES, but for ResolvedSocietyName.
+SOCIETY_RENAMES = {
+    "Lisnagarvey Operatic  and Dramatic Society": "Lisnagarvey Operatic and Dramatic Society",  # double space
+    "Glencullen Dundrum Musical & Dramatic Society": "Glencullen Dundrum MDS",  # matches societies.name exactly
+    "Cecilian Theatre Arts Society, Dublin": "Cecilian Theatre Arts",
+    "DCU Drama": "DCU Drama Society",
+    "Bardic Theatre, Dungannon": "Bardic Theatre",
+    "Fun Company, Sligo": "Sligo Fun Company",  # matches societies.name exactly (AIMS.ie Western region listing)
+    "Fusion Theatre Group": "Fusion Theatre, Lisburn",  # same defunct/inactive group, consolidating the name only
+}
+
 
 def normalize(value):
     value = (value or "").strip()
@@ -57,6 +70,13 @@ def normalize_show(value):
     if value is None:
         return None
     return SHOW_RENAMES.get(value, value)
+
+
+def normalize_society(value):
+    value = normalize(value)
+    if value is None:
+        return None
+    return SOCIETY_RENAMES.get(value, value)
 
 
 def main():
@@ -86,7 +106,7 @@ def main():
             continue
         year = int(year_str)
 
-        society_name = normalize(row.get("ResolvedSocietyName"))
+        society_name = normalize_society(row.get("ResolvedSocietyName"))
         raw_show = normalize(row.get("Showname"))
         show_titles = SHOW_SPLITS.get(raw_show) or [normalize_show(row.get("Showname"))]
 

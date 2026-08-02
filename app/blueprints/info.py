@@ -32,16 +32,21 @@ def stats():
             return " AND shows.region = ?"
         return ""
 
-    # For historical_results-based queries: a society only resolves to a
-    # region if it matched a current societies row (roughly 131 of 210
-    # distinct historical names) - an unmatched/defunct society has no region
-    # on record, so it's necessarily excluded whenever a region is selected.
-    hist_join = "LEFT JOIN societies hr_soc ON hr_soc.id = historical_results.society_id"
+    # For historical_results-based queries: a society resolves to a region
+    # either via a matched current societies row, or via a moderator-
+    # confirmed guess for a defunct/unmatched historical society (see
+    # /admin/historical-societies) - falling back to societies.region first
+    # since that's the authoritative, current value. Still excludes anything
+    # neither matched nor confirmed whenever a region is selected.
+    hist_join = (
+        "LEFT JOIN societies hr_soc ON hr_soc.id = historical_results.society_id "
+        "LEFT JOIN historical_society_regions hr_guess ON hr_guess.society_name = historical_results.society_name"
+    )
 
     def hist_region_clause(params):
         if region:
             params.append(region)
-            return " AND hr_soc.region = ?"
+            return " AND COALESCE(hr_soc.region, hr_guess.confirmed_region) = ?"
         return ""
 
     total_societies = db.execute("SELECT COUNT(*) FROM societies").fetchone()[0]
@@ -183,16 +188,16 @@ def stats():
     most_best_show_wins = db.execute(query, params).fetchall()
 
     # Winner counts grouped BY region (not filtered to the page's selected
-    # region - this chart shows every region side by side). Only covers
-    # societies matched to a current societies row (roughly 131 of 210
-    # distinct historical names) - unmatched/defunct societies have no
-    # region on record and are necessarily left out.
+    # region - this chart shows every region side by side). Covers societies
+    # matched to a current societies row, plus any defunct/unmatched
+    # historical society with a moderator-confirmed region guess (see
+    # /admin/historical-societies) - anything still neither is left out.
     wins_by_region = db.execute(
-        """
-        SELECT societies.region AS label, COUNT(*) AS n
-        FROM historical_results JOIN societies ON societies.id = historical_results.society_id
+        f"""
+        SELECT COALESCE(hr_soc.region, hr_guess.confirmed_region) AS label, COUNT(*) AS n
+        FROM historical_results {hist_join}
         WHERE historical_results.result = 'Winner'
-        GROUP BY societies.region ORDER BY n DESC
+        GROUP BY label HAVING label IS NOT NULL ORDER BY n DESC
         """
     ).fetchall()
 
@@ -267,10 +272,11 @@ def stats():
     ).fetchall()
 
     # All-time, combining both eras like most_selected/most_performed above.
-    # Region-filterable on both halves via the societies join each already
-    # has for its label - an unmatched historical society is excluded
-    # whenever a region is selected, same as everywhere else on this page.
-    region_filter_societies = " AND societies.region = ?" if region else ""
+    # Region-filterable on both halves - the recent-era half via its
+    # societies join, the historical half via the same societies-or-
+    # confirmed-guess fallback as the rest of the awards-archive stats above.
+    region_filter_shows = " AND societies.region = ?" if region else ""
+    region_filter_hist = " AND COALESCE(societies.region, hr_guess.confirmed_region) = ?" if region else ""
     params = [today] + ([region] if region else [])
     hist_params = [SHOWS_COVERAGE_START_YEAR] + ([region] if region else [])
     query = f"""
@@ -278,13 +284,15 @@ def stats():
             SELECT 'id:' || shows.society_id AS key, societies.name AS label
             FROM shows JOIN societies ON societies.id = shows.society_id
             WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
-            {region_filter_societies}
+            {region_filter_shows}
             UNION ALL
             SELECT COALESCE('id:' || historical_results.society_id, 'name:' || historical_results.society_name) AS key,
                    COALESCE(societies.name, historical_results.society_name) AS label
-            FROM historical_results LEFT JOIN societies ON societies.id = historical_results.society_id
+            FROM historical_results
+            LEFT JOIN societies ON societies.id = historical_results.society_id
+            LEFT JOIN historical_society_regions hr_guess ON hr_guess.society_name = historical_results.society_name
             WHERE historical_results.show IS NOT NULL AND historical_results.year < ?
-            {region_filter_societies}
+            {region_filter_hist}
         )
         GROUP BY key ORDER BY n DESC, label LIMIT ?
         """

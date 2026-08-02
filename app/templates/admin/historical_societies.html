@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Historical society regions - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <h1>Historical society regions</h1>
+  <p class="meta">These are award-archive society names that never matched a current society (defunct, renamed,
+     or never re-registered), so they're missing from region-based statistics. Each row shows a best guess -
+     from the society's own name, or a web search where the name gave no location clue - review, change if
+     needed, and submit. Leave a row on "Skip" to decide later. {{ confirmed_count }} already confirmed so far.</p>
+
+  {% if rows %}
+    <form method="post" action="{{ url_for('admin.bulk_historical_societies') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <table class="data-table">
+        <thead><tr><th>Society name</th><th>Records</th><th>Why this guess</th><th>Region</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <input type="hidden" name="name_{{ loop.index0 }}" value="{{ row['society_name'] }}">
+              <td>{{ row['society_name'] }}</td>
+              <td>{{ row['record_count'] }}</td>
+              <td class="meta">{{ row['note'] or '—' }}</td>
+              <td>
+                <select name="region_{{ loop.index0 }}">
+                  <option value="" {% if not row['suggested_region'] %}selected{% endif %}>— skip —</option>
+                  {% for r in regions %}
+                    <option value="{{ r }}" {% if r == row['suggested_region'] %}selected{% endif %}>{{ r }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <button type="submit">Confirm selected regions</button>
+    </form>
+  {% else %}
+    <p>No unconfirmed historical societies left to review.</p>
+  {% endif %}
+{% endblock %}

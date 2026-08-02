@@ -38,6 +38,11 @@
           <td><a href="{{ url_for('admin.bulk_award') }}">Add results</a></td>
         </tr>
       {% endif %}
+      <tr>
+        <td>Historical societies with a region awaiting confirmation</td>
+        <td>{{ historical_regions_pending_count }}</td>
+        <td><a href="{{ url_for('admin.historical_societies') }}">Review</a></td>
+      </tr>
     </tbody>
   </table>
 
@@ -48,6 +53,7 @@
     <a href="{{ url_for('admin.awards_list') }}">Awards</a> &middot;
     <a href="{{ url_for('admin.fix_dates') }}">Fix dates</a> &middot;
     <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a> &middot;
+    <a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a> &middot;
     <a href="{{ url_for('admin.traffic') }}">Traffic</a> &middot;
     <a href="{{ url_for('admin.suggestions') }}">Suggestions</a>
     {% if current_user['role'] == 'admin' %}

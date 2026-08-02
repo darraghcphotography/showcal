@@ -98,6 +98,10 @@ def dashboard():
         "SELECT COUNT(*) FROM historical_results WHERE society_name IS NOT NULL AND society_id IS NULL"
     ).fetchone()[0]
 
+    historical_regions_pending_count = db.execute(
+        "SELECT COUNT(*) FROM historical_society_regions WHERE confirmed_region IS NULL"
+    ).fetchone()[0]
+
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
     # still no historical_results row for its award year, those results
@@ -127,6 +131,7 @@ def dashboard():
         missing_dates_count=missing_dates_count,
         duplicate_count=duplicate_count,
         unmatched_award_societies_count=unmatched_award_societies_count,
+        historical_regions_pending_count=historical_regions_pending_count,
         awards_pending_season=awards_pending_season,
     )
 
@@ -898,6 +903,54 @@ def bulk_duplicate_titles():
     else:
         flash("No changes selected.", "warning")
     return redirect(url_for("admin.duplicate_titles"))
+
+
+@bp.route("/historical-societies")
+@login_required
+def historical_societies():
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT hsr.society_name, hsr.suggested_region, hsr.note,
+               COUNT(hr.id) AS record_count
+        FROM historical_society_regions hsr
+        LEFT JOIN historical_results hr ON hr.society_name = hsr.society_name
+        WHERE hsr.confirmed_region IS NULL
+        GROUP BY hsr.society_name
+        ORDER BY record_count DESC, hsr.society_name
+        """
+    ).fetchall()
+    confirmed_count = db.execute(
+        "SELECT COUNT(*) FROM historical_society_regions WHERE confirmed_region IS NOT NULL"
+    ).fetchone()[0]
+    return render_template(
+        "admin/historical_societies.html", rows=rows, regions=REGIONS, confirmed_count=confirmed_count
+    )
+
+
+@bp.route("/historical-societies/bulk", methods=("POST",))
+@login_required
+def bulk_historical_societies():
+    db = get_db()
+    confirmed = 0
+    i = 0
+    while f"name_{i}" in request.form:
+        name = request.form.get(f"name_{i}", "").strip()
+        region = request.form.get(f"region_{i}", "").strip()
+        if name and region in REGIONS:
+            db.execute(
+                "UPDATE historical_society_regions SET confirmed_region = ?, updated_at = datetime('now') "
+                "WHERE society_name = ?",
+                (region, name),
+            )
+            confirmed += 1
+        i += 1
+    db.commit()
+    if confirmed:
+        flash(f"Confirmed a region for {confirmed} society name(s).", "success")
+    else:
+        flash("No changes selected.", "warning")
+    return redirect(url_for("admin.historical_societies"))
 
 
 def _award_categories(db):
