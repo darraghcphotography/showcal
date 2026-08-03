@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS historical_results (
 );
 
 CREATE INDEX IF NOT EXISTS idx_historical_results_show ON historical_results(show);
+CREATE INDEX IF NOT EXISTS idx_historical_results_society_id ON historical_results(society_id);
 
 -- Remembers "these two titles are NOT the same show" decisions from the
 -- duplicate-title finder (/admin/duplicate-titles), so a legitimately
