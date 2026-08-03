@@ -43,9 +43,23 @@ it would via the `docker compose` CLI.
      its own subdomain).
 5. Deploy the stack. Portainer builds the image and starts `aims-web`,
    reachable at `127.0.0.1:8000` on the NAS itself - not on your LAN or the
-   internet - with `aims.db` and uploaded posters persisted under
-   `./data` next to the stack, so redeploying or rebuilding the image never
-   touches your data.
+   internet - with `aims.db` and uploaded posters persisted under the
+   absolute host path in `docker-compose.yml`'s `volumes:` line (currently
+   `/share/CACHEDEV1_DATA/Data/config/aims-web`), so redeploying or
+   rebuilding the image never touches your data.
+
+   **This must be an absolute path, never a relative one like `./data`.**
+   Portainer resolves a stack's relative volume paths against its own
+   internal view of the filesystem, then passes that literal path string
+   to the Docker daemon running on the bare NAS - which has no idea it was
+   "supposed to" mean Portainer's own data folder, and will silently create
+   an unrelated empty directory of the same name on the NAS's small system
+   partition instead. That directory survives ordinary container restarts
+   and redeploys (so this can go unnoticed for months), but does *not*
+   survive an actual NAS reboot, unlike a real storage-pool path - which is
+   exactly how this app's entire history got silently wiped once, after a
+   RAM upgrade required a full shutdown. Use a real absolute path, matching
+   how every other container on this NAS is already set up.
 6. Create your admin login from Portainer's **Console** for the `aims-web`
    container (or via SSH):
    ```

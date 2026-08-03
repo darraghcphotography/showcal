@@ -10,7 +10,17 @@ services:
       # for a dedicated subdomain instead.
       URL_PREFIX: ${URL_PREFIX:-}
     volumes:
-      - ./data:/data
+      # Absolute host path, not a relative "./data" - Portainer resolves
+      # relative stack volume paths against its OWN internal view of the
+      # filesystem, then hands that literal path string to the Docker
+      # daemon (which runs directly on the NAS host, outside any
+      # container). The daemon has no idea that path was "supposed to"
+      # mean Portainer's own data folder, so it silently created and used
+      # an unrelated, empty directory of the same name on the NAS's small
+      # system partition instead - which doesn't survive a reboot the way
+      # a real storage-pool path does. Match the other containers on this
+      # NAS: mount a real, absolute path on the storage pool directly.
+      - /share/CACHEDEV1_DATA/Data/config/aims-web:/data
     ports:
       # Kept published on the NAS's LAN interface for convenience/direct
       # debugging - there's no router port-forward, so this is LAN-reachable
