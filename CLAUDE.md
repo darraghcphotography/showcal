@@ -51,6 +51,9 @@ have the container name from `docker ps`.)
 3. **Read `/docs` before asking.** `docs/user-guide.md`, `docs/moderator-guide.md`,
    `docs/deployment.md`, and `docs/data-model.md` already answer most "how does X work" or
    "why is Y built this way" questions - check there first.
+4. **Check `ROADMAP.md` at the start of a session.** It tracks the current phase of work and any
+   working agreements from prior retrospectives - update it when the phase changes rather than
+   just saying the plan out loud in chat, since chat history doesn't survive `/clear`.
 
 ## Things worth knowing before editing
 
