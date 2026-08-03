@@ -52,12 +52,18 @@ services:
     build: .
     container_name: aims-backup
     restart: unless-stopped
+    # command is a one-item list (not a bare multi-word string) so Compose
+    # passes the whole script to "-c" as a single argument - a plain string
+    # here gets word-split by Compose itself before it ever reaches the
+    # shell, so only "while" ends up as the actual -c script and everything
+    # after it becomes stray positional args instead of part of the loop.
     entrypoint: ["/bin/sh", "-c"]
-    command: >
-      while true; do
-        python backup_db.py --db /data/aims.db --backup-dir /data/backups;
-        sleep 86400;
-      done
+    command:
+      - |
+        while true; do
+          python backup_db.py --db /data/aims.db --backup-dir /data/backups
+          sleep 86400
+        done
     volumes:
       - /share/CACHEDEV1_DATA/Data/config/aims-web:/data
 
