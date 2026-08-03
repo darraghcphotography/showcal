@@ -42,6 +42,8 @@
       <a href="{{ url_for('public.suggest') }}">Suggest a feature</a>
       {% if society_session %}
         <a href="{{ url_for('society.dashboard') }}">My society</a>
+      {% else %}
+        <a href="{{ url_for('society.login') }}">Society login</a>
       {% endif %}
       {% if current_user %}
         <a href="{{ url_for('admin.dashboard') }}" class="nav-admin">Admin</a>
