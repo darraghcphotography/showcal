@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 from datetime import date, datetime, timedelta
 
 from flask import Blueprint, Response, url_for
@@ -100,6 +101,22 @@ def calendar_ics():
     lines.append("END:VCALENDAR")
 
     return Response("\r\n".join(lines) + "\r\n", mimetype="text/calendar")
+
+
+@bp.route("/manifest.webmanifest")
+def manifest():
+    body = json.dumps({
+        "name": "Unofficial AIMS Show Tracker",
+        "short_name": "AIMS Show Tracker",
+        "start_url": url_for("public.index"),
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#c8102e",
+        "icons": [
+            {"src": url_for("static", filename="favicon.svg"), "sizes": "any", "type": "image/svg+xml"},
+        ],
+    })
+    return Response(body, mimetype="application/manifest+json")
 
 
 @bp.route("/robots.txt")

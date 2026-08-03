@@ -91,6 +91,12 @@ def create_app(test_config=None):
         flash("That file is too large - posters must be under 8 MB.", "error")
         return redirect(request.referrer or url_for("public.index")), 302
 
+    from flask import render_template
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template("404.html"), 404
+
     from . import analytics
 
     @app.after_request
