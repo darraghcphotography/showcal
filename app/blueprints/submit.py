@@ -2,6 +2,7 @@ import re
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 
+from .. import notify
 from ..auth import active_invite_code, invite_required
 from ..db import get_db
 from ..rate_limit import limiter
@@ -138,6 +139,11 @@ def new():
             },
         )
         db.commit()
+        notify.send(
+            f"New show submission: {society['name']} - {show_title}",
+            f'{society["name"]} submitted "{show_title}" for season {season}.\n\n'
+            f"Review it: {notify.link(url_for('admin.queue'))}",
+        )
         return redirect(url_for("submit.thanks"))
 
     return render_template("submit_new.html", societies=societies, form={}, season_options=season_options)

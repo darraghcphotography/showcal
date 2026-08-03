@@ -570,6 +570,48 @@ def toggle_invite_code(code_id):
     return redirect(url_for("admin.invite_codes"))
 
 
+@bp.route("/invite-codes/<int:code_id>/delete", methods=("POST",))
+@admin_required
+def delete_invite_code(code_id):
+    db = get_db()
+    try:
+        db.execute("DELETE FROM invite_codes WHERE id = ?", (code_id,))
+        db.commit()
+        flash("Code deleted.", "success")
+    except sqlite3.IntegrityError:
+        db.rollback()
+        flash("Can't delete this code - it's already attached to a show. Revoke it instead.", "error")
+    return redirect(url_for("admin.invite_codes"))
+
+
+@bp.route("/invite-codes/delete-legacy", methods=("POST",))
+@admin_required
+def delete_legacy_invite_codes():
+    # Matches the old alphanumeric generator's fixed "AIMS-" prefix, not the
+    # "Bulk-generated ..." label - the generator itself is gone (replaced by
+    # dictionary-word codes), so nothing will ever create a new AIMS-... code
+    # again, and this can't accidentally sweep up some future manually-
+    # created code that happens to reuse that label wording.
+    db = get_db()
+    rows = db.execute("SELECT id FROM invite_codes WHERE code LIKE 'AIMS-%'").fetchall()
+    deleted = skipped = 0
+    for row in rows:
+        try:
+            db.execute("DELETE FROM invite_codes WHERE id = ?", (row["id"],))
+            db.commit()
+            deleted += 1
+        except sqlite3.IntegrityError:
+            db.rollback()
+            skipped += 1
+    if deleted:
+        flash(f"Deleted {deleted} old AIMS- style code(s).", "success")
+    if skipped:
+        flash(f"{skipped} old code(s) are already attached to a show and were left alone - revoke those instead.", "warning")
+    if not deleted and not skipped:
+        flash("No old AIMS- style codes found.", "success")
+    return redirect(url_for("admin.invite_codes"))
+
+
 @bp.route("/societies")
 @login_required
 def societies_list():
@@ -696,6 +738,23 @@ def edit_society(society_id):
     return render_template(
         "admin/edit_society.html", society=society, regions=REGIONS, sections=SOCIETY_SECTIONS
     )
+
+
+@bp.route("/societies/<int:society_id>/generate-code", methods=("POST",))
+@admin_required
+def generate_society_code(society_id):
+    db = get_db()
+    society = db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone()
+    if society is None:
+        abort(404)
+    code = _generate_invite_code(db)
+    db.execute(
+        "INSERT INTO invite_codes (code, society_id, created_by) VALUES (?, ?, ?)",
+        (code, society_id, current_user()["username"]),
+    )
+    db.commit()
+    flash(f'Login code for this society: "{code}" - share it with them.', "success")
+    return redirect(url_for("public.society_detail", society_id=society_id))
 
 
 @bp.route("/shows/dates", methods=("GET", "POST"))

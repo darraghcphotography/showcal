@@ -9,6 +9,13 @@ services:
       # domain rather than at its root (see README.md). Leave blank/unset
       # for a dedicated subdomain instead.
       URL_PREFIX: ${URL_PREFIX:-}
+      # Email notifications for new show submissions/feature suggestions
+      # (see docs/deployment.md) - leaving SMTP_USER/SMTP_PASSWORD unset
+      # just silently disables them rather than erroring.
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      NOTIFY_EMAIL: ${NOTIFY_EMAIL:-info@darraghc.ie}
+      SITE_URL: ${SITE_URL:-https://darraghc.ie}
     volumes:
       # Absolute host path, not a relative "./data" - Portainer resolves
       # relative stack volume paths against its OWN internal view of the

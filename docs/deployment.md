@@ -87,6 +87,27 @@ site actually changes. `docker compose exec` needs to run from the directory
 holding `docker-compose.yml`; plain `docker exec aims-web ...` works from
 anywhere over SSH once you know the container name.
 
+### Email notifications for new submissions/suggestions
+
+A member's show submission or a feature suggestion emails a fixed inbox in
+real time, via SMTP (Gmail's, by default - `app/notify.py`). To turn it on:
+
+1. Create a Gmail **app password**: Google Account -> Security -> 2-Step
+   Verification (must already be enabled) -> App passwords. Any Gmail
+   account works - it doesn't need to be `info@darraghc.ie` itself, it's
+   just what actually sends the mail.
+2. Set these as Portainer stack environment variables (alongside
+   `SECRET_KEY`) and redeploy:
+   - `SMTP_USER` - the Gmail address.
+   - `SMTP_PASSWORD` - the 16-character app password from step 1.
+   - `NOTIFY_EMAIL` - where notifications land (defaults to `info@darraghc.ie`).
+   - `SITE_URL` - `https://darraghc.ie` by default, so the link in the email
+     points somewhere real.
+
+Leaving `SMTP_USER`/`SMTP_PASSWORD` unset (the default, and how local dev
+always runs) just silently disables notifications rather than erroring -
+submissions/suggestions still work exactly as before, just without an email.
+
 ### Backups
 
 Two layers, both required - one alone isn't enough:
@@ -221,8 +242,6 @@ with no Path set, and leave `URL_PREFIX` unset.
 
 ## Things intentionally left out (for now)
 
-- No email notifications when something is submitted/approved - check the
-  queue page yourself.
 - No self-service member accounts/registration - invite codes plus your own
   admin login is the whole auth surface, on purpose (no public writes).
 - No automated backups - `aims.db` (or `data/aims.db` under Docker) is the

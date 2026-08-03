@@ -44,6 +44,16 @@
     gets duplicated. New codes appear at the top of the table below, ready to hand out when someone asks.
   </p>
 
+  <form method="post" action="{{ url_for('admin.delete_legacy_invite_codes') }}" class="inline-form"
+        onsubmit="return confirm('Delete every old AIMS-XXXXXX style code? Codes still attached to a show are left alone. This cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="button-danger">Delete old AIMS- style codes</button>
+  </form>
+  <p class="meta" style="margin: 0.4rem 0 1.5rem;">
+    One-time cleanup for codes from the old alphanumeric generator - dictionary-word codes
+    (like the ones above) and anything you typed in yourself are never touched.
+  </p>
+
   <table class="data-table">
     <thead>
       <tr><th>Code</th><th>Label</th><th>Society login</th><th>Expires</th><th>Status</th><th></th></tr>
@@ -68,6 +78,11 @@
             <form method="post" action="{{ url_for('admin.toggle_invite_code', code_id=c['id']) }}" class="inline-form">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit">{{ 'Revoke' if c['is_active'] else 'Reactivate' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.delete_invite_code', code_id=c['id']) }}" class="inline-form"
+                  onsubmit="return confirm('Delete this code permanently? This cannot be undone.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="button-danger">Delete</button>
             </form>
           </td>
         </tr>

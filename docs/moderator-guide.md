@@ -30,6 +30,10 @@ view, plus a plain list of links to every other admin tool below.
 submission, oldest first, with everything the submitter entered - dates,
 venue, production team, ticket link, poster if one was attached.
 
+A show submission or a feature suggestion also emails a fixed inbox in real
+time (see "Email notifications" in the deployment guide) - no need to keep
+checking these pages manually just in case.
+
 For each one you can:
 - **Approve** - it goes live immediately: appears in the society's show
   history, on "This season" if it's the current season, and gets its own

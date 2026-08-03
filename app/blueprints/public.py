@@ -3,6 +3,7 @@ from urllib.parse import quote_plus
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
+from .. import notify
 from ..auth import current_user
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS
 from ..db import get_db
@@ -73,15 +74,22 @@ def index():
     upcoming_params.append(UPCOMING_LIMIT)
     upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
 
+    # Soonest-upcoming show first (same read as "Upcoming shows" below it) -
+    # once those run out, most-recently-finished shows fill the rest, so a
+    # poster never just vanishes the day after its show closes. A poster
+    # with no date set yet sorts last of all (opening_date IS NULL last).
     poster_gallery = db.execute(
         """
         SELECT shows.id, shows.show, shows.poster_filename, societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.moderation_status = 'approved' AND shows.poster_filename IS NOT NULL
-        ORDER BY shows.created_at DESC
+        ORDER BY
+            shows.opening_date IS NULL,
+            shows.opening_date < ?,
+            ABS(JULIANDAY(shows.opening_date) - JULIANDAY(?))
         LIMIT ?
         """,
-        (POSTER_GALLERY_LIMIT,),
+        (date.today().isoformat(), date.today().isoformat(), POSTER_GALLERY_LIMIT),
     ).fetchall()
 
     return render_template(
@@ -105,6 +113,22 @@ def society_detail(society_id):
     society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
     if society is None:
         abort(404)
+
+    # Only fetched for an admin viewer - lets them hand out this society's
+    # login code straight from its own page instead of hunting for it (or
+    # re-creating it) on /admin/invite-codes. Same "still valid" check as
+    # auth.py's active_society_code().
+    society_code = None
+    viewer = current_user()
+    if viewer and viewer["role"] == "admin":
+        society_code = db.execute(
+            """
+            SELECT * FROM invite_codes WHERE society_id = ? AND is_active = 1
+            AND (expires_at IS NULL OR expires_at >= ?)
+            ORDER BY created_at DESC LIMIT 1
+            """,
+            (society_id, date.today().isoformat()),
+        ).fetchone()
 
     shows = db.execute(
         """
@@ -174,7 +198,7 @@ def society_detail(society_id):
     return render_template(
         "society_detail.html", society=society, shows=shows, future_shows=future_shows, historical=historical,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
-        best_show_second=best_show_second, best_show_third=best_show_third,
+        best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
     )
 
 
@@ -314,6 +338,11 @@ def suggest():
             (message, submitted_name),
         )
         get_db().commit()
+        notify.send(
+            "New feature suggestion",
+            f"From: {submitted_name or 'Anonymous'}\n\n{message}\n\n"
+            f"Review it: {notify.link(url_for('admin.suggestions'))}",
+        )
         return redirect(url_for("public.suggest_thanks"))
 
     return render_template("suggest.html", form={})
