@@ -62,6 +62,16 @@ RENAMES = {
     "Oklahoma Annie": "Annie",
 
     "American Idiot!": "American Idiot",  # official title has no exclamation mark
+
+    # Found via a full run of the duplicate-title finder - these old spellings
+    # were still present in the shows table alongside an already-correct one.
+    "FAME": "Fame",
+    "Singin' In the Rain": "Singin' in the Rain",
+    "Hello Dolly": "Hello, Dolly!",
+    "Joseph and his Amazing Technicolor Dreamcoat": "Joseph and the Amazing Technicolor Dreamcoat",
+    "Phantom of the Opera": "The Phantom of the Opera",
+    "Oklahoma": "Oklahoma!",
+    "Beautiful : Carole King": "Beautiful: The Carole King Musical",  # official title
 }
 
 # Not a real show title - a stray placeholder that should be NULL, like the

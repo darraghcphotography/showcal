@@ -37,6 +37,59 @@ SHOW_RENAMES = {
     "Shrek the Musical": "Shrek",
     "Pirates of Penzance": "The Pirates of Penzance",  # 81 rows use "The", only a handful drop it
     "Me & My Girl": "Me and My Girl",  # official title spells out "and" - found while auditing top titles
+
+    # Found via a full run of the duplicate-title finder after a member noticed
+    # "Beauty & The Beast" and "9 To 5 The Musical" still showing separately on
+    # Shows A-Z - turned out several fix_show_titles.py renames (which only
+    # touch the shows table) were never mirrored here for historical_results,
+    # so the old spelling survived in the archive even after the current-era
+    # table was fixed. Canonical spelling chosen as: whichever the shows table
+    # already uses if it's used there, else the official/grammatically correct
+    # form, else the more common historical spelling.
+    "Into The Woods": "Into the Woods",
+    "Beauty & The Beast": "Beauty and the Beast",
+    "Cry Baby": "Cry-Baby",
+    "RENT": "Rent",
+    "Sound of Music": "The Sound of Music",
+    "The Sound Of Music": "The Sound of Music",
+    "9 To 5 The Musical": "9 to 5",
+    "Big FIsh": "Big Fish",
+    "Fiddler On The Roof": "Fiddler on the Roof",
+    "Half A Sixpence": "Half a Sixpence",
+    "Kipps Half a Sixpence": "Half a Sixpence",
+    "Little Shop Of Horrors": "Little Shop of Horrors",
+    "Man Of La Mancha": "Man of La Mancha",
+    "Orpheus In The Underworld": "Orpheus in the Underworld",
+    "Singin' In The Rain": "Singin' in the Rain",
+    "Singin in the Rain": "Singin' in the Rain",
+    "Singing in the Rain": "Singin' in the Rain",
+    "The Phantom Of The Opera": "The Phantom of the Opera",
+    "Phantom of the Opera": "The Phantom of the Opera",
+    "The Witches Of Eastwick": "The Witches of Eastwick",
+    "Witches of Eastwick": "The Witches of Eastwick",
+    "Carrie -  The Musical": "Carrie - The Musical",
+    "The Clockmakers Daughter": "The Clockmaker's Daughter",
+    "Hello Dolly!": "Hello, Dolly!",
+    "The Boyfriend": "The Boy Friend",  # official title of the 1920s musical is two words
+    "Seussical - The Musical": "Seussical",  # matches the existing "Seussical! The Musical" -> "Seussical" merge
+    "Seussical The Musical": "Seussical",
+    "Oklahoma": "Oklahoma!",
+    "Showboat": "Show Boat",  # official title is two words
+    "The Gipsy Baron": "The Gypsy Baron",  # archaic spelling of the same operetta
+    "Pippin!": "Pippin",  # official title has no exclamation mark
+    "Belle of New York": "The Belle of New York",
+    "The Belle Of New York": "The Belle of New York",
+    "Bonnie and Clyde": "Bonnie & Clyde",  # official title uses an ampersand
+    "Desert Song": "The Desert Song",
+    "Guys & Dolls": "Guys and Dolls",  # official title spells out "and"
+    "The King and I": "The King & I",
+    "White Horse Inn": "The White Horse Inn",
+    "Die Fleidermaus": "Die Fledermaus",  # a second, different typo of the same German title
+    "The Hot Mikado": "Hot Mikado",  # same show, "The" is inconsistently applied - NOT the same as The Mikado
+    "Les Misérables": "Les Miserables",  # accented vs unaccented, same show (the accented text is valid
+                                              # UTF-8 - a terminal display quirk made it look mangled during review)
+    "The Prince of Egypt: The Musical": "The Prince of Egypt",  # matches the shorter title already used in shows
+    "Beautiful - The Carole King Musical": "Beautiful: The Carole King Musical",  # official title
 }
 
 # Rows where the source data genuinely concatenated two separate real
