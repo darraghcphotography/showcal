@@ -14,7 +14,6 @@ from ..season import current_season
 bp = Blueprint("public", __name__)
 
 UPCOMING_LIMIT = 6
-POSTER_GALLERY_LIMIT = 8
 
 
 @bp.route("/")
@@ -74,23 +73,11 @@ def index():
     upcoming_params.append(UPCOMING_LIMIT)
     upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
 
-    # Soonest-upcoming show first (same read as "Upcoming shows" below it) -
-    # once those run out, most-recently-finished shows fill the rest, so a
-    # poster never just vanishes the day after its show closes. A poster
-    # with no date set yet sorts last of all (opening_date IS NULL last).
-    poster_gallery = db.execute(
-        """
-        SELECT shows.id, shows.show, shows.poster_filename, societies.name AS society_name
-        FROM shows JOIN societies ON societies.id = shows.society_id
-        WHERE shows.moderation_status = 'approved' AND shows.poster_filename IS NOT NULL
-        ORDER BY
-            shows.opening_date IS NULL,
-            shows.opening_date < ?,
-            ABS(JULIANDAY(shows.opening_date) - JULIANDAY(?))
-        LIMIT ?
-        """,
-        (date.today().isoformat(), date.today().isoformat(), POSTER_GALLERY_LIMIT),
-    ).fetchall()
+    # Whichever of the upcoming shows above happen to have a poster - same
+    # list, same region filter, same order, not a separate query. Keeps the
+    # gallery honest: it can never show a show that isn't actually in the
+    # "Upcoming shows" table right below it.
+    poster_gallery = [show for show in upcoming if show["poster_filename"]]
 
     return render_template(
         "index.html",
