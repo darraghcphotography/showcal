@@ -25,7 +25,7 @@ def unlock():
     if request.method == "POST":
         code = request.form.get("code", "").strip()
         row = get_db().execute(
-            "SELECT * FROM invite_codes WHERE code = ? AND is_active = 1", (code,)
+            "SELECT * FROM invite_codes WHERE code = ? COLLATE NOCASE AND is_active = 1", (code,)
         ).fetchone()
         if row is None:
             flash("That invite code isn't valid. Check with your society secretary or AIMS.", "error")

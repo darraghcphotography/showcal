@@ -77,9 +77,9 @@
       </select>
     </label>
     <label>
-      Tier
+      Section
       <select name="section">
-        <option value="">All tiers</option>
+        <option value="">All sections</option>
         {% for s in sections %}
           <option value="{{ s }}" {% if s == selected_section %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
@@ -105,7 +105,7 @@
 
   <table class="data-table">
     <thead>
-      <tr><th>Society</th><th>Region</th><th>Tier</th></tr>
+      <tr><th>Society</th><th>Region</th><th>Section</th></tr>
     </thead>
     <tbody>
       {% for s in societies %}

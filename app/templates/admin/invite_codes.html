@@ -8,12 +8,13 @@
      immediately, no queue (but they can never touch review status/links). Deactivate a code instead
      of deleting it so past submissions/edits keep their history.</p>
 
-  <form method="post" action="{{ url_for('admin.create_invite_code') }}" class="stacked-form">
+  <form method="post" action="{{ url_for('admin.create_invite_code') }}" class="stacked-form" id="invite-code-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>
       Code
-      <input type="text" name="code" required>
+      <input type="text" name="code" required value="{{ suggested_code }}">
     </label>
+    <a href="{{ url_for('admin.invite_codes') }}#invite-code-form" style="font-size: 0.85rem;">🔀 Suggest another</a>
     <label>
       Label
       <input type="text" name="label" placeholder="e.g. General 2026 code, or a society name">

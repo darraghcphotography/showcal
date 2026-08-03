@@ -8,7 +8,7 @@ comments - this is a guided tour, not a replacement for reading it.
   a society added directly via `/admin/societies` gets an id of 10000 or
   higher instead, so a future CSV re-import can never collide with it.
 - **shows** - one row per production. Each row snapshots the society's
-  `region`/`section` *at the time of that show*, since a society's tier can
+  `region`/`section` *at the time of that show*, since a society's section can
   change season to season - so a show stays correctly labelled even after its
   society later moves Sullivan &harr; Gilbert.
 - Every show has a **`moderation_status`** (`pending` / `approved` /

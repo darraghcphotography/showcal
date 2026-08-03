@@ -28,7 +28,7 @@
     </label>
 
     <label>
-      Tier
+      Section
       <select name="section" required>
         {% for s in sections %}
           <option value="{{ s }}" {% if s == society['section'] %}selected{% endif %}>{{ s }}</option>

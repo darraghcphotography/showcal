@@ -56,7 +56,7 @@
     {{ bar_chart(by_region, linked=false) }}
   {% endif %}
 
-  <h2>Shows by tier{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  <h2>Shows by section{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
   {% if by_tier %}
     {{ bar_chart(by_tier, linked=false) }}
   {% else %}

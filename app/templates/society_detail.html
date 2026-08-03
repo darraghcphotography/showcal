@@ -32,10 +32,30 @@
     <p><a href="{{ url_for('admin.edit_society', society_id=society['id']) }}" class="edit-callout">Edit this society &rarr;</a></p>
   {% endif %}
 
+  {% if future_shows %}
+    <h2>Future announced show{{ '' if future_shows|length == 1 else 's' }}</h2>
+    <div class="table-cards">
+      {% for show in future_shows %}
+        <div class="queue-item">
+          <div class="primary">
+            <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+            {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+          </div>
+          <div class="meta-chips">
+            <span>{{ show['season'] }}</span>
+            <span>&middot; {{ show['section'] or '—' }}</span>
+            <span>&middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}</span>
+          </div>
+          {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit &rarr;</a></p>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <h2>Show history</h2>
   <table class="data-table table-wide">
     <thead>
-      <tr><th>Season</th><th>Show</th><th>Tier</th><th>Dates</th><th>Review</th>{% if current_user %}<th></th>{% endif %}</tr>
+      <tr><th>Season</th><th>Show</th><th>Section</th><th>Dates</th><th>Review</th>{% if current_user %}<th></th>{% endif %}</tr>
     </thead>
     <tbody>
       {% for show in shows %}
@@ -102,7 +122,7 @@
     <h2>Awards &amp; nominations (AIMS awards archive)</h2>
     <p class="meta">{{ historical|length }} record{{ '' if historical|length == 1 else 's' }}{% if historical|length > 1 %}, {{ historical[-1]['year'] }}&ndash;{{ historical[0]['year'] }}{% else %}, {{ historical[0]['year'] }}{% endif %}.</p>
     <table class="data-table table-wide">
-      <thead><tr><th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th><th>Nominee</th></tr></thead>
+      <thead><tr><th>Year</th><th>Section</th><th>Category</th><th>Result</th><th>Show</th><th>Nominee</th></tr></thead>
       <tbody>
         {% for row in historical %}
           <tr>

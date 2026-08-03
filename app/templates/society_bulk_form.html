@@ -4,7 +4,7 @@
   <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }}</a></p>
   <h1>Bulk add shows</h1>
   <p>Quickly add the basics for several past shows at once - season, dates, and title. Leave a row blank
-     to skip it. Add production team, tier, poster, ticket link etc. later from the dashboard.</p>
+     to skip it. Add production team, section, poster, ticket link etc. later from the dashboard.</p>
 
   <form method="post" class="bulk-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

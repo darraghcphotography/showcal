@@ -11,6 +11,7 @@ from ..auth import current_user, login_required
 from ..constants import AWARD_RESULTS, REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
 from ..db import get_db
 from ..dedupe import find_candidates
+from ..invite_words import ADJECTIVES, NOUNS
 from ..rate_limit import limiter
 from ..season import current_season, season_range
 from ..similarity import find_close_title
@@ -20,15 +21,11 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-# Excludes 0/O and 1/I/L - a code meant to be read aloud or typed from a DM
-# shouldn't hinge on telling those apart.
-INVITE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
-
 
 def _generate_invite_code(db):
     while True:
-        code = "AIMS-" + "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(6))
-        if not db.execute("SELECT 1 FROM invite_codes WHERE code = ?", (code,)).fetchone():
+        code = f"{secrets.choice(ADJECTIVES)}-{secrets.choice(NOUNS)}"
+        if not db.execute("SELECT 1 FROM invite_codes WHERE code = ? COLLATE NOCASE", (code,)).fetchone():
             return code
 
 
@@ -484,7 +481,8 @@ def invite_codes():
     ).fetchall()
     societies = db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
     return render_template(
-        "admin/invite_codes.html", codes=codes, societies=societies, today=date.today().isoformat()
+        "admin/invite_codes.html", codes=codes, societies=societies, today=date.today().isoformat(),
+        suggested_code=_generate_invite_code(db),
     )
 
 
@@ -501,7 +499,7 @@ def create_invite_code():
         return redirect(url_for("admin.invite_codes"))
 
     db = get_db()
-    existing = db.execute("SELECT id FROM invite_codes WHERE code = ?", (code,)).fetchone()
+    existing = db.execute("SELECT id FROM invite_codes WHERE code = ? COLLATE NOCASE", (code,)).fetchone()
     if existing:
         flash("That code already exists.", "error")
         return redirect(url_for("admin.invite_codes"))

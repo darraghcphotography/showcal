@@ -29,7 +29,7 @@ def login():
     if request.method == "POST":
         code = request.form.get("code", "").strip()
         row = get_db().execute(
-            "SELECT * FROM invite_codes WHERE code = ? AND is_active = 1 AND society_id IS NOT NULL",
+            "SELECT * FROM invite_codes WHERE code = ? COLLATE NOCASE AND is_active = 1 AND society_id IS NOT NULL",
             (code,),
         ).fetchone()
         if row is None:

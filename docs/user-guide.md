@@ -7,7 +7,7 @@ For anyone browsing the site, or an AIMS member submitting a show.
 The homepage lists every AIMS member society. You can narrow it down:
 
 - **Region** - Eastern, Western, Northern, South-West, South-East, Midlands.
-- **Tier** - Gilbert or Sullivan (AIMS's two competition tiers), Non-AIMS, or
+- **Section** - Gilbert or Sullivan (AIMS's two competition sections), Non-AIMS, or
   Inactive (registered but with no show on record yet - hidden by default,
   see below).
 - **Society name** - a text search box.
@@ -31,11 +31,11 @@ Other pages worth knowing about:
   info for it - click through to the title's page to see it. Otherwise the
   "More info" link is a best-guess Wikipedia search, not a verified match.
 - **Current season** - every show announced so far for the current season,
-  with region/tier filters, split into upcoming and already-finished
+  with region/section filters, split into upcoming and already-finished
   sections. A season picker at the top lets you jump to any past season the
   same way.
 - **Awards** - browse AIMS's full adjudication archive (1977-present):
-  filter by year, category, tier, result, or search across society/show/
+  filter by year, category, section, result, or search across society/show/
   nominee/the adjudicator's own notes on discretionary awards. Defaults to
   winners only.
 - **Statistics** - only counts shows that have actually happened (announced-

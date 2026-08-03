@@ -8,6 +8,7 @@ from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS
 from ..db import get_db
 from ..rate_limit import limiter
 from ..search import fts_match_ids
+from ..season import current_season
 
 bp = Blueprint("public", __name__)
 
@@ -114,6 +115,15 @@ def society_detail(society_id):
         (society_id,),
     ).fetchall()
 
+    # Season strings sort correctly as text (see schema.sql's design note).
+    # A future-season row with no title yet is just a "slotted, TBA" placeholder -
+    # not worth a blank line in the history table. One that's already been
+    # announced gets pulled out into its own "coming up" block instead of
+    # blending into the history below it.
+    current = current_season(db)
+    future_shows = [s for s in shows if s["season"] > current and s["show"] is not None]
+    shows = [s for s in shows if s["season"] <= current]
+
     # Pre-2024 award/nomination history from the AIMS awards archive - one row
     # per category (so a single production can appear several times, once per
     # category it was up for). show can be NULL here (person-level awards like
@@ -162,7 +172,7 @@ def society_detail(society_id):
     active_since = earliest_award_year or (2000 + int(earliest_season[:2]) if earliest_season else None)
 
     return render_template(
-        "society_detail.html", society=society, shows=shows, historical=historical,
+        "society_detail.html", society=society, shows=shows, future_shows=future_shows, historical=historical,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third,
     )

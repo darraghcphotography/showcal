@@ -43,7 +43,7 @@ app/
   __init__.py         Flask app factory
   db.py               SQLite connection + schema/migration helpers
   auth.py             login + invite-code + society-code gating decorators
-  constants.py         regions/tiers/etc, kept in sync with schema.sql's CHECKs
+  constants.py         regions/sections/etc, kept in sync with schema.sql's CHECKs
   season.py            "what season are we in" + season-dropdown helpers
   filters.py            Jinja filter: ISO dates -> dd-mm-yyyy for display
   uploads.py            poster/logo image validation/save (never trusts the browser's filename)
@@ -71,7 +71,7 @@ Public: browse/search societies with a poster gallery and upcoming-shows
 region filter, a society's full history (shows plus their awards archive
 record), a show's detail page, **Shows A-Z** (search/sort, times-performed
 count, an optional synopsis/amateur-rights info panel), **Current season**
-at a glance (region/tier filters, upcoming and already-finished split),
+at a glance (region/section filters, upcoming and already-finished split),
 **Statistics** (region drill-down, per-season breakdown, most
 selected/performed, signature show per society, win-rate leaderboards, and
 more - see the [user guide](docs/user-guide.md)), an **Awards** page

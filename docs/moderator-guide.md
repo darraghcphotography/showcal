@@ -90,7 +90,7 @@ history. Reactivate the same way if you revoked it by mistake.
 
 ## Seeing inactive societies
 
-The public browse page hides societies with tier "Inactive" by default.
+The public browse page hides societies with section "Inactive" by default.
 Logged in, you'll see a "Show inactive societies" checkbox on that page -
 tick it to include them. This is only ever visible to you; anonymous visitors
 never see the checkbox or the inactive societies, no matter what's in the
@@ -110,7 +110,7 @@ site before investing more time in it. Admin pages, the CSV export, and
 creating a code (instead of leaving it blank) and it becomes a **society
 login** rather than a one-off submission code. Share it with that society's
 secretary and they can log in at `/society/login` to manage their own show
-history directly at `/society/` - add or edit past seasons, dates, tier,
+history directly at `/society/` - add or edit past seasons, dates, section,
 production team, poster, ticket link. Changes go **live immediately**, no
 moderation queue, but they can never set or see the review status/URL fields
 - those stay yours to attach, same as for a CSV-imported or publicly
@@ -127,12 +127,12 @@ or by a public member submission for that society.
 now - there's no longer an external database to re-import from. It has the
 same filters as the public Awards page, plus:
 
-- **+ Add award result** - one record at a time: year, tier, category (pick
+- **+ Add award result** - one record at a time: year, section, category (pick
   an existing one, or "Other" to type a new category name), result, show,
   society, nominee/role, and an optional adjudicator's note. Edit or delete
   any existing record from here too.
 - **+ Add a whole category's results at once** - the way you'll use this
-  most: set the year/tier/category once, then fill in up to 5 nominee rows
+  most: set the year/section/category once, then fill in up to 5 nominee rows
   (society, show, nominee, role) and tick a single "Winner" radio button -
   every other filled-in row saves as a Nominee. Blank rows are skipped.
 - **"No society match only"** filter - a record whose society name never

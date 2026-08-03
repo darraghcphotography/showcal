@@ -84,9 +84,9 @@
       </select>
     </label>
     <label>
-      Tier
+      Section
       <select name="tier">
-        <option value="">All tiers</option>
+        <option value="">All sections</option>
         {% for t in tiers %}
           <option value="{{ t }}" {% if t == selected_tier %}selected{% endif %}>{{ t }}</option>
         {% endfor %}
@@ -100,7 +100,7 @@
 
   <table class="data-table table-wide">
     <thead>
-      <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Opens</th><th>Review</th></tr>
+      <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opens</th><th>Review</th></tr>
     </thead>
     <tbody>{{ show_rows(upcoming) }}</tbody>
   </table>
@@ -110,7 +110,7 @@
     <h2>Already finished</h2>
     <table class="data-table table-wide">
       <thead>
-        <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Opened</th><th>Review</th></tr>
+        <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opened</th><th>Review</th></tr>
       </thead>
       <tbody>{{ show_rows(finished) }}</tbody>
     </table>

@@ -25,9 +25,9 @@
       </select>
     </label>
     <label>
-      Tier
+      Section
       <select name="tier">
-        <option value="">All tiers</option>
+        <option value="">All sections</option>
         <option value="Gilbert" {% if selected_tier == 'Gilbert' %}selected{% endif %}>Gilbert</option>
         <option value="Sullivan" {% if selected_tier == 'Sullivan' %}selected{% endif %}>Sullivan</option>
       </select>
@@ -53,7 +53,7 @@
 
   <table class="data-table table-wide">
     <thead>
-      <tr><th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th><th>Society</th><th>Nominee</th></tr>
+      <tr><th>Year</th><th>Section</th><th>Category</th><th>Result</th><th>Show</th><th>Society</th><th>Nominee</th></tr>
     </thead>
     <tbody>
       {% for r in rows %}

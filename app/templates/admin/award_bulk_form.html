@@ -3,7 +3,7 @@
 {% block content %}
   <p><a href="{{ url_for('admin.awards_list') }}">&larr; Back to awards</a></p>
   <h1>Bulk add award results</h1>
-  <p>Enter one category's results for a whole year at once - pick the year/tier/category once below, then fill
+  <p>Enter one category's results for a whole year at once - pick the year/section/category once below, then fill
      in each nominee. Mark exactly one row as the winner; every other filled row is saved as a nominee. Leave a
      row blank to skip it.</p>
 
@@ -16,7 +16,7 @@
     </label>
 
     <label>
-      Tier
+      Section
       <select name="tier">
         <option value="">—</option>
         <option value="Gilbert" {% if form.get('tier') == 'Gilbert' %}selected{% endif %}>Gilbert</option>
