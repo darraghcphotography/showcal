@@ -37,6 +37,7 @@ def unlock():
 
 @bp.route("/new", methods=("GET", "POST"))
 @invite_required
+@limiter.limit("5 per minute")
 def new():
     db = get_db()
     societies = db.execute("SELECT id, name, region, section FROM societies ORDER BY name").fetchall()

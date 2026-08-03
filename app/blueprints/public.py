@@ -6,6 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from ..auth import current_user
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS
 from ..db import get_db
+from ..rate_limit import limiter
 from ..search import fts_match_ids
 
 bp = Blueprint("public", __name__)
@@ -268,6 +269,7 @@ def about():
 
 
 @bp.route("/suggest", methods=("GET", "POST"))
+@limiter.limit("5 per minute")
 def suggest():
     if request.method == "POST":
         # Honeypot - same pattern as the show submission form.

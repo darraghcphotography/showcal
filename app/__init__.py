@@ -121,4 +121,19 @@ def create_app(test_config=None):
             analytics.record_pageview(db_module.get_db(), request.path)
         return response
 
+    is_production = bool(os.environ.get("AIMS_DB_PATH"))
+
+    @app.after_request
+    def set_security_headers(response):
+        # nosniff matters most for /uploads/<filename> - without it, an
+        # older browser can content-sniff a crafted "poster.jpg" as HTML
+        # despite the image/* Content-Type, regardless of the extension
+        # allowlist in uploads.py. X-Frame-Options blocks clickjacking a
+        # moderator into an invisible iframe over /admin.
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        if is_production:
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
+
     return app
