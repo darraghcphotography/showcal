@@ -22,6 +22,8 @@
     <div class="trophy-case">
       {% if active_since %}<span class="tag tag-gold">Active since {{ active_since }}</span>{% endif %}
       {% if best_show_wins %}<span class="tag tag-gold">🏆 {{ best_show_wins }}&times; Best Overall Show</span>{% endif %}
+      {% if best_show_second %}<span class="tag tag-silver">🥈 {{ best_show_second }}&times; Best Overall Show runner-up</span>{% endif %}
+      {% if best_show_third %}<span class="tag tag-bronze">🥉 {{ best_show_third }}&times; Best Overall Show third place</span>{% endif %}
       {% if total_wins %}<span class="tag tag-gold">{{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}</span>{% endif %}
     </div>
   {% endif %}

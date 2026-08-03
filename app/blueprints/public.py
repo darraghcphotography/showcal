@@ -141,6 +141,21 @@ def society_detail(society_id):
     ).fetchone()
     total_wins, best_show_wins, earliest_award_year = award_totals
 
+    # Runner-up finishes for Best Overall Show specifically - a separate
+    # query rather than folding into award_totals above, since that one's
+    # outer WHERE is scoped to result = 'Winner' (needed for total_wins/
+    # earliest_award_year) and would silently zero these out otherwise.
+    best_show_second, best_show_third = db.execute(
+        """
+        SELECT
+            SUM(CASE WHEN result = 'Second Place' THEN 1 ELSE 0 END),
+            SUM(CASE WHEN result = 'Third Place' THEN 1 ELSE 0 END)
+        FROM historical_results
+        WHERE society_id = ? AND category_name = 'Best Overall Show'
+        """,
+        (society_id,),
+    ).fetchone()
+
     earliest_season = db.execute(
         "SELECT MIN(season) FROM shows WHERE society_id = ? AND show IS NOT NULL", (society_id,)
     ).fetchone()[0]
@@ -149,6 +164,7 @@ def society_detail(society_id):
     return render_template(
         "society_detail.html", society=society, shows=shows, historical=historical,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
+        best_show_second=best_show_second, best_show_third=best_show_third,
     )
 
 
