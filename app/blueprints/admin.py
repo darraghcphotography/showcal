@@ -1,5 +1,6 @@
 import functools
 import re
+import secrets
 import sqlite3
 from datetime import date, datetime, timedelta
 
@@ -18,6 +19,17 @@ from ..uploads import save_poster
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+# Excludes 0/O and 1/I/L - a code meant to be read aloud or typed from a DM
+# shouldn't hinge on telling those apart.
+INVITE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+def _generate_invite_code(db):
+    while True:
+        code = "AIMS-" + "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(6))
+        if not db.execute("SELECT 1 FROM invite_codes WHERE code = ?", (code,)).fetchone():
+            return code
 
 
 def admin_required(view):
@@ -504,6 +516,47 @@ def create_invite_code():
     )
     db.commit()
     flash("Invite code created.", "success")
+    return redirect(url_for("admin.invite_codes"))
+
+
+@bp.route("/invite-codes/bulk-generate", methods=("POST",))
+@admin_required
+def bulk_generate_invite_codes():
+    db = get_db()
+    # "Recently active" = at least one show since the site's own data
+    # coverage began (season 23/24 onwards - season strings sort correctly
+    # as text, see schema.sql), and not already tagged Inactive - skips
+    # societies that only ever show up in the pre-2024 awards archive.
+    # Also skips anyone who already has a live code, so re-running this
+    # only ever tops up whoever's missing one rather than piling up spares.
+    societies = db.execute(
+        """
+        SELECT DISTINCT societies.id, societies.name
+        FROM societies
+        JOIN shows ON shows.society_id = societies.id
+        WHERE societies.section != 'Inactive'
+          AND shows.season >= '23/24'
+          AND societies.id NOT IN (
+              SELECT society_id FROM invite_codes
+              WHERE society_id IS NOT NULL AND is_active = 1
+          )
+        ORDER BY societies.name
+        """
+    ).fetchall()
+
+    label = f"Bulk-generated {date.today().isoformat()}"
+    for society in societies:
+        code = _generate_invite_code(db)
+        db.execute(
+            "INSERT INTO invite_codes (code, label, society_id, created_by) VALUES (?, ?, ?, ?)",
+            (code, label, society["id"], current_user()["username"]),
+        )
+    db.commit()
+
+    if societies:
+        flash(f"Generated {len(societies)} new code(s) for recently active societies without one.", "success")
+    else:
+        flash("Every recently active society already has a live code - nothing to generate.", "success")
     return redirect(url_for("admin.invite_codes"))
 
 
