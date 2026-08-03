@@ -165,7 +165,15 @@ def show_detail(show_id):
     if show is None:
         abort(404)
 
-    return render_template("show_detail.html", show=show)
+    # Same "upcoming" definition as the homepage's Upcoming shows list -
+    # only nudge for details on shows that haven't happened yet.
+    is_upcoming = (
+        show["status"] != "Cancelled"
+        and show["opening_date"] is not None
+        and show["opening_date"] >= date.today().isoformat()
+    )
+
+    return render_template("show_detail.html", show=show, is_upcoming=is_upcoming)
 
 
 TITLES_SORT_OPTIONS = {

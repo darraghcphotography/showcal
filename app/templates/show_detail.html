@@ -18,6 +18,12 @@
 
   {% if current_user %}
     <p><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}" class="edit-callout">Edit this show &rarr;</a></p>
+  {% elif not society_session and is_upcoming and (not show['ticket_url'] or not show['poster_filename']) %}
+    <div class="site-notice">
+      <p>With {{ show['society_name'] }}? Add a ticket link, poster, and more by getting a login for this
+         page - DM <a href="https://instagram.com/darraghcphotography" rel="noopener" target="_blank">@darraghcphotography</a>
+         on Instagram, or message via WhatsApp through the link in the footer.</p>
+    </div>
   {% endif %}
 
   {% if show['poster_filename'] %}
