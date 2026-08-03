@@ -20,6 +20,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 
+# The spreadsheet fills in a tier for these seasons' rows as a copied-forward
+# guess (whatever the society was last confirmed as), not an actual AIMS
+# decision - there's no confirmed tier list published yet. Showing that guess
+# as if it were fact was already wrong once (a real society's actual 26/27
+# tier differed from the spreadsheet's guess). Blank it out on import instead
+# of trusting it - every template already renders a blank section as '-'.
+# Remove a season from this set once AIMS has actually published its tier
+# list and the spreadsheet reflects real decisions, not guesses.
+UNCONFIRMED_TIER_SEASONS = {"27/28"}
+
 
 def normalize(value):
     """Blank/whitespace-only strings become None; 'n/a' also becomes None."""
@@ -75,11 +85,12 @@ def load_shows(conn, path):
             skipped_unknown_society.append(society_name)
             continue
 
+        season = row["season"].strip()
         params = {
             "society_id": society_id,
-            "season": row["season"].strip(),
+            "season": season,
             "region": row["region"].strip(),
-            "section": normalize(row["section"]),
+            "section": None if season in UNCONFIRMED_TIER_SEASONS else normalize(row["section"]),
             "show": normalize(row["show"]),
             "opening_date": normalize(row["opening_date"]),
             "closing_date": normalize(row["closing_date"]),
