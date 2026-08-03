@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Browse societies - Unofficial AIMS Show Tracker{% endblock %}
 {% block content %}
+  <div class="site-notice">
+    <p>Want to help update your society's history, add past shows, or fix any missing information?
+       Get in touch with Darragh (contact details in the footer) and he'll issue you a login code so
+       you can manage your own society's page directly.</p>
+  </div>
+
   {% if poster_gallery %}
     <div class="poster-gallery">
       {% for show in poster_gallery %}

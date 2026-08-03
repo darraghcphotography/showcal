@@ -205,6 +205,15 @@ button.button-primary { background: var(--success); color: #fff; }
 }
 .edit-callout:hover { border-style: solid; }
 
+.site-notice {
+  background: var(--row-alt);
+  border-left: 3px solid var(--gold);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+.site-notice p { margin: 0; }
+
 .honeypot {
   position: absolute;
   left: -9999px;
