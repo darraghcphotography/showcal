@@ -248,6 +248,9 @@ button.button-primary { background: var(--success); color: #fff; }
 
 .meta { color: var(--muted); }
 
+.venue-link { display: block; font-size: 0.8rem; text-decoration: none; margin-top: 0.15rem; }
+.venue-link:hover { text-decoration: underline; }
+
 .poster {
   max-width: 240px;
   width: 100%;

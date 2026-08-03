@@ -40,7 +40,12 @@
       <tbody>
         {% for show in upcoming %}
           <tr>
-            <td><a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a></td>
+            <td>
+              <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+              {% if show['venue'] %}
+                <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+              {% endif %}
+            </td>
             <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
             <td>{{ show['region'] }}</td>
             <td>{{ show['opening_date']|date_range(show['closing_date']) }}</td>

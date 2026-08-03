@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import quote_plus
 
 
 def irish_date(value):
@@ -44,6 +45,14 @@ def date_range(opening, closing):
     return f"{start.day} {start.strftime('%b %Y')} – {end.day} {end.strftime('%b %Y')}"
 
 
+def maps_search_url(venue):
+    """Google's free "Maps URL" text-search scheme - no API key or billing
+    account needed (unlike the Maps Embed/Static/Geocoding APIs), and works
+    fine on a bare town name as well as a full venue address."""
+    return f"https://www.google.com/maps/search/?api=1&query={quote_plus(venue)}"
+
+
 def register(app):
     app.jinja_env.filters["irish_date"] = irish_date
     app.jinja_env.filters["date_range"] = date_range
+    app.jinja_env.filters["maps_search_url"] = maps_search_url
