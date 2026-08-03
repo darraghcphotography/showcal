@@ -91,16 +91,26 @@ anywhere over SSH once you know the container name.
 
 Two layers, both required - one alone isn't enough:
 
-1. **Nightly local backup**, via QNAP Task Scheduler (Control Panel -> System
-   -> Task Scheduler -> Create -> Scheduled Task, run daily):
+1. **Nightly local backup**, via the `aims-backup` service in
+   `docker-compose.yml` - a small sidecar container running the same image,
+   looping `backup_db.py` roughly once every 24 hours. This runs entirely
+   inside Docker rather than via QNAP's own Task Scheduler because, on this
+   NAS/firmware, Task Scheduler isn't present in Control Panel or App
+   Center, HBS3's backup jobs have no pre/post-script hook, and a host
+   crontab needs real root - the built-in `admin` superuser is disabled,
+   and the SSH account available isn't in the administrators group, so
+   `/etc/config/crontab` and `crond` itself aren't writable/restartable
+   from it. If your NAS *does* have a working Task Scheduler, that's a
+   perfectly good alternative to the sidecar - just point it at the same
+   command:
    ```bash
    docker exec aims-web python backup_db.py --db /data/aims.db --backup-dir /data/backups
    ```
-   Uses SQLite's own online backup API (safe against a mid-write torn copy),
-   writes timestamped files under `/data/backups`, keeps the last 14 by
-   default. This only actually survives a reboot because `/data` is now a
-   real absolute host path (see the volume note above) - it would not have
-   under the old relative-path mount.
+   Either way, this uses SQLite's own online backup API (safe against a
+   mid-write torn copy), writes timestamped files under `/data/backups`,
+   and keeps the last 14 by default. This only actually survives a reboot
+   because `/data` is now a real absolute host path (see the volume note
+   above) - it would not have under the old relative-path mount.
 2. **An off-NAS copy**, via Hybrid Backup Sync (HBS3): a one-way **Backup
    Job** (not "Sync") from `/share/CACHEDEV1_DATA/Data/config/aims-web` (the
    whole folder, not just `backups/`, so `uploads/` - poster images - is

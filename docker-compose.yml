@@ -37,6 +37,30 @@ services:
     networks:
       - media-net
 
+  # Runs the nightly backup itself, entirely inside Docker - not via QNAP's
+  # own Task Scheduler (not present in Control Panel or App Center on this
+  # NAS/firmware), not via HBS3 (its backup jobs have no pre/post-script
+  # hook on this version), and not via a host crontab (needs real root -
+  # the built-in "admin" superuser is disabled here, and the SSH account in
+  # use isn't in the administrators group, so /etc/config/crontab and
+  # crond itself aren't writable/restartable from it). A loop inside a
+  # container sidesteps all of that: it's the same image, no new
+  # dependencies, and nothing here depends on NAS-level permissions at all.
+  # Timing drifts to "roughly every 24h from whenever this container last
+  # started" rather than a fixed clock time, which is fine for a backup.
+  aims-backup:
+    build: .
+    container_name: aims-backup
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      while true; do
+        python backup_db.py --db /data/aims.db --backup-dir /data/backups;
+        sleep 86400;
+      done
+    volumes:
+      - /share/CACHEDEV1_DATA/Data/config/aims-web:/data
+
   # Uncomment if you don't already have a cloudflared tunnel running
   # elsewhere on the NAS. Being in this same stack puts it on the same
   # Docker network as aims-web automatically - no host port needed at all,
