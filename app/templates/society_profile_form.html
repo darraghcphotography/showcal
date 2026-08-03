@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Edit profile - Unofficial AIMS Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }}</a></p>
+  <h1>Edit your info &amp; links</h1>
+  <p>Shown on your public society page - lets people find out more or join.</p>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      About / get involved
+      <textarea name="about" rows="4">{{ form['about'] or '' }}</textarea>
+    </label>
+
+    <label>
+      Website
+      <input type="url" name="website_url" value="{{ form['website_url'] or '' }}" placeholder="https://example.com">
+    </label>
+
+    <label>
+      Facebook
+      <input type="url" name="facebook_url" value="{{ form['facebook_url'] or '' }}" placeholder="https://facebook.com/...">
+    </label>
+
+    <label>
+      Instagram
+      <input type="url" name="instagram_url" value="{{ form['instagram_url'] or '' }}" placeholder="https://instagram.com/...">
+    </label>
+
+    <label>
+      TikTok
+      <input type="url" name="tiktok_url" value="{{ form['tiktok_url'] or '' }}" placeholder="https://tiktok.com/@...">
+    </label>
+
+    <label>
+      Other link <span class="hint">(WhatsApp group, Linktree, anything else)</span>
+      <input type="url" name="other_url" value="{{ form['other_url'] or '' }}" placeholder="https://...">
+    </label>
+
+    <label>
+      Label for the other link
+      <input type="text" name="other_label" value="{{ form['other_label'] or '' }}" placeholder="e.g. WhatsApp group">
+    </label>
+
+    <button type="submit">Save</button>
+  </form>
+{% endblock %}

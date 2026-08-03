@@ -57,6 +57,38 @@
     </label>
 
     <fieldset>
+      <legend>Profile <span class="hint">(shown on the society's public page - the society can also edit these themselves once logged in)</span></legend>
+      <label>
+        About / get involved
+        <textarea name="about" rows="4">{{ society['about'] or '' }}</textarea>
+      </label>
+      <label>
+        Website
+        <input type="url" name="website_url" value="{{ society['website_url'] or '' }}" placeholder="https://example.com">
+      </label>
+      <label>
+        Facebook
+        <input type="url" name="facebook_url" value="{{ society['facebook_url'] or '' }}" placeholder="https://facebook.com/...">
+      </label>
+      <label>
+        Instagram
+        <input type="url" name="instagram_url" value="{{ society['instagram_url'] or '' }}" placeholder="https://instagram.com/...">
+      </label>
+      <label>
+        TikTok
+        <input type="url" name="tiktok_url" value="{{ society['tiktok_url'] or '' }}" placeholder="https://tiktok.com/@...">
+      </label>
+      <label>
+        Other link <span class="hint">(WhatsApp group, Linktree, anything else)</span>
+        <input type="url" name="other_url" value="{{ society['other_url'] or '' }}" placeholder="https://...">
+      </label>
+      <label>
+        Label for the other link
+        <input type="text" name="other_label" value="{{ society['other_label'] or '' }}" placeholder="e.g. WhatsApp group">
+      </label>
+    </fieldset>
+
+    <fieldset>
       <legend>Logo</legend>
       {% if society['logo_filename'] %}
         <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=society['logo_filename']) }}" alt="Current logo">

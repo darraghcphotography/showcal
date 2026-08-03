@@ -20,6 +20,13 @@ from ..uploads import save_poster
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+URL_RE = re.compile(r"^https?://")
+
+PROFILE_URL_FIELDS = (
+    ("Website", "website_url"), ("Facebook", "facebook_url"),
+    ("Instagram", "instagram_url"), ("TikTok", "tiktok_url"),
+    ("Other link", "other_url"),
+)
 
 
 def _generate_invite_code(db):
@@ -694,6 +701,15 @@ def edit_society(society_id):
         section_history = request.form.get("section_history", "").strip() or None
         notes = request.form.get("notes", "").strip() or None
         default_venue = request.form.get("default_venue", "").strip() or None
+        profile_fields = {
+            "about": request.form.get("about", "").strip() or None,
+            "website_url": request.form.get("website_url", "").strip() or None,
+            "facebook_url": request.form.get("facebook_url", "").strip() or None,
+            "instagram_url": request.form.get("instagram_url", "").strip() or None,
+            "tiktok_url": request.form.get("tiktok_url", "").strip() or None,
+            "other_url": request.form.get("other_url", "").strip() or None,
+            "other_label": request.form.get("other_label", "").strip() or None,
+        }
 
         logo_filename = society["logo_filename"]
         logo_file = request.files.get("logo")
@@ -715,6 +731,11 @@ def edit_society(society_id):
             errors.append("Choose a valid region.")
         if section not in SOCIETY_SECTIONS:
             errors.append("Choose a valid tier.")
+        errors += [
+            f"{label} must start with http:// or https://"
+            for label, key in PROFILE_URL_FIELDS
+            if profile_fields[key] and not URL_RE.match(profile_fields[key])
+        ]
 
         if errors:
             for e in errors:
@@ -726,10 +747,17 @@ def edit_society(society_id):
         db.execute(
             """
             UPDATE societies SET name = ?, region = ?, section = ?,
-                section_as_of = ?, section_history = ?, notes = ?, default_venue = ?, logo_filename = ?
+                section_as_of = ?, section_history = ?, notes = ?, default_venue = ?, logo_filename = ?,
+                about = ?, website_url = ?, facebook_url = ?, instagram_url = ?,
+                tiktok_url = ?, other_url = ?, other_label = ?
             WHERE id = ?
             """,
-            (name, region, section, section_as_of, section_history, notes, default_venue, logo_filename, society_id),
+            (
+                name, region, section, section_as_of, section_history, notes, default_venue, logo_filename,
+                profile_fields["about"], profile_fields["website_url"], profile_fields["facebook_url"],
+                profile_fields["instagram_url"], profile_fields["tiktok_url"], profile_fields["other_url"],
+                profile_fields["other_label"], society_id,
+            ),
         )
         db.commit()
         flash("Society updated.", "success")

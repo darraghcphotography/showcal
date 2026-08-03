@@ -17,6 +17,18 @@
     {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
   </p>
   {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
+  {% if society['about'] %}<p class="notes">{{ society['about'] }}</p>{% endif %}
+  {% set social_links = [] %}
+  {% if society['website_url'] %}{% set _ = social_links.append(('Website', society['website_url'])) %}{% endif %}
+  {% if society['facebook_url'] %}{% set _ = social_links.append(('Facebook', society['facebook_url'])) %}{% endif %}
+  {% if society['instagram_url'] %}{% set _ = social_links.append(('Instagram', society['instagram_url'])) %}{% endif %}
+  {% if society['tiktok_url'] %}{% set _ = social_links.append(('TikTok', society['tiktok_url'])) %}{% endif %}
+  {% if society['other_url'] %}{% set _ = social_links.append((society['other_label'] or 'More info', society['other_url'])) %}{% endif %}
+  {% if social_links %}
+    <p class="meta">
+      {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{% endfor %}
+    </p>
+  {% endif %}
 
   {% if active_since or total_wins %}
     <div class="trophy-case">

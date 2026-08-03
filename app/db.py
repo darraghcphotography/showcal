@@ -37,6 +37,13 @@ COLUMN_MIGRATIONS = [
         "ALTER TABLE historical_results ADD COLUMN source TEXT NOT NULL DEFAULT 'import' "
         "CHECK (source IN ('import', 'manual'))",
     ),
+    ("societies", "about", "ALTER TABLE societies ADD COLUMN about TEXT"),
+    ("societies", "website_url", "ALTER TABLE societies ADD COLUMN website_url TEXT"),
+    ("societies", "facebook_url", "ALTER TABLE societies ADD COLUMN facebook_url TEXT"),
+    ("societies", "instagram_url", "ALTER TABLE societies ADD COLUMN instagram_url TEXT"),
+    ("societies", "tiktok_url", "ALTER TABLE societies ADD COLUMN tiktok_url TEXT"),
+    ("societies", "other_url", "ALTER TABLE societies ADD COLUMN other_url TEXT"),
+    ("societies", "other_label", "ALTER TABLE societies ADD COLUMN other_label TEXT"),
 ]
 
 

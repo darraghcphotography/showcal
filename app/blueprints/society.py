@@ -15,7 +15,14 @@ bp = Blueprint("society", __name__, url_prefix="/society")
 
 SEASON_RE = re.compile(r"^\d{2}/\d{2}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+URL_RE = re.compile(r"^https?://")
 BULK_ROWS = 10
+
+PROFILE_URL_FIELDS = (
+    ("Website", "website_url"), ("Facebook", "facebook_url"),
+    ("Instagram", "instagram_url"), ("TikTok", "tiktok_url"),
+    ("Other link", "other_url"),
+)
 
 
 def _current_society(db):
@@ -105,6 +112,54 @@ def set_logo():
         db.commit()
         flash("Logo updated.", "success")
     return redirect(url_for("society.dashboard"))
+
+
+@bp.route("/profile", methods=("GET", "POST"))
+@society_required
+def edit_profile():
+    db = get_db()
+    society, _ = _current_society(db)
+
+    if request.method == "POST":
+        fields = {
+            "about": request.form.get("about", "").strip() or None,
+            "website_url": request.form.get("website_url", "").strip() or None,
+            "facebook_url": request.form.get("facebook_url", "").strip() or None,
+            "instagram_url": request.form.get("instagram_url", "").strip() or None,
+            "tiktok_url": request.form.get("tiktok_url", "").strip() or None,
+            "other_url": request.form.get("other_url", "").strip() or None,
+            "other_label": request.form.get("other_label", "").strip() or None,
+        }
+        # A link typed in here ends up in an <a href="..."> on this
+        # society's public page for every visitor - Jinja's autoescaping
+        # protects the text content but not the URL scheme, so a
+        # javascript:/data: URL must be rejected outright rather than
+        # silently stripped.
+        errors = [
+            f"{label} must start with http:// or https://"
+            for label, key in PROFILE_URL_FIELDS
+            if fields[key] and not URL_RE.match(fields[key])
+        ]
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template("society_profile_form.html", society=society, form=request.form)
+
+        db.execute(
+            """
+            UPDATE societies SET
+                about = :about, website_url = :website_url, facebook_url = :facebook_url,
+                instagram_url = :instagram_url, tiktok_url = :tiktok_url,
+                other_url = :other_url, other_label = :other_label
+            WHERE id = :id
+            """,
+            {**fields, "id": society["id"]},
+        )
+        db.commit()
+        flash("Profile updated.", "success")
+        return redirect(url_for("society.dashboard"))
+
+    return render_template("society_profile_form.html", society=society, form=society)
 
 
 @bp.route("/shows/new", methods=("GET", "POST"))

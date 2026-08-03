@@ -31,7 +31,17 @@ CREATE TABLE IF NOT EXISTS societies (
     section_history TEXT,      -- free-text log e.g. '23/24: Sullivan · 24/25: Gilbert · ...'
     notes           TEXT,
     default_venue   TEXT,      -- prefilled as a show's venue when left blank at submission time
-    logo_filename   TEXT       -- filename under the uploads dir, not a user path (see shows.poster_filename)
+    logo_filename   TEXT,      -- filename under the uploads dir, not a user path (see shows.poster_filename)
+
+    -- Society-editable "get involved" profile, settable by the society's own
+    -- login or by a moderator - shown on the society's public page.
+    about           TEXT,
+    website_url     TEXT,
+    facebook_url    TEXT,
+    instagram_url   TEXT,
+    tiktok_url      TEXT,
+    other_url       TEXT,      -- whatever doesn't fit the named platforms - WhatsApp group, Linktree, etc.
+    other_label     TEXT       -- short label for other_url, e.g. "WhatsApp group"
 );
 
 CREATE TABLE IF NOT EXISTS shows (
