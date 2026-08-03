@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{ society['name'] }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block og_description %}{{ society['region'] }} &middot; {{ society['section'] }}{% if active_since %} &middot; Active since {{ active_since }}{% endif %}{% if total_wins %} &middot; {{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}{% endif %}{% endblock %}
+{% block og_image %}
+  {% if society['logo_filename'] %}
+    <meta property="og:image" content="{{ url_for('public.uploaded_file', filename=society['logo_filename'], _external=True) }}">
+  {% endif %}
+{% endblock %}
 {% block content %}
   <p><a href="{{ url_for('public.index') }}">&larr; Back to browse</a></p>
   {% if society['logo_filename'] %}
@@ -11,6 +17,14 @@
     {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
   </p>
   {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
+
+  {% if active_since or total_wins %}
+    <div class="trophy-case">
+      {% if active_since %}<span class="tag tag-gold">Active since {{ active_since }}</span>{% endif %}
+      {% if best_show_wins %}<span class="tag tag-gold">🏆 {{ best_show_wins }}&times; Best Overall Show</span>{% endif %}
+      {% if total_wins %}<span class="tag tag-gold">{{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}</span>{% endif %}
+    </div>
+  {% endif %}
 
   {% if current_user %}
     <p><a href="{{ url_for('admin.edit_society', society_id=society['id']) }}" class="edit-callout">Edit this society &rarr;</a></p>

@@ -281,6 +281,10 @@ button.button-primary { background: var(--success); color: #fff; }
 .tag-cancelled { background: rgba(160, 47, 47, 0.15); color: var(--danger); }
 .tag-active { background: rgba(47, 122, 63, 0.15); color: var(--success); }
 .tag-past { background: var(--row-alt); color: var(--muted); }
+.tag-gold { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); font-weight: 600; }
+
+.trophy-case { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
+.trophy-case .tag { margin-left: 0; font-size: 0.85rem; padding: 0.25rem 0.75rem; }
 
 .data-table tbody tr.row-past { opacity: 0.6; }
 .data-table tbody tr.row-note td { padding-top: 0; color: var(--muted); font-size: 0.9rem; background: none; }

@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Unofficial AIMS Show Tracker{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
+
+  <meta property="og:site_name" content="Unofficial AIMS Show Tracker">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:description" content="{% block og_description %}Browse AIMS member societies' show history, upcoming productions, and the AIMS awards archive.{% endblock %}">
+  {% block og_image %}{% endblock %}
 </head>
 <body>
   <header class="site-header">

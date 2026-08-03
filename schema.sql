@@ -226,3 +226,42 @@ CREATE TABLE IF NOT EXISTS historical_society_regions (
     note                 TEXT,   -- why this region was guessed, e.g. "name references Waterford"
     updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Full-text search indexes (SQLite FTS5, built in - no extra dependency).
+-- External-content tables: the FTS index stores only the tokenized text, the
+-- real data stays in societies/historical_results, kept in sync via the
+-- triggers below so every INSERT/UPDATE/DELETE - whether from the app or a
+-- script like import_awards.py - keeps the index correct automatically.
+-- app/db.py backfills these once after creation (a fresh virtual table
+-- starts empty; the triggers only cover changes from that point on).
+CREATE VIRTUAL TABLE IF NOT EXISTS societies_fts USING fts5(
+    name, content='societies', content_rowid='id'
+);
+CREATE TRIGGER IF NOT EXISTS societies_fts_ai AFTER INSERT ON societies BEGIN
+    INSERT INTO societies_fts(rowid, name) VALUES (new.id, new.name);
+END;
+CREATE TRIGGER IF NOT EXISTS societies_fts_ad AFTER DELETE ON societies BEGIN
+    INSERT INTO societies_fts(societies_fts, rowid, name) VALUES ('delete', old.id, old.name);
+END;
+CREATE TRIGGER IF NOT EXISTS societies_fts_au AFTER UPDATE ON societies BEGIN
+    INSERT INTO societies_fts(societies_fts, rowid, name) VALUES ('delete', old.id, old.name);
+    INSERT INTO societies_fts(rowid, name) VALUES (new.id, new.name);
+END;
+
+CREATE VIRTUAL TABLE IF NOT EXISTS historical_results_fts USING fts5(
+    society_name, show, nominee_name, reason, content='historical_results', content_rowid='id'
+);
+CREATE TRIGGER IF NOT EXISTS historical_results_fts_ai AFTER INSERT ON historical_results BEGIN
+    INSERT INTO historical_results_fts(rowid, society_name, show, nominee_name, reason)
+    VALUES (new.id, new.society_name, new.show, new.nominee_name, new.reason);
+END;
+CREATE TRIGGER IF NOT EXISTS historical_results_fts_ad AFTER DELETE ON historical_results BEGIN
+    INSERT INTO historical_results_fts(historical_results_fts, rowid, society_name, show, nominee_name, reason)
+    VALUES ('delete', old.id, old.society_name, old.show, old.nominee_name, old.reason);
+END;
+CREATE TRIGGER IF NOT EXISTS historical_results_fts_au AFTER UPDATE ON historical_results BEGIN
+    INSERT INTO historical_results_fts(historical_results_fts, rowid, society_name, show, nominee_name, reason)
+    VALUES ('delete', old.id, old.society_name, old.show, old.nominee_name, old.reason);
+    INSERT INTO historical_results_fts(rowid, society_name, show, nominee_name, reason)
+    VALUES (new.id, new.society_name, new.show, new.nominee_name, new.reason);
+END;

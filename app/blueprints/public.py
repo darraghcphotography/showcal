@@ -6,6 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from ..auth import current_user
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS
 from ..db import get_db
+from ..search import fts_match_ids
 
 bp = Blueprint("public", __name__)
 
@@ -22,6 +23,8 @@ def index():
     # anonymous visitors always get the filtered default.
     show_inactive = request.args.get("show_inactive") == "1" and current_user() is not None
 
+    db = get_db()
+
     query = "SELECT * FROM societies WHERE 1=1"
     params = []
     if not show_inactive:
@@ -33,12 +36,18 @@ def index():
         query += " AND section = ?"
         params.append(section)
     if q:
-        query += " AND name LIKE ? ESCAPE '\\'"
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        params.append(f"%{escaped}%")
+        # FTS5 (typo/partial-word tolerant), falling back to a plain LIKE if
+        # the index isn't available for any reason - search must never hard-fail.
+        ids = fts_match_ids(db, "societies_fts", q)
+        if ids is not None:
+            query += f" AND id IN ({','.join('?' * len(ids))})" if ids else " AND 0"
+            params.extend(ids)
+        else:
+            query += " AND name LIKE ? ESCAPE '\\'"
+            escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            params.append(f"%{escaped}%")
     query += " ORDER BY name"
 
-    db = get_db()
     societies = db.execute(query, params).fetchall()
 
     # Deliberately separate from the Browse filters above (region/section/q) -
@@ -118,7 +127,28 @@ def society_detail(society_id):
         (society_id,),
     ).fetchall()
 
-    return render_template("society_detail.html", society=society, shows=shows, historical=historical)
+    # A compact "trophy case" summary - total wins, Best Overall Show wins
+    # specifically, and the earliest year on record (from the awards archive,
+    # falling back to the earliest season in shows if there's no archive
+    # history at all).
+    award_totals = db.execute(
+        """
+        SELECT COUNT(*), SUM(CASE WHEN category_name = 'Best Overall Show' THEN 1 ELSE 0 END), MIN(year)
+        FROM historical_results WHERE society_id = ? AND result = 'Winner'
+        """,
+        (society_id,),
+    ).fetchone()
+    total_wins, best_show_wins, earliest_award_year = award_totals
+
+    earliest_season = db.execute(
+        "SELECT MIN(season) FROM shows WHERE society_id = ? AND show IS NOT NULL", (society_id,)
+    ).fetchone()[0]
+    active_since = earliest_award_year or (2000 + int(earliest_season[:2]) if earliest_season else None)
+
+    return render_template(
+        "society_detail.html", society=society, shows=shows, historical=historical,
+        total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
+    )
 
 
 @bp.route("/shows/<int:show_id>")

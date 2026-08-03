@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block og_description %}{% if info and info['synopsis'] %}{{ info['synopsis'] }}{% else %}{{ shows|length + historical|length }} production{{ '' if (shows|length + historical|length) == 1 else 's' }} on the AIMS circuit.{% endif %}{% endblock %}
 {% block content %}
   <p><a href="{{ url_for('info.stats') }}">&larr; Back to statistics</a></p>
   <h1>{{ title }}</h1>

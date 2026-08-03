@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request
 
 from ..constants import AWARD_RESULTS, REGIONS, SHOW_SECTIONS, SHOWS_COVERAGE_START_YEAR
 from ..db import get_db
+from ..search import fts_match_ids
 from ..season import current_season
 
 bp = Blueprint("info", __name__)
@@ -499,11 +500,16 @@ def awards():
         query += " AND result = ?"
         params.append(result)
     if q:
-        query += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
-                     OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        like = f"%{escaped}%"
-        params += [like, like, like, like]
+        ids = fts_match_ids(db, "historical_results_fts", q)
+        if ids is not None:
+            query += f" AND historical_results.id IN ({','.join('?' * len(ids))})" if ids else " AND 0"
+            params.extend(ids)
+        else:
+            query += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
+                         OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
+            escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            like = f"%{escaped}%"
+            params += [like, like, like, like]
     query += " ORDER BY year DESC, category_name, society_name"
 
     rows = db.execute(query, params).fetchall()

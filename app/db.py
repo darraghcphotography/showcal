@@ -47,6 +47,23 @@ def _apply_column_migrations(db):
             db.execute(ddl)
 
 
+# FTS5 external-content tables need an explicit 'rebuild' to actually build
+# the searchable index from their source table - the triggers in schema.sql
+# only cover changes from this point on. Deliberately NOT guarded by a
+# `COUNT(*) FROM fts_table == 0` check: for an external-content table, COUNT(*)
+# reads through to the content table's own row count regardless of whether
+# the index has ever been built, so that check never actually caught an
+# unbuilt index in testing (it always read the real societies/historical_
+# results row count). Rebuilding unconditionally is simple, always correct,
+# and cheap at this data's scale (low thousands of rows, once per app start).
+FTS_TABLES = ["societies_fts", "historical_results_fts"]
+
+
+def _backfill_fts_indexes(db):
+    for fts_table in FTS_TABLES:
+        db.execute(f"INSERT INTO {fts_table}({fts_table}) VALUES ('rebuild')")
+
+
 def init_schema():
     """(Re-)apply schema.sql plus any pending column migrations. Safe to run
     against an existing database - it never drops or overwrites data."""
@@ -55,6 +72,13 @@ def init_schema():
     with open(schema_path, encoding="utf-8") as f:
         db.executescript(f.read())
     _apply_column_migrations(db)
+    db.commit()
+
+    # Deliberately a separate transaction from the schema/column changes above -
+    # rebuilding an FTS5 index while the virtual table's own creation is still
+    # part of an uncommitted transaction produced a silently-broken index in
+    # testing (row count looked right, but every MATCH query returned nothing).
+    _backfill_fts_indexes(db)
     db.commit()
 
 
