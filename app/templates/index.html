@@ -35,7 +35,7 @@
   {% if upcoming %}
     <table class="data-table">
       <thead>
-        <tr><th>Show</th><th>Society</th><th>Region</th><th>Opens</th><th>Closes</th><th>Tickets</th></tr>
+        <tr><th>Show</th><th>Society</th><th>Region</th><th>Dates</th><th>Tickets</th></tr>
       </thead>
       <tbody>
         {% for show in upcoming %}
@@ -43,8 +43,7 @@
             <td><a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a></td>
             <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
             <td>{{ show['region'] }}</td>
-            <td>{{ show['opening_date']|irish_date }}</td>
-            <td>{{ show['closing_date']|irish_date if show['closing_date'] else 'Not available' }}</td>
+            <td>{{ show['opening_date']|date_range(show['closing_date']) }}</td>
             <td>
               {% if show['ticket_url'] %}
                 <a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a>
