@@ -87,6 +87,74 @@ site actually changes. `docker compose exec` needs to run from the directory
 holding `docker-compose.yml`; plain `docker exec aims-web ...` works from
 anywhere over SSH once you know the container name.
 
+### Backups
+
+Two layers, both required - one alone isn't enough:
+
+1. **Nightly local backup**, via QNAP Task Scheduler (Control Panel -> System
+   -> Task Scheduler -> Create -> Scheduled Task, run daily):
+   ```bash
+   docker exec aims-web python backup_db.py --db /data/aims.db --backup-dir /data/backups
+   ```
+   Uses SQLite's own online backup API (safe against a mid-write torn copy),
+   writes timestamped files under `/data/backups`, keeps the last 14 by
+   default. This only actually survives a reboot because `/data` is now a
+   real absolute host path (see the volume note above) - it would not have
+   under the old relative-path mount.
+2. **An off-NAS copy**, via Hybrid Backup Sync (HBS3): a one-way **Backup
+   Job** (not "Sync") from `/share/CACHEDEV1_DATA/Data/config/aims-web` (the
+   whole folder, not just `backups/`, so `uploads/` - poster images - is
+   covered too) to a cloud destination, scheduled to run shortly after the
+   nightly local backup above. This is the layer that actually protects
+   against the storage pool or a drive failing outright, which a same-pool
+   backup never can. Run it manually once and confirm it completes before
+   trusting the schedule.
+
+### Recovering from a broken `/data` mount
+
+If the site suddenly shows zero societies/shows after a NAS reboot or
+redeploy, the app's own startup log will already have flagged it - see the
+warning `app/__init__.py` logs when `AIMS_DB_PATH` is set but no database
+file exists yet at that path. Don't assume the data is gone; check first:
+
+1. **Confirm the mount is actually wrong**:
+   ```bash
+   docker inspect aims-web --format '{{json .Mounts}}'
+   ```
+   The `Source` should be the absolute path from `docker-compose.yml`
+   (`/share/CACHEDEV1_DATA/Data/config/aims-web`). If it's anything else,
+   that's the bug - fix the compose file's `volumes:` line first (must be an
+   absolute path, never a relative one - see the note above), redeploy, and
+   re-check this before doing anything else.
+2. **Check for a recent local backup** in `/data/backups` on whichever path
+   was actually mounted before the fix - restore from there if one exists
+   and is newer than the CSVs.
+3. **If no backup exists**, most of the data can be rebuilt from source
+   files rather than lost outright - `societies.csv`, `shows.csv`, and
+   `AIMS_Awards - Results.csv` are tracked in git, so even if they're not
+   sitting on the (now-fixed) data volume, a checked-out copy of this repo
+   exists somewhere on the NAS (Portainer clones the repository to build
+   from it - `find /share -iname shows.csv 2>/dev/null` will find it).
+   Copy `societies.csv` and `shows.csv` into the real data folder, then
+   re-run, in this order:
+   ```bash
+   docker exec aims-web python import_csv.py --db /data/aims.db --societies /data/societies.csv --shows /data/shows.csv
+   docker exec aims-web python import_awards.py --db /data/aims.db
+   docker exec aims-web python fix_show_titles.py --db /data/aims.db --csv /data/shows.csv
+   docker exec aims-web python enrich_show_info.py --db /data/aims.db
+   docker exec aims-web python suggest_historical_regions.py --db /data/aims.db
+   docker exec -it aims-web python seed_admin.py yourname --role admin --db /data/aims.db
+   ```
+   (`seed_admin.py` needs the `-it` flags - it prompts for a password
+   interactively, which fails with a bare `EOFError` under plain `docker exec`.)
+4. **What this can't bring back**: anything that only ever lived in the
+   database and isn't sourced from a CSV or script - moderator-confirmed
+   historical-society regions (re-run `suggest_historical_regions.py` for
+   the *suggestions*, but confirmations need re-reviewing in the admin UI),
+   uploaded poster images, pending member submissions, invite codes,
+   analytics history, and any `/admin/awards` edit that isn't already baked
+   into `import_awards.py`'s `SHOW_RENAMES`/`CATEGORY_FIXES` dicts.
+
 ### Exposing it at darraghc.ie/showcal via Cloudflare Tunnel
 
 Since Blacknight is just the registrar and DNS already runs on Cloudflare,

@@ -38,6 +38,22 @@ def create_app(test_config=None):
             "Set the SECRET_KEY environment variable before deploying."
         )
 
+    # AIMS_DB_PATH is only ever set in Docker/production (see SESSION_COOKIE_SECURE
+    # above) - a missing database file there means either a genuinely brand-new
+    # deployment, or the data volume isn't mounted where the app expects it and
+    # a fresh empty database is about to get created in its place (exactly what
+    # silently wiped this app's entire history once already - see docs/deployment.md).
+    # Nothing below this can tell those two cases apart, so just log loudly and
+    # let a human decide, rather than quietly serving an empty site.
+    if os.environ.get("AIMS_DB_PATH") and not app.testing and not Path(app.config["DATABASE"]).exists():
+        app.logger.warning(
+            "No database file found at %s before this startup. If aims-web has "
+            "run here before, this almost certainly means the data volume isn't "
+            "mounted correctly - STOP and check it (see docs/deployment.md) "
+            "before this instance serves real traffic.",
+            app.config["DATABASE"],
+        )
+
     db_module.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
