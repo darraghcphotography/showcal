@@ -411,4 +411,24 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 @media (max-width: 600px) {
   .plain-list { columns: 1; }
   .bar-row { grid-template-columns: minmax(0, 120px) 1fr 2rem; }
+  .table-wide { display: none; }
+  .table-cards { display: flex; }
 }
+
+/* A dense multi-column data-table forces horizontal scrolling on a phone -
+   below 600px, show a stack of .queue-item cards (same card already used
+   for the admin queue) instead. Both are rendered server-side and toggled
+   with a media query rather than JS, matching the rest of the site. */
+.table-cards { display: none; flex-direction: column; gap: 0.75rem; }
+
+.queue-item .primary { font-weight: 600; }
+.queue-item .primary a { text-decoration: none; }
+
+/* Each fact carries its own separator baked in (see the markup), so a wrap
+   only ever drops a whole fact to the next line - never splits one fact's
+   words across two lines. */
+.meta-chips {
+  display: flex; flex-wrap: wrap; row-gap: 0.15rem;
+  color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem;
+}
+.meta-chips span { white-space: nowrap; }

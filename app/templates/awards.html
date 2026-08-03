@@ -51,7 +51,7 @@
     {% endif %}
   </form>
 
-  <table class="data-table">
+  <table class="data-table table-wide">
     <thead>
       <tr><th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th><th>Society</th><th>Nominee</th></tr>
     </thead>
@@ -86,4 +86,36 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <div class="table-cards">
+    {% for r in rows %}
+      <div class="queue-item">
+        <div class="primary">
+          {% if r['show'] %}
+            <a href="{{ url_for('public.title_detail', title=r['show']) }}">{{ r['show'] }}</a>
+          {% else %}
+            {{ r['category_name'] or '—' }}
+          {% endif %}
+          {% if r['result'] == 'Winner' %}<span class="tag tag-gold">Winner</span>{% endif %}
+        </div>
+        <div class="meta-chips">
+          <span>{{ r['year'] }}</span>
+          <span>&middot; {{ r['tier'] or '—' }}</span>
+          {% if r['show'] %}<span>&middot; {{ r['category_name'] or '—' }}</span>{% endif %}
+          {% if r['result'] != 'Winner' %}<span>&middot; {{ r['result'] or '—' }}</span>{% endif %}
+          <span>&middot;
+            {% if r['resolved_society_id'] %}
+              <a href="{{ url_for('public.society_detail', society_id=r['resolved_society_id']) }}">{{ r['society_name'] }}</a>
+            {% else %}
+              {{ r['society_name'] or '—' }}
+            {% endif %}
+          </span>
+          <span>&middot; {{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}</span>
+        </div>
+        {% if r['reason'] %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ r['reason'] }}</em></p>{% endif %}
+      </div>
+    {% else %}
+      <p>No award records match those filters.</p>
+    {% endfor %}
+  </div>
 {% endblock %}

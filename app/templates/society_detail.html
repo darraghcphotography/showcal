@@ -31,7 +31,7 @@
   {% endif %}
 
   <h2>Show history</h2>
-  <table class="data-table">
+  <table class="data-table table-wide">
     <thead>
       <tr><th>Season</th><th>Show</th><th>Tier</th><th>Dates</th><th>Review</th>{% if current_user %}<th></th>{% endif %}</tr>
     </thead>
@@ -49,7 +49,7 @@
           </td>
           <td>{{ show['section'] or '—' }}</td>
           <td>
-            {% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}
+            {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}
           </td>
           <td>
             {% if show['review_status'] == 'Published' and show['review_url'] %}
@@ -66,10 +66,40 @@
     </tbody>
   </table>
 
+  <div class="table-cards">
+    {% for show in shows %}
+      <div class="queue-item">
+        <div class="primary">
+          {% if show['show'] %}
+            <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+          {% else %}
+            <em>TBA</em>
+          {% endif %}
+          {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+        </div>
+        <div class="meta-chips">
+          <span>{{ show['season'] }}</span>
+          <span>&middot; {{ show['section'] or '—' }}</span>
+          <span>&middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}</span>
+          <span>&middot;
+            {% if show['review_status'] == 'Published' and show['review_url'] %}
+              <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
+            {% else %}
+              {{ show['review_status'] }}
+            {% endif %}
+          </span>
+        </div>
+        {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit &rarr;</a></p>{% endif %}
+      </div>
+    {% else %}
+      <p>No shows on record yet.</p>
+    {% endfor %}
+  </div>
+
   {% if historical %}
     <h2>Awards &amp; nominations (AIMS awards archive)</h2>
     <p class="meta">{{ historical|length }} record{{ '' if historical|length == 1 else 's' }}{% if historical|length > 1 %}, {{ historical[-1]['year'] }}&ndash;{{ historical[0]['year'] }}{% else %}, {{ historical[0]['year'] }}{% endif %}.</p>
-    <table class="data-table">
+    <table class="data-table table-wide">
       <thead><tr><th>Year</th><th>Tier</th><th>Category</th><th>Result</th><th>Show</th><th>Nominee</th></tr></thead>
       <tbody>
         {% for row in historical %}
@@ -93,5 +123,28 @@
         {% endfor %}
       </tbody>
     </table>
+
+    <div class="table-cards">
+      {% for row in historical %}
+        <div class="queue-item">
+          <div class="primary">
+            {% if row['show'] %}
+              <a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a>
+            {% else %}
+              {{ row['category_name'] or '—' }}
+            {% endif %}
+            {% if row['result'] == 'Winner' %}<span class="tag tag-gold">Winner</span>{% endif %}
+          </div>
+          <div class="meta-chips">
+            <span>{{ row['year'] }}</span>
+            <span>&middot; {{ row['tier'] or '—' }}</span>
+            {% if row['show'] %}<span>&middot; {{ row['category_name'] or '—' }}</span>{% endif %}
+            {% if row['result'] != 'Winner' %}<span>&middot; {{ row['result'] or '—' }}</span>{% endif %}
+            <span>&middot; {{ row['nominee_name'] or '—' }}{% if row['role'] %} ({{ row['role'] }}){% endif %}</span>
+          </div>
+          {% if row['reason'] %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ row['reason'] }}</em></p>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
   {% endif %}
 {% endblock %}

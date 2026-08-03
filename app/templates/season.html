@@ -27,6 +27,34 @@
   {% endfor %}
 {% endmacro %}
 
+{% macro show_cards(shows) %}
+  {% for show in shows %}
+    <div class="queue-item">
+      <div class="primary">
+        <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+        {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+      </div>
+      <div class="meta-chips">
+        <span><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></span>
+        <span>&middot; {{ show['region'] }}</span>
+        <span>&middot; {{ show['section'] or '—' }}</span>
+        <span>&middot; {{ show['opening_date']|irish_date or 'TBA' }}</span>
+        <span>&middot;
+          {% if show['review_status'] == 'Published' and show['review_url'] %}
+            <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
+          {% elif show['review_status'] == 'Not adjudicated' %}
+            Not adjudicated
+          {% else %}
+            Not yet
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  {% else %}
+    <p>None.</p>
+  {% endfor %}
+{% endmacro %}
+
 {% block content %}
   {% set total = upcoming|length + finished|length %}
   <h1>
@@ -70,20 +98,22 @@
     {% endif %}
   </form>
 
-  <table class="data-table">
+  <table class="data-table table-wide">
     <thead>
       <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Opens</th><th>Review</th></tr>
     </thead>
     <tbody>{{ show_rows(upcoming) }}</tbody>
   </table>
+  <div class="table-cards">{{ show_cards(upcoming) }}</div>
 
   {% if finished %}
     <h2>Already finished</h2>
-    <table class="data-table">
+    <table class="data-table table-wide">
       <thead>
         <tr><th>Region</th><th>Society</th><th>Show</th><th>Tier</th><th>Opened</th><th>Review</th></tr>
       </thead>
       <tbody>{{ show_rows(finished) }}</tbody>
     </table>
+    <div class="table-cards">{{ show_cards(finished) }}</div>
   {% endif %}
 {% endblock %}
