@@ -10,7 +10,7 @@
     <tbody>
       {% for row in pages %}
         <tr>
-          <td><a href="{{ row['path'] }}">{{ row['path'] }}</a></td>
+          <td><a href="{{ request.script_root }}{{ row['path'] }}">{{ row['path'] }}</a></td>
           <td>{{ row['views'] }}</td>
           <td>{{ row['last_viewed'] }}</td>
         </tr>

@@ -1,5 +1,5 @@
 EXCLUDED_PREFIXES = ("/static/", "/uploads/", "/admin/")
-EXCLUDED_PATHS = {"/robots.txt", "/sitemap.xml", "/export/shows.csv"}
+EXCLUDED_PATHS = {"/robots.txt", "/sitemap.xml", "/export/shows.csv", "/manifest.webmanifest"}
 
 
 def should_track(request):
