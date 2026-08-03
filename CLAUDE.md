@@ -27,6 +27,12 @@ Import/refresh data (safe to re-run - upserts, never touches member submissions 
 py import_csv.py
 ```
 
+Run the test suite (`tests/`, pytest against a fresh temp SQLite db per test - never touches `aims.db`):
+```powershell
+py -m pip install -r requirements-dev.txt
+py -m pytest
+```
+
 Docker / Portainer:
 ```bash
 docker compose up -d --build

@@ -13,19 +13,25 @@ phase changes.
 - UX polish: favicon/manifest/404, responsive tables on mobile, compact
   dates, venue+Maps links, trophy case runner-up/third place.
 
-## Phase 1 - Test suite (next)
-No persisted tests exist - every check so far has been a one-off script,
-verified once and thrown away. Build a small `pytest` suite covering the
-things that would actually hurt if they broke silently:
-- Auth gates (`login_required`/`admin_required`/`society_required`) actually
-  block unauthenticated access.
-- `import_csv.py` / `export_csv.py` round-trip (import then export produces
-  the same data back out).
-- The 27/28 unconfirmed-tier blanking rule in `import_csv.py`.
-- The trophy-case query (win/runner-up/third-place counts).
-- The startup guard (missing-db warning) and the mount-path assumption.
+## Phase 1 - Test suite (done, 2026-08-03)
+Added a `pytest` suite in `tests/` (19 tests, `py -m pytest` from repo root -
+`requirements-dev.txt` adds `pytest` on top of `requirements.txt`):
+- Auth gates (`login_required`/`admin_required`/`society_required`/
+  `invite_required`) actually block unauthenticated and under-privileged
+  access - `tests/test_auth_gates.py`.
+- `import_csv.py` / `export_csv.py` round-trip, plus the re-import-never-
+  regresses-a-moderator-set-review rule - `tests/test_import_export_roundtrip.py`.
+- The 27/28 unconfirmed-tier blanking rule in `import_csv.py` -
+  `tests/test_import_unconfirmed_tier.py`.
+- The trophy-case query (win/runner-up/third-place counts) -
+  `tests/test_trophy_case.py`.
+- The startup guard (missing-db warning) and the mount-path (`AIMS_DB_PATH`)
+  assumption - `tests/test_startup_guard.py`.
+Sanity-checked by temporarily disabling the admin-role check and confirming
+`test_admin_required_blocks_non_admin` actually fails - the suite catches
+real regressions, not just passing by construction.
 
-## Phase 2 - Data integrity sweep
+## Phase 2 - Data integrity sweep (next)
 - [Pending: run `export_csv.py` against production](see Claude's memory -
   "pending-csv-export-refresh") to pull the North Wexford tier fix (and
   anything else manually corrected since) back into the tracked CSVs.
