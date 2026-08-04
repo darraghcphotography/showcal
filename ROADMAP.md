@@ -263,20 +263,39 @@ are running that week - so an adjudicator (and a society deciding when to
 apply) can spot an overloaded week at a glance. Internal/admin-only, not a
 public-facing feature.
 
-**Feasibility check (2026-08-04):** the data this needs already exists -
-`shows.opening_date`/`closing_date` + `shows.section` (Gilbert/Sullivan) -
-no schema change required, just a new aggregate view/page grouping by ISO
-week and section. `shows.adjudication_date` exists in the schema too but is
-effectively unused for current data (mostly null going forward - a legacy
-column from an early import), so the real signal is the show's own run
-dates, not a separate adjudication-date field.
+**Feasibility check (2026-08-04), now grounded in real historical data:**
+Darragh's own `AIMS 2025_26 Show Season (Unofficial).xlsx` (gitignored,
+personal working file, not the tracked CSVs) has an "Adjudicator/Adjudication
+Date" column per show - and that data is **already imported into `aims.db`**
+(`shows.adjudication_date`, 300 real historical records across 23/24-25/26,
+matched exactly against the source spreadsheet). Two distinct things this
+enables, not one:
 
-**The real dependency, exactly as Darragh's adjudicator flagged**: this is
-only as good as how many shows have a confirmed `opening_date` rather than
-"TBA" - per the live site audit above, a meaningful chunk of even the
-*current* season is still TBA. That's not a blocker (the calendar fills in
-as societies confirm dates, which is arguably the point - an early visual
-nudge), but it means it'll look sparse if introduced too early in a season.
+1. **A historical "which weeks are typically busiest" view** - fully
+   buildable *right now*, no new/live data needed at all. Real numbers from
+   those 300 records, split Gilbert/Sullivan:
+   - **April is the crunch month by a wide margin**: 94 combined visits
+     (55 Gilbert / 39 Sullivan) vs. a ~10-40/month baseline most of the
+     year. November is the second peak (56: 33G/23S). July has zero.
+   - The single busiest recurring week is **ISO week 15 (mid-April)**: 31
+     combined visits across the 3 seasons (17G/14S) - a real, repeating
+     danger week, not a one-off. ISO week 47 (late Nov) is second at 26.
+   - Adjudicator visits cluster tightly: 83% happen within 0-4 days of a
+     show's **opening night** (248 of 300 records) - so `opening_date`
+     alone is a reliable stand-in for "when the adjudicator needs to be
+     there," confirming a live calendar doesn't need `adjudication_date`
+     filled in ahead of time to be useful.
+2. **A live current-season view** using `shows.opening_date`/`closing_date`
+   + `section` - this is the one that depends on confirmed dates rather
+   than "TBA," and fills in as the season goes on (see below).
+
+**The real dependency for the live view, exactly as Darragh's adjudicator
+flagged**: only as good as how many shows have a confirmed `opening_date`.
+Per the live site audit above, a meaningful chunk of even the *current*
+season is still TBA. Not a blocker (arguably the point - an early nudge),
+but it'll look sparse if shipped too early in a season - which is exactly
+why the historical view (1, above) is worth having independently: it's
+useful on day one, doesn't wait on anything.
 
 **Open questions before building:**
 - Access: a dedicated adjudicator login, or a shared unlisted link (same
