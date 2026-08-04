@@ -18,6 +18,19 @@ def irish_date(value):
         return value
 
 
+def irish_datetime(value):
+    """Format a full 'YYYY-MM-DD HH:MM:SS' timestamp (e.g. a datetime('now')
+    column) as 'd Mon YYYY, HH:MM' for display - same lenient-fallback
+    spirit as irish_date above, since this runs on data meant for reading,
+    not fed back into a form."""
+    if not value:
+        return value
+    try:
+        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y, %H:%M")
+    except ValueError:
+        return value
+
+
 def date_range(opening, closing):
     """Compact human range for two ISO yyyy-mm-dd dates, e.g. "2-5 Sep 2026"
     or "30 Sep - 3 Oct 2026" - drops the repeated month/year when both ends
@@ -54,5 +67,6 @@ def maps_search_url(venue):
 
 def register(app):
     app.jinja_env.filters["irish_date"] = irish_date
+    app.jinja_env.filters["irish_datetime"] = irish_datetime
     app.jinja_env.filters["date_range"] = date_range
     app.jinja_env.filters["maps_search_url"] = maps_search_url

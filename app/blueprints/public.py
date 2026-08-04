@@ -386,10 +386,10 @@ def suggestions_board():
     # column existed.
     changelog = db.execute(
         """
-        SELECT message AS entry, date(COALESCE(triaged_at, created_at)) AS entry_date
+        SELECT message AS entry, COALESCE(triaged_at, created_at) AS entry_date
         FROM feature_suggestions WHERE triage_status = 'Done'
         UNION ALL
-        SELECT entry, date(created_at) AS entry_date FROM changelog_entries
+        SELECT entry, created_at AS entry_date FROM changelog_entries
         ORDER BY entry_date DESC
         """
     ).fetchall()

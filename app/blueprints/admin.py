@@ -856,11 +856,14 @@ def fix_dates():
 @login_required
 def suggestions():
     db = get_db()
-    rows = db.execute(
-        "SELECT * FROM feature_suggestions ORDER BY triage_status = 'New' DESC, created_at DESC"
-    ).fetchall()
+    rows = db.execute("SELECT * FROM feature_suggestions ORDER BY created_at DESC").fetchall()
+    # Done/Not planned are finished with - kept out of the main list so it
+    # doesn't grow forever, but not deleted (still feeds the public Roadmap's
+    # "Recently shipped"/reference list).
+    needs_attention = [r for r in rows if r["triage_status"] in ("New", "Planned", "In Progress")]
+    archived = [r for r in rows if r["triage_status"] in ("Done", "Not planned")]
     return render_template(
-        "admin/suggestions.html", suggestions=rows,
+        "admin/suggestions.html", needs_attention=needs_attention, archived=archived,
         categories=SUGGESTION_CATEGORIES, statuses=SUGGESTION_STATUSES,
     )
 
@@ -883,6 +886,16 @@ def update_suggestion(suggestion_id):
     )
     db.commit()
     flash("Suggestion updated.", "success")
+    return redirect(url_for("admin.suggestions"))
+
+
+@bp.route("/suggestions/<int:suggestion_id>/delete", methods=("POST",))
+@login_required
+def delete_suggestion(suggestion_id):
+    db = get_db()
+    db.execute("DELETE FROM feature_suggestions WHERE id = ?", (suggestion_id,))
+    db.commit()
+    flash("Suggestion deleted.", "success")
     return redirect(url_for("admin.suggestions"))
 
 

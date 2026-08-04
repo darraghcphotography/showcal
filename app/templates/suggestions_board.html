@@ -29,7 +29,7 @@
 
   <h2>Recently shipped</h2>
   {% for entry in changelog %}
-    <p class="meta">{{ entry['entry_date']|irish_date }} &mdash; {{ entry['entry'] }}</p>
+    <p class="meta">{{ entry['entry_date']|irish_datetime }} &mdash; {{ entry['entry'] }}</p>
   {% else %}
     <p>No changelog entries yet.</p>
   {% endfor %}

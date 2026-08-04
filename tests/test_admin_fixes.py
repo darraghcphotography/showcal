@@ -115,3 +115,50 @@ def test_duplicate_titles_page_offers_manual_merge_form(client, db):
     body = client.get("/admin/duplicate-titles").get_data(as_text=True)
     assert 'action="/admin/duplicate-titles/merge"' in body
     assert "Merge two titles directly" in body
+
+
+def test_admin_can_delete_a_suggestion(client, db):
+    admin_id = seed_user(db, username="mod", role="moderator")
+    db.execute("INSERT INTO feature_suggestions (message, category) VALUES ('Accidental duplicate', 'Data error')")
+    db.commit()
+    suggestion_id = db.execute("SELECT id FROM feature_suggestions").fetchone()["id"]
+    login_as(client, admin_id)
+
+    resp = client.post(f"/admin/suggestions/{suggestion_id}/delete", follow_redirects=False)
+    assert resp.status_code == 302
+    assert db.execute("SELECT 1 FROM feature_suggestions WHERE id = ?", (suggestion_id,)).fetchone() is None
+
+
+def test_delete_suggestion_requires_login(client, db):
+    db.execute("INSERT INTO feature_suggestions (message, category) VALUES ('X', 'Bug report')")
+    db.commit()
+    suggestion_id = db.execute("SELECT id FROM feature_suggestions").fetchone()["id"]
+
+    resp = client.post(f"/admin/suggestions/{suggestion_id}/delete", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "/admin/login" in resp.headers["Location"]
+    assert db.execute("SELECT 1 FROM feature_suggestions WHERE id = ?", (suggestion_id,)).fetchone() is not None
+
+
+def test_admin_suggestions_page_archives_done_behind_disclosure(client, db):
+    admin_id = seed_user(db, username="mod", role="moderator")
+    db.execute("INSERT INTO feature_suggestions (message, category, triage_status) VALUES ('Still open', 'Idea/Feature', 'Planned')")
+    db.execute("INSERT INTO feature_suggestions (message, category, triage_status) VALUES ('Finished thing', 'Idea/Feature', 'Done')")
+    db.commit()
+    login_as(client, admin_id)
+
+    body = client.get("/admin/suggestions").get_data(as_text=True)
+    before_details = body.split("<details>")[0]
+    inside_details = body.split("<details>")[1]
+    assert "Still open" in before_details
+    assert "Finished thing" not in before_details
+    assert "Finished thing" in inside_details
+
+
+def test_roadmap_shows_full_datetime_for_shipped_entries(client, db):
+    db.execute(
+        "INSERT INTO changelog_entries (entry, created_at) VALUES ('Shipped a thing', '2026-08-05 14:30:00')"
+    )
+    db.commit()
+    body = client.get("/suggestions").get_data(as_text=True)
+    assert "05 Aug 2026, 14:30" in body
