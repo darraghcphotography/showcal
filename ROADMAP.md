@@ -65,45 +65,64 @@ Parked, not started: a dedicated historical-posters browse page (scroll
 through every poster ever uploaded, not just upcoming ones) - flagged as
 "a big effort," worth its own planning pass when picked up.
 
-## Live user feedback backlog (started 2026-08-04)
+## Live user feedback backlog (Rounds 1-3 done, 2026-08-04)
 The site is live and has real (anonymous) users submitting shows and
 feature requests - Phase 3's planned "fresh session + LAUNCH.md spec" never
 formally happened, it just launched organically. Worth circling back to
 that conversation at some point (onboarding all ~150 societies rather than
-word-of-mouth, edge cases, what "done" means), but for now this is a running
-backlog triaged from a batch of anonymous feature requests Darragh collected.
+word-of-mouth, edge cases, what "done" means), but Rounds 1-3 below - a
+running backlog triaged from a batch of anonymous feature requests Darragh
+collected - are done, tested (40 -> 59 tests), and pushed.
 
-**Round 1 - quick wins (in progress):**
-- "Current season" nav/page renamed to reflect that it browses any season,
-  not just the current one.
-- Bulk-add-shows form gets venue + production team columns (currently
-  season/show/dates only).
-- Copy-ready login-code text on the society-page code panel (from
-  Phase 1.5's "generate/reveal a society's code" feature).
-- Moderator/admin login moved out of the main nav to a footer link.
+**Round 1 - quick wins:**
+- "Current season" nav/page renamed (later renamed again to "Season
+  Archive" as part of Round 3's nav rework).
+- Bulk-add-shows form gets venue + production team columns.
+- Copy-ready login-code message on the society-page code panel.
 - Fix: submitting a show via the public form when a blank "TBA" placeholder
-  already exists for that society+season creates a *second* row instead of
-  filling in the placeholder (natural key is `society + season + title`, and
-  a blank title vs. a real one don't match) - needs manual cleanup every
-  time. Submission should fill in the existing placeholder when one exists.
+  already exists for that society+season now replaces it instead of
+  inserting a duplicate row.
 
-**Round 2 - suggestions system rebuild (next):**
-- `feature_suggestions` gets a `category` (Bug fix / Feature / Data
-  correction) and a richer `status` (New -> Planned -> In Progress -> Done /
-  Not planned), both admin-set from `/admin/suggestions` - the public
-  submission form itself stays simple.
-- A new public page lists triaged suggestions (status != New) with their
-  category/status, so someone can check "has this already been suggested/
-  actioned" before submitting a duplicate.
-- An *optional* contact field on the submission form (nothing like this is
-  collected today) - lets Darragh personally follow up with someone when
-  their suggestion ships, entirely manual/his choice, not automated.
+**Round 2 - suggestions system rebuild:**
+- `feature_suggestions` gets a submitter-chosen `category` (Idea/Feature,
+  Bug report, Data error - picked on the public form, not admin-assigned)
+  and a moderator-set `triage_status` (New -> Planned -> In Progress ->
+  Done/Not planned), plus an optional `contact` field.
+- New public `/suggestions` "Roadmap" page: triaged suggestions (so a
+  duplicate idea can be spotted before resubmitting) plus a changelog fed
+  by a small new `/admin/changelog` editor.
 
-**Round 3 - homepage split (mockup first):**
-Darragh's stated priority - split the current single homepage into a
-landing page (blurb / news-or-changelog section / upcoming shows) and a
-standalone `/societies` browse page. Needs a mockup before any code, per
-the working agreement below.
+**Round 3 - nav rework + homepage split:**
+Turned out simpler than originally scoped once Darragh weighed in on real
+usage (Upcoming/Societies/Awards/Stats are what people actually use; Shows
+A-Z is the least-used page) and pushed back on the first mockup (wanted to
+*keep* the poster gallery + Upcoming Shows content on the homepage, not
+shrink it to a teaser):
+- Site rebranded "Unofficial AIMS Show Tracker" -> "DC Show Tracker"
+  everywhere (title tags, nav, footer, PWA manifest, calendar feed) - the
+  About page's "not an official AIMS site" disclaimer is unchanged.
+- "Browse societies" moved out to its own `/societies` page; the homepage
+  keeps poster gallery + Upcoming Shows exactly as before, plus a
+  "Recently shipped" changelog teaser.
+- Nav: `Upcoming shows / Societies / Awards / Statistics / Season Archive`
+  up front; `Shows A-Z / Suggest a feature / Roadmap / Moderator login`
+  moved to the footer.
+- "Submit a show" removed as a standalone nav/homepage destination per
+  Darragh's call - it only shows once a society is logged in, pointing at
+  their own live add-show page. The old one-off/moderation-queue form
+  still works, just isn't advertised anywhere - reachable only via a
+  direct link Darragh shares.
+- Follow-up review fixes: every "AIMS's" reworded to plain "AIMS" across
+  user-facing pages/docs; suggest-a-feature form field order changed to
+  Name/Contact/Type/Your idea.
+
+**Process note:** started Round 1 straight from the approved backlog
+without a preview - Darragh expected a look-before-it-ships step even for
+"obviously small" changes, not just big redesigns. Fixed by spinning up a
+disposable local preview server (`create_app()` pointed at a scratch DB,
+never touches `aims.db`) for every round after that. See
+[[workflow-habits]] for the fuller lesson - treat anything touching layout
+or UI elements like a big redesign, not just literal text edits.
 
 **Parked for their own dedicated sessions:**
 - Stats page "shows by season" redesign - explicitly wants mockup variants,
@@ -116,6 +135,8 @@ the working agreement below.
   can't hit the live site directly - scope still to be discussed (what's
   actually prompting this, and how far to take it given the NAS/Portainer
   setup).
+- An FAQ page - Darragh's own suggestion, explicitly deferred ("maybe for a
+  next revision").
 
 ## Phase 2 - Data integrity sweep (next)
 - [Pending: run `export_csv.py` against production](see Claude's memory -
