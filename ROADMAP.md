@@ -131,6 +131,27 @@ accidentally-double-submitted suggestion live:
   by reading the prior session's `.jsonl` transcript out of
   `~/.claude/projects/`, since `/clear` doesn't delete history from disk.
 
+**Round 5 - Roadmap page redesign + About page rewrite (2026-08-04):**
+Mockup-first: 3 layout variants (kanban columns, striped list, colour-headed
+lanes) built as a published Artifact reusing `style.css`'s real tokens and
+sample data, reviewed before touching any template - Darragh picked lanes,
+then asked for a Done lane and category colour-coding, which got folded
+into the same mockup and re-reviewed before implementing for real.
+- `/suggestions` Roadmap page: Planned / In Progress / Done / Not planned
+  status lanes replace the old flat list - colour reuses the existing
+  tag-gold/tag-active/tag-cancelled language, just extended from a pill to
+  the whole lane. A small dot per category (bug/data/feature) sits
+  alongside so it doesn't compete with the lane colour.
+- Suggestions now get their own **Done lane** so someone can see their own
+  idea actually ship, instead of only checking "Recently shipped" (which
+  drops back to the manual/curated changelog only now, since a Done
+  suggestion would otherwise be listed twice).
+- About page rewritten in Darragh's own voice (AIMS Council/spreadsheet
+  backstory, "how you can help") - the "not an official AIMS website"
+  disclaimer is unchanged.
+- Test suite grew 73 -> 76. Pushed as `536f024` (About) and `4eb1925`
+  (Roadmap lanes).
+
 **Process note:** started Round 1 straight from the approved backlog
 without a preview - Darragh expected a look-before-it-ships step even for
 "obviously small" changes, not just big redesigns. Fixed by spinning up a
