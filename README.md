@@ -1,4 +1,4 @@
-# Unofficial AIMS Show Tracker
+# DC Show Tracker
 
 A small Flask + SQLite web app for browsing AIMS member societies' show
 history, with a moderated member-submission workflow so the site can replace
@@ -67,16 +67,19 @@ docs/                user guide, moderator guide, deployment, data model
 
 ## Pages
 
-Public: browse/search societies with a poster gallery and upcoming-shows
-region filter, a society's full history (shows plus their awards archive
-record), a show's detail page, **Shows A-Z** (search/sort, times-performed
-count, an optional synopsis/amateur-rights info panel), **Current season**
-at a glance (region/section filters, upcoming and already-finished split),
-**Statistics** (region drill-down, per-season breakdown, most
-selected/performed, signature show per society, win-rate leaderboards, and
-more - see the [user guide](docs/user-guide.md)), an **Awards** page
-(browse/filter AIMS's full 1977-present adjudication archive), a full CSV
-data export, a feature-suggestion box, and the member submission form.
+Public: the homepage (poster gallery + upcoming shows, region-filterable,
+with a calendar subscribe link), a standalone **Societies** browse/search
+page, a society's full history (shows plus their awards archive record), a
+show's detail page, **Shows A-Z** (search/sort, times-performed count, an
+optional synopsis/amateur-rights info panel), **Season Archive** (region/
+section filters, upcoming and already-finished split for any season, not
+just the current one), **Statistics** (region drill-down, per-season
+breakdown, most selected/performed, signature show per society, win-rate
+leaderboards, and more - see the [user guide](docs/user-guide.md)), an
+**Awards** page (browse/filter the full AIMS 1977-present adjudication
+archive), a **Roadmap** page (triaged feature suggestions + a changelog), a
+full CSV data export, a feature-suggestion box, and the member submission
+form.
 
 Society login (behind `/society/login`, code issued by a moderator): a
 dashboard to add/edit that society's own show history live (no moderation

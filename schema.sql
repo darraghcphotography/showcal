@@ -143,13 +143,38 @@ CREATE TABLE IF NOT EXISTS page_views (
 );
 
 -- Freeform "here's an idea" box - no invite code needed (lower risk than a
--- show submission: it never appears publicly, just a list only moderators
--- see), just a honeypot against basic bots.
+-- show submission: nothing here appears publicly until a moderator has
+-- triaged it - see triage_status below), just a honeypot against basic bots.
+-- `status` is legacy (a simple new/reviewed toggle) - superseded by
+-- triage_status below, left in place unused rather than migrated, since
+-- SQLite can't cheaply alter a CHECK constraint on a table with live data.
 CREATE TABLE IF NOT EXISTS feature_suggestions (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     message         TEXT NOT NULL,
     submitted_name  TEXT,
     status          TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'reviewed')),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+
+    -- Chosen by the submitter at submission time (constants.SUGGESTION_CATEGORIES).
+    category        TEXT NOT NULL DEFAULT 'Idea/Feature'
+                        CHECK (category IN ('Idea/Feature', 'Bug report', 'Data error')),
+    -- Moderator-set triage state (constants.SUGGESTION_STATUSES) - anything
+    -- other than 'New' is visible on the public /suggestions Roadmap page,
+    -- so a duplicate idea can be spotted before it's resubmitted.
+    triage_status   TEXT NOT NULL DEFAULT 'New'
+                        CHECK (triage_status IN ('New', 'Planned', 'In Progress', 'Done', 'Not planned')),
+    -- Optional, so a moderator can follow up personally once something
+    -- ships - never shown publicly, never used for automated email.
+    contact         TEXT
+);
+
+-- One admin-authored line per shipped update, shown on the public
+-- /suggestions Roadmap page under "Recently shipped". Deliberately just a
+-- single freeform text field - no title/category - for a quick one-liner,
+-- not a full blog post. No edit-in-place; delete and re-add instead.
+CREATE TABLE IF NOT EXISTS changelog_entries (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry           TEXT NOT NULL,
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

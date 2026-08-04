@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Unofficial AIMS Show Tracker{% endblock %}</title>
+  <title>{% block title %}DC Show Tracker{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="manifest" href="{{ url_for('feeds.manifest') }}">
   <meta name="theme-color" content="#c8102e">
 
-  <meta property="og:site_name" content="Unofficial AIMS Show Tracker">
+  <meta property="og:site_name" content="DC Show Tracker">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{ self.title() }}">
   <meta property="og:url" content="{{ request.url }}">
@@ -28,18 +28,16 @@
         <circle cx="24" cy="16" r="1.8" fill="var(--gold)"/>
       </svg>
       <span class="brand-text">
-        Unofficial <span class="gold-word">AIMS</span> Show Tracker
+        <span class="gold-word">DC</span> Show Tracker
         <span class="byline">a project by Darragh C</span>
       </span>
     </a>
     <nav>
-      <a href="{{ url_for('public.index') }}">Browse</a>
-      <a href="{{ url_for('public.titles_list') }}">Shows A-Z</a>
-      <a href="{{ url_for('info.season_summary') }}">Current season</a>
+      <a href="{{ url_for('public.index') }}">Upcoming shows</a>
+      <a href="{{ url_for('public.societies_list') }}">Societies</a>
       <a href="{{ url_for('info.awards') }}">Awards</a>
       <a href="{{ url_for('info.stats') }}">Statistics</a>
-      <a href="{{ url_for('submit.new') }}">Submit a show</a>
-      <a href="{{ url_for('public.suggest') }}">Suggest a feature</a>
+      <a href="{{ url_for('info.season_summary') }}">Season Archive</a>
       {% if society_session %}
         <a href="{{ url_for('society.dashboard') }}">My society</a>
       {% else %}
@@ -51,8 +49,6 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="link-button">Log out ({{ current_user['username'] }})</button>
         </form>
-      {% else %}
-        <a href="{{ url_for('admin.login') }}">Moderator login</a>
       {% endif %}
     </nav>
   </header>
@@ -73,9 +69,15 @@
 
   <footer class="site-footer">
     <p>
-      Unofficial AIMS Show Tracker &middot; a project by Darragh C &middot;
+      DC Show Tracker &middot; a project by Darragh C &middot;
       <a href="{{ url_for('public.about') }}">About</a> &middot;
-      <a href="https://linktr.ee/darraghc" rel="noopener" target="_blank">Get in touch</a>
+      <a href="https://linktr.ee/darraghc" rel="noopener" target="_blank">Get in touch</a> &middot;
+      <a href="{{ url_for('public.titles_list') }}">Shows A-Z</a> &middot;
+      <a href="{{ url_for('public.suggest') }}">Suggest a feature</a> &middot;
+      <a href="{{ url_for('public.suggestions_board') }}">Roadmap</a>
+      {% if not current_user %}
+        &middot; <a href="{{ url_for('admin.login') }}">Moderator login</a>
+      {% endif %}
     </p>
   </footer>
 </body>

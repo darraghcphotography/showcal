@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Add a show' if mode == 'new' else 'Edit show' }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}{{ 'Add a show' if mode == 'new' else 'Edit show' }} - DC Show Tracker{% endblock %}
 {% block content %}
   <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }}</a></p>
   <h1>{{ 'Add a show' if mode == 'new' else 'Edit show' }}</h1>

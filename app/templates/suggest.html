@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Suggest a feature - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}Suggest a feature - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Suggest a feature</h1>
   <p>Got an idea for something this site should do? Drop it here - no invite code needed, just a quick note.</p>
@@ -14,14 +14,31 @@
     </div>
 
     <label>
+      Name (optional)
+      <input type="text" name="submitted_name" value="{{ form.get('submitted_name', '') }}">
+    </label>
+
+    <label>
+      Contact (optional) <span class="hint">so Darragh can let you know if this gets built</span>
+      <input type="text" name="contact" value="{{ form.get('contact', '') }}" placeholder="email, Instagram handle, etc.">
+    </label>
+
+    <label>
+      Type
+      <select name="category" required>
+        <option value="">Choose one&hellip;</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if form.get('category') == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
       Your idea
       <textarea name="message" rows="5" required>{{ form.get('message', '') }}</textarea>
     </label>
 
-    <label>
-      Name (optional)
-      <input type="text" name="submitted_name" value="{{ form.get('submitted_name', '') }}">
-    </label>
+    <p class="meta">Curious what's already been suggested? See the <a href="{{ url_for('public.suggestions_board') }}">Roadmap</a>.</p>
 
     <button type="submit">Send it</button>
   </form>

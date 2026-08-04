@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Statistics - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}Statistics - DC Show Tracker{% endblock %}
 
 {% macro bar_chart(rows, linked=true) %}
   {% set top = rows[0]['n'] if rows else 1 %}
@@ -86,7 +86,7 @@
 
   {% if historical_productions %}
     <h2>Most selected shows, all time (since {{ historical_from }}){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-    <p class="meta">The same measure, extended back through AIMS's awards archive
+    <p class="meta">The same measure, extended back through the AIMS awards archive
        {% if selected_region %}- historical societies not matched to a region are excluded{% endif %}.</p>
     {{ bar_chart(most_selected) }}
   {% endif %}

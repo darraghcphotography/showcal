@@ -29,3 +29,10 @@ SHOWS_COVERAGE_START_YEAR = 2024
 # since this is a moderator's manual read of a rights holder's site (MTI,
 # Concord Theatricals, etc.), not a live/automated availability check.
 RIGHTS_STATUSES = ["Available", "Contact publisher", "Restricted"]
+
+# feature_suggestions.category - chosen by the submitter on the /suggest form.
+SUGGESTION_CATEGORIES = ["Idea/Feature", "Bug report", "Data error"]
+
+# feature_suggestions.triage_status - moderator-set. Anything past 'New' is
+# visible on the public /suggestions Roadmap page.
+SUGGESTION_STATUSES = ["New", "Planned", "In Progress", "Done", "Not planned"]

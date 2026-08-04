@@ -70,9 +70,9 @@ def calendar_ics():
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Unofficial AIMS Show Tracker//EN",
+        "PRODID:-//DC Show Tracker//EN",
         "CALSCALE:GREGORIAN",
-        "X-WR-CALNAME:AIMS Show Tracker",
+        "X-WR-CALNAME:DC Show Tracker",
     ]
 
     for row in rows:
@@ -106,8 +106,8 @@ def calendar_ics():
 @bp.route("/manifest.webmanifest")
 def manifest():
     body = json.dumps({
-        "name": "Unofficial AIMS Show Tracker",
-        "short_name": "AIMS Show Tracker",
+        "name": "DC Show Tracker",
+        "short_name": "DC Show Tracker",
         "start_url": url_for("public.index"),
         "display": "standalone",
         "background_color": "#ffffff",
@@ -131,6 +131,7 @@ def sitemap_xml():
     today = date.today().isoformat()
 
     urls = [(url_for("public.index", _external=True), today)]
+    urls.append((url_for("public.societies_list", _external=True), today))
     urls.append((url_for("info.season_summary", _external=True), today))
     urls.append((url_for("info.stats", _external=True), today))
 

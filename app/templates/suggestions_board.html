@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Roadmap - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Roadmap</h1>
+  <p>What's already been suggested and where it stands, plus what's shipped recently.
+     Check here before <a href="{{ url_for('public.suggest') }}">suggesting a feature</a> -
+     it might already be in progress.</p>
+
+  <h2>Coming up &amp; already suggested</h2>
+  {% for s in suggestions %}
+    <article class="queue-item">
+      <p>{{ s['message'] }}</p>
+      <p class="meta">
+        <span class="tag">{{ s['category'] }}</span>
+        {% if s['triage_status'] == 'In Progress' %}
+          <span class="tag tag-gold">In progress</span>
+        {% elif s['triage_status'] == 'Done' %}
+          <span class="tag tag-active">Done</span>
+        {% elif s['triage_status'] == 'Not planned' %}
+          <span class="tag tag-cancelled">Not planned</span>
+        {% else %}
+          <span class="tag">{{ s['triage_status'] }}</span>
+        {% endif %}
+      </p>
+    </article>
+  {% else %}
+    <p>Nothing triaged yet - check back soon.</p>
+  {% endfor %}
+
+  <h2>Recently shipped</h2>
+  {% for entry in changelog %}
+    <p class="meta">{{ entry['entry_date']|irish_date }} &mdash; {{ entry['entry'] }}</p>
+  {% else %}
+    <p>No changelog entries yet.</p>
+  {% endfor %}
+{% endblock %}

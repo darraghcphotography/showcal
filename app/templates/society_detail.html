@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ society['name'] }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}{{ society['name'] }} - DC Show Tracker{% endblock %}
 {% block og_description %}{{ society['region'] }} &middot; {{ society['section'] }}{% if active_since %} &middot; Active since {{ active_since }}{% endif %}{% if total_wins %} &middot; {{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}{% endif %}{% endblock %}
 {% block og_image %}
   {% if society['logo_filename'] %}
@@ -7,7 +7,7 @@
   {% endif %}
 {% endblock %}
 {% block content %}
-  <p><a href="{{ url_for('public.index') }}">&larr; Back to browse</a></p>
+  <p><a href="{{ url_for('public.societies_list') }}">&larr; Back to browse</a></p>
   {% if society['logo_filename'] %}
     <img class="poster" src="{{ url_for('public.uploaded_file', filename=society['logo_filename']) }}" alt="{{ society['name'] }} logo">
   {% endif %}
@@ -48,6 +48,12 @@
     <div class="site-notice">
       {% if society_code %}
         <p>Login code for this society: <code>{{ society_code['code'] }}</code></p>
+        <p>
+          <input type="text" id="society-code-message" readonly
+                 value="Here's your login code: {{ society_code['code'] }} - enter it here: {{ society_login_url }}"
+                 style="width: 100%; max-width: 32rem;">
+          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('society-code-message').value); this.textContent = 'Copied!';">Copy message</button>
+        </p>
       {% else %}
         <form method="post" action="{{ url_for('admin.generate_society_code', society_id=society['id']) }}" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

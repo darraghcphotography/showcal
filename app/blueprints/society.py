@@ -320,8 +320,12 @@ def bulk_add():
             show = request.form.get(f"show_{i}", "").strip()
             opening_date = request.form.get(f"opening_date_{i}", "").strip() or None
             closing_date = request.form.get(f"closing_date_{i}", "").strip() or None
+            venue = request.form.get(f"venue_{i}", "").strip() or None
+            director = request.form.get(f"director_{i}", "").strip() or None
+            musical_director = request.form.get(f"musical_director_{i}", "").strip() or None
+            choreographer = request.form.get(f"choreographer_{i}", "").strip() or None
 
-            if not any((season, show, opening_date, closing_date)):
+            if not any((season, show, opening_date, closing_date, venue, director, musical_director, choreographer)):
                 rows.append(None)
                 continue
 
@@ -340,7 +344,8 @@ def bulk_add():
 
             rows.append({
                 "season": season, "show": show, "opening_date": opening_date, "closing_date": closing_date,
-                "errors": errors, "similar_title": similar_title,
+                "venue": venue, "director": director, "musical_director": musical_director,
+                "choreographer": choreographer, "errors": errors, "similar_title": similar_title,
             })
             if errors or similar_title:
                 has_problems = True
@@ -370,9 +375,11 @@ def bulk_add():
                 """
                 INSERT INTO shows (
                     society_id, season, region, show, opening_date, closing_date, venue,
+                    director, musical_director, choreographer,
                     review_status, moderation_status, source, invite_code_id
                 ) VALUES (
                     :society_id, :season, :region, :show, :opening_date, :closing_date, :venue,
+                    :director, :musical_director, :choreographer,
                     'None', 'approved', 'submission', :invite_code_id
                 )
                 """,
@@ -383,7 +390,10 @@ def bulk_add():
                     "show": row["show"],
                     "opening_date": row["opening_date"],
                     "closing_date": row["closing_date"],
-                    "venue": society["default_venue"],
+                    "venue": row["venue"] or society["default_venue"],
+                    "director": row["director"],
+                    "musical_director": row["musical_director"],
+                    "choreographer": row["choreographer"],
                     "invite_code_id": code["id"],
                 },
             )

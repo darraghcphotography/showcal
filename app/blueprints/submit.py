@@ -106,6 +106,18 @@ def new():
             )
 
         invite_code = active_invite_code()
+        # A blank "TBA" placeholder (e.g. from the CSV import - "society
+        # slotted for this season, title TBA") shares this submission's
+        # natural key (society + season) only when its own title is also
+        # blank, so a real title here would otherwise insert a *second* row
+        # alongside the stale placeholder instead of replacing it. Delete it
+        # first so this submission takes its place - moderation still
+        # applies as normal below, so the show simply won't show anywhere
+        # publicly until approved, same as any other new submission.
+        db.execute(
+            "DELETE FROM shows WHERE society_id = ? AND season = ? AND show IS NULL AND moderation_status = 'approved'",
+            (society["id"], season),
+        )
         db.execute(
             """
             INSERT INTO shows (

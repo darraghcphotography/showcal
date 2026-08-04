@@ -5,7 +5,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 
 from .. import notify
 from ..auth import current_user
-from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS
+from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
 from ..rate_limit import limiter
 from ..search import fts_match_ids
@@ -14,10 +14,53 @@ from ..season import current_season
 bp = Blueprint("public", __name__)
 
 UPCOMING_LIMIT = 6
+CHANGELOG_TEASER_LIMIT = 3
 
 
 @bp.route("/")
 def index():
+    db = get_db()
+
+    upcoming_region = request.args.get("upcoming_region", "")
+    upcoming_query = """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.moderation_status = 'approved'
+          AND shows.show IS NOT NULL
+          AND shows.opening_date >= ?
+          AND shows.status IS NOT 'Cancelled'
+    """
+    upcoming_params = [date.today().isoformat()]
+    if upcoming_region in REGIONS:
+        upcoming_query += " AND shows.region = ?"
+        upcoming_params.append(upcoming_region)
+    upcoming_query += " ORDER BY shows.opening_date LIMIT ?"
+    upcoming_params.append(UPCOMING_LIMIT)
+    upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
+
+    # Whichever of the upcoming shows above happen to have a poster - same
+    # list, same region filter, same order, not a separate query. Keeps the
+    # gallery honest: it can never show a show that isn't actually in the
+    # "Upcoming shows" table right below it.
+    poster_gallery = [show for show in upcoming if show["poster_filename"]]
+
+    changelog_teaser = db.execute(
+        "SELECT entry, date(created_at) AS entry_date FROM changelog_entries ORDER BY created_at DESC LIMIT ?",
+        (CHANGELOG_TEASER_LIMIT,),
+    ).fetchall()
+
+    return render_template(
+        "index.html",
+        upcoming=upcoming,
+        poster_gallery=poster_gallery,
+        regions=REGIONS,
+        upcoming_region=upcoming_region,
+        changelog_teaser=changelog_teaser,
+    )
+
+
+@bp.route("/societies")
+def societies_list():
     region = request.args.get("region", "")
     section = request.args.get("section", "")
     q = request.args.get("q", "").strip()
@@ -52,45 +95,15 @@ def index():
 
     societies = db.execute(query, params).fetchall()
 
-    # Deliberately separate from the Browse filters above (region/section/q) -
-    # "what's coming up near me" and "which societies are in a region" are
-    # different questions, so this gets its own small filter rather than
-    # reusing/overloading the same one.
-    upcoming_region = request.args.get("upcoming_region", "")
-    upcoming_query = """
-        SELECT shows.*, societies.name AS society_name
-        FROM shows JOIN societies ON societies.id = shows.society_id
-        WHERE shows.moderation_status = 'approved'
-          AND shows.show IS NOT NULL
-          AND shows.opening_date >= ?
-          AND shows.status IS NOT 'Cancelled'
-    """
-    upcoming_params = [date.today().isoformat()]
-    if upcoming_region in REGIONS:
-        upcoming_query += " AND shows.region = ?"
-        upcoming_params.append(upcoming_region)
-    upcoming_query += " ORDER BY shows.opening_date LIMIT ?"
-    upcoming_params.append(UPCOMING_LIMIT)
-    upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
-
-    # Whichever of the upcoming shows above happen to have a poster - same
-    # list, same region filter, same order, not a separate query. Keeps the
-    # gallery honest: it can never show a show that isn't actually in the
-    # "Upcoming shows" table right below it.
-    poster_gallery = [show for show in upcoming if show["poster_filename"]]
-
     return render_template(
-        "index.html",
+        "societies_list.html",
         societies=societies,
-        upcoming=upcoming,
-        poster_gallery=poster_gallery,
         regions=REGIONS,
         sections=SOCIETY_SECTIONS,
         selected_region=region,
         selected_section=section,
         q=q,
         show_inactive=show_inactive,
-        upcoming_region=upcoming_region,
     )
 
 
@@ -106,6 +119,7 @@ def society_detail(society_id):
     # re-creating it) on /admin/invite-codes. Same "still valid" check as
     # auth.py's active_society_code().
     society_code = None
+    society_login_url = None
     viewer = current_user()
     if viewer and viewer["role"] == "admin":
         society_code = db.execute(
@@ -116,6 +130,10 @@ def society_detail(society_id):
             """,
             (society_id, date.today().isoformat()),
         ).fetchone()
+        # Built here (not in the template) so it reuses notify.py's SITE_URL
+        # handling - url_for(..., _external=True) can't be trusted behind
+        # the Cloudflare Tunnel/PrefixMiddleware setup (see notify.py).
+        society_login_url = notify.link(url_for("society.login"))
 
     shows = db.execute(
         """
@@ -186,6 +204,7 @@ def society_detail(society_id):
         "society_detail.html", society=society, shows=shows, future_shows=future_shows, historical=historical,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
+        society_login_url=society_login_url,
     )
 
 
@@ -314,30 +333,59 @@ def suggest():
             return redirect(url_for("public.suggest_thanks"))
 
         message = request.form.get("message", "").strip()
+        category = request.form.get("category", "")
         submitted_name = request.form.get("submitted_name", "").strip() or None
+        contact = request.form.get("contact", "").strip() or None
 
         if not message:
             flash("Enter your suggestion before submitting.", "error")
-            return render_template("suggest.html", form=request.form)
+            return render_template("suggest.html", form=request.form, categories=SUGGESTION_CATEGORIES)
+        if category not in SUGGESTION_CATEGORIES:
+            flash("Choose a type for your suggestion.", "error")
+            return render_template("suggest.html", form=request.form, categories=SUGGESTION_CATEGORIES)
 
         get_db().execute(
-            "INSERT INTO feature_suggestions (message, submitted_name) VALUES (?, ?)",
-            (message, submitted_name),
+            "INSERT INTO feature_suggestions (message, category, submitted_name, contact) VALUES (?, ?, ?, ?)",
+            (message, category, submitted_name, contact),
         )
         get_db().commit()
         notify.send(
-            "New feature suggestion",
+            f"New suggestion ({category})",
             f"From: {submitted_name or 'Anonymous'}\n\n{message}\n\n"
             f"Review it: {notify.link(url_for('admin.suggestions'))}",
         )
         return redirect(url_for("public.suggest_thanks"))
 
-    return render_template("suggest.html", form={})
+    return render_template("suggest.html", form={}, categories=SUGGESTION_CATEGORIES)
 
 
 @bp.route("/suggest/thanks")
 def suggest_thanks():
     return render_template("suggest_thanks.html")
+
+
+@bp.route("/suggestions")
+def suggestions_board():
+    db = get_db()
+    # Priority order (not alphabetical) so "in progress" and "planned" read
+    # as the headline, "done"/"not planned" as the reference tail - both
+    # still shown so a duplicate idea can be spotted either way.
+    rows = db.execute(
+        """
+        SELECT message, category, triage_status FROM feature_suggestions
+        WHERE triage_status != 'New'
+        ORDER BY
+            CASE triage_status
+                WHEN 'In Progress' THEN 0 WHEN 'Planned' THEN 1
+                WHEN 'Done' THEN 2 WHEN 'Not planned' THEN 3
+            END,
+            created_at DESC
+        """
+    ).fetchall()
+    changelog = db.execute(
+        "SELECT entry, date(created_at) AS entry_date FROM changelog_entries ORDER BY created_at DESC"
+    ).fetchall()
+    return render_template("suggestions_board.html", suggestions=rows, changelog=changelog)
 
 
 @bp.route("/uploads/<path:filename>")

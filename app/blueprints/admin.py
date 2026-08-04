@@ -8,7 +8,10 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from werkzeug.security import check_password_hash
 
 from ..auth import current_user, login_required
-from ..constants import AWARD_RESULTS, REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS
+from ..constants import (
+    AWARD_RESULTS, REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS, SOCIETY_SECTIONS,
+    SUGGESTION_CATEGORIES, SUGGESTION_STATUSES,
+)
 from ..db import get_db
 from ..dedupe import find_candidates
 from ..invite_words import ADJECTIVES, NOUNS
@@ -854,22 +857,59 @@ def fix_dates():
 def suggestions():
     db = get_db()
     rows = db.execute(
-        "SELECT * FROM feature_suggestions ORDER BY status = 'reviewed', created_at DESC"
+        "SELECT * FROM feature_suggestions ORDER BY triage_status = 'New' DESC, created_at DESC"
     ).fetchall()
-    return render_template("admin/suggestions.html", suggestions=rows)
+    return render_template(
+        "admin/suggestions.html", suggestions=rows,
+        categories=SUGGESTION_CATEGORIES, statuses=SUGGESTION_STATUSES,
+    )
 
 
-@bp.route("/suggestions/<int:suggestion_id>/toggle", methods=("POST",))
+@bp.route("/suggestions/<int:suggestion_id>/update", methods=("POST",))
 @login_required
-def toggle_suggestion(suggestion_id):
+def update_suggestion(suggestion_id):
     db = get_db()
-    row = db.execute("SELECT * FROM feature_suggestions WHERE id = ?", (suggestion_id,)).fetchone()
+    row = db.execute("SELECT id FROM feature_suggestions WHERE id = ?", (suggestion_id,)).fetchone()
     if row is None:
         abort(404)
-    new_status = "new" if row["status"] == "reviewed" else "reviewed"
-    db.execute("UPDATE feature_suggestions SET status = ? WHERE id = ?", (new_status, suggestion_id))
+    category = request.form.get("category", "")
+    triage_status = request.form.get("triage_status", "")
+    if category not in SUGGESTION_CATEGORIES or triage_status not in SUGGESTION_STATUSES:
+        flash("Choose a valid category and status.", "error")
+        return redirect(url_for("admin.suggestions"))
+    db.execute(
+        "UPDATE feature_suggestions SET category = ?, triage_status = ? WHERE id = ?",
+        (category, triage_status, suggestion_id),
+    )
     db.commit()
+    flash("Suggestion updated.", "success")
     return redirect(url_for("admin.suggestions"))
+
+
+@bp.route("/changelog", methods=("GET", "POST"))
+@login_required
+def changelog():
+    db = get_db()
+    if request.method == "POST":
+        entry = request.form.get("entry", "").strip()
+        if not entry:
+            flash("Enter some text for the changelog entry.", "error")
+        else:
+            db.execute("INSERT INTO changelog_entries (entry) VALUES (?)", (entry,))
+            db.commit()
+            flash("Changelog entry published.", "success")
+        return redirect(url_for("admin.changelog"))
+    entries = db.execute("SELECT * FROM changelog_entries ORDER BY created_at DESC").fetchall()
+    return render_template("admin/changelog.html", entries=entries)
+
+
+@bp.route("/changelog/<int:entry_id>/delete", methods=("POST",))
+@login_required
+def delete_changelog_entry(entry_id):
+    db = get_db()
+    db.execute("DELETE FROM changelog_entries WHERE id = ?", (entry_id,))
+    db.commit()
+    return redirect(url_for("admin.changelog"))
 
 
 @bp.route("/show-links/set", methods=("POST",))

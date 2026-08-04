@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ season }} season - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}{{ season }} season - DC Show Tracker{% endblock %}
 
 {% macro show_rows(shows) %}
   {% for show in shows %}
@@ -58,8 +58,8 @@
 {% block content %}
   {% set total = upcoming|length + finished|length %}
   <h1>
-    Current Season
-    {% if not is_current %}<span class="tag">viewing {{ season }}</span>{% endif %}
+    {{ season }} season
+    {% if is_current %}<span class="tag">current</span>{% endif %}
   </h1>
   <p>{{ total }} show{{ '' if total == 1 else 's' }} announced for {{ season }}{% if is_current %} (current season){% endif %}.</p>
 

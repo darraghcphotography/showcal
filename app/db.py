@@ -44,6 +44,17 @@ COLUMN_MIGRATIONS = [
     ("societies", "tiktok_url", "ALTER TABLE societies ADD COLUMN tiktok_url TEXT"),
     ("societies", "other_url", "ALTER TABLE societies ADD COLUMN other_url TEXT"),
     ("societies", "other_label", "ALTER TABLE societies ADD COLUMN other_label TEXT"),
+    (
+        "feature_suggestions", "category",
+        "ALTER TABLE feature_suggestions ADD COLUMN category TEXT NOT NULL DEFAULT 'Idea/Feature' "
+        "CHECK (category IN ('Idea/Feature', 'Bug report', 'Data error'))",
+    ),
+    (
+        "feature_suggestions", "triage_status",
+        "ALTER TABLE feature_suggestions ADD COLUMN triage_status TEXT NOT NULL DEFAULT 'New' "
+        "CHECK (triage_status IN ('New', 'Planned', 'In Progress', 'Done', 'Not planned'))",
+    ),
+    ("feature_suggestions", "contact", "ALTER TABLE feature_suggestions ADD COLUMN contact TEXT"),
 ]
 
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ show['show'] }} - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}{{ show['show'] }} - DC Show Tracker{% endblock %}
 {% block og_description %}{{ show['society_name'] }}, {{ show['season'] }}{% if show['opening_date'] %} - opens {{ show['opening_date']|irish_date }}{% endif %}.{% endblock %}
 {% block og_image %}
   {% if show['poster_filename'] %}

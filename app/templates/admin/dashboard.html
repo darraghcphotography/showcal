@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Admin - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}Admin - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Admin</h1>
 
@@ -55,7 +55,8 @@
     <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a> &middot;
     <a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a> &middot;
     <a href="{{ url_for('admin.traffic') }}">Traffic</a> &middot;
-    <a href="{{ url_for('admin.suggestions') }}">Suggestions</a>
+    <a href="{{ url_for('admin.suggestions') }}">Suggestions</a> &middot;
+    <a href="{{ url_for('admin.changelog') }}">Changelog</a>
     {% if current_user['role'] == 'admin' %}
       &middot; <a href="{{ url_for('admin.invite_codes') }}">Invite codes</a>
     {% endif %}

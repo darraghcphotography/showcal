@@ -4,20 +4,20 @@ For anyone browsing the site, or an AIMS member submitting a show.
 
 ## Browsing
 
-The homepage lists every AIMS member society. You can narrow it down:
+The homepage shows a **poster gallery** of recent show posters and
+**Upcoming shows** - the next few announced productions across every
+society, soonest first, with its own region filter and a link to subscribe
+to it in your own calendar app.
+
+The **Societies** page lists every AIMS member society, narrowed down by:
 
 - **Region** - Eastern, Western, Northern, South-West, South-East, Midlands.
-- **Section** - Gilbert or Sullivan (AIMS's two competition sections), Non-AIMS, or
+- **Section** - Gilbert or Sullivan (the two AIMS competition sections), Non-AIMS, or
   Inactive (registered but with no show on record yet - hidden by default,
   see below).
 - **Society name** - a text search box.
 
-Above the society list, a **poster gallery** shows recent show posters, and
-**Upcoming shows** lists the next few announced productions across every
-society, soonest first (with its own region filter, separate from the main
-browse filters above).
-
-Click a society to see its full show history, plus its record from AIMS's
+Click a society to see its full show history, plus its record from the AIMS
 awards archive (nominations and wins, 1977-present) if it has one. Click a
 show to see its production team (director, musical director, choreographer),
 dates, venue, poster (if one was uploaded), a ticket link (if the society
@@ -30,14 +30,18 @@ Other pages worth knowing about:
   means a moderator has added a synopsis and/or amateur rights/licensing
   info for it - click through to the title's page to see it. Otherwise the
   "More info" link is a best-guess Wikipedia search, not a verified match.
-- **Current season** - every show announced so far for the current season,
+- **Season Archive** - every show announced so far for the current season,
   with region/section filters, split into upcoming and already-finished
   sections. A season picker at the top lets you jump to any past season the
   same way.
-- **Awards** - browse AIMS's full adjudication archive (1977-present):
+- **Awards** - browse the full AIMS adjudication archive (1977-present):
   filter by year, category, section, result, or search across society/show/
   nominee/the adjudicator's own notes on discretionary awards. Defaults to
   winners only.
+- **Roadmap** - feature suggestions Darragh has already triaged (Planned/In
+  Progress/Done/Not planned), so you can check whether your idea's already
+  been suggested before submitting it again, plus a changelog of recently
+  shipped changes.
 - **Statistics** - only counts shows that have actually happened (announced-
   but-not-yet-run and cancelled shows don't count until/unless they do). A
   region filter re-scopes almost everything on the page, including the
@@ -58,7 +62,12 @@ for that (see the [moderator guide](moderator-guide.md)).
 
 ## Submitting a show
 
-If your society has a show to add, go to **Submit a show**.
+Most active societies have their own login (see "If your society has its own
+login" below) - that's the normal way to add a show now. The one-off
+submission form below still exists for a single show without setting up a
+full login, but it isn't linked from the main navigation - you'll need the
+direct link, which your society secretary or AIMS can give you along with
+the invite code.
 
 1. **Enter your invite code.** This is a short code your society secretary or
    AIMS gives out - it's what stops the form being open to random submissions
@@ -93,7 +102,7 @@ who submitted what beyond which invite code was used.
 
 Nothing appears on the public site immediately. A moderator checks the
 submission first (moderation queue), and either approves it - at which point
-it appears in the society's history and on the "Current season" page - or
+it appears in the society's history and on the "Season Archive" page - or
 rejects it. Once the show has happened and been adjudicated, a moderator
 attaches the AIMS review link, and its status changes to **Published** on the
 show's page.

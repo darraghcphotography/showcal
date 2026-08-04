@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Bulk add shows - Unofficial AIMS Show Tracker{% endblock %}
+{% block title %}Bulk add shows - DC Show Tracker{% endblock %}
 {% block content %}
   <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }}</a></p>
   <h1>Bulk add shows</h1>
-  <p>Quickly add the basics for several past shows at once - season, dates, and title. Leave a row blank
-     to skip it. Add production team, section, poster, ticket link etc. later from the dashboard.</p>
+  <p>Quickly add several past shows at once. Leave a row blank to skip it, or leave venue/production
+     team blank and fill them in later - section, poster, ticket link etc. can only be added afterwards
+     from the dashboard.</p>
 
   <form method="post" class="bulk-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -16,7 +17,10 @@
 
     <table class="data-table bulk-table">
       <thead>
-        <tr><th>Season</th><th>Show title</th><th>Opening date</th><th>Closing date</th></tr>
+        <tr>
+          <th>Season</th><th>Show title</th><th>Opening date</th><th>Closing date</th>
+          <th>Venue</th><th>Director</th><th>Musical Director</th><th>Choreographer</th>
+        </tr>
       </thead>
       <tbody>
         {% for i in range(bulk_rows) %}
@@ -41,6 +45,10 @@
             </td>
             <td><input type="date" name="opening_date_{{ i }}" value="{{ row.opening_date if row else '' }}" min="1970-01-01" max="2036-12-31"></td>
             <td><input type="date" name="closing_date_{{ i }}" value="{{ row.closing_date if row else '' }}" min="1970-01-01" max="2036-12-31"></td>
+            <td><input type="text" name="venue_{{ i }}" value="{{ row.venue if row else '' }}" placeholder="{{ society['default_venue'] or '' }}"></td>
+            <td><input type="text" name="director_{{ i }}" value="{{ row.director if row else '' }}"></td>
+            <td><input type="text" name="musical_director_{{ i }}" value="{{ row.musical_director if row else '' }}"></td>
+            <td><input type="text" name="choreographer_{{ i }}" value="{{ row.choreographer if row else '' }}"></td>
           </tr>
         {% endfor %}
       </tbody>

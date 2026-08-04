@@ -127,7 +127,7 @@ or by a public member submission for that society.
 
 ## Awards
 
-`/admin/awards` is where you maintain AIMS's adjudication archive yourself
+`/admin/awards` is where you maintain the AIMS adjudication archive yourself
 now - there's no longer an external database to re-import from. It has the
 same filters as the public Awards page, plus:
 

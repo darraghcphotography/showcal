@@ -31,6 +31,92 @@ Sanity-checked by temporarily disabling the admin-role check and confirming
 `test_admin_required_blocks_non_admin` actually fails - the suite catches
 real regressions, not just passing by construction.
 
+## Phase 1.5 - Feature/UX polish (done, 2026-08-03)
+A long session of smaller, mostly independent asks rather than a single
+sweep - each planned/tested/shipped separately:
+- **Society pages**: a "Future announced show" block split out of the main
+  history table (and a follow-up fix - it was invisible on desktop, wrapped
+  in a mobile-only CSS class); "Tier" renamed to "Section" everywhere
+  Gilbert/Sullivan is shown (display text only, no column/data renamed).
+- **Invite codes**: switched from random `AIMS-XXXXXX` codes to two
+  dictionary words (e.g. `silver-otter`), case-insensitive login; a
+  suggested-code prefill + "Suggest another" on `/admin/invite-codes`;
+  delete + bulk-cleanup of the old `AIMS-` codes; a "generate/reveal this
+  society's login code" panel right on the society's own public page
+  (admin-only) - faster than the general invite-codes page for handing a
+  code out on request.
+- **Email notifications**: a new show submission or feature suggestion now
+  emails a fixed inbox in real time (`app/notify.py`, stdlib SMTP, inert
+  until `SMTP_USER`/`SMTP_PASSWORD` are set - see docs/deployment.md).
+- **Homepage poster gallery**: now derived directly from the "Upcoming
+  shows" list (same shows, same region filter, soonest first) instead of a
+  separate query - a past show's poster no longer lingers there once
+  there aren't enough upcoming posters to fill the row.
+- **Society profile**: a society can now add an "about/get involved" blurb
+  plus Website/Facebook/Instagram/TikTok/Other links from their own
+  self-service login, shown on their public page. Every URL is validated
+  to start with `http(s)://` before saving (it lands in a public `<a
+  href>`, so a `javascript:`/`data:` URL is rejected outright, not just
+  escaped).
+- Test suite grew from 19 to 40 tests across this work; all pushed and
+  live via Portainer "Pull and redeploy".
+
+Parked, not started: a dedicated historical-posters browse page (scroll
+through every poster ever uploaded, not just upcoming ones) - flagged as
+"a big effort," worth its own planning pass when picked up.
+
+## Live user feedback backlog (started 2026-08-04)
+The site is live and has real (anonymous) users submitting shows and
+feature requests - Phase 3's planned "fresh session + LAUNCH.md spec" never
+formally happened, it just launched organically. Worth circling back to
+that conversation at some point (onboarding all ~150 societies rather than
+word-of-mouth, edge cases, what "done" means), but for now this is a running
+backlog triaged from a batch of anonymous feature requests Darragh collected.
+
+**Round 1 - quick wins (in progress):**
+- "Current season" nav/page renamed to reflect that it browses any season,
+  not just the current one.
+- Bulk-add-shows form gets venue + production team columns (currently
+  season/show/dates only).
+- Copy-ready login-code text on the society-page code panel (from
+  Phase 1.5's "generate/reveal a society's code" feature).
+- Moderator/admin login moved out of the main nav to a footer link.
+- Fix: submitting a show via the public form when a blank "TBA" placeholder
+  already exists for that society+season creates a *second* row instead of
+  filling in the placeholder (natural key is `society + season + title`, and
+  a blank title vs. a real one don't match) - needs manual cleanup every
+  time. Submission should fill in the existing placeholder when one exists.
+
+**Round 2 - suggestions system rebuild (next):**
+- `feature_suggestions` gets a `category` (Bug fix / Feature / Data
+  correction) and a richer `status` (New -> Planned -> In Progress -> Done /
+  Not planned), both admin-set from `/admin/suggestions` - the public
+  submission form itself stays simple.
+- A new public page lists triaged suggestions (status != New) with their
+  category/status, so someone can check "has this already been suggested/
+  actioned" before submitting a duplicate.
+- An *optional* contact field on the submission form (nothing like this is
+  collected today) - lets Darragh personally follow up with someone when
+  their suggestion ships, entirely manual/his choice, not automated.
+
+**Round 3 - homepage split (mockup first):**
+Darragh's stated priority - split the current single homepage into a
+landing page (blurb / news-or-changelog section / upcoming shows) and a
+standalone `/societies` browse page. Needs a mockup before any code, per
+the working agreement below.
+
+**Parked for their own dedicated sessions:**
+- Stats page "shows by season" redesign - explicitly wants mockup variants,
+  flagged as "the ugliest page so far."
+- A society-page section for costume/prop rental listings, ideally matched
+  to shows the society has actually performed - the biggest lift on the
+  list (new data model, new admin UI, a matching concept), not a quick
+  add-on.
+- A staging/test environment separate from production, so a bad change
+  can't hit the live site directly - scope still to be discussed (what's
+  actually prompting this, and how far to take it given the NAS/Portainer
+  setup).
+
 ## Phase 2 - Data integrity sweep (next)
 - [Pending: run `export_csv.py` against production](see Claude's memory -
   "pending-csv-export-refresh") to pull the North Wexford tier fix (and
@@ -38,6 +124,12 @@ real regressions, not just passing by construction.
 - Audit for other societies with similarly stale/presumptive data.
 
 ## Phase 3 - Public launch
+**Reality check (2026-08-04): the site is already live and has real
+anonymous users** - this happened organically rather than through the
+formal process below. The interview/`LAUNCH.md` step is still worth doing
+at some point (scaling onboarding to all ~150 societies, edge cases, what
+"done" means), just retroactively rather than as a gate before launch.
+
 Before announcing this to AIMS societies/fans at large:
 - Start a **fresh session** for this phase specifically.
 - Have Claude interview you with `AskUserQuestion` about launch scope,
