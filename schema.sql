@@ -165,7 +165,11 @@ CREATE TABLE IF NOT EXISTS feature_suggestions (
                         CHECK (triage_status IN ('New', 'Planned', 'In Progress', 'Done', 'Not planned')),
     -- Optional, so a moderator can follow up personally once something
     -- ships - never shown publicly, never used for automated email.
-    contact         TEXT
+    contact         TEXT,
+    -- Set whenever a moderator saves a category/status change - lets a
+    -- 'Done' suggestion sort into the Roadmap page's "Recently shipped"
+    -- list by when it actually shipped, not by its original submission date.
+    triaged_at      TEXT
 );
 
 -- One admin-authored line per shipped update, shown on the public

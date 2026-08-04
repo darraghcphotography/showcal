@@ -248,6 +248,11 @@ button.button-primary { background: var(--success); color: #fff; }
 
 .meta { color: var(--muted); }
 
+details { margin-top: 0.6rem; }
+details summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; padding: 0.3rem 0; }
+details summary:hover { text-decoration: underline; }
+details table { margin-top: 0.5rem; }
+
 .venue-link { display: block; font-size: 0.8rem; text-decoration: none; margin-top: 0.15rem; }
 .venue-link:hover { text-decoration: underline; }
 

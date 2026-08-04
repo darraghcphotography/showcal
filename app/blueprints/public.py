@@ -368,22 +368,30 @@ def suggest_thanks():
 def suggestions_board():
     db = get_db()
     # Priority order (not alphabetical) so "in progress" and "planned" read
-    # as the headline, "done"/"not planned" as the reference tail - both
-    # still shown so a duplicate idea can be spotted either way.
+    # as the headline, "not planned" as the reference tail - still shown so
+    # a duplicate idea can be spotted before resubmitting. "Done" moves to
+    # "Recently shipped" below instead of sitting here.
     rows = db.execute(
         """
         SELECT message, category, triage_status FROM feature_suggestions
-        WHERE triage_status != 'New'
+        WHERE triage_status NOT IN ('New', 'Done')
         ORDER BY
-            CASE triage_status
-                WHEN 'In Progress' THEN 0 WHEN 'Planned' THEN 1
-                WHEN 'Done' THEN 2 WHEN 'Not planned' THEN 3
-            END,
+            CASE triage_status WHEN 'In Progress' THEN 0 WHEN 'Planned' THEN 1 WHEN 'Not planned' THEN 2 END,
             created_at DESC
         """
     ).fetchall()
+    # A suggestion marked Done counts as "shipped" too, dated by when it was
+    # actually marked Done (triaged_at) rather than when it was originally
+    # submitted - falls back to created_at for rows triaged before that
+    # column existed.
     changelog = db.execute(
-        "SELECT entry, date(created_at) AS entry_date FROM changelog_entries ORDER BY created_at DESC"
+        """
+        SELECT message AS entry, date(COALESCE(triaged_at, created_at)) AS entry_date
+        FROM feature_suggestions WHERE triage_status = 'Done'
+        UNION ALL
+        SELECT entry, date(created_at) AS entry_date FROM changelog_entries
+        ORDER BY entry_date DESC
+        """
     ).fetchall()
     return render_template("suggestions_board.html", suggestions=rows, changelog=changelog)
 

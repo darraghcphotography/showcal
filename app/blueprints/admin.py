@@ -878,7 +878,7 @@ def update_suggestion(suggestion_id):
         flash("Choose a valid category and status.", "error")
         return redirect(url_for("admin.suggestions"))
     db.execute(
-        "UPDATE feature_suggestions SET category = ?, triage_status = ? WHERE id = ?",
+        "UPDATE feature_suggestions SET category = ?, triage_status = ?, triaged_at = datetime('now') WHERE id = ?",
         (category, triage_status, suggestion_id),
     )
     db.commit()
@@ -1021,7 +1021,9 @@ def duplicate_titles():
         hist = db.execute("SELECT COUNT(*) FROM historical_results WHERE show = ?", (title,)).fetchone()[0]
         counts[title] = cur + hist
 
-    return render_template("admin/duplicate_titles.html", candidates=candidates, counts=counts)
+    return render_template(
+        "admin/duplicate_titles.html", candidates=candidates, counts=counts, all_titles=sorted(titles)
+    )
 
 
 def _merge_titles(db, canonical, other):

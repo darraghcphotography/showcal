@@ -65,6 +65,8 @@ def create_app(test_config=None):
     # and column migrations only add a column when it's actually missing.
     with app.app_context():
         db_module.init_schema()
+        from . import analytics
+        analytics.purge_excluded_pageviews(db_module.get_db())
 
     from .blueprints.public import bp as public_bp
     from .blueprints.submit import bp as submit_bp

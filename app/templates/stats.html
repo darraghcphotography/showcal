@@ -64,7 +64,9 @@
   {% endif %}
 
   <h2>Shows by season{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-  <p class="meta">Only counts productions that have actually opened - cancelled slots aren't counted here.</p>
+  <p class="meta">Only counts productions that have actually opened - cancelled slots aren't counted here.
+     <strong>Shows</strong> is every production that opened; <strong>distinct titles</strong> is how many
+     different shows those were - the same title staged by two societies in one season counts once.</p>
   <table class="data-table">
     <thead><tr><th>Season</th><th>Shows</th><th>Distinct titles</th><th></th></tr></thead>
     <tbody>
@@ -78,6 +80,26 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {% if by_season_earlier %}
+    <details>
+      <summary>Show {{ by_season_earlier|length }} earlier season{{ '' if by_season_earlier|length == 1 else 's' }}
+        ({{ by_season_earlier[-1]['season'] }}&ndash;{{ by_season_earlier[0]['season'] }},
+        {{ by_season_earlier|sum(attribute='total') }} shows total)</summary>
+      <table class="data-table">
+        <tbody>
+          {% for row in by_season_earlier %}
+            <tr>
+              <td>{{ row['season'] }}</td>
+              <td>{{ row['total'] }}</td>
+              <td>{{ row['distinct_titles'] }}</td>
+              <td><a href="{{ url_for('info.season_summary', season=row['season'], region=selected_region) }}">View</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% endif %}
 
   <h2>Most selected shows since the DC Database (23/24&ndash;current season){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
   <p class="meta">By number of different societies that have put it on - a cleaner read on popularity than raw
@@ -108,8 +130,10 @@
   {{ bar_chart(most_prolific_society, linked=false) }}
 
   <h2>One-off productions ({{ one_offs|length }} shows){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-  <p class="meta">Every title below has had exactly one production on the AIMS circuit in the data on
-     record (including the historical archive) - a nice list of shows worth a revival.</p>
+  <p class="meta">Every title below has had exactly one production that's actually happened on the AIMS
+     circuit in the data on record (including the historical archive) - a nice list of shows worth a
+     revival. A title with an upcoming or still-TBA production announced won't count until it opens, so
+     it can still appear here even with more than one production on the way.</p>
   <ul class="plain-list">
     {% for row in one_offs %}
       <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>

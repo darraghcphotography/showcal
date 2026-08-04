@@ -7,6 +7,26 @@
      expected to show up; mark those "Not a duplicate" so they won't be suggested again. Leave a pair on
      "Skip" to decide later.</p>
 
+  <h2>Merge two titles directly</h2>
+  <p class="meta">For a pair that's too different for the auto-suggestions above to catch (they only flag
+     titles differing by at most one extra word) - e.g. "Nativity" vs "Nativity! The Musical".</p>
+  <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="stacked-form"
+        onsubmit="return confirm('Merge these two titles? This renames every occurrence across current shows and the awards archive, and cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <datalist id="all-titles">
+      {% for t in all_titles %}<option value="{{ t }}">{% endfor %}
+    </datalist>
+    <label>
+      Keep this title (correct spelling)
+      <input type="text" name="canonical" list="all-titles" required autocomplete="off">
+    </label>
+    <label>
+      Merge this title into it (will be renamed/removed)
+      <input type="text" name="other" list="all-titles" required autocomplete="off">
+    </label>
+    <button type="submit">Merge</button>
+  </form>
+
   {% if candidates %}
     <form method="post" action="{{ url_for('admin.bulk_duplicate_titles') }}"
           onsubmit="return confirm('Apply every merge/dismiss decision selected below? Merges rename every occurrence across current shows and the awards archive, and cannot be undone.');">

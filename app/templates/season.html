@@ -67,13 +67,14 @@
     <p class="season-picker">
       Jump to:
       {% for s in all_seasons %}
-        <a href="{{ url_for('info.season_summary', season=s, region=selected_region, tier=selected_tier) }}" class="{{ 'current' if s == season }}">{{ s }}</a>{% if not loop.last %} &middot; {% endif %}
+        <a href="{{ url_for('info.season_summary', season=s, region=selected_region, tier=selected_tier, hide_cancelled=('1' if hide_cancelled else none), sort=sort) }}" class="{{ 'current' if s == season }}">{{ s }}</a>{% if not loop.last %} &middot; {% endif %}
       {% endfor %}
     </p>
   {% endif %}
 
   <form method="get" class="filter-form">
     <input type="hidden" name="season" value="{{ season }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
     <label>
       Region
       <select name="region">
@@ -92,11 +93,21 @@
         {% endfor %}
       </select>
     </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="hide_cancelled" value="1" {% if hide_cancelled %}checked{% endif %}>
+      Hide cancelled shows
+    </label>
     <button type="submit">Filter</button>
-    {% if selected_region or selected_tier %}
+    {% if selected_region or selected_tier or hide_cancelled %}
       <a href="{{ url_for('info.season_summary', season=season) }}">Clear</a>
     {% endif %}
   </form>
+
+  <p class="meta">
+    <a href="{{ url_for('info.season_summary', season=season, region=selected_region, tier=selected_tier, hide_cancelled=('1' if hide_cancelled else none), sort=('desc' if sort == 'asc' else 'asc')) }}">
+      Sort: {{ 'Soonest first' if sort == 'asc' else 'Latest first' }} (click to reverse)
+    </a>
+  </p>
 
   <table class="data-table table-wide">
     <thead>

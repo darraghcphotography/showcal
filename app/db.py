@@ -55,6 +55,7 @@ COLUMN_MIGRATIONS = [
         "CHECK (triage_status IN ('New', 'Planned', 'In Progress', 'Done', 'Not planned'))",
     ),
     ("feature_suggestions", "contact", "ALTER TABLE feature_suggestions ADD COLUMN contact TEXT"),
+    ("feature_suggestions", "triaged_at", "ALTER TABLE feature_suggestions ADD COLUMN triaged_at TEXT"),
 ]
 
 

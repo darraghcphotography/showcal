@@ -315,6 +315,16 @@ def stats():
     query += " GROUP BY season ORDER BY season DESC"
     by_season = db.execute(query, params).fetchall()
 
+    # Split at the site's own tracked-data boundary (see SHOWS_COVERAGE_START_YEAR)
+    # rather than an arbitrary "top N" - a society backfilling decades of its own
+    # history via bulk-add is expected/encouraged, but it shouldn't make the
+    # by-far-most-complete recent seasons look like a rounding error in a page-long
+    # list of mostly-1-show seasons. Earlier seasons stay fully visible, just
+    # collapsed behind a <details> disclosure by default.
+    coverage_start_season = f"{(SHOWS_COVERAGE_START_YEAR - 1) % 100:02d}/{SHOWS_COVERAGE_START_YEAR % 100:02d}"
+    by_season_recent = [r for r in by_season if r["season"] >= coverage_start_season]
+    by_season_earlier = [r for r in by_season if r["season"] < coverage_start_season]
+
     by_region = db.execute(
         f"""
         SELECT region AS label, COUNT(*) AS n FROM shows
@@ -396,7 +406,8 @@ def stats():
         most_selected=most_selected,
         most_selected_recent_era=most_selected_recent_era,
         one_offs=one_offs,
-        by_season=by_season,
+        by_season=by_season_recent,
+        by_season_earlier=by_season_earlier,
         by_region=by_region,
         by_tier=by_tier,
         historical_from=historical_from,
@@ -436,6 +447,10 @@ def season_summary():
 
     region = request.args.get("region", "")
     tier = request.args.get("tier", "")
+    hide_cancelled = request.args.get("hide_cancelled") == "1"
+    sort = request.args.get("sort", "asc")
+    if sort not in ("asc", "desc"):
+        sort = "asc"
 
     query = """
         SELECT shows.*, societies.name AS society_name,
@@ -450,7 +465,11 @@ def season_summary():
     if tier in SHOW_SECTIONS:
         query += " AND shows.section = ?"
         params.append(tier)
-    query += " ORDER BY (shows.opening_date IS NULL), shows.opening_date"
+    if hide_cancelled:
+        query += " AND shows.status IS NOT 'Cancelled'"
+    # NULL opening dates always sort last regardless of direction - only the
+    # dated rows actually flip.
+    query += f" ORDER BY (shows.opening_date IS NULL), shows.opening_date {'DESC' if sort == 'desc' else 'ASC'}"
 
     rows = db.execute(query, params).fetchall()
     upcoming = [r for r in rows if not r["is_past"]]
@@ -460,6 +479,7 @@ def season_summary():
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
         is_current=(season == current),
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
+        hide_cancelled=hide_cancelled, sort=sort,
     )
 
 
