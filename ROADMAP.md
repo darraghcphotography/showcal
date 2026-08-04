@@ -177,9 +177,39 @@ or UI elements like a big redesign, not just literal text edits.
 ## Live site audit (2026-08-04)
 A full pass over the live production site (darraghc.ie/showcal) - real pages,
 real data, not local dev - to find what's working and what isn't before
-picking the next phase. Traffic numbers from `/admin/traffic` weren't
-available from this machine (no NAS/Portainer access here); pending Darragh
-pasting them in.
+picking the next phase.
+
+**Traffic (`/admin/traffic`, 2,482 total page views recorded so far):**
+- Homepage dominates at 697 views (~28% of all traffic) - expected as the
+  main entry point.
+- `/season` (134) beats both `/stats` (116) and `/awards` (99) - validates
+  Round 3's call to keep Season Archive as a top-level nav item rather than
+  folding it away.
+- Society self-service is genuinely landing: `/society/` (dashboard, 106) +
+  `/society/login` (72) = 178 views - real usage of the invite-code login
+  system, not just a feature nobody found.
+- **Individual society pages (numeric IDs) collectively dwarf the
+  `/societies` directory** (39 views) - just the ones visible on the
+  traffic page sum to 230+. Most visitors are landing on *one specific*
+  society's page directly (a shared link), not browsing the directory to
+  find it. `/societies/108` (Stage One New-Musical Group) alone has 79 -
+  far ahead of the next-busiest, suggesting that society is actively
+  sharing their page link somewhere. Worth keeping in mind for the
+  "179 vs 127" copy fix above - the directory itself may matter less to
+  real usage than the individual pages do.
+- `/calendar.ics` has 24 views - the ICS export feature is genuinely used,
+  not dead weight.
+- `/submit/unlock` has 16 - confirms the deliberately-unadvertised one-off
+  submission form is reaching people the way it's meant to (Darragh sharing
+  the direct link on request).
+- `/suggest` (23) outpaces `/suggestions` the Roadmap page (14) - more
+  people submit a suggestion than check the Roadmap first, despite both
+  nudging that. Minor, not worth chasing.
+- **Data limitation**: `page_views` only stores a running total + last-seen
+  timestamp per path, no history over time - this single snapshot can't
+  show growth rate, day-of-week pattern, or where traffic is coming from.
+  Not recommending building that out now, just noting it as a ceiling on
+  how far traffic analysis can go without a schema change.
 
 **Confirmed working well:**
 - Round 5's About rewrite and Roadmap lanes (incl. the Done lane) are live
