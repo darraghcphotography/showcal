@@ -152,6 +152,17 @@ into the same mockup and re-reviewed before implementing for real.
 - Test suite grew 73 -> 76. Pushed as `536f024` (About) and `4eb1925`
   (Roadmap lanes).
 
+**Round 5 follow-up - multi-line changelog + deploy timestamp (2026-08-04):**
+Requested while reviewing the live audit - "Recently shipped" entries were
+capped at one terse line, not enough room for a real release summary:
+- A changelog entry can now be multiple lines - each line renders as its
+  own bullet under the date, instead of being squeezed onto one line.
+- The Roadmap page shows "Latest version deployed: &lt;timestamp&gt;" above
+  the list, sourced from when the app process started (a Portainer redeploy
+  restarts the container, so process-start time is an accurate deploy time
+  without tracking deploys separately).
+- Test suite grew 76 -> 78. Pushed as `128daeb`.
+
 **Process note:** started Round 1 straight from the approved backlog
 without a preview - Darragh expected a look-before-it-ships step even for
 "obviously small" changes, not just big redesigns. Fixed by spinning up a
