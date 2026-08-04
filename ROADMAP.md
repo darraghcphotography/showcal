@@ -161,8 +161,8 @@ never touches `aims.db`) for every round after that. See
 or UI elements like a big redesign, not just literal text edits.
 
 **Parked for their own dedicated sessions:**
-- Stats page "shows by season" redesign - explicitly wants mockup variants,
-  flagged as "the ugliest page so far."
+- Stats page redesign - now scoped and mockup-ready, see the Live site
+  audit section below instead of starting cold.
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the
   list (new data model, new admin UI, a matching concept), not a quick
@@ -174,11 +174,55 @@ or UI elements like a big redesign, not just literal text edits.
 - An FAQ page - Darragh's own suggestion, explicitly deferred ("maybe for a
   next revision").
 
+## Live site audit (2026-08-04)
+A full pass over the live production site (darraghc.ie/showcal) - real pages,
+real data, not local dev - to find what's working and what isn't before
+picking the next phase. Traffic numbers from `/admin/traffic` weren't
+available from this machine (no NAS/Portainer access here); pending Darragh
+pasting them in.
+
+**Confirmed working well:**
+- Round 5's About rewrite and Roadmap lanes (incl. the Done lane) are live
+  and rendering correctly with real data - a real user-facing bug (Mary I/
+  SpongeBob-style awards-link 404) and a real award-attribution correction
+  already show up in the Done lane, and the season/society/awards pages all
+  serve real, coherent data with no broken links found.
+- North Wexford's manually-corrected section (Gilbert, "as of 26/27") is
+  live and correct on its society page - confirms the Phase 2 CSV-export
+  item below is about syncing the *source* CSVs, not a live-data bug.
+
+**New findings:**
+- **"179 societies" is a headline stat, but only 127 are publicly browsable**
+  - `/societies` filters out `section = 'Inactive'` by default (by design,
+    for anonymous visitors), and 52 of the 179 rows (29%) are Inactive.
+    Worth a copy tweak on the About/Stats pages ("179 societies on record,
+    127 currently active") so the touted number matches what a visitor
+    actually finds when they click through.
+- **Homepage changelog has a live typo**: "Upcoming shows page reowrked
+  Socities now a separate page!" - a content fix via `/admin/changelog`
+  (edit the entry), not a code change.
+- **Season Archive's date range isn't labelled** - season "26/27" runs
+  Sept 2025-Aug 2026 by convention, so shows finishing May-July 2026
+  correctly show as "already finished" within it, but that's not obvious
+  from the "26/27" label alone. A small "(Sept 2025 - Aug 2026)" next to
+  the season heading would remove the ambiguity.
+- **Stats page confirmed as the weakest page**, matching the existing
+  "ugliest page" flag below - now scoped concretely (see the published
+  mockup): ~8 separately-formatted "most X" rankings back to back with no
+  shared visual language, a "Signature show" section that only 2 societies
+  currently qualify for with no inline explanation of why, and a
+  54-item one-off-productions list with no collapse. A redesign mockup
+  using today's real numbers (two leaderboard-consolidation variants) is
+  published - see [[stats-page-redesign-mockup]] - ready to build once a
+  direction's picked.
+
 ## Phase 2 - Data integrity sweep (next)
 - [Pending: run `export_csv.py` against production](see Claude's memory -
   "pending-csv-export-refresh") to pull the North Wexford tier fix (and
   anything else manually corrected since) back into the tracked CSVs.
 - Audit for other societies with similarly stale/presumptive data.
+- Fold in the audit findings above: the "179 vs 127" copy fix and the
+  changelog typo are both one-line content edits, cheap to bundle in here.
 
 ## Phase 3 - Public launch
 **Reality check (2026-08-04): the site is already live and has real
