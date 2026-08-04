@@ -171,9 +171,43 @@ never touches `aims.db`) for every round after that. See
 [[workflow-habits]] for the fuller lesson - treat anything touching layout
 or UI elements like a big redesign, not just literal text edits.
 
+**Round 6 - Stats page: award category leaderboard picker (2026-08-05):**
+Mockup-first again, two rounds of it: a first pass (variant B grid, every
+category as its own mini-card, grouped Societies/Production team/Cast) got
+"that's a lot to display at once" - reworked into a second mockup (single
+picker: award-category dropdown + Gilbert/Sullivan tier toggle, one
+leaderboard updates) that got "love." straight off:
+- Replaced the old fixed "Most 'Best Overall Show' wins" card on `/stats`
+  with an interactive picker - a dropdown (grouped Show / Production team /
+  Cast, matching the mockup's taxonomy) plus a Gilbert/Sullivan tier select,
+  GET-param driven like the page's existing region filter (`award_category`/
+  `award_tier`), not JS - a specific combination is a shareable/bookmarkable
+  URL. Threads through the page's existing region filter too, no new control
+  needed for that dimension.
+- Covers all 33 real `historical_results.category_name` values (verified by
+  a direct DB-vs-constant diff, not just eyeballed) via a new
+  `AWARD_CATEGORIES` list in `app/constants.py`, each tagged `person: True`
+  (leaderboard groups by `nominee_name` - Director, Musical Director,
+  Choreography, Stage Management, Chorus Master/Mistress, every on-stage
+  award) or `person: False` (groups by `society_name`) - classified from
+  actual data, not the column name: `Best Technical`/`Visual`/`Programme`/
+  `House Management` all store a *society* name in `nominee_name` despite
+  the column. "Best Choreography" and "Best Choreographer" turned out to be
+  the same award under two historical names, both still in use as late as
+  2025 rather than a clean rename - merged into one picker entry.
+- Fixes the original complaint (Wexford Light Opera topping every "most X"
+  card) not by hiding the real numbers but by only showing one category at a
+  time - e.g. Best Technical is led by Carrick-on-Suir, Best Programme by
+  Tullamore, Best House Management by Shannon; Best Overall Show splits
+  sharply by tier too (Wexford leads Gilbert, but Sullivan's list is 9
+  different one-off winning societies).
+- Test suite grew 78 -> 83 (default-category rendering, person-vs-society
+  grouping, tier filtering, the Choreography/Choreographer merge, and
+  invalid-param fallback).
+- Two published mockups this round: the grid-of-cards first pass
+  (`stats-redesign-v2`) and the picker that shipped (`stats-redesign-v3`).
+
 **Parked for their own dedicated sessions:**
-- Stats page redesign - now scoped and mockup-ready, see the Live site
-  audit section below instead of starting cold.
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the
   list (new data model, new admin UI, a matching concept), not a quick

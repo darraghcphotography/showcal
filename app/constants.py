@@ -36,3 +36,51 @@ SUGGESTION_CATEGORIES = ["Idea/Feature", "Bug report", "Data error"]
 # feature_suggestions.triage_status - moderator-set. Anything past 'New' is
 # visible on the public /suggestions Roadmap page.
 SUGGESTION_STATUSES = ["New", "Planned", "In Progress", "Done", "Not planned"]
+
+# Award categories for the /stats "award category leaderboard" picker, in
+# dropdown display order. "person": True means the meaningful winner is an
+# individual (leaderboard groups/labels by historical_results.nominee_name);
+# False means it's a society category (groups by society, labels by
+# society_name) - checked against real data, not assumed from the column
+# name: Best Technical/Visual/Programme/House Management all store a
+# *society* name in nominee_name despite the column, and were confirmed
+# society-level by cross-checking against society_name population. "Best
+# Choreography" and "Best Choreographer" are the same award under two
+# historical names (both in use 2019-2025, not a clean rename) - merged
+# into one picker entry, db_names carries both so the query catches either.
+AWARD_CATEGORIES = [
+    {"key": "Best Overall Show", "group": "Show", "person": False, "db_names": ["Best Overall Show"]},
+    {"key": "Best Technical (Lighting, Sets & Sound)", "group": "Show", "person": False, "db_names": ["Best Technical (Lighting, Sets & Sound)"]},
+    {"key": "Best Visual (Costumes, Props, Make-Up & Hair)", "group": "Show", "person": False, "db_names": ["Best Visual (Costumes, Props, Make-Up & Hair)"]},
+    {"key": "Best Programme", "group": "Show", "person": False, "db_names": ["Best Programme"]},
+    {"key": "Best House Management", "group": "Show", "person": False, "db_names": ["Best House Management"]},
+    {"key": "Best Chorus", "group": "Show", "person": False, "db_names": ["Best Chorus"]},
+    {"key": "Best Ensemble", "group": "Show", "person": False, "db_names": ["Best Ensemble"]},
+    {"key": "Best Gilbert & Sullivan/Pre 1935 Show/Modern Opera", "group": "Show", "person": False, "db_names": ["Best Gilbert & Sullivan/Pre 1935 Show/Modern Opera"]},
+    {"key": "Best Choral Singing", "group": "Show", "person": False, "db_names": ["Best Choral Singing"]},
+    {"key": "Best Lighting", "group": "Show", "person": False, "db_names": ["Best Lighting"]},
+    {"key": "Best Sets", "group": "Show", "person": False, "db_names": ["Best Sets"]},
+    {"key": 'Best Show "All Amateur Cast"', "group": "Show", "person": False, "db_names": ['Best Show "All Amateur Cast"']},
+    {"key": "Best Moment of Theatre", "group": "Show", "person": False, "db_names": ["Best Moment of Theatre"]},
+    {"key": "Spirit of AIMS", "group": "Show", "person": False, "db_names": ["Spirit of AIMS"]},
+    {"key": "Spirit of AIMS/Adjudicator's Special Award", "group": "Show", "person": False, "db_names": ["Spirit of AIMS/Adjudicator's Special Award"]},
+    {"key": "Adjudicator's Special Award", "group": "Show", "person": False, "db_names": ["Adjudicator's Special Award"]},
+    {"key": "Best Director", "group": "Production team", "person": True, "db_names": ["Best Director"]},
+    {"key": "Best Musical Director", "group": "Production team", "person": True, "db_names": ["Best Musical Director"]},
+    {"key": "Best Choreography", "group": "Production team", "person": True, "db_names": ["Best Choreography", "Best Choreographer"]},
+    {"key": "Best Stage Management", "group": "Production team", "person": True, "db_names": ["Best Stage Management"]},
+    {"key": "Best Chorus Master/Mistress", "group": "Production team", "person": True, "db_names": ["Best Chorus Master/Mistress"]},
+    {"key": "Best Actor", "group": "Cast", "person": True, "db_names": ["Best Actor"]},
+    {"key": "Best Actor In A Supporting Role", "group": "Cast", "person": True, "db_names": ["Best Actor In A Supporting Role"]},
+    {"key": "Best Actress", "group": "Cast", "person": True, "db_names": ["Best Actress"]},
+    {"key": "Best Actress In A Supporting Role", "group": "Cast", "person": True, "db_names": ["Best Actress In A Supporting Role"]},
+    {"key": "Best Comedian", "group": "Cast", "person": True, "db_names": ["Best Comedian"]},
+    {"key": "Best Comedienne", "group": "Cast", "person": True, "db_names": ["Best Comedienne"]},
+    {"key": "Best Male Singer", "group": "Cast", "person": True, "db_names": ["Best Male Singer"]},
+    {"key": "Best Female Singer", "group": "Cast", "person": True, "db_names": ["Best Female Singer"]},
+    {"key": "Best Overall Performance", "group": "Cast", "person": True, "db_names": ["Best Overall Performance"]},
+    {"key": "Best Youth in an Adult Show", "group": "Cast", "person": True, "db_names": ["Best Youth in an Adult Show"]},
+    {"key": "Mary Kelly/Unsung Hero Award", "group": "Cast", "person": True, "db_names": ["Mary Kelly/Unsung Hero Award"]},
+]
+AWARD_CATEGORY_BY_KEY = {c["key"]: c for c in AWARD_CATEGORIES}
+DEFAULT_AWARD_CATEGORY = "Best Overall Show"

@@ -25,6 +25,8 @@
      announced-but-not-yet-run shows don't count until they happen.</p>
 
   <form method="get" class="filter-form">
+    <input type="hidden" name="award_category" value="{{ selected_award_category }}">
+    <input type="hidden" name="award_tier" value="{{ selected_award_tier }}">
     <label>
       Region
       <select name="region" onchange="this.form.submit()">
@@ -154,8 +156,40 @@
   <p class="meta">Every category win counted, across the whole archive.</p>
   {{ bar_chart(most_award_wins, linked=false) }}
 
-  <h3>Most "Best Overall Show" wins</h3>
-  {{ bar_chart(most_best_show_wins, linked=false) }}
+  <h3>Award category leaderboard</h3>
+  <p class="meta">Pick a category to see who's won it most - production-team and cast categories
+     (Director, Musical Director, Choreography, Stage Management, Chorus Master/Mistress, and every
+     on-stage award) are won by an individual, not a society. Uses the region filter above too.</p>
+  <form method="get" class="filter-form">
+    <input type="hidden" name="region" value="{{ selected_region }}">
+    <label>
+      Award category
+      <select name="award_category" onchange="this.form.submit()">
+        {% for group_name in ['Show', 'Production team', 'Cast'] %}
+          <optgroup label="{{ group_name }}">
+            {% for c in award_categories if c.group == group_name %}
+              <option value="{{ c.key }}" {% if c.key == selected_award_category %}selected{% endif %}>{{ c.key }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Tier
+      <select name="award_tier" onchange="this.form.submit()">
+        <option value="">All</option>
+        <option value="Gilbert" {% if selected_award_tier == 'Gilbert' %}selected{% endif %}>Gilbert</option>
+        <option value="Sullivan" {% if selected_award_tier == 'Sullivan' %}selected{% endif %}>Sullivan</option>
+      </select>
+    </label>
+  </form>
+  <p class="meta">{{ selected_award_category }}{% if selected_award_tier %} &mdash; {{ selected_award_tier }}{% endif %}
+     ({{ 'by person' if award_leaderboard_is_person else 'by society' }})</p>
+  {% if award_leaderboard %}
+    {{ bar_chart(award_leaderboard, linked=false) }}
+  {% else %}
+    <p class="meta">No winners on record for this combination.</p>
+  {% endif %}
 
   {% if not selected_region %}
     <h3>Award wins by region</h3>

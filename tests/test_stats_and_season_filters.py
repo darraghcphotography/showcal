@@ -61,6 +61,62 @@ def test_season_page_hides_cancelled_shows_when_requested(client, db):
     assert "Still On" in body
 
 
+def _add_award(db, category_name, result, tier, society_name=None, nominee_name=None, year=2020):
+    db.execute(
+        "INSERT INTO historical_results (year, tier, category_name, result, society_name, nominee_name, source) "
+        "VALUES (?, ?, ?, ?, ?, ?, 'manual')",
+        (year, tier, category_name, result, society_name, nominee_name),
+    )
+
+
+def test_award_leaderboard_defaults_to_best_overall_show_by_society(client, db):
+    _add_award(db, "Best Overall Show", "Winner", "Gilbert", society_name="Wexford Light Opera Society")
+    db.commit()
+
+    body = client.get("/stats").get_data(as_text=True)
+    assert "Award category leaderboard" in body
+    assert "Wexford Light Opera Society" in body
+    assert "(by society)" in body
+
+
+def test_award_leaderboard_person_category_groups_by_nominee(client, db):
+    _add_award(db, "Best Director", "Winner", "Gilbert", nominee_name="Jane Doe")
+    _add_award(db, "Best Director", "Winner", "Sullivan", nominee_name="John Smith")
+    db.commit()
+
+    body = client.get("/stats?award_category=Best+Director").get_data(as_text=True)
+    assert "(by person)" in body
+    assert "Jane Doe" in body
+    assert "John Smith" in body
+
+
+def test_award_leaderboard_tier_filter_narrows_results(client, db):
+    _add_award(db, "Best Director", "Winner", "Gilbert", nominee_name="Jane Doe")
+    _add_award(db, "Best Director", "Winner", "Sullivan", nominee_name="John Smith")
+    db.commit()
+
+    body = client.get("/stats?award_category=Best+Director&award_tier=Gilbert").get_data(as_text=True)
+    assert "Jane Doe" in body
+    assert "John Smith" not in body
+
+
+def test_award_leaderboard_merges_choreography_and_choreographer(client, db):
+    _add_award(db, "Best Choreography", "Winner", "Gilbert", nominee_name="Old Name Award")
+    _add_award(db, "Best Choreographer", "Winner", "Gilbert", nominee_name="Old Name Award")
+    db.commit()
+
+    body = client.get("/stats?award_category=Best+Choreography").get_data(as_text=True)
+    assert "Old Name Award" in body
+    assert '<span class="bar-count">2</span>' in body
+
+
+def test_award_leaderboard_invalid_category_falls_back_to_default(client, db):
+    resp = client.get("/stats?award_category=Not+A+Real+Category&award_tier=Nonsense")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert 'value="Best Overall Show" selected' in body
+
+
 def test_season_page_sort_toggle_reverses_order(client, db):
     society_id = seed_society(db)
     for show, opening in [("Early Bird", "2026-09-01"), ("Late Bloomer", "2026-09-20")]:

@@ -2,7 +2,15 @@ from datetime import date
 
 from flask import Blueprint, render_template, request
 
-from ..constants import AWARD_RESULTS, REGIONS, SHOW_SECTIONS, SHOWS_COVERAGE_START_YEAR
+from ..constants import (
+    AWARD_CATEGORIES,
+    AWARD_CATEGORY_BY_KEY,
+    AWARD_RESULTS,
+    DEFAULT_AWARD_CATEGORY,
+    REGIONS,
+    SHOW_SECTIONS,
+    SHOWS_COVERAGE_START_YEAR,
+)
 from ..db import get_db
 from ..search import fts_match_ids
 from ..season import current_season
@@ -176,17 +184,55 @@ def stats():
     params.append(TOP_N)
     most_award_wins = db.execute(query, params).fetchall()
 
-    params = []
-    query = f"""
-        SELECT COALESCE(historical_results.society_name, 'Unknown') AS label, COUNT(*) AS n
-        FROM historical_results {hist_join}
-        WHERE historical_results.result = 'Winner' AND historical_results.category_name = 'Best Overall Show'
-          AND historical_results.society_name IS NOT NULL
-    """
-    query += hist_region_clause(params)
-    query += " GROUP BY COALESCE(historical_results.society_id, historical_results.society_name) ORDER BY n DESC, label LIMIT ?"
+    # Award category leaderboard picker - one category (default "Best Overall
+    # Show") + optional Gilbert/Sullivan tier, chosen via dropdowns on the
+    # page (GET params, same pattern as the region filter). Replaces what
+    # used to be a fixed "Best Overall Show" wins card - that's now just the
+    # default selection rather than the only category on offer. "person"
+    # categories (Best Director, Best Actor, etc.) group/label by
+    # nominee_name; "society" categories group/label by society_name, same
+    # as most_award_wins above - see AWARD_CATEGORIES in constants.py for
+    # which is which and why (it's checked against real data, not assumed
+    # from the column name).
+    award_category = request.args.get("award_category", DEFAULT_AWARD_CATEGORY)
+    if award_category not in AWARD_CATEGORY_BY_KEY:
+        award_category = DEFAULT_AWARD_CATEGORY
+    award_tier = request.args.get("award_tier", "")
+    if award_tier not in ("Gilbert", "Sullivan"):
+        award_tier = ""
+    award_category_entry = AWARD_CATEGORY_BY_KEY[award_category]
+
+    db_names = award_category_entry["db_names"]
+    params = list(db_names)
+    cat_placeholders = ",".join("?" * len(db_names))
+    tier_sql = ""
+    if award_tier:
+        tier_sql = " AND historical_results.tier = ?"
+        params.append(award_tier)
+    if award_category_entry["person"]:
+        query = f"""
+            SELECT historical_results.nominee_name AS label, COUNT(*) AS n
+            FROM historical_results {hist_join}
+            WHERE historical_results.result = 'Winner'
+              AND historical_results.category_name IN ({cat_placeholders})
+              AND historical_results.nominee_name IS NOT NULL
+              {tier_sql}
+        """
+        query += hist_region_clause(params)
+        query += " GROUP BY historical_results.nominee_name ORDER BY n DESC, label LIMIT ?"
+    else:
+        query = f"""
+            SELECT COALESCE(historical_results.society_name, 'Unknown') AS label, COUNT(*) AS n
+            FROM historical_results {hist_join}
+            WHERE historical_results.result = 'Winner'
+              AND historical_results.category_name IN ({cat_placeholders})
+              AND historical_results.society_name IS NOT NULL
+              {tier_sql}
+        """
+        query += hist_region_clause(params)
+        query += " GROUP BY COALESCE(historical_results.society_id, historical_results.society_name) ORDER BY n DESC, label LIMIT ?"
     params.append(TOP_N)
-    most_best_show_wins = db.execute(query, params).fetchall()
+    award_leaderboard = db.execute(query, params).fetchall()
 
     # Winner counts grouped BY region (not filtered to the page's selected
     # region - this chart shows every region side by side). Covers societies
@@ -418,7 +464,11 @@ def stats():
         award_from=award_from,
         award_to=award_to,
         most_award_wins=most_award_wins,
-        most_best_show_wins=most_best_show_wins,
+        award_categories=AWARD_CATEGORIES,
+        selected_award_category=award_category,
+        selected_award_tier=award_tier,
+        award_leaderboard=award_leaderboard,
+        award_leaderboard_is_person=award_category_entry["person"],
         wins_by_region=wins_by_region,
         most_nominated_no_wins=most_nominated_no_wins,
         win_rate_leaderboard=win_rate_leaderboard,
