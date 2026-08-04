@@ -246,6 +246,49 @@ picking the next phase.
   published - see [[stats-page-redesign-mockup]] - ready to build once a
   direction's picked.
 
+## Backlog - Adjudicator planning calendar (not started, needs its own session)
+Raised 2026-08-04 via Darragh, relaying feedback from one of the two AIMS
+adjudicators (one covers Gilbert, one covers Sullivan - each has to route-plan
+to see every show in their section and get a review out, and technically
+only need ~6 weeks' notice):
+
+> "I wonder would it be possible to have a colour coded month by month
+> calendar? One colour for Gilbert and one for Sullivan... I can already see
+> one week where, if all shows announced to date avail of adjudication, the
+> last one to apply will be disappointed. A visual calendar may prompt early
+> applications."
+
+Darragh's framing: a week-by-week view, per section, showing how many shows
+are running that week - so an adjudicator (and a society deciding when to
+apply) can spot an overloaded week at a glance. Internal/admin-only, not a
+public-facing feature.
+
+**Feasibility check (2026-08-04):** the data this needs already exists -
+`shows.opening_date`/`closing_date` + `shows.section` (Gilbert/Sullivan) -
+no schema change required, just a new aggregate view/page grouping by ISO
+week and section. `shows.adjudication_date` exists in the schema too but is
+effectively unused for current data (mostly null going forward - a legacy
+column from an early import), so the real signal is the show's own run
+dates, not a separate adjudication-date field.
+
+**The real dependency, exactly as Darragh's adjudicator flagged**: this is
+only as good as how many shows have a confirmed `opening_date` rather than
+"TBA" - per the live site audit above, a meaningful chunk of even the
+*current* season is still TBA. That's not a blocker (the calendar fills in
+as societies confirm dates, which is arguably the point - an early visual
+nudge), but it means it'll look sparse if introduced too early in a season.
+
+**Open questions before building:**
+- Access: a dedicated adjudicator login, or a shared unlisted link (same
+  pattern as the unadvertised `/submit/unlock` one-off form)?
+- Does "colour coded" mean two colours (Gilbert/Sullivan) on a shared
+  calendar, or two separate calendars?
+- Worth surfacing danger weeks (e.g. 3+ shows opening the same week) with
+  their own visual treatment, per the adjudicator's own example?
+
+Flagged by Darragh as "may end up being a large side request" - mockup
+first, own session, not started.
+
 ## Phase 2 - Data integrity sweep (next)
 - [Pending: run `export_csv.py` against production](see Claude's memory -
   "pending-csv-export-refresh") to pull the North Wexford tier fix (and
