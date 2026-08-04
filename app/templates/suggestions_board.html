@@ -42,8 +42,16 @@
   {{ lane('Not planned', 'Not planned', 'lane-notplanned') }}
 
   <h2>Recently shipped</h2>
+  <p class="meta">Latest version deployed: {{ deployed_at|irish_datetime }}</p>
   {% for entry in changelog %}
-    <p class="meta">{{ entry['entry_date']|irish_datetime }} &mdash; {{ entry['entry'] }}</p>
+    <div class="shipped-entry">
+      <p class="meta">{{ entry['entry_date']|irish_datetime }}</p>
+      <ul>
+        {% for line in entry['entry'].split('\n') %}
+          {% if line.strip() %}<li>{{ line.strip() }}</li>{% endif %}
+        {% endfor %}
+      </ul>
+    </div>
   {% else %}
     <p>No changelog entries yet.</p>
   {% endfor %}

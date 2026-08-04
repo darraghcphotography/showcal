@@ -374,6 +374,14 @@ details table { margin-top: 0.5rem; }
 .cat-data { background: var(--bronze); }
 .cat-feature { background: var(--silver); }
 
+/* "Recently shipped": one entry can be a multi-line summary (a headline
+   plus supporting bullets), not just a single terse line. */
+.shipped-entry { margin-bottom: 1.25rem; }
+.shipped-entry:last-child { margin-bottom: 0; }
+.shipped-entry > .meta { margin: 0 0 0.3rem; font-size: 0.85rem; }
+.shipped-entry ul { margin: 0; padding-left: 1.2rem; }
+.shipped-entry li { margin-bottom: 0.2rem; }
+
 .queue-item .actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; align-items: center; }
 .queue-item.reviewed { opacity: 0.6; }
 

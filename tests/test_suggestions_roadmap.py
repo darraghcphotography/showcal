@@ -130,6 +130,24 @@ def test_roadmap_does_not_double_list_done_suggestion_in_recently_shipped(client
     assert "Fix a 404 on the awards page" not in shipped_section
 
 
+def test_roadmap_shows_deployed_at_timestamp(client):
+    body = client.get("/suggestions").get_data(as_text=True)
+    assert "Latest version deployed:" in body
+
+
+def test_changelog_entry_renders_each_line_as_a_bullet(client, db):
+    db.execute(
+        "INSERT INTO changelog_entries (entry) VALUES (?)",
+        ("Roadmap page redesign\nStatus lanes with a Done column\nColour-coded by category",),
+    )
+    db.commit()
+
+    body = client.get("/suggestions").get_data(as_text=True)
+    assert "<li>Roadmap page redesign</li>" in body
+    assert "<li>Status lanes with a Done column</li>" in body
+    assert "<li>Colour-coded by category</li>" in body
+
+
 def test_roadmap_category_dot_matches_category(client, db):
     db.execute(
         "INSERT INTO feature_suggestions (message, category, triage_status) "

@@ -94,12 +94,19 @@ def create_app(test_config=None):
     except OSError:
         asset_version = "1"
 
+    # When this process started - a redeploy restarts the container, so this
+    # is an accurate "deployed at" for the Roadmap page's "Recently shipped"
+    # section without needing to track deploys separately.
+    from datetime import datetime as _datetime
+    deployed_at = _datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     @app.context_processor
     def inject_globals():
         return {
             "current_user": auth.current_user(),
             "society_session": auth.active_society_code(),
             "asset_version": asset_version,
+            "deployed_at": deployed_at,
         }
 
     from flask import flash, redirect, request, url_for
