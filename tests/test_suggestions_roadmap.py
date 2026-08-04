@@ -103,3 +103,40 @@ def test_changelog_page_requires_login(client):
     resp = client.get("/admin/changelog", follow_redirects=False)
     assert resp.status_code == 302
     assert "/admin/login" in resp.headers["Location"]
+
+
+def test_roadmap_shows_done_suggestions_in_their_own_lane(client, db):
+    db.execute(
+        "INSERT INTO feature_suggestions (message, category, triage_status) "
+        "VALUES ('Delete/archive suggestions in admin', 'Idea/Feature', 'Done')"
+    )
+    db.commit()
+
+    body = client.get("/suggestions").get_data(as_text=True)
+    assert "Delete/archive suggestions in admin" in body
+    done_lane = body.split('class="lane lane-done"')[1].split("</div>\n  <div class=\"lane")[0]
+    assert "Delete/archive suggestions in admin" in done_lane
+
+
+def test_roadmap_does_not_double_list_done_suggestion_in_recently_shipped(client, db):
+    db.execute(
+        "INSERT INTO feature_suggestions (message, category, triage_status) "
+        "VALUES ('Fix a 404 on the awards page', 'Bug report', 'Done')"
+    )
+    db.commit()
+
+    body = client.get("/suggestions").get_data(as_text=True)
+    shipped_section = body.split("Recently shipped</h2>")[1]
+    assert "Fix a 404 on the awards page" not in shipped_section
+
+
+def test_roadmap_category_dot_matches_category(client, db):
+    db.execute(
+        "INSERT INTO feature_suggestions (message, category, triage_status) "
+        "VALUES ('Fix mobile nav overlap', 'Bug report', 'In Progress')"
+    )
+    db.commit()
+
+    body = client.get("/suggestions").get_data(as_text=True)
+    progress_lane = body.split('class="lane lane-progress"')[1].split("</div>\n  <div class=\"lane")[0]
+    assert 'cat-dot cat-bug' in progress_lane

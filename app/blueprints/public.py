@@ -367,33 +367,31 @@ def suggest_thanks():
 @bp.route("/suggestions")
 def suggestions_board():
     db = get_db()
-    # Priority order (not alphabetical) so "in progress" and "planned" read
-    # as the headline, "not planned" as the reference tail - still shown so
-    # a duplicate idea can be spotted before resubmitting. "Done" moves to
-    # "Recently shipped" below instead of sitting here.
+    # Lane order (not alphabetical): Planned -> In Progress -> Done reads as
+    # a pipeline, "Not planned" as the reference tail - still shown so a
+    # duplicate idea can be spotted before resubmitting. Ordered within each
+    # lane by triaged_at (falls back to created_at for rows triaged before
+    # that column existed) so the most recently-moved item floats to the top.
     rows = db.execute(
         """
         SELECT message, category, triage_status FROM feature_suggestions
-        WHERE triage_status NOT IN ('New', 'Done')
+        WHERE triage_status IN ('Planned', 'In Progress', 'Done', 'Not planned')
         ORDER BY
-            CASE triage_status WHEN 'In Progress' THEN 0 WHEN 'Planned' THEN 1 WHEN 'Not planned' THEN 2 END,
-            created_at DESC
+            CASE triage_status WHEN 'Planned' THEN 0 WHEN 'In Progress' THEN 1 WHEN 'Done' THEN 2 WHEN 'Not planned' THEN 3 END,
+            COALESCE(triaged_at, created_at) DESC
         """
     ).fetchall()
-    # A suggestion marked Done counts as "shipped" too, dated by when it was
-    # actually marked Done (triaged_at) rather than when it was originally
-    # submitted - falls back to created_at for rows triaged before that
-    # column existed.
+    lanes = {status: [] for status in ("Planned", "In Progress", "Done", "Not planned")}
+    for row in rows:
+        lanes[row["triage_status"]].append(row)
+    # "Recently shipped" is the curated/manual changelog only now that a
+    # finished suggestion is visible in its own Done lane above - showing
+    # the same item in both places would just be clutter. This still covers
+    # shipped work that didn't start as a suggestion (e.g. the nav rework).
     changelog = db.execute(
-        """
-        SELECT message AS entry, COALESCE(triaged_at, created_at) AS entry_date
-        FROM feature_suggestions WHERE triage_status = 'Done'
-        UNION ALL
-        SELECT entry, created_at AS entry_date FROM changelog_entries
-        ORDER BY entry_date DESC
-        """
+        "SELECT entry, created_at AS entry_date FROM changelog_entries ORDER BY created_at DESC"
     ).fetchall()
-    return render_template("suggestions_board.html", suggestions=rows, changelog=changelog)
+    return render_template("suggestions_board.html", lanes=lanes, changelog=changelog)
 
 
 @bp.route("/uploads/<path:filename>")

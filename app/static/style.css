@@ -337,6 +337,43 @@ details table { margin-top: 0.5rem; }
   box-shadow: var(--shadow);
 }
 
+/* Roadmap page: a status lane per triage_status, colour-coded the same way
+   .tag-gold/.tag-active/.tag-cancelled already colour those statuses
+   elsewhere - just applied to the whole lane instead of a small pill.
+   Category gets a small dot rather than a second loud colour so it doesn't
+   compete with the lane colour for attention. */
+.legend { color: var(--muted); font-size: 0.85rem; }
+
+.lane { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.25rem; overflow: hidden; }
+.lane-head {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 1rem; font-weight: 700; font-size: 0.85rem;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--lane-color) 14%, var(--bg));
+  color: var(--lane-color);
+}
+.lane-head .dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--lane-color); flex-shrink: 0; }
+.lane-head .lane-count {
+  margin-left: auto; font-size: 0.72rem; font-weight: 600; letter-spacing: normal; text-transform: none;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 0.05rem 0.5rem; color: var(--muted);
+}
+.lane.lane-planned { --lane-color: var(--accent); }
+.lane.lane-progress { --lane-color: var(--gold); }
+.lane.lane-done { --lane-color: var(--success); }
+.lane.lane-notplanned { --lane-color: var(--muted); }
+.lane-body { padding: 0.5rem 1rem 0.25rem; background: var(--bg); }
+.lane-row {
+  display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
+  padding: 0.6rem 0; border-bottom: 1px solid var(--border);
+}
+.lane-row:last-child { border-bottom: none; }
+.lane-row .cat { display: inline-flex; align-items: center; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+
+.cat-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; margin-right: 0.4rem; flex-shrink: 0; }
+.cat-bug { background: var(--danger); }
+.cat-data { background: var(--bronze); }
+.cat-feature { background: var(--silver); }
+
 .queue-item .actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; align-items: center; }
 .queue-item.reviewed { opacity: 0.6; }
 

@@ -1,31 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Roadmap - DC Show Tracker{% endblock %}
+
+{% macro category_dot(category) %}
+  {% if category == 'Bug report' %}<span class="cat-dot cat-bug"></span>
+  {% elif category == 'Data error' %}<span class="cat-dot cat-data"></span>
+  {% else %}<span class="cat-dot cat-feature"></span>
+  {% endif %}
+{% endmacro %}
+
+{% macro lane(title, status, css_class) %}
+  <div class="lane {{ css_class }}">
+    <div class="lane-head"><span class="dot"></span>{{ title }} <span class="lane-count">{{ lanes[status]|length }}</span></div>
+    <div class="lane-body">
+      {% for s in lanes[status] %}
+        <div class="lane-row">
+          <span>{{ s['message'] }}</span>
+          <span class="cat">{{ category_dot(s['category']) }}{{ s['category'] }}</span>
+        </div>
+      {% else %}
+        <p class="meta">Nothing here right now.</p>
+      {% endfor %}
+    </div>
+  </div>
+{% endmacro %}
+
 {% block content %}
   <h1>Roadmap</h1>
   <p>What's already been suggested and where it stands, plus what's shipped recently.
      Check here before <a href="{{ url_for('public.suggest') }}">suggesting a feature</a> -
      it might already be in progress.</p>
 
-  <h2>Coming up &amp; already suggested</h2>
-  {% for s in suggestions %}
-    <article class="queue-item">
-      <p>{{ s['message'] }}</p>
-      <p class="meta">
-        <span class="tag">{{ s['category'] }}</span>
-        {% if s['triage_status'] == 'In Progress' %}
-          <span class="tag tag-gold">In progress</span>
-        {% elif s['triage_status'] == 'Done' %}
-          <span class="tag tag-active">Done</span>
-        {% elif s['triage_status'] == 'Not planned' %}
-          <span class="tag tag-cancelled">Not planned</span>
-        {% else %}
-          <span class="tag">{{ s['triage_status'] }}</span>
-        {% endif %}
-      </p>
-    </article>
-  {% else %}
-    <p>Nothing triaged yet - check back soon.</p>
-  {% endfor %}
+  <p class="legend">
+    <span class="cat-dot cat-bug"></span>Bug report &nbsp;
+    <span class="cat-dot cat-data"></span>Data error &nbsp;
+    <span class="cat-dot cat-feature"></span>Idea/Feature
+  </p>
+
+  {{ lane('Planned', 'Planned', 'lane-planned') }}
+  {{ lane('In progress', 'In Progress', 'lane-progress') }}
+  {{ lane('Done', 'Done', 'lane-done') }}
+  {{ lane('Not planned', 'Not planned', 'lane-notplanned') }}
 
   <h2>Recently shipped</h2>
   {% for entry in changelog %}
