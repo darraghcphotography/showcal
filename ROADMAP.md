@@ -116,6 +116,21 @@ shrink it to a teaser):
   user-facing pages/docs; suggest-a-feature form field order changed to
   Name/Contact/Type/Your idea.
 
+**Round 4 - suggestions cleanup + changelog timestamps (2026-08-04):**
+Raised in chat right after the Round 3 push, from Darragh spotting an
+accidentally-double-submitted suggestion live:
+- `/admin/suggestions` gets a Delete button per card (with confirm).
+- Done/Not planned suggestions collapse behind a "Show N archived
+  suggestions" disclosure instead of piling up in the main list forever -
+  same pattern as the stats page's earlier-seasons collapse. They're not
+  deleted, still feed the public Roadmap's "Recently shipped".
+- Changelog entries on the public Roadmap page now show a full
+  date + time (`irish_datetime` filter) instead of just a date.
+- Test suite grew 69 -> 73. Committed as `c8f7b81` in a session that got
+  interrupted by an accidental `/clear` right before the commit - recovered
+  by reading the prior session's `.jsonl` transcript out of
+  `~/.claude/projects/`, since `/clear` doesn't delete history from disk.
+
 **Process note:** started Round 1 straight from the approved backlog
 without a preview - Darragh expected a look-before-it-ships step even for
 "obviously small" changes, not just big redesigns. Fixed by spinning up a
