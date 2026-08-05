@@ -11,13 +11,14 @@
   --bronze: #a9702f;
   --danger: #a02f2f;
   --success: #2f7a3f;
+  --warning: #a06c00;
   --row-alt: #f7f7f8;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.09), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --fg: #ececec;
     --bg: #17161a;
     --muted: #a4a0a8;
@@ -29,10 +30,34 @@
     --bronze: #d68a4a;
     --danger: #ff8b8b;
     --success: #7fd48f;
+    --warning: #e0b84a;
     --row-alt: #221f26;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 4px 18px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --fg: #ececec;
+  --bg: #17161a;
+  --muted: #a4a0a8;
+  --border: #38343c;
+  --accent: #f0a8c0;
+  --accent-contrast: #2a0f18;
+  --gold: #dcb84f;
+  --silver: #b9bfc8;
+  --bronze: #d68a4a;
+  --danger: #ff8b8b;
+  --success: #7fd48f;
+  --warning: #e0b84a;
+  --row-alt: #221f26;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 18px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -118,6 +143,18 @@ body {
   border-radius: 4px;
   padding: 0.15rem 0.55rem;
 }
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--fg);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.95rem;
+}
+.theme-toggle:hover { border-color: var(--accent); }
 
 .site-footer {
   text-align: center;
@@ -243,10 +280,7 @@ button.button-primary { background: var(--success); color: #fff; }
 .flash { padding: 0.6rem 0.9rem; border-radius: 4px; margin-bottom: 0.5rem; }
 .flash-error { background: rgba(160, 47, 47, 0.15); color: var(--danger); }
 .flash-success { background: rgba(47, 122, 63, 0.15); color: var(--success); }
-.flash-warning { background: rgba(200, 150, 0, 0.15); color: #a06c00; }
-@media (prefers-color-scheme: dark) {
-  .flash-warning { color: #e0b84a; }
-}
+.flash-warning { background: rgba(200, 150, 0, 0.15); color: var(--warning); }
 
 .meta { color: var(--muted); }
 

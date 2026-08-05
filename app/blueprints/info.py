@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from flask import Blueprint, render_template, request
 
@@ -526,9 +526,23 @@ def season_summary():
     upcoming = [r for r in rows if not r["is_past"]]
     finished = [r for r in rows if r["is_past"]]
 
+    span = db.execute(
+        "SELECT MIN(opening_date), MAX(opening_date) FROM shows "
+        "WHERE season = ? AND moderation_status = 'approved' AND show IS NOT NULL",
+        (season,),
+    ).fetchone()
+    season_range_label = None
+    if span[0] and span[1]:
+        start = datetime.strptime(span[0], "%Y-%m-%d")
+        end = datetime.strptime(span[1], "%Y-%m-%d")
+        if start.year == end.year and start.month == end.month:
+            season_range_label = start.strftime("%b %Y")
+        else:
+            season_range_label = f"{start.strftime('%b %Y')} – {end.strftime('%b %Y')}"
+
     return render_template(
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
-        is_current=(season == current),
+        is_current=(season == current), season_range_label=season_range_label,
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
         hide_cancelled=hide_cancelled, sort=sort,
     )

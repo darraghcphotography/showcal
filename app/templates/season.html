@@ -61,7 +61,8 @@
     {{ season }} season
     {% if is_current %}<span class="tag">current</span>{% endif %}
   </h1>
-  <p>{{ total }} show{{ '' if total == 1 else 's' }} announced for {{ season }}{% if is_current %} (current season){% endif %}.</p>
+  <p>{{ total }} show{{ '' if total == 1 else 's' }} announced for {{ season }}{% if is_current %} (current season){% endif %}
+    {%- if season_range_label %} &middot; runs {{ season_range_label }}{% endif %}.</p>
 
   {% if all_seasons|length > 1 %}
     <p class="season-picker">

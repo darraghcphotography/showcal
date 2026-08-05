@@ -3,6 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <title>{% block title %}DC Show Tracker{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
@@ -50,6 +56,7 @@
           <button type="submit" class="link-button">Log out ({{ current_user['username'] }})</button>
         </form>
       {% endif %}
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
     </nav>
   </header>
 
@@ -81,6 +88,27 @@
     </p>
   </footer>
 
+  <script>
+    (function() {
+      var btn = document.getElementById('theme-toggle');
+      if (!btn) return;
+      function effectiveTheme() {
+        var stored = localStorage.getItem('theme');
+        if (stored === 'light' || stored === 'dark') return stored;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      function render() {
+        btn.textContent = effectiveTheme() === 'dark' ? '☀️' : '🌙';
+      }
+      render();
+      btn.addEventListener('click', function() {
+        var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('theme', next);
+        document.documentElement.setAttribute('data-theme', next);
+        render();
+      });
+    })();
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

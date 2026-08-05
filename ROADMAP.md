@@ -395,6 +395,30 @@ Found through Darragh actually using tonight's features live, right after redepl
 - An FAQ page - Darragh's own suggestion, explicitly deferred ("maybe for a
   next revision").
 
+## UX & feature audit (2026-08-05) - reviewed, nothing built yet
+Requested pass focused on four specific asks, published as its own document (not chat-only):
+https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
+- **Stats page "Who's won the most?" framing** - real data confirms the ego-stroke complaint
+  (Wexford leads Best Overall Show 7x, most productions 135, most award wins 59 - all three
+  all-time totals). The Award Explorer already fixes this *per category* when you actually use
+  it (Tullamore leads Best Programme, Shannon leads House Management, etc.) - the problem is the
+  headline framing and the default view landing on the one category where the gap is widest.
+  Proposed: reframe the headline, pick a less lopsided default, add a recency-weighted
+  ("since 23/24" vs all-time) toggle to the Explorer and the all-time leaderboard cards - don't
+  skew or hide the real historical numbers, same principle as Round 6.
+- **Review author byline** - no `review_author` column exists yet (checked `schema.sql`); the
+  "Read the AIMS review" link has never carried an author. Scoped as a small schema +
+  admin-form + template change, but two open questions before building: backfill existing
+  review links or let it grow forward-only, and is "author" always an individual adjudicator or
+  sometimes a publication.
+- **Light/dark toggle** - the site already has a full dark theme (`style.css`, driven by
+  `prefers-color-scheme`), just no manual override. Proposed: small `data-theme` +
+  `localStorage` toggle, no backend/schema involved.
+- **Season Archive date-range label** - confirmed still open from the 2026-08-04 audit (checked
+  `season.html` directly, no range text present) - not shipped despite being flagged before.
+- **Adjudicator restricted view scoping** - see the resolved decisions above (unlisted link, one
+  shared colour-coded calendar, 3+ danger-week flag, historical view first).
+
 ## Site review (2026-08-05) - questions for Darragh, not started
 Full pass over the live site, the codebase, and `aims.db` at Darragh's request, specifically to
 surface open questions/decisions rather than just findings. Written up as its own document
@@ -546,16 +570,18 @@ but it'll look sparse if shipped too early in a season - which is exactly
 why the historical view (1, above) is worth having independently: it's
 useful on day one, doesn't wait on anything.
 
-**Open questions before building:**
-- Access: a dedicated adjudicator login, or a shared unlisted link (same
-  pattern as the unadvertised `/submit/unlock` one-off form)?
-- Does "colour coded" mean two colours (Gilbert/Sullivan) on a shared
-  calendar, or two separate calendars?
-- Worth surfacing danger weeks (e.g. 3+ shows opening the same week) with
-  their own visual treatment, per the adjudicator's own example?
+**Scoping decisions (2026-08-05, via the UX audit below) - ready to build:**
+- Access: **unlisted shared link**, same pattern as `/submit/unlock` - no login system.
+- Layout: **one shared calendar**, Gilbert/Sullivan shows colour-coded together (not two
+  separate calendars) - shows real overlap between sections, not just each one in isolation.
+- Danger weeks: **explicit flag at 3+ shows opening the same week**, matching the
+  adjudicator's own example - not just density/count alone.
+- Sequencing: **historical view first** (buildable now, no live-data dependency - see the
+  April/week-15 numbers above), live current-season view as a fast-follow once enough of the
+  season has confirmed `opening_date`s to not look sparse.
 
 Flagged by Darragh as "may end up being a large side request" - mockup
-first, own session, not started.
+first, own session, not started building yet.
 
 ## Phase 2 - Data integrity sweep (next)
 - ~~`export_csv.py` against production, pull down, commit~~ **DONE (Round 9, 2026-08-05)** -
