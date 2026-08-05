@@ -29,6 +29,7 @@ def index():
           AND shows.show IS NOT NULL
           AND shows.opening_date >= ?
           AND shows.status IS NOT 'Cancelled'
+          AND NOT societies.hidden
     """
     upcoming_params = [date.today().isoformat()]
     if upcoming_region in REGIONS:

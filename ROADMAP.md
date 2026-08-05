@@ -395,6 +395,28 @@ Found through Darragh actually using tonight's features live, right after redepl
 - An FAQ page - Darragh's own suggestion, explicitly deferred ("maybe for a
   next revision").
 
+**Round 12 - light/dark toggle, Season Archive labels, hidden-society scope (2026-08-05):**
+Follow-through on the UX audit below plus a live gap Darragh spotted:
+- Shipped the light/dark toggle and Season Archive date-range label from the audit's "simple
+  stuff" - see the audit doc for details.
+- **Season Archive relabelled per season type**, based on a live screenshot Darragh sent showing
+  a confusing empty "upcoming" table on a past season: a past season now renders a single "Past
+  productions" table (no pointless empty upcoming box); the current season keeps the Upcoming/
+  Past split, just renamed from "Already finished"; a future season's table is labelled "Future
+  Season / Early Announcements" instead of "Upcoming productions" - `is_past_season`/
+  `is_future_season` computed by string-comparing against `current_season()`, same convention
+  `all_seasons` already sorts by.
+- **`societies.hidden` now also hides a hidden society's shows from the homepage (upcoming table
+  + poster gallery), Season Archive, and the `calendar.ics` feed** - not just the `/societies`
+  directory and their own page, closing the gap Darragh flagged wanting to fully hide Sligo
+  Musical Society and Glenamaddy. Scoped via an explicit question first: Awards/Stats leaderboards
+  (the historical archive) deliberately still include them, same "history stays accurate"
+  principle as the original Round 9 design - narrowed to mean actual history, not current/
+  upcoming shows too. The full CSV dataset export (`/export/shows.csv`, linked from Stats) is
+  treated as part of that same historical-archive bucket and left untouched.
+- Test suite held at 127 (existing coverage already exercised these query paths; no test asserted
+  the old "Already finished" copy so nothing needed updating there).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde

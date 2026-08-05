@@ -508,6 +508,7 @@ def season_summary():
             (COALESCE(shows.closing_date, shows.opening_date) < ?) AS is_past
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.season = ? AND shows.moderation_status = 'approved' AND shows.show IS NOT NULL
+          AND NOT societies.hidden
     """
     params = [date.today().isoformat(), season]
     if region in REGIONS:
@@ -527,8 +528,10 @@ def season_summary():
     finished = [r for r in rows if r["is_past"]]
 
     span = db.execute(
-        "SELECT MIN(opening_date), MAX(opening_date) FROM shows "
-        "WHERE season = ? AND moderation_status = 'approved' AND show IS NOT NULL",
+        "SELECT MIN(shows.opening_date), MAX(shows.opening_date) FROM shows "
+        "JOIN societies ON societies.id = shows.society_id "
+        "WHERE shows.season = ? AND shows.moderation_status = 'approved' AND shows.show IS NOT NULL "
+        "AND NOT societies.hidden",
         (season,),
     ).fetchone()
     season_range_label = None
@@ -542,7 +545,8 @@ def season_summary():
 
     return render_template(
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
-        is_current=(season == current), season_range_label=season_range_label,
+        is_current=(season == current), is_past_season=(season < current), is_future_season=(season > current),
+        season_range_label=season_range_label,
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
         hide_cancelled=hide_cancelled, sort=sort,
     )

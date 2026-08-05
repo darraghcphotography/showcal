@@ -110,22 +110,34 @@
     </a>
   </p>
 
-  <table class="data-table table-wide">
-    <thead>
-      <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opens</th><th>Review</th></tr>
-    </thead>
-    <tbody>{{ show_rows(upcoming) }}</tbody>
-  </table>
-  <div class="table-cards">{{ show_cards(upcoming) }}</div>
-
-  {% if finished %}
-    <h2>Already finished</h2>
+  {% if is_past_season %}
+    <h2>Past productions</h2>
     <table class="data-table table-wide">
       <thead>
         <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opened</th><th>Review</th></tr>
       </thead>
-      <tbody>{{ show_rows(finished) }}</tbody>
+      <tbody>{{ show_rows(finished) }}{% if upcoming %}{{ show_rows(upcoming) }}{% endif %}</tbody>
     </table>
-    <div class="table-cards">{{ show_cards(finished) }}</div>
+    <div class="table-cards">{{ show_cards(finished) }}{% if upcoming %}{{ show_cards(upcoming) }}{% endif %}</div>
+  {% else %}
+    <h2>{{ 'Future Season / Early Announcements' if is_future_season else 'Upcoming productions' }}</h2>
+    <table class="data-table table-wide">
+      <thead>
+        <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opens</th><th>Review</th></tr>
+      </thead>
+      <tbody>{{ show_rows(upcoming) }}</tbody>
+    </table>
+    <div class="table-cards">{{ show_cards(upcoming) }}</div>
+
+    {% if finished %}
+      <h2>Past productions</h2>
+      <table class="data-table table-wide">
+        <thead>
+          <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opened</th><th>Review</th></tr>
+        </thead>
+        <tbody>{{ show_rows(finished) }}</tbody>
+      </table>
+      <div class="table-cards">{{ show_cards(finished) }}</div>
+    {% endif %}
   {% endif %}
 {% endblock %}

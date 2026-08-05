@@ -62,6 +62,7 @@ def calendar_ics():
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.moderation_status = 'approved' AND shows.show IS NOT NULL
           AND shows.opening_date IS NOT NULL
+          AND NOT societies.hidden
         ORDER BY shows.opening_date
         """
     ).fetchall()
