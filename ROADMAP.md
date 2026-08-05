@@ -363,6 +363,10 @@ Found through Darragh actually using tonight's features live, right after redepl
   minimum length where it's unreliable regardless. Verified against both the reported false
   positives (now correctly unflagged) and known-good cases (typos, "X" vs "X Jr." still caught).
   Test suite grew 124 -> 126.
+- **Follow-up**: even after the suffix fix, Darragh judged the queue still too loose below ~70%
+  similarity (mostly coincidental character overlap, not real near-duplicates) - raised
+  `find_candidates`' default `threshold` from 0.55 to 0.70. The word-subset check ("X" vs
+  "X Jr.") is a separate mechanism and unaffected. Test suite grew 126 -> 127.
 
 **Parked, raised but not started (2026-08-05):**
 - **A "suggested date" column for `/admin/fix-dates`**, sourced from web search, for Darragh to
