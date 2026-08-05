@@ -50,6 +50,19 @@ def test_still_flags_genuine_near_duplicates():
         assert tuple(sorted(pair)) in flagged_pairs
 
 
+def test_default_threshold_is_70_percent():
+    """Darragh's own call (2026-08-05) after reviewing the live queue - below
+    70% was mostly noise (coincidental character overlap between otherwise
+    unrelated titles), not real near-duplicates."""
+    # A pair below 70% (pure ratio, no word-subset match) must not appear...
+    below = find_candidates({"Xyzabc Theatre", "Abcxyz Players"}, dismissed=set())
+    assert below == []
+
+    # ...but one at/above 70% still does.
+    above = find_candidates({"Fiddler on the Roof", "Fidler on the Roof"}, dismissed=set())
+    assert len(above) == 1
+
+
 def test_count_drops_as_pairs_are_resolved():
     titles = {"Nativity", "Nativity! The Musical", "Oliver", "Oliver!"}
     before = find_candidates(titles, dismissed=set())

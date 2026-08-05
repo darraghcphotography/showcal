@@ -31,7 +31,7 @@ def _strip_generic_suffix(title):
     return lowered
 
 
-def find_candidates(titles, dismissed, threshold=0.55):
+def find_candidates(titles, dismissed, threshold=0.70):
     """Return every candidate duplicate title pair as (title_a, title_b,
     score), sorted most-similar first - NOT truncated. Truncating here used
     to make the admin dashboard's "possible duplicates" count read as
