@@ -354,6 +354,30 @@ Found through Darragh actually using tonight's features live, right after redepl
 - **Lesson**: an explicit Dockerfile `COPY` allowlist is a footgun that will keep recurring -
   logged in [[deployment-environment]] alongside the earlier "don't suggest shell
   `docker compose` commands for this Portainer-managed stack" correction from the same night.
+- **Follow-up, same evening**: Darragh actually started working the real 235-pair queue and
+  immediately found real false positives - "Ghost the Musical" vs "Snoopy The Musical" (74%
+  similar), "Bare" vs "Cabaret" (73%), etc. Root cause: short/generic titles sharing a common
+  trailing phrase like "the musical" dominated the character-similarity ratio even though the
+  actual distinctive words share nothing. Fixed by stripping known generic suffixes
+  (" the musical", " jr.", etc.) before computing the ratio, and skipping the ratio check below a
+  minimum length where it's unreliable regardless. Verified against both the reported false
+  positives (now correctly unflagged) and known-good cases (typos, "X" vs "X Jr." still caught).
+  Test suite grew 124 -> 126.
+
+**Parked, raised but not started (2026-08-05):**
+- **A "suggested date" column for `/admin/fix-dates`**, sourced from web search, for Darragh to
+  manually approve - same idea as the historical-society-region suggest/confirm pattern. Tested
+  live rather than guessed: a naive search ("society name" + show title) mostly failed (society
+  websites are typically stale; popular titles get drowned out by big US touring productions).
+  A follow-up search targeting the actual **venue** (when known) found a real, plausible-looking
+  result on the venue's own box-office site - but WebFetch was blocked (403) on that specific
+  page, and the actual source Darragh found it through (an Instagram post, likely surfaced via
+  Google's AI Overview) isn't accessible through this session's WebSearch tool at all. So: more
+  promising than the venue-scrape idea once `/admin/venues` is filled in enough to search by
+  venue instead of society name, but not proven at scale, and there's a real capability gap
+  (no Instagram access) worth knowing about before promising this works. Darragh's read: not
+  reliable enough as-is. Offered to run a proper batch test (~10 shows, venue-anchored) before
+  building anything; not done yet.
 
 **Parked for their own dedicated sessions:**
 - A society-page section for costume/prop rental listings, ideally matched
