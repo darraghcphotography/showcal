@@ -73,7 +73,7 @@ def societies_list():
     query = "SELECT * FROM societies WHERE 1=1"
     params = []
     if not show_inactive:
-        query += " AND section != 'Inactive'"
+        query += " AND section != 'Inactive' AND NOT hidden"
     if region in REGIONS:
         query += " AND region = ?"
         params.append(region)
@@ -114,13 +114,20 @@ def society_detail(society_id):
     if society is None:
         abort(404)
 
+    viewer = current_user()
+    # Hidden means the society asked not to be publicly associated with
+    # AIMS - 404 for anyone not logged in as a moderator, so the page still
+    # works for a moderator reviewing/unhiding it. Doesn't touch historical
+    # stats/awards/Season Archive - see schema.sql's societies.hidden.
+    if society["hidden"] and viewer is None:
+        abort(404)
+
     # Only fetched for an admin viewer - lets them hand out this society's
     # login code straight from its own page instead of hunting for it (or
     # re-creating it) on /admin/invite-codes. Same "still valid" check as
     # auth.py's active_society_code().
     society_code = None
     society_login_url = None
-    viewer = current_user()
     if viewer and viewer["role"] == "admin":
         society_code = db.execute(
             """

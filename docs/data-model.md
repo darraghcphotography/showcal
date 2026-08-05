@@ -47,6 +47,12 @@ comments - this is a guided tour, not a replacement for reading it.
   by default. Logged-in moderators get a "Show inactive societies" checkbox
   to reveal them - the underlying query only honours that flag for a
   logged-in session, so it can't be forced via the URL by anyone else.
+- **societies.hidden** is a different concept from `Inactive` - a society that's
+  asked not to be publicly associated with AIMS at all (moderator-only toggle on
+  `/admin/societies/<id>/edit`). It 404s that society's own public page and drops
+  them from the browse page (same logged-in-only reveal as Inactive), but does
+  **not** touch historical stats, the Awards page, or the Season Archive - those
+  stay an accurate historical record. Their own self-service login is unaffected.
 - **page_views** - one row per URL path, with a running count and last-viewed
   timestamp. Populated by an `after_request` hook (`app/analytics.py`) on
   every successful public GET request; admin, upload, and feed routes are

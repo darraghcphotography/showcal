@@ -744,6 +744,7 @@ def edit_society(society_id):
         section_history = request.form.get("section_history", "").strip() or None
         notes = request.form.get("notes", "").strip() or None
         default_venue = request.form.get("default_venue", "").strip() or None
+        hidden = 1 if request.form.get("hidden") else 0
         profile_fields = {
             "about": request.form.get("about", "").strip() or None,
             "website_url": request.form.get("website_url", "").strip() or None,
@@ -792,14 +793,14 @@ def edit_society(society_id):
             UPDATE societies SET name = ?, region = ?, section = ?,
                 section_as_of = ?, section_history = ?, notes = ?, default_venue = ?, logo_filename = ?,
                 about = ?, website_url = ?, facebook_url = ?, instagram_url = ?,
-                tiktok_url = ?, other_url = ?, other_label = ?
+                tiktok_url = ?, other_url = ?, other_label = ?, hidden = ?
             WHERE id = ?
             """,
             (
                 name, region, section, section_as_of, section_history, notes, default_venue, logo_filename,
                 profile_fields["about"], profile_fields["website_url"], profile_fields["facebook_url"],
                 profile_fields["instagram_url"], profile_fields["tiktok_url"], profile_fields["other_url"],
-                profile_fields["other_label"], society_id,
+                profile_fields["other_label"], hidden, society_id,
             ),
         )
         db.commit()

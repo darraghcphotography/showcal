@@ -36,6 +36,18 @@
       </select>
     </label>
 
+    <fieldset>
+      <legend>Visibility</legend>
+      <label class="checkbox-label">
+        <input type="checkbox" name="hidden" value="1" {% if society['hidden'] %}checked{% endif %}>
+        Hide this society - they've asked not to be publicly associated with AIMS
+      </label>
+      <p class="meta">Their public page 404s and they drop out of the /societies directory. Past
+         shows/awards stay visible in Stats, Awards, and the Season Archive as historical record -
+         this only hides forward-facing pages, not history. Their own self-service login is
+         unaffected.</p>
+    </fieldset>
+
     <label>
       Section as of (season, e.g. 26/27)
       <input type="text" name="section_as_of" value="{{ society['section_as_of'] or '' }}">

@@ -57,7 +57,7 @@
     </label>
 
     <fieldset>
-      <legend>Is this show being adjudicated by AIMS?</legend>
+      <legend>Do you plan on getting this show adjudicated?</legend>
       <label class="radio-label">
         <input type="radio" name="adjudicated" value="yes" {% if form.get('adjudicated', 'yes') == 'yes' %}checked{% endif %}>
         Yes
@@ -66,6 +66,8 @@
         <input type="radio" name="adjudicated" value="no" {% if form.get('adjudicated') == 'no' %}checked{% endif %}>
         No
       </label>
+      <p class="meta">Filling this out will not get you adjudicated - you must follow the proper
+         AIMS process and 6-week rule.</p>
     </fieldset>
 
     <label>

@@ -41,7 +41,16 @@ CREATE TABLE IF NOT EXISTS societies (
     instagram_url   TEXT,
     tiktok_url      TEXT,
     other_url       TEXT,      -- whatever doesn't fit the named platforms - WhatsApp group, Linktree, etc.
-    other_label     TEXT       -- short label for other_url, e.g. "WhatsApp group"
+    other_label     TEXT,      -- short label for other_url, e.g. "WhatsApp group"
+
+    -- Moderator-only: the society has asked not to be publicly associated
+    -- with AIMS. Distinct from section='Inactive' (which just means "not
+    -- currently competing" and is silent on public visibility) - hidden
+    -- 404s the society's own public page and drops them from /societies,
+    -- but does NOT touch historical stats/awards/Season Archive, which
+    -- stay as an accurate historical record. A society's own self-service
+    -- login (app/blueprints/society.py) is unaffected either way.
+    hidden          INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS shows (

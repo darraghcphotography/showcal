@@ -283,6 +283,23 @@ Two more from the same evening - a real admin tool built from an approved mockup
 - Test suite grew 88 -> 104 (venues page + save endpoint x6, changelog_sync parsing/idempotency/
   no-resurrection x7).
 
+**Round 9 - hide-a-society, adjudication form copy, CSV refresh closed out (2026-08-05):**
+- **`societies.hidden`** (new column, moderator-only toggle on `/admin/societies/<id>/edit`) -
+  for a society that's asked not to be publicly associated with AIMS. Scoped via two explicit
+  questions rather than assumed: 404s their own public page and drops them from `/societies`
+  (same logged-in-only reveal pattern as `Inactive`), but deliberately does **not** touch
+  historical stats/Awards/Season Archive - those stay accurate history, not rewritten. Kept as a
+  separate flag from `section = 'Inactive'` on purpose - "not currently competing" and "asked not
+  to be mentioned" are different real-world reasons and conflating them would make Inactive mean
+  two things. Their own self-service login is unaffected either way.
+- Public submission form's adjudication question reworded to Darragh's exact phrasing ("Do you
+  plan on getting this show adjudicated?") with the 6-week-rule disclaimer added underneath -
+  the underlying yes/no field already existed, this was copy only.
+- **Phase 2's CSV export item finally closed out**: Darragh pulled the freshly-exported
+  `societies.csv`/`shows.csv` off the NAS and replaced the git-tracked copies (241
+  insertions/238 deletions - real accumulated corrections, not just North Wexford's tier).
+- Test suite grew 104 -> 111 (hidden-society visibility x7).
+
 **Parked for their own dedicated sessions:**
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the
@@ -458,10 +475,8 @@ Flagged by Darragh as "may end up being a large side request" - mockup
 first, own session, not started.
 
 ## Phase 2 - Data integrity sweep (next)
-- **`export_csv.py` has been run against production** (2026-08-05: 179 societies / 573 shows
-  written to `/data/societies.csv`/`/data/shows.csv` in the container) - but those files still
-  need to be pulled down (File Station/scp) and committed to git to actually close this out.
-  See [[pending-csv-export-refresh]] memory.
+- ~~`export_csv.py` against production, pull down, commit~~ **DONE (Round 9, 2026-08-05)** -
+  `societies.csv`/`shows.csv` refreshed and committed.
 - Audit for other societies with similarly stale/presumptive data.
 - The "179 vs 127" copy fix (About/Stats pages) is still a one-line content edit, cheap to
   bundle in here. (The changelog-typo item from the original audit is moot now - Round 8 made
