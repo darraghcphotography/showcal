@@ -26,7 +26,7 @@ DATA = [
      "Rodgers and Hammerstein's first collaboration, based on the play Green Grow the Lilacs. Headstrong farm girl "
      "Laurey is caught in a love triangle between cowboy Curly and hired hand Jud, coming to a head at the box social.",
      None, "Contact publisher", "Licensed through Concord Theatricals (Rodgers & Hammerstein catalogue)."),
-    ("Fiddler On The Roof",
+    ("Fiddler on the Roof",
      "Set in the village of Anatevka, dairyman Tevye tries to protect his five daughters and hold on to tradition "
      "as the world around them changes, against the rising anti-Semitism of Czarist Russia.",
      "https://www.mtishows.com/fiddler-on-the-roof", "Contact publisher",
@@ -126,7 +126,7 @@ DATA = [
      "herself - and everyone else - wrong about what she's capable of.",
      "https://www.mtishows.com/legally-blonde-the-musical", "Contact publisher",
      "A 60-minute JR. edition is also available for younger casts."),
-    ("Man Of La Mancha",
+    ("Man of La Mancha",
      "Imprisoned author Miguel de Cervantes stages a play-within-a-play as his defence: the story of Alonso "
      "Quijana, an old man who believes himself the chivalrous knight Don Quixote.",
      None, "Contact publisher", "Licensed through Concord Theatricals."),
@@ -167,6 +167,20 @@ def main():
     args = parser.parse_args()
 
     conn = sqlite3.connect(args.db)
+
+    # Two titles were seeded with the wrong case the first time this ran,
+    # silently orphaning those rows - real shows/historical_results titles
+    # are "Fiddler on the Roof" and "Man of La Mancha", not "... On The
+    # Roof"/"Man Of La Mancha". Fixed here (rather than relying on the
+    # upsert below, which would just insert a second correctly-cased row
+    # and leave the old one behind) so this stays a single re-runnable step.
+    CASING_FIXES = {
+        "Fiddler On The Roof": "Fiddler on the Roof",
+        "Man Of La Mancha": "Man of La Mancha",
+    }
+    for old, new in CASING_FIXES.items():
+        conn.execute("UPDATE show_info SET show = ? WHERE show = ?", (new, old))
+
     for show, synopsis, rights_url, rights_status, note in DATA:
         full_synopsis = synopsis + (f" {note}" if note else "")
         conn.execute(

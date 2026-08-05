@@ -17,6 +17,7 @@
         <option value="title" {% if sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
         <option value="most" {% if sort == 'most' %}selected{% endif %}>Most performed first</option>
         <option value="least" {% if sort == 'least' %}selected{% endif %}>Least performed first</option>
+        <option value="stale" {% if sort == 'stale' %}selected{% endif %}>Longest since performed</option>
       </select>
     </label>
     <button type="submit">Apply</button>
@@ -24,7 +25,12 @@
   </form>
 
   <table class="data-table">
-    <thead><tr><th>Show</th><th>Times performed</th><th>More info</th>{% if current_user %}<th></th>{% endif %}</tr></thead>
+    <thead>
+      <tr>
+        <th>Show</th><th>Times performed</th><th>Last performed</th><th>More info</th>
+        {% if current_user %}<th></th>{% endif %}
+      </tr>
+    </thead>
     <tbody>
       {% for s in shows %}
         <tr>
@@ -33,6 +39,7 @@
             {% if s['has_info'] %}<span class="tag" title="Synopsis/rights info available">info</span>{% endif %}
           </td>
           <td>{{ s['count'] }}</td>
+          <td>{{ s['last_year'] or '—' }}</td>
           <td>
             <a href="{{ s['url'] or s['search_url'] }}" rel="noopener" target="_blank">
               {{ 'Wikipedia' if s['is_manual'] else 'Search' }}
@@ -40,19 +47,22 @@
           </td>
           {% if current_user %}
             <td>
-              <form method="post" action="{{ url_for('admin.set_show_link') }}" class="inline-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="show" value="{{ s['title'] }}">
-                <input type="url" name="url" placeholder="Confirm exact URL" value="{{ s['url'] or '' }}" size="20">
-                <button type="submit">Set</button>
-              </form>
-              {% if s['is_manual'] %}
-                <form method="post" action="{{ url_for('admin.clear_show_link') }}" class="inline-form">
+              <details class="link-edit">
+                <summary>Edit link</summary>
+                <form method="post" action="{{ url_for('admin.set_show_link') }}" class="inline-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="show" value="{{ s['title'] }}">
-                  <button type="submit" class="button-danger">Clear</button>
+                  <input type="url" name="url" placeholder="Confirm exact URL" value="{{ s['url'] or '' }}" size="20">
+                  <button type="submit">Set</button>
                 </form>
-              {% endif %}
+                {% if s['is_manual'] %}
+                  <form method="post" action="{{ url_for('admin.clear_show_link') }}" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="show" value="{{ s['title'] }}">
+                    <button type="submit" class="button-danger">Clear</button>
+                  </form>
+                {% endif %}
+              </details>
             </td>
           {% endif %}
         </tr>

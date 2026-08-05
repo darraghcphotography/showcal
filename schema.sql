@@ -263,6 +263,12 @@ CREATE TABLE IF NOT EXISTS show_info (
     rights_status   TEXT CHECK (rights_status IN (
                         'Available', 'Contact publisher', 'Restricted'
                     ) OR rights_status IS NULL),
+    -- Original worldwide premiere, not an AIMS one - e.g. premiere_year 1964,
+    -- premiere_place "Broadway (Imperial Theatre, New York)". Moderator-
+    -- entered from a source like Wikipedia, same trust model as the rest of
+    -- this table - never guessed.
+    premiere_year   INTEGER,
+    premiere_place  TEXT,
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

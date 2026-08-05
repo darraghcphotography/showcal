@@ -7,6 +7,14 @@
   <p>{{ shows|length + historical|length }} production{{ '' if (shows|length + historical|length) == 1 else 's' }}
      on record{% if historical %}, including {{ historical|length }} from the AIMS awards history before 23/24{% endif %}.</p>
 
+  <p class="meta">
+    {% if info and info['premiere_year'] %}
+      World premiere: {{ info['premiere_year'] }}{% if info['premiere_place'] %}, {{ info['premiere_place'] }}{% endif %}
+      {% if debut_label %} &middot; {% endif %}
+    {% endif %}
+    {% if debut_label %}AIMS debut: {{ debut_label }}{% endif %}
+  </p>
+
   {% if current_user %}
     <p><a href="{{ url_for('admin.edit_show_info', title=title) }}" class="edit-callout">
       {{ 'Edit' if info else 'Add' }} show info &rarr;

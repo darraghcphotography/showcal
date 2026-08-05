@@ -1002,6 +1002,8 @@ def edit_show_info(title):
         synopsis = request.form.get("synopsis", "").strip() or None
         rights_url = request.form.get("rights_url", "").strip() or None
         rights_status = request.form.get("rights_status") or None
+        premiere_year_raw = request.form.get("premiere_year", "").strip()
+        premiere_place = request.form.get("premiere_place", "").strip() or None
 
         if rights_status and rights_status not in RIGHTS_STATUSES:
             flash("Choose a valid rights status.", "error")
@@ -1009,15 +1011,26 @@ def edit_show_info(title):
                 "admin/show_info_form.html", title=title, statuses=RIGHTS_STATUSES, form=request.form
             )
 
+        premiere_year = None
+        if premiere_year_raw:
+            try:
+                premiere_year = int(premiere_year_raw)
+            except ValueError:
+                flash("World premiere year must be a number.", "error")
+                return render_template(
+                    "admin/show_info_form.html", title=title, statuses=RIGHTS_STATUSES, form=request.form
+                )
+
         db.execute(
             """
-            INSERT INTO show_info (show, synopsis, rights_url, rights_status, updated_at)
-            VALUES (?, ?, ?, ?, datetime('now'))
+            INSERT INTO show_info (show, synopsis, rights_url, rights_status, premiere_year, premiere_place, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(show) DO UPDATE SET
                 synopsis = excluded.synopsis, rights_url = excluded.rights_url,
-                rights_status = excluded.rights_status, updated_at = excluded.updated_at
+                rights_status = excluded.rights_status, premiere_year = excluded.premiere_year,
+                premiere_place = excluded.premiere_place, updated_at = excluded.updated_at
             """,
-            (title, synopsis, rights_url, rights_status),
+            (title, synopsis, rights_url, rights_status, premiere_year, premiere_place),
         )
         db.commit()
         flash("Show info updated.", "success")

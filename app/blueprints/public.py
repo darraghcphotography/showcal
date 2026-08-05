@@ -246,6 +246,9 @@ TITLES_SORT_OPTIONS = {
     "most": "n DESC, show COLLATE NOCASE",
     "least": "n ASC, show COLLATE NOCASE",
 }
+# "stale" isn't a SQL ORDER BY - last-performed year comes from a separate
+# lookup (see last_performed below), so it's sorted in Python after the fact.
+TITLES_SORT_CHOICES = set(TITLES_SORT_OPTIONS) | {"stale"}
 
 
 @bp.route("/titles")
@@ -253,7 +256,7 @@ def titles_list():
     db = get_db()
     q = request.args.get("q", "").strip()
     sort = request.args.get("sort", "title")
-    if sort not in TITLES_SORT_OPTIONS:
+    if sort not in TITLES_SORT_CHOICES:
         sort = "title"
 
     query = """
@@ -268,17 +271,33 @@ def titles_list():
         query += " WHERE show LIKE ? ESCAPE '\\'"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         params.append(f"%{escaped}%")
-    query += f" GROUP BY show ORDER BY {TITLES_SORT_OPTIONS[sort]}"
+    query += f" GROUP BY show ORDER BY {TITLES_SORT_OPTIONS[sort if sort != 'stale' else 'title']}"
 
     rows = db.execute(query, params).fetchall()
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
     has_info = {r[0] for r in db.execute("SELECT show FROM show_info").fetchall()}
+    # Last performed - the true most recent year on record for a title from
+    # either source, unfiltered by SHOWS_COVERAGE_START_YEAR (that filter
+    # only exists above to avoid double-counting a production in both
+    # tables; a recency question has no such double-counting problem).
+    last_performed = dict(db.execute(
+        """
+        SELECT show, MAX(year) FROM (
+            SELECT show, CAST(substr(opening_date, 1, 4) AS INTEGER) AS year
+            FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND opening_date IS NOT NULL
+            UNION ALL
+            SELECT show, year FROM historical_results WHERE show IS NOT NULL
+        )
+        GROUP BY show
+        """
+    ).fetchall())
 
     shows = [
         {
             "title": r["show"],
             "count": r["n"],
+            "last_year": last_performed.get(r["show"]),
             "url": manual_links.get(r["show"]),
             "is_manual": r["show"] in manual_links,
             "has_info": r["show"] in has_info,
@@ -286,6 +305,9 @@ def titles_list():
         }
         for r in rows
     ]
+
+    if sort == "stale":
+        shows.sort(key=lambda s: (s["last_year"] is None, s["last_year"] or 0))
 
     return render_template("titles_list.html", shows=shows, q=q, sort=sort)
 
@@ -321,7 +343,22 @@ def title_detail(title):
 
     info = db.execute("SELECT * FROM show_info WHERE show = ?", (title,)).fetchone()
 
-    return render_template("title_detail.html", title=title, shows=shows, historical=historical, info=info)
+    # AIMS debut - earliest record of this title, whichever source it comes
+    # from. historical is already the pre-23/24 archive, so if it has any
+    # rows its earliest (last, since it's sorted DESC) year always predates
+    # anything in shows. Otherwise fall back to the earliest season string
+    # among shows - lexical comparison matches chronological order for this
+    # site's YY/YY+1 seasons, same assumption all_seasons sorting relies on.
+    if historical:
+        debut_label = str(historical[-1]["year"])
+    elif shows:
+        debut_label = f"{min(s['season'] for s in shows)} season"
+    else:
+        debut_label = None
+
+    return render_template(
+        "title_detail.html", title=title, shows=shows, historical=historical, info=info, debut_label=debut_label
+    )
 
 
 @bp.route("/about")

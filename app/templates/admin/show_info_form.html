@@ -30,6 +30,16 @@
       </select>
     </label>
 
+    <label>
+      World premiere year <span class="hint">(the original production, not AIMS - e.g. Wikipedia's infobox)</span>
+      <input type="number" name="premiere_year" min="1600" max="2100" value="{{ form.get('premiere_year', '') }}">
+    </label>
+
+    <label>
+      World premiere place <span class="hint">(e.g. "Broadway (Imperial Theatre, New York)")</span>
+      <input type="text" name="premiere_place" value="{{ form.get('premiere_place', '') }}">
+    </label>
+
     <button type="submit">Save</button>
   </form>
 
