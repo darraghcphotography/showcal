@@ -300,6 +300,29 @@ Two more from the same evening - a real admin tool built from an approved mockup
   insertions/238 deletions - real accumulated corrections, not just North Wexford's tier).
 - Test suite grew 104 -> 111 (hidden-society visibility x7).
 
+**Round 10 - live production crash fix, 179 vs 127 copy, awards CSV export (2026-08-05):**
+- **Fixed a real production 500** Darragh hit live while resolving duplicate titles
+  (`/admin/duplicate-titles/bulk`): `shows` has a UNIQUE index on `(society_id, season, show)`,
+  and merging two titles did a blind `UPDATE ... WHERE show = ?` - if one specific society had
+  already logged *both* the canonical and duplicate title for the same season (exactly the
+  situation this tool exists to fix), the rename collided with that constraint and crashed. Worse,
+  since the whole bulk form commits as one transaction, a single colliding pair took down every
+  other pair in the same batch, not just itself. Fixed by moving `shows` rows one at a time -
+  where renaming would collide, the row is a redundant duplicate of what's already there, so it's
+  deleted instead of updated; where it wouldn't collide, renames normally. Same `_merge_titles()`
+  helper backs both the single-merge and bulk-merge routes, so one fix covers both.
+- **"179 vs 127" copy fix** - `/about` now says "179 societies... (127 currently active - the
+  rest are kept for historical record)" instead of a bare total that reads as a mismatch once you
+  click through to `/societies`. The active count reuses the exact same filter as `/societies`'
+  default view (`section != 'Inactive' AND NOT hidden`).
+- **`export_awards.py`** - `historical_results`'s inverse-of-`import_awards.py` export, same
+  pattern as `export_csv.py`. Unlike that script, exports every row regardless of
+  `source='import'`/`'manual'` - editing an existing award record in `/admin/awards` sets its
+  source to `'manual'` too (not just brand-new additions), so filtering to `'import'` would drop
+  exactly the corrections this exists to capture. Verified with a full export -> re-import round
+  trip through the real `import_awards.py` CLI, not just a unit test in isolation.
+- Test suite grew 111 -> 117 (duplicate-title collision x2, about-page counts, export_awards x3).
+
 **Parked for their own dedicated sessions:**
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the
@@ -477,12 +500,13 @@ first, own session, not started.
 ## Phase 2 - Data integrity sweep (next)
 - ~~`export_csv.py` against production, pull down, commit~~ **DONE (Round 9, 2026-08-05)** -
   `societies.csv`/`shows.csv` refreshed and committed.
+- ~~"179 vs 127" copy fix~~ **DONE (Round 10, 2026-08-05)** - see below.
+- ~~`AIMS_AwardsHistory.xlsx` export~~ **DONE differently (Round 10, 2026-08-05)** - turned out
+  the xlsx itself isn't what `import_awards.py` reads (it reads the git-tracked
+  `AIMS_Awards - Results.csv`, exported from the xlsx's "Results" sheet at some point in the
+  past) - built `export_awards.py` as that CSV's inverse instead. The untracked xlsx is now just
+  Darragh's original personal working file, superseded by the CSV.
 - Audit for other societies with similarly stale/presumptive data.
-- The "179 vs 127" copy fix (About/Stats pages) is still a one-line content edit, cheap to
-  bundle in here. (The changelog-typo item from the original audit is moot now - Round 8 made
-  the changelog self-publishing from `CHANGELOG.md`, so there's nothing stale left to fix there.)
-- `AIMS_AwardsHistory.xlsx` still sits untracked with no `export_awards.py` counterpart - see
-  the 2026-08-05 site review for the open question (build one, or treat it as a frozen snapshot).
 
 ## Phase 3 - Public launch
 **Reality check (2026-08-04): the site is already live and has real

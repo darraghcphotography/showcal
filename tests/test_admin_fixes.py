@@ -117,6 +117,72 @@ def test_duplicate_titles_page_offers_manual_merge_form(client, db):
     assert "Merge two titles directly" in body
 
 
+def test_merge_does_not_crash_when_society_already_has_both_titles_same_season(client, db):
+    """Real production bug: shows has a UNIQUE index on (society_id, season,
+    show) - if one society already logged both the canonical and duplicate
+    title for the same season (exactly the case this tool is meant to fix),
+    the old blind UPDATE collided with that constraint and 500'd, taking the
+    whole bulk-save down with it."""
+    from conftest import seed_society
+
+    society_id = seed_society(db)
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status, source) "
+        "VALUES (?, '24/25', 'Eastern', 'Nativity', 'approved', 'import')",
+        (society_id,),
+    )
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status, source) "
+        "VALUES (?, '24/25', 'Eastern', 'Nativity! The Musical', 'approved', 'import')",
+        (society_id,),
+    )
+    db.commit()
+    admin_id = seed_user(db, username="mod", role="moderator")
+    login_as(client, admin_id)
+
+    resp = client.post(
+        "/admin/duplicate-titles/merge",
+        data={"canonical": "Nativity", "other": "Nativity! The Musical"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+
+    rows = db.execute(
+        "SELECT show FROM shows WHERE society_id = ? AND season = '24/25'", (society_id,)
+    ).fetchall()
+    assert [r["show"] for r in rows] == ["Nativity"]
+
+
+def test_merge_still_renames_when_no_collision(client, db):
+    from conftest import seed_society
+
+    society_a = seed_society(db, id=1, name="Society A")
+    society_b = seed_society(db, id=2, name="Society B")
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status, source) "
+        "VALUES (?, '24/25', 'Eastern', 'Nativity! The Musical', 'approved', 'import')",
+        (society_a,),
+    )
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status, source) "
+        "VALUES (?, '24/25', 'Eastern', 'Nativity! The Musical', 'approved', 'import')",
+        (society_b,),
+    )
+    db.commit()
+    admin_id = seed_user(db, username="mod", role="moderator")
+    login_as(client, admin_id)
+
+    client.post(
+        "/admin/duplicate-titles/merge",
+        data={"canonical": "Nativity", "other": "Nativity! The Musical"},
+        follow_redirects=False,
+    )
+
+    shows = {r["show"] for r in db.execute("SELECT show FROM shows").fetchall()}
+    assert shows == {"Nativity"}
+    assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 2
+
+
 def test_admin_can_delete_a_suggestion(client, db):
     admin_id = seed_user(db, username="mod", role="moderator")
     db.execute("INSERT INTO feature_suggestions (message, category) VALUES ('Accidental duplicate', 'Data error')")

@@ -1081,7 +1081,24 @@ def duplicate_titles():
 
 
 def _merge_titles(db, canonical, other):
-    db.execute("UPDATE shows SET show = ? WHERE show = ?", (canonical, other))
+    # shows has a UNIQUE index on (society_id, season, show) - if the same
+    # society already logged both the canonical and "other" title for the
+    # same season (a real possibility, since that's exactly the situation
+    # this tool exists to clean up), a blind UPDATE would collide with that
+    # constraint and crash. Move rows one at a time instead: where renaming
+    # would collide, the canonical row already covers that production, so
+    # the "other" row is a redundant duplicate - delete it rather than
+    # update it. Where there's no collision, rename as normal.
+    rows = db.execute("SELECT id, society_id, season FROM shows WHERE show = ?", (other,)).fetchall()
+    for row in rows:
+        collision = db.execute(
+            "SELECT 1 FROM shows WHERE society_id = ? AND season = ? AND show = ?",
+            (row["society_id"], row["season"], canonical),
+        ).fetchone()
+        if collision:
+            db.execute("DELETE FROM shows WHERE id = ?", (row["id"],))
+        else:
+            db.execute("UPDATE shows SET show = ? WHERE id = ?", (canonical, row["id"]))
     db.execute("UPDATE historical_results SET show = ? WHERE show = ?", (canonical, other))
     db.execute(
         "DELETE FROM dismissed_duplicate_pairs WHERE title_a IN (?, ?) OR title_b IN (?, ?)",

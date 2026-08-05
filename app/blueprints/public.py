@@ -327,8 +327,19 @@ def title_detail(title):
 def about():
     db = get_db()
     total_societies = db.execute("SELECT COUNT(*) FROM societies").fetchone()[0]
+    # Same filter as /societies' default (anonymous) view - the number a
+    # visitor actually finds if they click through, not the full archive
+    # total (which includes Inactive/hidden societies kept for historical
+    # record). See the 2026-08-05 site review: these two numbers used to
+    # diverge with no explanation, reading as a mismatch rather than by design.
+    active_societies = db.execute(
+        "SELECT COUNT(*) FROM societies WHERE section != 'Inactive' AND NOT hidden"
+    ).fetchone()[0]
     historical_from = db.execute("SELECT MIN(year) FROM historical_results").fetchone()[0]
-    return render_template("about.html", total_societies=total_societies, historical_from=historical_from)
+    return render_template(
+        "about.html", total_societies=total_societies, active_societies=active_societies,
+        historical_from=historical_from,
+    )
 
 
 @bp.route("/suggest", methods=("GET", "POST"))
