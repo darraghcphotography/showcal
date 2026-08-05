@@ -253,6 +253,30 @@ Award Explorer:
 - An FAQ page - Darragh's own suggestion, explicitly deferred ("maybe for a
   next revision").
 
+## Site review (2026-08-05) - questions for Darragh, not started
+Full pass over the live site, the codebase, and `aims.db` at Darragh's request, specifically to
+surface open questions/decisions rather than just findings. Written up as its own document
+(published: https://claude.ai/code/artifact/64fd82a8-a982-45f2-aa91-ed57d6736271) so it's
+reviewable outside chat - summary of what's in it:
+
+- **New:** changelog is empty on production (0 rows - the typo'd entry from the 2026-08-04
+  audit is gone, nothing replaced it); venue data has collapsed to 0% filled for 25/26-27/28
+  (confirmed the gap is in the source `shows.csv`, not an import bug) despite the Phase 0
+  venue+Maps-link feature depending on it; 67 historical societies have a suggested region at
+  `/admin/historical-societies` with zero confirmed, silently excluded from every
+  region-filtered awards stat.
+- **Still pending, already known:** the Phase 2 `export_csv.py` item below, plus whether
+  `AIMS_AwardsHistory.xlsx` needs an `export_awards.py` counterpart or can be treated as a
+  frozen historical snapshot now that the DB corrections have diverged from it.
+- **Minor:** `/awards` renders ~1,500+ rows with no pagination; society-level award categories
+  show "&mdash;" for Nominee (expected, but reads like a gap).
+- **Needs a scoping decision before starting:** the adjudicator calendar's open questions
+  (unchanged from 2026-08-04), costume/prop rental listings (now with one real suggestion
+  sitting in the Planned lane - a live demand signal), and the staging/test environment (scope
+  was never actually defined).
+- **Checkpoint only, no new info:** FAQ page, CSP, poster image-content validation - still
+  correctly parked.
+
 ## Live site audit (2026-08-04)
 A full pass over the live production site (darraghc.ie/showcal) - real pages,
 real data, not local dev - to find what's working and what isn't before
