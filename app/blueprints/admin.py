@@ -1049,6 +1049,9 @@ def traffic():
     return render_template("admin/traffic.html", total_views=total_views, pages=pages)
 
 
+DUPLICATE_TITLES_DISPLAY_LIMIT = 60
+
+
 @bp.route("/duplicate-titles")
 @login_required
 def duplicate_titles():
@@ -1066,7 +1069,9 @@ def duplicate_titles():
     dismissed = {
         (r[0], r[1]) for r in db.execute("SELECT title_a, title_b FROM dismissed_duplicate_pairs").fetchall()
     }
-    candidates = find_candidates(titles, dismissed)
+    all_candidates = find_candidates(titles, dismissed)
+    total_candidates = len(all_candidates)
+    candidates = all_candidates[:DUPLICATE_TITLES_DISPLAY_LIMIT]
 
     relevant = {t for pair in candidates for t in pair[:2]}
     counts = {}
@@ -1076,7 +1081,8 @@ def duplicate_titles():
         counts[title] = cur + hist
 
     return render_template(
-        "admin/duplicate_titles.html", candidates=candidates, counts=counts, all_titles=sorted(titles)
+        "admin/duplicate_titles.html", candidates=candidates, counts=counts, all_titles=sorted(titles),
+        total_candidates=total_candidates, display_limit=DUPLICATE_TITLES_DISPLAY_LIMIT,
     )
 
 

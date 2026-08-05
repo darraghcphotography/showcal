@@ -28,6 +28,15 @@
   </form>
 
   {% if candidates %}
+    <h2>Auto-suggested pairs</h2>
+    <p class="meta">
+      {% if total_candidates > display_limit %}
+        Showing the top {{ display_limit }} of {{ total_candidates }} possible pairs, most-similar first -
+        resolve some and reload this page to see the next batch.
+      {% else %}
+        Showing all {{ total_candidates }} possible pair{{ '' if total_candidates == 1 else 's' }}.
+      {% endif %}
+    </p>
     <form method="post" action="{{ url_for('admin.bulk_duplicate_titles') }}"
           onsubmit="return confirm('Apply every merge/dismiss decision selected below? Merges rename every occurrence across current shows and the awards archive, and cannot be undone.');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

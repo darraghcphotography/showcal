@@ -103,9 +103,13 @@ def create_app(test_config=None):
 
     # When this process started - a redeploy restarts the container, so this
     # is an accurate "deployed at" for the Roadmap page's "Recently shipped"
-    # section without needing to track deploys separately.
-    from datetime import datetime as _datetime
-    deployed_at = _datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # section without needing to track deploys separately. Explicitly UTC
+    # (not datetime.now(), which is the container's own clock - usually UTC
+    # in Docker, but not guaranteed) so it matches every other timestamp in
+    # the app (SQLite's datetime('now')) and displays correctly through the
+    # irish_datetime filter's UTC -> Europe/Dublin conversion.
+    from datetime import datetime as _datetime, timezone as _timezone
+    deployed_at = _datetime.now(_timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     @app.context_processor
     def inject_globals():

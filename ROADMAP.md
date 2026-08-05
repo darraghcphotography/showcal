@@ -323,6 +323,38 @@ Two more from the same evening - a real admin tool built from an approved mockup
   trip through the real `import_awards.py` CLI, not just a unit test in isolation.
 - Test suite grew 111 -> 117 (duplicate-title collision x2, about-page counts, export_awards x3).
 
+**Round 11 - Dockerfile gap, timezone bug, duplicate-titles count stuck at 60 (2026-08-05):**
+Found through Darragh actually using tonight's features live, right after redeploying:
+- **The Dockerfile only ever `COPY`'d an explicit per-file list**, not the whole repo. Every
+  round tonight that added a new top-level script or file (`CHANGELOG.md`, `export_awards.py`,
+  `add_changelog.py`) was silently missing from the built image regardless of how many times the
+  stack got redeployed, since nothing updated that list. Switched to `COPY . .` plus a real
+  `.dockerignore` (excluding `aims.db`, `.env`, `uploads/`, `tests/`, root-level images/xlsx -
+  mirrors what `.gitignore` already keeps out of the repo Portainer clones from) so this entire
+  class of bug can't recur - a new file just needs to be `git add`-ed, nothing Docker-specific.
+- **Fixed a real timezone bug**: "Latest version deployed" (and every changelog entry timestamp)
+  was showing exactly one hour behind actual Irish time. `irish_datetime` never did any timezone
+  conversion at all - just reformatted whatever naive timestamp it was given, silently relying on
+  it already being Irish local time. Both `deployed_at` (Python `datetime.now()`, the container's
+  own clock - not guaranteed to be anything in particular) and every DB timestamp (SQLite's
+  `datetime('now')`, always UTC) are actually UTC. Fixed properly via `zoneinfo`
+  (`Europe/Dublin`), not a fixed +1 offset - Ireland alternates GMT/BST, so a fixed offset would
+  be wrong half the year. Added `tzdata` to `requirements.txt` so the conversion works
+  regardless of whether the base image ships the OS timezone database.
+- **Duplicate-titles count was permanently stuck at 60** on the admin dashboard, even as Darragh
+  resolved pairs. `find_candidates()` silently truncated to 60 internally *before* the caller
+  ever saw a length - resolving the top pair just let the next-highest one below the cutoff take
+  its place, so the count never moved until the true total dropped below 60. The full list was
+  always built and sorted before that truncation happened anyway, so returning it uncapped costs
+  nothing extra - truncation is now the *caller's* job. The dashboard count is the true total;
+  the review page shows the top 60 with an explicit "showing top 60 of N" note instead of
+  silently capping with no indication.
+- Test suite grew 117 -> 124 (timezone conversion x4, dedupe true-count x2, display-limit
+  messaging x1).
+- **Lesson**: an explicit Dockerfile `COPY` allowlist is a footgun that will keep recurring -
+  logged in [[deployment-environment]] alongside the earlier "don't suggest shell
+  `docker compose` commands for this Portainer-managed stack" correction from the same night.
+
 **Parked for their own dedicated sessions:**
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the

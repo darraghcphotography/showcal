@@ -1,5 +1,9 @@
 from datetime import datetime
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
+
+UTC = ZoneInfo("UTC")
+DUBLIN = ZoneInfo("Europe/Dublin")
 
 
 def irish_date(value):
@@ -19,14 +23,20 @@ def irish_date(value):
 
 
 def irish_datetime(value):
-    """Format a full 'YYYY-MM-DD HH:MM:SS' timestamp (e.g. a datetime('now')
-    column) as 'd Mon YYYY, HH:MM' for display - same lenient-fallback
-    spirit as irish_date above, since this runs on data meant for reading,
-    not fed back into a form."""
+    """Format a full 'YYYY-MM-DD HH:MM:SS' UTC timestamp (e.g. a SQLite
+    datetime('now') column, or __init__.py's deployed_at - both explicitly
+    UTC) as 'd Mon YYYY, HH:MM' Irish local time. Actually converts via
+    zoneinfo rather than just reformatting the string as-is - Europe/Dublin
+    alternates between GMT and BST, so a fixed offset would be wrong half
+    the year, and the previous version applied no offset at all (silently
+    displayed raw UTC as if it were already Irish time - off by exactly the
+    BST offset every summer). Same lenient-fallback spirit as irish_date
+    above, since this runs on data meant for reading, not fed back into a form."""
     if not value:
         return value
     try:
-        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y, %H:%M")
+        dt_utc = datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+        return dt_utc.astimezone(DUBLIN).strftime("%d %b %Y, %H:%M")
     except ValueError:
         return value
 

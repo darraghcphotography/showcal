@@ -1,0 +1,27 @@
+# Portainer builds from its own git clone, so anything .gitignore already
+# keeps out of version control (aims.db, .env, uploads/, __pycache__, root
+# jpgs) was never in that clone to begin with. This file exists for the
+# same defense-in-depth reason .gitignore does - so a local `docker build`
+# run straight from this working directory behaves the same way, and so a
+# future ignored-but-untracked file can't accidentally end up in the image.
+.git
+.github
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+aims.db
+aims.db-wal
+aims.db-shm
+data/
+uploads/
+tests/
+
+# Root-only (leading /), matching .gitignore's own scoping - never touches
+# real image assets under app/static/.
+/*.jpg
+/*.jpeg
+/*.png
+/*.gif
+/*.webp
+/*.xlsx

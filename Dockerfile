@@ -5,9 +5,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
-COPY schema.sql wsgi.py import_csv.py export_csv.py import_awards.py seed_admin.py fix_show_titles.py backup_db.py enrich_show_info.py suggest_historical_regions.py ./
-COPY ["AIMS_Awards - Results.csv", "./"]
+# Everything except what .dockerignore excludes (aims.db, .env, uploads/,
+# tests/, etc.) - used to be an explicit per-file COPY list, which silently
+# left out every new top-level script/file until someone remembered to add
+# it here too. Bit twice in one evening (CHANGELOG.md and export_awards.py
+# both missing from an otherwise-successful deploy, purely because of this
+# gap) before switching to a real .dockerignore instead.
+COPY . .
 
 # aims.db and uploaded posters live under /data, outside the image, so
 # container upgrades never touch your actual data - see docker-compose.yml's

@@ -117,6 +117,28 @@ def test_duplicate_titles_page_offers_manual_merge_form(client, db):
     assert "Merge two titles directly" in body
 
 
+def test_duplicate_titles_page_shows_true_total_beyond_display_limit(client, db):
+    """Real production issue: the dashboard's duplicate-title count used to
+    look permanently stuck at 60 (find_candidates truncated internally) even
+    as pairs got resolved - the page now says how many exist beyond what's
+    shown, instead of silently capping with no indication."""
+    admin_id = seed_user(db, username="mod", role="moderator")
+    for i in range(70):
+        db.execute(
+            "INSERT INTO historical_results (year, show, society_name, result) VALUES (2000, ?, 'Some Society', 'Nominee')",
+            (f"Show {i}",),
+        )
+        db.execute(
+            "INSERT INTO historical_results (year, show, society_name, result) VALUES (2000, ?, 'Some Society', 'Nominee')",
+            (f"Show {i} Extra",),
+        )
+    db.commit()
+    login_as(client, admin_id)
+
+    body = client.get("/admin/duplicate-titles").get_data(as_text=True)
+    assert "Showing the top 60 of" in body
+
+
 def test_merge_does_not_crash_when_society_already_has_both_titles_same_season(client, db):
     """Real production bug: shows has a UNIQUE index on (society_id, season,
     show) - if one society already logged both the canonical and duplicate
@@ -222,9 +244,13 @@ def test_admin_suggestions_page_archives_done_behind_disclosure(client, db):
 
 
 def test_roadmap_shows_full_datetime_for_shipped_entries(client, db):
+    # created_at is stored UTC (SQLite's datetime('now')) and irish_datetime
+    # converts to Irish local time for display - 2026-08-05 is BST (UTC+1),
+    # so 14:30 UTC becomes 15:30 on screen. See tests/test_filters.py for
+    # the conversion itself.
     db.execute(
         "INSERT INTO changelog_entries (entry, created_at) VALUES ('Shipped a thing', '2026-08-05 14:30:00')"
     )
     db.commit()
     body = client.get("/suggestions").get_data(as_text=True)
-    assert "05 Aug 2026, 14:30" in body
+    assert "05 Aug 2026, 15:30" in body
