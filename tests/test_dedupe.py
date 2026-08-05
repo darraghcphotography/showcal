@@ -20,6 +20,36 @@ def test_returns_more_than_the_old_hardcoded_cap_when_that_many_exist():
     assert len(candidates) > 60
 
 
+def test_does_not_flag_unrelated_titles_sharing_a_generic_suffix():
+    """Real false positives from the live queue (2026-08-05) - short/generic
+    titles matched purely because they share a common trailing phrase like
+    "the musical", which dominates the character-similarity ratio for a
+    short string even though the actual distinctive words share nothing."""
+    bad_pairs = [
+        ("Ghost the Musical", "Snoopy The Musical"),
+        ("Ragtime The Musical", "Titanic The Musical"),
+        ("Bare", "Cabaret"),
+        ("Fame: The Musical", "Titanic The Musical"),
+        ("Nativity! The Musical", "Snoopy The Musical"),
+    ]
+    titles = {t for pair in bad_pairs for t in pair}
+    assert find_candidates(titles, dismissed=set()) == []
+
+
+def test_still_flags_genuine_near_duplicates():
+    good_pairs = [
+        ("Nativity", "Nativity! The Musical"),
+        ("Oliver", "Oliver!"),
+        ("Fiddler on the Roof", "Fidler on the Roof"),
+        ("Frozen", "Frozen Jr."),
+    ]
+    titles = {t for pair in good_pairs for t in pair}
+    candidates = find_candidates(titles, dismissed=set())
+    flagged_pairs = {tuple(sorted((a, b))) for a, b, _ in candidates}
+    for pair in good_pairs:
+        assert tuple(sorted(pair)) in flagged_pairs
+
+
 def test_count_drops_as_pairs_are_resolved():
     titles = {"Nativity", "Nativity! The Musical", "Oliver", "Oliver!"}
     before = find_candidates(titles, dismissed=set())
