@@ -207,6 +207,40 @@ leaderboard updates) that got "love." straight off:
 - Two published mockups this round: the grid-of-cards first pass
   (`stats-redesign-v2`) and the picker that shipped (`stats-redesign-v3`).
 
+**Round 6 follow-up - full card-based redesign (2026-08-05):**
+Shipped, then immediately corrected on two counts once Darragh actually saw
+it live: the picker used the site's existing bar-chart component (a choice
+made without flagging it, not what the v3 mockup showed), and it was
+visually buried two-thirds down the page under "Awards." A same-night
+follow-up mockup (`stats-redesign-v4`) fixed both and got "i like it - lets
+keep going," then was built out to cover the *entire* page, not just the
+Award Explorer:
+- **Every leaderboard now uses numbered gold/silver/bronze rank badges**
+  (competition-style - a tie shares a rank, e.g. Sister Act and The Addams
+  Family both rank #1 in "Most selected shows") instead of the old red
+  bar-fills. New `rank_list`/`rank_list_pct` macros in `stats.html`, new
+  `.rank-list`/`.rank-row`/`.rank-badge`/`.lb-card`/`.lb-grid`/`.chip-strip`/
+  `.explorer` component CSS in `style.css` - the old `.bar-list`/`.bar-row`/
+  `.bar-track`/`.bar-fill`/`.bar-count` rules were removed outright (grepped
+  first to confirm nothing else on the site used them).
+- **Award Explorer moved from a buried h3 to a prominent tinted hero card**
+  right under the overview stat tiles - first thing under the page title
+  besides the region filter.
+- Non-competitive breakdowns (shows by region, by section, award wins by
+  region) became compact chip strips, not ranked - deliberately no rank
+  badges there, since nobody's "#1" at being the Eastern region.
+- Every remaining "most X" list (most performed, most selected x2, most
+  prolific societies, most award wins, most nominated never won, win-rate)
+  consolidated into one `.lb-grid` card grid; signature show, one-offs, and
+  "did you know" wrapped in matching cards too - "fully card based," per
+  Darragh's ask, not just the Award Explorer.
+- Test suite unaffected in count (83) but two assertions updated for the
+  new markup (`bar-count` -> `rank-n`, `(by society)`/`(by person)` ->
+  `By society`/`By person` inside a `.kind-tag` pill).
+- **Lesson**: flag any visual deviation from an approved mockup before
+  shipping, even a "matches existing site conventions" one - see
+  [[workflow-habits]].
+
 **Parked for their own dedicated sessions:**
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the

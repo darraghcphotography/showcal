@@ -13,6 +13,7 @@
   --success: #2f7a3f;
   --row-alt: #f7f7f8;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.09), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,6 +31,7 @@
     --success: #7fd48f;
     --row-alt: #221f26;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 4px 18px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -411,14 +413,135 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 .stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
 .stat-label { font-size: 0.8rem; color: var(--muted); }
 
-.bar-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+/* Stats page leaderboards: a numbered rank badge (gold/silver/bronze for
+   the top 3, competition-style so a tie shares a rank - see stats.html's
+   rank_list macro) instead of a bar-fill - used both inside .lb-card and
+   inside the Award Explorer's own result list. */
+.rank-list { display: flex; flex-direction: column; }
 
-.bar-row {
+.rank-row {
   display: grid;
-  grid-template-columns: minmax(0, 220px) 1fr 2.5rem;
-  gap: 0.75rem;
+  grid-template-columns: 2rem 1fr auto;
   align-items: center;
-  font-size: 0.9rem;
+  gap: 0.7rem;
+  padding: 0.5rem 0.1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+}
+.rank-row:last-child { border-bottom: none; }
+
+.rank-badge {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--row-alt);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.rank-badge.r1 { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+.rank-badge.r2 { background: color-mix(in srgb, var(--silver) 22%, transparent); color: var(--silver); }
+.rank-badge.r3 { background: color-mix(in srgb, var(--bronze) 22%, transparent); color: var(--bronze); }
+
+.rank-row a, .rank-row span:not(.rank-badge):not(.rank-n) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--fg);
+}
+.rank-row a:hover { text-decoration: underline; }
+.rank-n { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+
+/* Card grid for the "most X" leaderboards - replaces what used to be
+   several full-width bar-chart sections stacked one after another. */
+.lb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.lb-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow);
+}
+.lb-card h3 { margin: 0 0 0.2rem; font-size: 0.95rem; }
+.lb-card .lb-meta { font-size: 0.78rem; color: var(--muted); margin: 0 0 0.5rem; }
+.lb-card .rank-row { font-size: 0.88rem; padding: 0.42rem 0.05rem; }
+.lb-card .rank-badge { width: 1.6rem; height: 1.6rem; font-size: 0.7rem; }
+
+/* A compact "N per label" strip for region/section/breakdown counts that
+   aren't really a competitive ranking (nobody's #1 at "being Eastern") -
+   deliberately no rank badges here, see the design note in stats.html. */
+.chip-strip { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
+.chip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+}
+.chip .chip-n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.chip .chip-label { color: var(--muted); }
+
+/* Award Explorer: the Stats page's one interactive, "hero" feature - a
+   tinted card with more visual weight than a plain .lb-card so it reads as
+   the page's centrepiece rather than just another section. */
+.explorer {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, var(--bg)), var(--bg) 60%);
+  box-shadow: var(--shadow-lg);
+  padding: 1.5rem 1.6rem 1.7rem;
+  margin-bottom: 2rem;
+}
+.explorer-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+.explorer h2 { margin: 0 0 0.3rem; font-size: 1.35rem; }
+.explorer .explorer-sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.2rem; max-width: 60ch; }
+.explorer-controls { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+.explorer-controls .field { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 220px; }
+.explorer-controls label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+}
+.explorer-controls select { padding: 0.55rem 0.7rem; font-size: 0.95rem; width: 100%; }
+.explorer-result-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+.explorer-result-head h3 { margin: 0; font-size: 1.05rem; }
+.kind-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
 }
 
 .error-page {
@@ -449,19 +572,6 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   border: 1px solid var(--border);
 }
 
-.bar-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-decoration: none;
-  color: var(--fg);
-}
-.bar-label:hover { text-decoration: underline; }
-
-.bar-track { background: var(--row-alt); border-radius: 4px; height: 0.9rem; overflow: hidden; }
-.bar-fill { background: var(--accent); height: 100%; border-radius: 4px 0 0 4px; }
-.bar-count { text-align: right; color: var(--muted); }
-
 .plain-list {
   columns: 2;
   column-gap: 2rem;
@@ -469,7 +579,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 }
 @media (max-width: 600px) {
   .plain-list { columns: 1; }
-  .bar-row { grid-template-columns: minmax(0, 120px) 1fr 2rem; }
+  .rank-row { grid-template-columns: 1.6rem 1fr auto; gap: 0.5rem; }
   .table-wide { display: none; }
   .table-cards { display: flex; }
 }

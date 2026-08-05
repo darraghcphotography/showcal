@@ -74,9 +74,9 @@ def test_award_leaderboard_defaults_to_best_overall_show_by_society(client, db):
     db.commit()
 
     body = client.get("/stats").get_data(as_text=True)
-    assert "Award category leaderboard" in body
+    assert "Award Explorer" in body
     assert "Wexford Light Opera Society" in body
-    assert "(by society)" in body
+    assert "By society" in body
 
 
 def test_award_leaderboard_person_category_groups_by_nominee(client, db):
@@ -85,7 +85,7 @@ def test_award_leaderboard_person_category_groups_by_nominee(client, db):
     db.commit()
 
     body = client.get("/stats?award_category=Best+Director").get_data(as_text=True)
-    assert "(by person)" in body
+    assert "By person" in body
     assert "Jane Doe" in body
     assert "John Smith" in body
 
@@ -107,7 +107,7 @@ def test_award_leaderboard_merges_choreography_and_choreographer(client, db):
 
     body = client.get("/stats?award_category=Best+Choreography").get_data(as_text=True)
     assert "Old Name Award" in body
-    assert '<span class="bar-count">2</span>' in body
+    assert '<span class="rank-n">2</span>' in body
 
 
 def test_award_leaderboard_invalid_category_falls_back_to_default(client, db):
