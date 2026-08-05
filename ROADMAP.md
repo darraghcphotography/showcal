@@ -458,12 +458,16 @@ Flagged by Darragh as "may end up being a large side request" - mockup
 first, own session, not started.
 
 ## Phase 2 - Data integrity sweep (next)
-- [Pending: run `export_csv.py` against production](see Claude's memory -
-  "pending-csv-export-refresh") to pull the North Wexford tier fix (and
-  anything else manually corrected since) back into the tracked CSVs.
+- **`export_csv.py` has been run against production** (2026-08-05: 179 societies / 573 shows
+  written to `/data/societies.csv`/`/data/shows.csv` in the container) - but those files still
+  need to be pulled down (File Station/scp) and committed to git to actually close this out.
+  See [[pending-csv-export-refresh]] memory.
 - Audit for other societies with similarly stale/presumptive data.
-- Fold in the audit findings above: the "179 vs 127" copy fix and the
-  changelog typo are both one-line content edits, cheap to bundle in here.
+- The "179 vs 127" copy fix (About/Stats pages) is still a one-line content edit, cheap to
+  bundle in here. (The changelog-typo item from the original audit is moot now - Round 8 made
+  the changelog self-publishing from `CHANGELOG.md`, so there's nothing stale left to fix there.)
+- `AIMS_AwardsHistory.xlsx` still sits untracked with no `export_awards.py` counterpart - see
+  the 2026-08-05 site review for the open question (build one, or treat it as a frozen snapshot).
 
 ## Phase 3 - Public launch
 **Reality check (2026-08-04): the site is already live and has real
