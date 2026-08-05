@@ -68,6 +68,13 @@ def create_app(test_config=None):
         from . import analytics
         analytics.purge_excluded_pageviews(db_module.get_db())
 
+        # Publish any new CHANGELOG.md entries - skipped under pytest so a
+        # test asserting an empty changelog_entries table isn't broken by
+        # whatever happens to be in the real file (see test_suggestions_roadmap.py).
+        if not app.testing:
+            from . import changelog_sync
+            changelog_sync.sync(db_module.get_db(), BASE_DIR / "CHANGELOG.md")
+
     from .blueprints.public import bp as public_bp
     from .blueprints.submit import bp as submit_bp
     from .blueprints.admin import bp as admin_bp

@@ -261,6 +261,28 @@ plus a real fix that fell out of the "how do I safely update/export enriched dat
   updated to reflect the wider guarantee.
 - Test suite grew 83 -> 88 (Awards pagination x2, hide-nominee x2, the new import guard).
 
+**Round 8 - venue backfill tool + self-publishing changelog (2026-08-05):**
+Two more from the same evening - a real admin tool built from an approved mockup, and a fix for
+"don't rely on me to write the changelog manually":
+- **New `/admin/venues`**: a per-region grid of all 127 active societies with a venue field each,
+  for backfilling `societies.default_venue` (0/179 filled prior to this - see the site review).
+  Autosave-per-field on blur (first `fetch()`-based JS in the codebase - everything else is plain
+  forms) rather than one big submit, per the approved mockup's own reasoning: safer for a ~130-row
+  form than losing an hour of typing to one failed request. A sticky progress bar tracks how many
+  are filled. New `{% block scripts %}` added to `base.html` so a template can opt into a
+  page-specific `<script>` without every page getting one.
+- Dashboard's "Needs attention" table gets a matching row (`missing_venue_count`) alongside the
+  existing pending-submissions/needs-review/etc counts.
+- **Changelog entries now publish themselves.** `CHANGELOG.md` (git-tracked, `---`-separated
+  entries) is synced into `changelog_entries` once on every app startup via
+  `app/changelog_sync.py` - write an entry into the file, commit, redeploy, done. A new
+  `changelog_synced_entries` table remembers what's already been published so a manually-deleted
+  entry never gets resurrected by the next restart just because the text is still in the file.
+  `add_changelog.py` (a one-command CLI publish, added earlier this session) stays as the escape
+  hatch for a one-off entry outside the normal commit/redeploy flow.
+- Test suite grew 88 -> 104 (venues page + save endpoint x6, changelog_sync parsing/idempotency/
+  no-resurrection x7).
+
 **Parked for their own dedicated sessions:**
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the

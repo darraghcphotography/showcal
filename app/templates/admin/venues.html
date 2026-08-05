@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Venues - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Backfill default venues</h1>
+  <p class="meta">One usual venue per society - prefills a show's venue when left blank at
+     submission, and backfills the Maps link on past shows that don't have one recorded. Type a
+     venue and click/tab away to save it - no submit button, each field saves itself. Leave any
+     you don't know blank; a partial pass still helps.</p>
+
+  <input type="hidden" id="csrf-token" value="{{ csrf_token() }}">
+
+  <div class="venue-progress-wrap">
+    <div class="venue-progress-line">
+      <span>Filled in</span>
+      <span><span id="filled-count">{{ filled_count }}</span> / {{ total }}</span>
+    </div>
+    <div class="venue-progress-track">
+      <div class="venue-progress-fill" id="progress-fill" style="width: {{ (filled_count / total * 100)|round(1) if total else 0 }}%"></div>
+    </div>
+  </div>
+
+  {% for region in regions %}
+    {% set societies = by_region.get(region, []) %}
+    {% if societies %}
+      <h2>{{ region }} <span class="meta">({{ societies|length }})</span></h2>
+      <table class="data-table venue-table">
+        <thead><tr><th>Society</th><th>Venue</th></tr></thead>
+        <tbody>
+          {% for s in societies %}
+            <tr class="{{ 'filled' if s['default_venue'] else '' }}">
+              <td>{{ s['name'] }}</td>
+              <td>
+                <input class="venue-input" type="text" data-society-id="{{ s['id'] }}"
+                       value="{{ s['default_venue'] or '' }}" placeholder="e.g. Town Hall Theatre">
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  {% endfor %}
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    (function () {
+      const csrfToken = document.getElementById("csrf-token").value;
+      const total = {{ total }};
+      let filled = {{ filled_count }};
+
+      function updateProgress(delta) {
+        filled += delta;
+        document.getElementById("filled-count").textContent = filled;
+        document.getElementById("progress-fill").style.width = (total ? (filled / total * 100) : 0) + "%";
+      }
+
+      document.querySelectorAll(".venue-input").forEach((input) => {
+        input.dataset.saved = input.value;
+        input.addEventListener("blur", () => {
+          const value = input.value.trim();
+          if (value === input.dataset.saved) return;
+
+          const row = input.closest("tr");
+          const wasFilled = row.classList.contains("filled");
+          const body = new URLSearchParams({
+            csrf_token: csrfToken,
+            society_id: input.dataset.societyId,
+            venue: value,
+          });
+
+          fetch("{{ url_for('admin.save_venue') }}", { method: "POST", body })
+            .then((r) => r.json())
+            .then((data) => {
+              if (!data.ok) throw new Error(data.error || "Save failed");
+              input.dataset.saved = value;
+              const isFilled = value.length > 0;
+              if (isFilled && !wasFilled) { row.classList.add("filled"); updateProgress(1); }
+              if (!isFilled && wasFilled) { row.classList.remove("filled"); updateProgress(-1); }
+              input.classList.remove("venue-input-error");
+            })
+            .catch(() => {
+              input.classList.add("venue-input-error");
+            });
+        });
+      });
+    })();
+  </script>
+{% endblock %}

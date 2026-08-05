@@ -43,6 +43,11 @@
         <td>{{ historical_regions_pending_count }}</td>
         <td><a href="{{ url_for('admin.historical_societies') }}">Review</a></td>
       </tr>
+      <tr>
+        <td>Active societies missing a default venue</td>
+        <td>{{ missing_venue_count }}</td>
+        <td><a href="{{ url_for('admin.venues') }}">Fill in venues</a></td>
+      </tr>
     </tbody>
   </table>
 
@@ -54,6 +59,7 @@
     <a href="{{ url_for('admin.fix_dates') }}">Fix dates</a> &middot;
     <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a> &middot;
     <a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a> &middot;
+    <a href="{{ url_for('admin.venues') }}">Venues</a> &middot;
     <a href="{{ url_for('admin.traffic') }}">Traffic</a> &middot;
     <a href="{{ url_for('admin.suggestions') }}">Suggestions</a> &middot;
     <a href="{{ url_for('admin.changelog') }}">Changelog</a>

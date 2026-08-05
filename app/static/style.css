@@ -331,6 +331,21 @@ details table { margin-top: 0.5rem; }
 .pagination a { text-decoration: none; color: var(--accent); }
 .pagination a:hover { text-decoration: underline; }
 
+/* /admin/venues - a per-field autosave grid (no submit button; see
+   admin/venues.html's fetch-on-blur), so the sticky progress bar is the
+   only feedback that anything actually saved while scrolling through it. */
+.venue-progress-wrap {
+  position: sticky; top: 0; background: var(--bg); padding: 0.6rem 0 0.9rem;
+  border-bottom: 1px solid var(--border); margin-bottom: 1rem; z-index: 5;
+}
+.venue-progress-line { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem; }
+.venue-progress-track { background: var(--row-alt); border-radius: 999px; height: 0.5rem; overflow: hidden; }
+.venue-progress-fill { background: var(--success); height: 100%; transition: width 0.15s ease; }
+
+.venue-table tr.filled { background: color-mix(in srgb, var(--success) 10%, transparent); }
+.venue-table input.venue-input { width: 100%; max-width: 320px; }
+.venue-table input.venue-input-error { border-color: var(--danger); }
+
 .season-picker { font-size: 0.9rem; }
 .season-picker a { margin: 0 0.15rem; }
 .season-picker a.current { font-weight: 700; text-decoration: none; color: var(--fg); }

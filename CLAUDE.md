@@ -39,8 +39,13 @@ docker compose up -d --build
 docker compose exec aims-web python import_csv.py --db /data/aims.db --societies /data/societies.csv --shows /data/shows.csv
 docker compose exec aims-web python seed_admin.py yourname --role admin --db /data/aims.db
 docker compose exec aims-web python import_awards.py --db /data/aims.db
-docker compose exec aims-web python add_changelog.py --db /data/aims.db "Headline" "Detail one" "Detail two"
 ```
+Changelog entries (shown on the public `/suggestions` Roadmap page) publish themselves - write a
+new entry into `CHANGELOG.md` (one line per bullet, blocks separated by `---`) and it's live the
+moment that commit gets redeployed, no command needed (`app/changelog_sync.py`, runs once on every
+startup - a deleted entry never comes back, see `schema.sql`'s `changelog_synced_entries`). For a
+one-off entry outside the normal commit/redeploy flow: `docker compose exec aims-web python
+add_changelog.py --db /data/aims.db "Headline" "Detail one"`.
 **Always pass `--db /data/aims.db` explicitly in the container** - every management script's default `--db`
 points at a bare `aims.db` relative to the image's `/app` working directory, not the volume-mounted real
 database. Forgetting the flag doesn't error - it silently creates/uses a fresh, empty throwaway database

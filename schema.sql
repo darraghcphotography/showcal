@@ -182,6 +182,17 @@ CREATE TABLE IF NOT EXISTS changelog_entries (
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Remembers every entry from the git-tracked CHANGELOG.md that's ever been
+-- auto-published into changelog_entries above, so app/changelog_sync.py can
+-- tell "never synced yet" (publish it) apart from "synced once, then
+-- deliberately deleted via /admin/changelog" (leave it deleted) - otherwise
+-- every app restart would resurrect a manually-removed entry, since the
+-- entry text is still sitting right there in the file.
+CREATE TABLE IF NOT EXISTS changelog_synced_entries (
+    entry           TEXT PRIMARY KEY,
+    synced_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- One row per award nomination/result from AIMS's historical awards archive
 -- (1977 onward), imported by import_awards.py. Only years strictly BEFORE
 -- shows.csv's own coverage (season 23/24 = award Year 2024) are imported, so

@@ -4,7 +4,7 @@ import secrets
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from ..auth import current_user, login_required
@@ -121,6 +121,10 @@ def dashboard():
         "SELECT COUNT(*) FROM historical_society_regions WHERE confirmed_region IS NULL"
     ).fetchone()[0]
 
+    missing_venue_count = db.execute(
+        "SELECT COUNT(*) FROM societies WHERE section != 'Inactive' AND default_venue IS NULL"
+    ).fetchone()[0]
+
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
     # still no historical_results row for its award year, those results
@@ -151,6 +155,7 @@ def dashboard():
         duplicate_count=duplicate_count,
         unmatched_award_societies_count=unmatched_award_societies_count,
         historical_regions_pending_count=historical_regions_pending_count,
+        missing_venue_count=missing_venue_count,
         awards_pending_season=awards_pending_season,
     )
 
@@ -635,6 +640,41 @@ def societies_list():
     query += " ORDER BY name"
     societies = get_db().execute(query, params).fetchall()
     return render_template("admin/societies_list.html", societies=societies, q=q)
+
+
+@bp.route("/venues")
+@login_required
+def venues():
+    db = get_db()
+    societies = db.execute(
+        "SELECT id, name, region, default_venue FROM societies "
+        "WHERE section != 'Inactive' ORDER BY region, name"
+    ).fetchall()
+    by_region = {r: [] for r in REGIONS}
+    for s in societies:
+        by_region.setdefault(s["region"], []).append(s)
+    filled_count = sum(1 for s in societies if s["default_venue"])
+    return render_template(
+        "admin/venues.html", by_region=by_region, regions=REGIONS,
+        total=len(societies), filled_count=filled_count,
+    )
+
+
+@bp.route("/venues/save", methods=("POST",))
+@login_required
+def save_venue():
+    db = get_db()
+    society_id = request.form.get("society_id", type=int)
+    if not society_id:
+        return jsonify(ok=False, error="Missing society_id"), 400
+    venue = request.form.get("venue", "").strip() or None
+    updated = db.execute(
+        "UPDATE societies SET default_venue = ? WHERE id = ?", (venue, society_id)
+    ).rowcount
+    db.commit()
+    if not updated:
+        return jsonify(ok=False, error="Society not found"), 404
+    return jsonify(ok=True, venue=venue)
 
 
 @bp.route("/societies/new", methods=("GET", "POST"))
