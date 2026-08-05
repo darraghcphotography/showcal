@@ -97,3 +97,49 @@ def test_reimport_does_not_regress_moderator_set_review(tmp_path):
     conn.close()
     assert row[0] == "Published"
     assert row[1] == "https://example.com/mod-review"
+
+
+def test_reimport_does_not_blank_manually_set_venue_and_crew(tmp_path):
+    """Someone fills in a show's venue/director/MD/choreographer directly in
+    the app (the spreadsheet didn't have it yet); re-running the import from
+    that still-blank spreadsheet must not wipe it back out - but a spreadsheet
+    that *does* have a real value should still win, since it's the source of
+    truth when it actually has an answer."""
+    db_path = tmp_path / "reimport_venue.db"
+    societies_csv = tmp_path / "societies.csv"
+    shows_csv = tmp_path / "shows.csv"
+    _write(societies_csv, SOCIETIES_CSV)
+    _write(shows_csv, SHOWS_CSV)
+
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.executescript((ROOT / "schema.sql").read_text(encoding="utf-8"))
+    import_csv.load_societies(conn, societies_csv)
+    import_csv.load_shows(conn, shows_csv)
+    conn.commit()
+
+    # The Oliver! row already has a venue/director from the spreadsheet;
+    # someone fills in the blank 24/25 placeholder's venue directly in the app.
+    conn.execute(
+        "UPDATE shows SET venue = 'Backfilled Hall' WHERE show IS NULL AND season = '24/25'"
+    )
+    conn.commit()
+
+    # Re-run the import from the same (still-blank-for-that-row) spreadsheet.
+    import_csv.load_shows(conn, shows_csv)
+    conn.commit()
+
+    backfilled = conn.execute(
+        "SELECT venue FROM shows WHERE show IS NULL AND season = '24/25'"
+    ).fetchone()
+    assert backfilled[0] == "Backfilled Hall"
+
+    # Oliver!'s venue/director came from a real (non-blank) spreadsheet value,
+    # so a re-import should still apply it normally, not freeze it at whatever
+    # happened to be in the db before.
+    oliver = conn.execute(
+        "SELECT venue, director FROM shows WHERE show = 'Oliver!'"
+    ).fetchone()
+    conn.close()
+    assert oliver[0] == "Town Hall"
+    assert oliver[1] == "Jane Doe"

@@ -241,6 +241,26 @@ Award Explorer:
   shipping, even a "matches existing site conventions" one - see
   [[workflow-habits]].
 
+**Round 7 - Awards page polish + a real data-safety gap found (2026-08-05):**
+Raised while reviewing the 2026-08-05 site review doc below - two quick Awards-page requests
+plus a real fix that fell out of the "how do I safely update/export enriched data" question:
+- `/awards` gets pagination (50/100 per page, selectable) - was rendering ~1,500+ rows in one
+  page with the default Winner filter.
+- Nominee column now hidden for society-level categories (Best Technical/Programme/House
+  Management/Visual/etc.) - `nominee_name` on those rows was always just a duplicate of the
+  Society column, not a real individual. Reuses the same `person`/society classification
+  built for the Award Explorer (`AWARD_CATEGORIES` in `constants.py`), now also exposed as
+  `SOCIETY_AWARD_CATEGORY_NAMES`.
+- **Real gap found and fixed**: `import_csv.py`'s re-import guard only ever protected
+  `review_status`/`review_url` from being blanked out by a stale spreadsheet - `venue`,
+  `director`, `musical_director`, and `choreographer` had no such protection and were
+  unconditionally overwritten on every re-import. Anyone manually filling one of these in
+  directly in the app (not yet reflected in the tracked CSV) was one re-import away from
+  losing it silently. Now uses the same "blank spreadsheet value never overwrites a real db
+  value, but a real spreadsheet value still wins" guard as review_status/review_url. `CLAUDE.md`
+  updated to reflect the wider guarantee.
+- Test suite grew 83 -> 88 (Awards pagination x2, hide-nominee x2, the new import guard).
+
 **Parked for their own dedicated sessions:**
 - A society-page section for costume/prop rental listings, ideally matched
   to shows the society has actually performed - the biggest lift on the

@@ -66,8 +66,9 @@ have the container name from `docker ps`.)
 - Adding a column to an existing table needs an entry in `app/db.py`'s `COLUMN_MIGRATIONS` list -
   `CREATE TABLE IF NOT EXISTS` in `schema.sql` never adds a column to a table that already exists.
 - `shows.source` distinguishes `import` (from CSV) vs `submission` (member-submitted) rows -
-  `import_csv.py` only ever updates `source='import'` rows, and never regresses a
-  `review_status`/`review_url` a moderator has already set.
+  `import_csv.py` only ever updates `source='import'` rows, and never regresses
+  `review_status`/`review_url`/`venue`/`director`/`musical_director`/`choreographer` to blank -
+  a real spreadsheet value still wins, but a blank one won't erase a value set directly in the app.
 - Title matching (submission duplicate warning, stats grouping) is an exact match on a normalized
   string (`app/similarity.py`), deliberately not fuzzy - several real shows have close names
   (`Frozen` vs `Frozen Jr.`) that fuzzy matching would wrongly conflate.

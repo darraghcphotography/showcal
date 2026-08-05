@@ -84,3 +84,12 @@ AWARD_CATEGORIES = [
 ]
 AWARD_CATEGORY_BY_KEY = {c["key"]: c for c in AWARD_CATEGORIES}
 DEFAULT_AWARD_CATEGORY = "Best Overall Show"
+
+# Real historical_results.category_name values that are society-level (see
+# the AWARD_CATEGORIES comment above for how "person" was determined) - used
+# on the /awards browse table to hide the Nominee column for these rows,
+# since nominee_name there actually just duplicates the Society column, not
+# a real individual.
+SOCIETY_AWARD_CATEGORY_NAMES = frozenset(
+    name for c in AWARD_CATEGORIES if not c["person"] for name in c["db_names"]
+)

@@ -10,6 +10,7 @@ from ..constants import (
     REGIONS,
     SHOW_SECTIONS,
     SHOWS_COVERAGE_START_YEAR,
+    SOCIETY_AWARD_CATEGORY_NAMES,
 )
 from ..db import get_db
 from ..search import fts_match_ids
@@ -533,6 +534,9 @@ def season_summary():
     )
 
 
+AWARDS_PAGE_SIZES = [50, 100]
+
+
 @bp.route("/awards")
 def awards():
     db = get_db()
@@ -543,6 +547,13 @@ def awards():
     result = request.args.get("result", "Winner")
     q = request.args.get("q", "").strip()
 
+    per_page = request.args.get("per_page", type=int, default=AWARDS_PAGE_SIZES[0])
+    if per_page not in AWARDS_PAGE_SIZES:
+        per_page = AWARDS_PAGE_SIZES[0]
+    page = request.args.get("page", type=int, default=1)
+    if page < 1:
+        page = 1
+
     years = [r[0] for r in db.execute(
         "SELECT DISTINCT year FROM historical_results ORDER BY year DESC"
     ).fetchall()]
@@ -550,41 +561,50 @@ def awards():
         "SELECT DISTINCT category_name FROM historical_results WHERE category_name IS NOT NULL ORDER BY category_name"
     ).fetchall()]
 
-    query = """
-        SELECT historical_results.*, societies.id AS resolved_society_id
+    where = """
         FROM historical_results
         LEFT JOIN societies ON societies.id = historical_results.society_id
         WHERE 1=1
     """
     params = []
     if year.isdigit():
-        query += " AND year = ?"
+        where += " AND year = ?"
         params.append(int(year))
     if category:
-        query += " AND category_name = ?"
+        where += " AND category_name = ?"
         params.append(category)
     if tier in ("Gilbert", "Sullivan"):
-        query += " AND tier = ?"
+        where += " AND tier = ?"
         params.append(tier)
     if result in AWARD_RESULTS:
-        query += " AND result = ?"
+        where += " AND result = ?"
         params.append(result)
     if q:
         ids = fts_match_ids(db, "historical_results_fts", q)
         if ids is not None:
-            query += f" AND historical_results.id IN ({','.join('?' * len(ids))})" if ids else " AND 0"
+            where += f" AND historical_results.id IN ({','.join('?' * len(ids))})" if ids else " AND 0"
             params.extend(ids)
         else:
-            query += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
+            where += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
                          OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
             escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             like = f"%{escaped}%"
             params += [like, like, like, like]
-    query += " ORDER BY year DESC, category_name, society_name"
 
-    rows = db.execute(query, params).fetchall()
+    total = db.execute(f"SELECT COUNT(*) {where}", params).fetchone()[0]
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, total_pages)
+
+    query = f"""
+        SELECT historical_results.*, societies.id AS resolved_society_id {where}
+        ORDER BY year DESC, category_name, society_name
+        LIMIT ? OFFSET ?
+    """
+    rows = db.execute(query, params + [per_page, (page - 1) * per_page]).fetchall()
 
     return render_template(
         "awards.html", rows=rows, years=years, categories=categories, results=AWARD_RESULTS,
         selected_year=year, selected_category=category, selected_tier=tier, selected_result=result, q=q,
+        page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=AWARDS_PAGE_SIZES,
+        society_award_category_names=SOCIETY_AWARD_CATEGORY_NAMES,
     )

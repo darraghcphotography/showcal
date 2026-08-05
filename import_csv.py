@@ -4,9 +4,12 @@ Safe to re-run: this is an upsert, not a wipe-and-reload.
   - societies are always fully refreshed from the CSV (the spreadsheet is the
     only source of truth for that table).
   - shows rows created by the CSV import (source='import') are refreshed from
-    the CSV, EXCEPT review_status/review_url are never regressed backwards -
-    if a moderator has already attached a review in the app, a stale/blank
-    value in the spreadsheet won't erase it.
+    the CSV, EXCEPT review_status/review_url/venue/director/musical_director/
+    choreographer are never regressed to blank - if a moderator (or the app
+    itself) has already filled one of these in, a stale/blank value in the
+    spreadsheet won't erase it. A *non-blank* spreadsheet value still wins,
+    since the spreadsheet is the source of truth when it actually has an
+    answer - this only guards against a blank overwriting a real value.
   - shows rows created via the in-app member-submission workflow
     (source='submission') are never touched by this script.
 
@@ -127,10 +130,10 @@ def load_shows(conn, path):
                 closing_date=excluded.closing_date,
                 adjudication_date=excluded.adjudication_date,
                 adjudication_month_raw=excluded.adjudication_month_raw,
-                venue=excluded.venue,
-                director=excluded.director,
-                musical_director=excluded.musical_director,
-                choreographer=excluded.choreographer,
+                venue=COALESCE(excluded.venue, shows.venue),
+                director=COALESCE(excluded.director, shows.director),
+                musical_director=COALESCE(excluded.musical_director, shows.musical_director),
+                choreographer=COALESCE(excluded.choreographer, shows.choreographer),
                 status=excluded.status,
                 review_url=COALESCE(NULLIF(excluded.review_url, ''), shows.review_url),
                 review_status=CASE

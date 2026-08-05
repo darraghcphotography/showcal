@@ -2,8 +2,8 @@
 {% block title %}Awards - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Awards</h1>
-  <p>{{ rows|length }} record{{ '' if rows|length == 1 else 's' }} from the full AIMS awards archive, 1977
-     through the most recently adjudicated season.</p>
+  <p>{{ total }} record{{ '' if total == 1 else 's' }} from the full AIMS awards archive, 1977
+     through the most recently adjudicated season{% if total_pages > 1 %} - showing page {{ page }} of {{ total_pages }}{% endif %}.</p>
 
   <form method="get" class="filter-form">
     <label>
@@ -45,6 +45,14 @@
       Search
       <input type="text" name="q" value="{{ q }}" placeholder="Society, show, nominee or reason">
     </label>
+    <label>
+      Per page
+      <select name="per_page">
+        {% for size in page_sizes %}
+          <option value="{{ size }}" {% if size == per_page %}selected{% endif %}>{{ size }}</option>
+        {% endfor %}
+      </select>
+    </label>
     <button type="submit">Filter</button>
     {% if selected_year or selected_category or selected_tier or q or selected_result != 'Winner' %}
       <a href="{{ url_for('info.awards') }}">Clear</a>
@@ -76,7 +84,11 @@
               {{ r['society_name'] or '—' }}
             {% endif %}
           </td>
-          <td>{{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}</td>
+          <td>
+            {% if r['category_name'] not in society_award_category_names %}
+              {{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}
+            {% endif %}
+          </td>
         </tr>
         {% if r['reason'] %}
           <tr class="row-note"><td colspan="7"><em>{{ r['reason'] }}</em></td></tr>
@@ -110,7 +122,9 @@
               {{ r['society_name'] or '—' }}
             {% endif %}
           </span>
-          <span>&middot; {{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}</span>
+          {% if r['category_name'] not in society_award_category_names %}
+            <span>&middot; {{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}</span>
+          {% endif %}
         </div>
         {% if r['reason'] %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ r['reason'] }}</em></p>{% endif %}
       </div>
@@ -118,4 +132,18 @@
       <p>No award records match those filters.</p>
     {% endfor %}
   </div>
+
+  {% if total_pages > 1 %}
+    <nav class="pagination">
+      {% if page > 1 %}
+        <a href="{{ url_for('info.awards', **dict(request.args, page=1)) }}">&laquo; First</a>
+        <a href="{{ url_for('info.awards', **dict(request.args, page=page - 1)) }}">&lsaquo; Previous</a>
+      {% endif %}
+      <span class="meta">Page {{ page }} of {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ url_for('info.awards', **dict(request.args, page=page + 1)) }}">Next &rsaquo;</a>
+        <a href="{{ url_for('info.awards', **dict(request.args, page=total_pages)) }}">Last &raquo;</a>
+      {% endif %}
+    </nav>
+  {% endif %}
 {% endblock %}
