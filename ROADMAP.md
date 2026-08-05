@@ -282,9 +282,13 @@ reviewable outside chat - summary of what's in it:
 - **New:** changelog is empty on production (0 rows - the typo'd entry from the 2026-08-04
   audit is gone, nothing replaced it); venue data has collapsed to 0% filled for 25/26-27/28
   (confirmed the gap is in the source `shows.csv`, not an import bug) despite the Phase 0
-  venue+Maps-link feature depending on it; 67 historical societies have a suggested region at
-  `/admin/historical-societies` with zero confirmed, silently excluded from every
-  region-filtered awards stat.
+  venue+Maps-link feature depending on it.
+- **Correction (2026-08-05):** the "67 historical societies unconfirmed" finding was wrong -
+  based on a stale local `aims.db`, not production (see [[workflow-habits]] memory - the local
+  dev db has no sync mechanism with `/data/aims.db` on the NAS). Darragh had actually confirmed
+  68 of 72 directly on the live site; the remaining 4 (3 with no location clue at all, plus
+  "AIMS" itself - not a real society, a national-level award attribution) are genuinely
+  unresolvable, not an oversight. Nothing to do here.
 - **Still pending, already known:** the Phase 2 `export_csv.py` item below, plus whether
   `AIMS_AwardsHistory.xlsx` needs an `export_awards.py` counterpart or can be treated as a
   frozen historical snapshot now that the DB corrections have diverged from it.

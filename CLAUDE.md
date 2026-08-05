@@ -39,6 +39,7 @@ docker compose up -d --build
 docker compose exec aims-web python import_csv.py --db /data/aims.db --societies /data/societies.csv --shows /data/shows.csv
 docker compose exec aims-web python seed_admin.py yourname --role admin --db /data/aims.db
 docker compose exec aims-web python import_awards.py --db /data/aims.db
+docker compose exec aims-web python add_changelog.py --db /data/aims.db "Headline" "Detail one" "Detail two"
 ```
 **Always pass `--db /data/aims.db` explicitly in the container** - every management script's default `--db`
 points at a bare `aims.db` relative to the image's `/app` working directory, not the volume-mounted real
