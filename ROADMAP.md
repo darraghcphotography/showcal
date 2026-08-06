@@ -500,6 +500,26 @@ show worth reviving:
   (pre-23/24)" section, positioned between "Show history" and "Awards & nominations" - mirrors the
   since-23/24-vs-earlier-archive split `/titles/<title>` already uses. Test suite grew 135 -> 138.
 
+**Research pass - which other societies have an online production history (2026-08-06):**
+Checked the 23 AIMS societies with the thinnest recorded history against their own websites, to see
+whether Marian's "Previous Productions" page was a one-off or worth actively hunting for elsewhere.
+- **Ballyshannon Musical Society** (id 9) - a genuine "Through The Ages" decade-by-decade archive
+  back to the 1950s: https://ballyshannonmusicalsociety.ie/through-the-ages/. 36 shows confirmed
+  (1963-2019, titles normalized to match existing DB spelling conventions e.g. "H.M.S. Pinafore",
+  "Oklahoma!", "The Gypsy Princess") - not yet pasted into the live site, ready to go via the bulk
+  tool. **Spring (Jan-Jun) timing** - their current shows all open late February. Real gaps, not
+  guessed: the 1950s and 1990s decade pages exist but embed titles as images with no extractable alt
+  text, so those years are still unconfirmed; a few scattered years (1985, 2002, 2013, 2015,
+  2020-2023) are similarly image-only. 2024/2025/2026 are already covered via the `shows` table.
+- **Kilrush Choral Society** and **Rathmines & Rathgar Musical Society** both reference a real
+  archive ("Digital Archive" / "Our Legacy" with a century of programmes) but neither was
+  automated-fetch-friendly - Kilrush's site is a JS single-page app with no crawlable URLs for that
+  section, R&R's archive is scanned programme/poster images via an embedded Issuu viewer. Worth a
+  manual (human-browser) look, not confirmed as backfill-ready.
+- Everything else in the batch of 23 came back Facebook-only or no independent web presence at all
+  - genuinely thin, not just unsearched. Marian's page looks like the exception, not the rule, at
+  least among societies already known to be light on history.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
