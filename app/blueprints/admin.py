@@ -1480,11 +1480,15 @@ def bulk_historical_productions():
 
             stored_year = year + HISTORICAL_YEAR_OFFSETS[year_convention]
 
+            # Matches ANY existing row for this (year, show, society) - not just
+            # a bare one. A society with award-archive coverage for some years
+            # (e.g. a Best Overall Show nomination) already has that production
+            # on record; inserting a second, bare "this happened" row for the
+            # same show would double-count it in every production-count stat.
             already_present = db.execute(
                 """
                 SELECT 1 FROM historical_results
                 WHERE year = ? AND show = ? AND society_id = ?
-                  AND category_name IS NULL AND result IS NULL
                 """,
                 (stored_year, title, society["id"]),
             ).fetchone()

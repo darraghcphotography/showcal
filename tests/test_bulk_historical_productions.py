@@ -92,6 +92,31 @@ def test_bulk_add_skips_already_present_rows(client, db):
     assert count == 1
 
 
+def test_bulk_add_skips_a_production_already_on_record_as_an_award_row(client, db):
+    """A society with award-archive coverage for a year (e.g. a Best Overall
+    Show nomination) already has that production on record - pasting the
+    same show/year shouldn't add a second, bare duplicate row that would
+    double-count it in production-count stats."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Carrick-on-Suir Musical Society")
+    login_as(client, admin_id)
+
+    db.execute(
+        "INSERT INTO historical_results (year, tier, category_name, result, show, society_id, source) "
+        "VALUES (1994, 'Gilbert', 'Best Overall Show', 'Nominee', 'Chess', ?, 'manual')",
+        (society_id,),
+    )
+    db.commit()
+
+    client.post(
+        "/admin/historical-productions/bulk",
+        data={"society_id": society_id, "year_convention": "exact", "lines": "1994 Chess"},
+    )
+
+    count = db.execute("SELECT COUNT(*) FROM historical_results WHERE show = 'Chess'").fetchone()[0]
+    assert count == 1
+
+
 def test_bulk_add_requires_login(client, db):
     society_id = seed_society(db)
     resp = client.get("/admin/historical-productions/bulk")
