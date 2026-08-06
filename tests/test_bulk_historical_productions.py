@@ -117,6 +117,32 @@ def test_bulk_add_skips_a_production_already_on_record_as_an_award_row(client, d
     assert count == 1
 
 
+def test_bulk_add_skips_a_production_already_on_record_in_the_shows_table(client, db):
+    """The shows table (23/24+) has no "year" column, just opening_date - a
+    production already recorded there (e.g. a real staged show, not a bare
+    historical row) shouldn't get a duplicate historical_results row just
+    because a moderator pasted the same year+title from a society's own
+    website list."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Roscrea Musical Society")
+    login_as(client, admin_id)
+
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status) "
+        "VALUES (?, '23/24', 'South-West', 'Grease', '2024-05-06', '2024-05-10', 'approved')",
+        (society_id,),
+    )
+    db.commit()
+
+    resp = client.post(
+        "/admin/historical-productions/bulk",
+        data={"society_id": society_id, "year_convention": "spring", "lines": "2024 Grease"},
+        follow_redirects=True,
+    )
+    assert "skipped 1 already on record" in resp.get_data(as_text=True)
+    assert db.execute("SELECT COUNT(*) FROM historical_results WHERE show = 'Grease'").fetchone()[0] == 0
+
+
 def test_bulk_add_requires_login(client, db):
     society_id = seed_society(db)
     resp = client.get("/admin/historical-productions/bulk")

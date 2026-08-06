@@ -1492,6 +1492,22 @@ def bulk_historical_productions():
                 """,
                 (stored_year, title, society["id"]),
             ).fetchone()
+            # Also check the shows table (23/24+) - it has no "year" column,
+            # just opening_date, and this tool has no reliable way to know
+            # which season a bare "YEAR Title" line would land in, so this
+            # matches on title + either the typed or offset-adjusted year
+            # appearing anywhere in that show's opening_date. A production
+            # already recorded there shouldn't also get a bare
+            # historical_results row - same show, counted twice.
+            if not already_present:
+                already_present = db.execute(
+                    """
+                    SELECT 1 FROM shows
+                    WHERE society_id = ? AND show = ?
+                      AND (substr(opening_date, 1, 4) = ? OR substr(opening_date, 1, 4) = ?)
+                    """,
+                    (society["id"], title, str(year), str(stored_year)),
+                ).fetchone()
             if already_present:
                 skipped += 1
                 continue
