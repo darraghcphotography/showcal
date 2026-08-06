@@ -174,12 +174,19 @@ def main():
     # Roof"/"Man Of La Mancha". Fixed here (rather than relying on the
     # upsert below, which would just insert a second correctly-cased row
     # and leave the old one behind) so this stays a single re-runnable step.
+    # If the correctly-cased row already exists (e.g. another script already
+    # upserted premiere data onto it), drop the old duplicate instead of
+    # renaming into a collision - the DATA loop below will fill in synopsis/
+    # rights on the surviving row either way.
     CASING_FIXES = {
         "Fiddler On The Roof": "Fiddler on the Roof",
         "Man Of La Mancha": "Man of La Mancha",
     }
     for old, new in CASING_FIXES.items():
-        conn.execute("UPDATE show_info SET show = ? WHERE show = ?", (new, old))
+        if conn.execute("SELECT 1 FROM show_info WHERE show = ?", (new,)).fetchone():
+            conn.execute("DELETE FROM show_info WHERE show = ?", (old,))
+        else:
+            conn.execute("UPDATE show_info SET show = ? WHERE show = ?", (new, old))
 
     for show, synopsis, rights_url, rights_status, note in DATA:
         full_synopsis = synopsis + (f" {note}" if note else "")
