@@ -417,6 +417,40 @@ Follow-through on the UX audit below plus a live gap Darragh spotted:
 - Test suite held at 127 (existing coverage already exercised these query paths; no test asserted
   the old "Already finished" copy so nothing needed updating there).
 
+**Round 13 - All Shows: last-performed, world premiere data, link cleanup (2026-08-06):**
+Prompted by Darragh flagging the All Shows page as still messy (`show_links` - the confirmed-URL
+"More info" column - had 0/270 titles filled in) and asking for something to help societies spot a
+show worth reviving:
+- **"Last performed" column + "Longest since performed" sort** on All Shows, computed from the
+  true most recent year across `shows`/`historical_results` (unfiltered by the
+  `SHOWS_COVERAGE_START_YEAR` dedup cutoff the performance-count column uses, since a recency
+  question has no double-counting problem).
+- **New `show_info.premiere_year`/`premiere_place`** (moderator-entered, same "never guessed"
+  trust model as the rest of that table) shown alongside a computed "AIMS debut" year on each
+  show's own page - scoped to the show detail page rather than adding two more columns to the
+  already-wide All Shows table, confirmed with Darragh first.
+- Wanted to cross-reference against ovrtur.com for premiere data - it 403s on any fetch, so
+  pivoted to Wikipedia instead (same source the "More info" links already point at).
+- **`enrich_show_links.py`**: a background research pass verified (Wikipedia infobox, not
+  guessed) confirmed URLs + world premiere year/place for the top 50 most-performed titles.
+  2 of the 50 ("The New Pirates of Penzance", "Michael Collins - A Musical Drama") have no
+  genuine, internationally notable Wikipedia article and were deliberately left blank rather than
+  linked to something unrelated. One judgment call worth revisiting if it ever comes up: "The
+  Wizard of Oz" is ambiguous between a 1902 Broadway musical and a 1987 RSC stage adaptation -
+  seeded with the 1987 version since that's the one actually licensed to amateur societies today.
+  First attempt at this research task failed twice (a transient API error, then a session usage
+  cap) before succeeding on retry - the agent's own web research isn't infallible/free, budget for
+  possible retries on a task this size.
+- **Found and fixed a real bug while in there**: 2 of the original 30 `enrich_show_info.py` titles
+  ("Fiddler On The Roof", "Man Of La Mancha") were silently orphaned since that script's first run
+  - wrong capitalization meant they never matched the real `shows`/`historical_results` title
+  strings, so their synopsis/rights info never actually rendered anywhere. Fixed the casing and
+  taught the script to merge into an already-correctly-cased row instead of erroring, since
+  `enrich_show_links.py` may create that row first.
+- **Compacted the admin "confirm exact URL" controls** on All Shows behind a `<details>`
+  disclosure instead of two stacked forms in every row.
+- Test suite held at 127.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
