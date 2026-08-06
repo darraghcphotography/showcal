@@ -18,3 +18,8 @@ Confirmed Wikipedia links and world premiere info added for the 50 most-performe
 ---
 
 Stats page: the Award Explorer now opens on a random award category instead of always "Best Overall Show"
+
+---
+
+Stats page: Signature show now needs 3+ stagings of the same title to count, not 2
+New admin tool: paste a society's own production list to bulk-backfill their history

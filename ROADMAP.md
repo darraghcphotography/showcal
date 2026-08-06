@@ -451,6 +451,34 @@ show worth reviving:
   disclosure instead of two stacked forms in every row.
 - Test suite held at 127.
 
+**Round 14 - Signature show threshold, historical-productions bulk-add tool (2026-08-06):**
+- **Stats page Signature show** raised from "2+ stagings" to "3+ stagings" - 2 read as too weak/
+  coincidental. Added an empty-state message for when a region (or the whole page) has no society
+  meeting the higher bar, instead of silently rendering an empty list.
+- **New `/admin/historical-productions/bulk`**: paste a society's own "previous productions" list
+  (`YEAR Title` per line, straight off their website) and it inserts bare `historical_results` rows
+  - no award/category attached, just a record the production happened - deduped against what's
+  already on record so a list can be safely re-pasted later. Prompted by Darragh having a full
+  history for Marian Choral Society, Tuam and no way to bulk-enter it as admin.
+- **Found and confirmed AIMS's year convention while building it**: `historical_results.year` is
+  one year *after* the actual production (a show staged autumn 2016 is recorded as 2017) - matches
+  how season "23/24" maps to `SHOWS_COVERAGE_START_YEAR = 2024`. Confirmed by diffing Marian's full
+  49-title list against their existing 40 `historical_results` rows - every one of 21 overlapping
+  titles was off by exactly +1, no exceptions. The tool applies this automatically (toggleable, for
+  the rare case someone's typing an AIMS year directly rather than a production year).
+  Cross-referencing that list against the DB found 24 genuinely missing productions (1977-2017),
+  backfilled via the new tool once built and tested against a copy of the real data.
+- **Known pre-existing gap surfaced, not yet fixed**: one inserted row ("Hello Dolly", 1995) landed
+  on a title that already exists elsewhere in `historical_results` under a different spelling
+  ("Hello, Dolly!") - fixed that one row by hand, but `fix_show_titles.py`'s title-cleanup RENAMES
+  only ever touches the `shows` table, never `historical_results`. The same class of orphaned-title
+  bug fixed twice already this cycle (`show_info`'s "Fiddler On The Roof"/"Man Of La Mancha" in
+  Round 13) likely has more instances sitting in `historical_results` untouched - worth a dedicated
+  audit pass rather than fixing opportunistically one row at a time.
+- Test suite grew 127 -> 134 (6 new tests for the bulk-add tool: insert, note extraction, dedupe,
+  the year-convention toggle, login gate, and unparsed-line handling not blocking the rest of the
+  batch).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
