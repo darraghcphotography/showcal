@@ -14,3 +14,7 @@ Admin: hiding a society now also hides their shows from the homepage, Season Arc
 All Shows page now shows when a title was last performed, plus a "longest since performed" sort to help find something worth reviving
 Each show's page now shows its world premiere (year and venue) alongside its AIMS debut, where known
 Confirmed Wikipedia links and world premiere info added for the 50 most-performed shows on the circuit
+
+---
+
+Stats page: the Award Explorer now opens on a random award category instead of always "Best Overall Show"
