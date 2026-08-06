@@ -69,14 +69,29 @@ def _add_award(db, category_name, result, tier, society_name=None, nominee_name=
     )
 
 
-def test_award_leaderboard_defaults_to_best_overall_show_by_society(client, db):
+def test_award_leaderboard_explicit_category_shows_best_overall_show_by_society(client, db):
     _add_award(db, "Best Overall Show", "Winner", "Gilbert", society_name="Wexford Light Opera Society")
     db.commit()
 
-    body = client.get("/stats").get_data(as_text=True)
+    body = client.get("/stats?award_category=Best+Overall+Show").get_data(as_text=True)
     assert "Award Explorer" in body
     assert "Wexford Light Opera Society" in body
     assert "By society" in body
+
+
+def test_award_leaderboard_no_category_param_picks_a_random_valid_category(client, db, monkeypatch):
+    _add_award(db, "Best Overall Show", "Winner", "Gilbert", society_name="Wexford Light Opera Society")
+    _add_award(db, "Best Director", "Winner", "Gilbert", nominee_name="Jane Doe")
+    db.commit()
+
+    from app.blueprints import info as info_module
+
+    monkeypatch.setattr(info_module.random, "choice", lambda seq: {"key": "Best Director"})
+    body = client.get("/stats").get_data(as_text=True)
+    assert "Award Explorer" in body
+    assert "Jane Doe" in body
+    assert "By person" in body
+    assert 'value="Best Director" selected' in body
 
 
 def test_award_leaderboard_person_category_groups_by_nominee(client, db):

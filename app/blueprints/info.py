@@ -1,3 +1,4 @@
+import random
 from datetime import date, datetime
 
 from flask import Blueprint, render_template, request
@@ -195,8 +196,19 @@ def stats():
     # as most_award_wins above - see AWARD_CATEGORIES in constants.py for
     # which is which and why (it's checked against real data, not assumed
     # from the column name).
-    award_category = request.args.get("award_category", DEFAULT_AWARD_CATEGORY)
-    if award_category not in AWARD_CATEGORY_BY_KEY:
+    # A bare visit (no award_category param at all) picks a random category
+    # each time, rather than always landing on Best Overall Show - avoids the
+    # Explorer's default view itself becoming a fixed "who's won the most"
+    # leaderboard for whichever society happens to lead that one category.
+    # An explicitly-chosen-but-invalid value (a stale/hand-edited URL) still
+    # falls back to the fixed default rather than randomizing - that's a
+    # correction, not a fresh landing.
+    award_category_param = request.args.get("award_category")
+    if award_category_param is None:
+        award_category = random.choice(AWARD_CATEGORIES)["key"]
+    elif award_category_param in AWARD_CATEGORY_BY_KEY:
+        award_category = award_category_param
+    else:
         award_category = DEFAULT_AWARD_CATEGORY
     award_tier = request.args.get("award_tier", "")
     if award_tier not in ("Gilbert", "Sullivan"):
