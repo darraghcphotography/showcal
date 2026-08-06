@@ -394,6 +394,16 @@ Found through Darragh actually using tonight's features live, right after redepl
   setup).
 - An FAQ page - Darragh's own suggestion, explicitly deferred ("maybe for a
   next revision").
+- **Edit history/versioning + revert for society-editable data (2026-08-06)** - each society
+  shares one login code (not per-user accounts), so there's currently no way to tell who made a
+  given edit, or to undo it if a shared code is misused or a change corrupts data - only the
+  current value of anything a society can self-edit (their own shows, profile/about text, links)
+  is stored, nothing before it. Would need an audit-log table capturing old/new values per edit
+  plus an admin-facing way to browse and revert, similar in spirit to how `changelog_sync.py`
+  tracks what's already been published but for arbitrary field changes instead of a fixed file.
+  Not scoped beyond that - worth its own planning pass (which tables/fields need it, how far back
+  to retain, whether moderator edits need the same trail as society self-edits) rather than
+  guessing at a design now.
 
 **Round 12 - light/dark toggle, Season Archive labels, hidden-society scope (2026-08-05):**
 Follow-through on the UX audit below plus a live gap Darragh spotted:
