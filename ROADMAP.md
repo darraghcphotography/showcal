@@ -560,10 +560,36 @@ Society (Belfast, photo gallery not a list), Galway Musical Society (archive onl
 despite a 1985 founding), Cecilian Musical Society Limerick (130 shows referenced historically, no
 structured public archive found).
 
-**Not started yet**: none of these 23 have been pulled into the database - this is a research
-inventory, not a completed backfill. Given the volume (23 societies, several with 50-70+ years of
-history each), this needs prioritization before diving in - see chat for how Darragh wants to
-sequence it.
+**Not started yet**: 19 of these 23 have not been pulled into the database - this is a research
+inventory, not a completed backfill. 4 done so far (see the "biggest history first" round below).
+Given the volume (several with 50-70+ years of history each), this needs prioritization before
+diving into the rest - see chat for how Darragh wants to sequence it.
+
+**Round 15 - biggest-history-first backfill, two more real bugs caught (2026-08-06):** Darragh chose
+"biggest history first" - Wexford Light Opera (1911-), Carrick-on-Suir (1944-2017), Ballywillan
+(1952-2025), Roscrea (1940-present). Wexford's site 403s/SSL-fails on every fetch attempt (same
+class of blocker as ovrtur.com) - Darragh screenshotted their history page directly instead. All
+four backfilled: Wexford 68 productions (1912-2011), Roscrea 63 (1940-2017, excludes self-labelled
+pantos), Carrick-on-Suir ~60 (1944-2017, pantos/variety nights excluded by title judgment since not
+self-labelled), Ballywillan's musicals-only era (1996-2012 - their first 35+ years are pantomime,
+per Darragh's call below). Confirmed via chat: **pantomimes are out of scope for this site** (AIMS
+musical theatre circuit specifically) for now - may get their own category in the future, parked as
+an idea, not started.
+- **Two more real bugs in `admin.bulk_historical_productions` found and fixed before Darragh ran
+  these four** (on top of the two from Round 14): the dedup check only matched an existing *bare*
+  row, not a real award-archive row or a `shows` table entry for the same production - a society
+  with real pre-existing coverage (Carrick-on-Suir had 132 rows, Wexford 146, Roscrea 26) would get
+  a duplicate bare row inserted for any overlapping year. Fixed in `be5f186`/`105684c`.
+- **Caught in production, not just theory**: the live site was still running code from before these
+  fixes when Darragh ran the four backfills (confirmed via direct fetch - the homepage suggestion
+  callout and later changelog entries were missing live despite being pushed). A second Pull and
+  redeploy was needed. `find_duplicate_historical_rows.py` (report-only by default, `--fix` deletes
+  only the redundant bare rows, never a real award/shows record) found and removed **67 duplicate
+  rows** the pre-fix tool had created - 30 at Carrick-on-Suir, 11 at Roscrea, 26 at Wexford,
+  0 at Ballywillan (no actual overlaps there). Re-ran clean after.
+- **Lesson**: after pushing a fix to a tool a moderator is about to use for real data entry, verify
+  the fix is actually *live* before they use it - a push isn't a deploy, and this session had several
+  commits queued up between redeploys.
 
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
