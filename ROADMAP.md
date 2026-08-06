@@ -493,6 +493,12 @@ show worth reviving:
 - Test suite grew 127 -> 135 (7 tests for the bulk-add tool: insert with the autumn offset, spring/
   exact conventions keeping the year as typed, note extraction, dedupe, login gate, and
   unparsed-line handling not blocking the rest of the batch).
+- **Follow-up, same day**: once Darragh actually ran the tool against production and looked at
+  Marian Choral Society's real page, the 24 bare productions were rendering inside "Awards &
+  nominations" as nomination-shaped rows full of "—" placeholders (no category/result to show) -
+  confusing, since they were never award records. Split them into their own "Earlier show history
+  (pre-23/24)" section, positioned between "Show history" and "Awards & nominations" - mirrors the
+  since-23/24-vs-earlier-archive split `/titles/<title>` already uses. Test suite grew 135 -> 138.
 
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):

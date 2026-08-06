@@ -23,3 +23,7 @@ Stats page: the Award Explorer now opens on a random award category instead of a
 
 Stats page: Signature show now needs 3+ stagings of the same title to count, not 2
 New admin tool: paste a society's own production list to bulk-backfill their history
+
+---
+
+Society pages: older productions with no award record now show under their own "Earlier show history" section instead of cluttering Awards & nominations
