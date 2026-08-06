@@ -72,6 +72,62 @@ def logout():
     return redirect(url_for("public.index"))
 
 
+def _duplicate_historical_rows(db):
+    """Bare historical_results rows (no category/result - see
+    admin.bulk_historical_productions) that duplicate either a real
+    award-archive row or a shows table entry for the same production. See
+    find_duplicate_historical_rows.py, which this mirrors - kept as a live
+    dashboard check too, not just a one-off script, so a recurrence (a
+    future tool bug, a moderator double-pasting a list) surfaces on its own
+    rather than needing someone to remember to run the script again."""
+    return db.execute(
+        """
+        SELECT h1.id, h1.year, h1.show, h1.society_name
+        FROM historical_results h1
+        WHERE h1.category_name IS NULL AND h1.result IS NULL
+          AND h1.society_id IS NOT NULL AND h1.show IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM historical_results h2
+            WHERE h2.year = h1.year AND h2.show = h1.show AND h2.society_id = h1.society_id
+              AND h2.id != h1.id
+          )
+        UNION
+        SELECT h.id, h.year, h.show, h.society_name
+        FROM historical_results h
+        WHERE h.category_name IS NULL AND h.result IS NULL
+          AND h.society_id IS NOT NULL AND h.show IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM shows s
+            WHERE s.society_id = h.society_id AND s.show = h.show
+              AND substr(s.opening_date, 1, 4) = CAST(h.year AS TEXT)
+          )
+        ORDER BY society_name, year
+        """
+    ).fetchall()
+
+
+def _orphaned_titles(db):
+    """show_info/show_links rows whose title has no exact match in
+    shows/historical_results - silently invisible everywhere they'd
+    normally render (see the "Fiddler On The Roof" casing bug found and
+    fixed 2026-08-06). Exact-string match, same as everywhere else on this
+    site title-matching is done - a real casing/punctuation drift is
+    exactly what this is meant to catch."""
+    real_titles = {
+        r[0] for r in db.execute(
+            "SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' "
+            "UNION SELECT show FROM historical_results WHERE show IS NOT NULL"
+        ).fetchall()
+    }
+    orphaned_info = [
+        r for r in db.execute("SELECT show, updated_at FROM show_info").fetchall() if r["show"] not in real_titles
+    ]
+    orphaned_links = [
+        r for r in db.execute("SELECT show, url FROM show_links").fetchall() if r["show"] not in real_titles
+    ]
+    return orphaned_info, orphaned_links
+
+
 @bp.route("/")
 @login_required
 def dashboard():
@@ -125,6 +181,10 @@ def dashboard():
         "SELECT COUNT(*) FROM societies WHERE section != 'Inactive' AND default_venue IS NULL"
     ).fetchone()[0]
 
+    duplicate_historical_count = len(_duplicate_historical_rows(db))
+    orphaned_info, orphaned_links = _orphaned_titles(db)
+    orphaned_titles_count = len({r["show"] for r in orphaned_info} | {r["show"] for r in orphaned_links})
+
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
     # still no historical_results row for its award year, those results
@@ -156,8 +216,33 @@ def dashboard():
         unmatched_award_societies_count=unmatched_award_societies_count,
         historical_regions_pending_count=historical_regions_pending_count,
         missing_venue_count=missing_venue_count,
+        duplicate_historical_count=duplicate_historical_count,
+        orphaned_titles_count=orphaned_titles_count,
         awards_pending_season=awards_pending_season,
     )
+
+
+@bp.route("/data-quality")
+@login_required
+def data_quality():
+    db = get_db()
+    orphaned_info, orphaned_links = _orphaned_titles(db)
+    return render_template(
+        "admin/data_quality.html",
+        duplicate_rows=_duplicate_historical_rows(db),
+        orphaned_info=orphaned_info,
+        orphaned_links=orphaned_links,
+    )
+
+
+@bp.route("/data-quality/historical/<int:row_id>/delete", methods=("POST",))
+@login_required
+def delete_duplicate_historical_row(row_id):
+    db = get_db()
+    db.execute("DELETE FROM historical_results WHERE id = ?", (row_id,))
+    db.commit()
+    flash("Duplicate row deleted.", "success")
+    return redirect(url_for("admin.data_quality"))
 
 
 @bp.route("/queue")

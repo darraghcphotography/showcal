@@ -27,7 +27,7 @@
         <td><a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a></td>
       </tr>
       <tr>
-        <td>Award records with no society match</td>
+        <td>Award records with no society match <span class="hint">(mostly genuinely defunct societies - won't reach 0; see "awaiting confirmation" below for what's actually actionable)</span></td>
         <td>{{ unmatched_award_societies_count }}</td>
         <td><a href="{{ url_for('admin.awards_list', unmatched=1) }}">Awards</a></td>
       </tr>
@@ -48,6 +48,16 @@
         <td>{{ missing_venue_count }}</td>
         <td><a href="{{ url_for('admin.venues') }}">Fill in venues</a></td>
       </tr>
+      <tr>
+        <td>Duplicate historical productions</td>
+        <td>{{ duplicate_historical_count }}</td>
+        <td><a href="{{ url_for('admin.data_quality') }}">Data quality</a></td>
+      </tr>
+      <tr>
+        <td>Orphaned title data (info/links invisible due to a title mismatch)</td>
+        <td>{{ orphaned_titles_count }}</td>
+        <td><a href="{{ url_for('admin.data_quality') }}">Data quality</a></td>
+      </tr>
     </tbody>
   </table>
 
@@ -60,6 +70,7 @@
     <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a> &middot;
     <a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a> &middot;
     <a href="{{ url_for('admin.bulk_historical_productions') }}">Bulk add historical productions</a> &middot;
+    <a href="{{ url_for('admin.data_quality') }}">Data quality</a> &middot;
     <a href="{{ url_for('admin.venues') }}">Venues</a> &middot;
     <a href="{{ url_for('admin.traffic') }}">Traffic</a> &middot;
     <a href="{{ url_for('admin.suggestions') }}">Suggestions</a> &middot;

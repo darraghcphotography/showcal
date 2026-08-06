@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Data quality - DC Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to admin</a></p>
+  <h1>Data quality</h1>
+  <p class="meta">Structural checks that don't fit the usual "needs moderator attention" queues -
+     things that mean a record is silently wrong or invisible rather than just incomplete.</p>
+
+  <h2>Duplicate historical productions</h2>
+  <p class="meta">A bare "this happened" row (from the historical-productions bulk-add tool) that
+     duplicates a production already on record via a real award result or a live show entry - same
+     production counted twice in every stat. Deleting one here only ever removes the redundant bare
+     row, never the real record it duplicates.</p>
+  {% if duplicate_rows %}
+    <table class="data-table">
+      <thead><tr><th>Year</th><th>Show</th><th>Society</th><th></th></tr></thead>
+      <tbody>
+        {% for row in duplicate_rows %}
+          <tr>
+            <td>{{ row['year'] }}</td>
+            <td>{{ row['show'] }}</td>
+            <td>{{ row['society_name'] }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.delete_duplicate_historical_row', row_id=row['id']) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="button-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="meta">None found.</p>
+  {% endif %}
+
+  <h2>Orphaned title data</h2>
+  <p class="meta">A synopsis, rights link, or confirmed Wikipedia link whose title doesn't exactly
+     match anything in <code>shows</code>/<code>historical_results</code> - usually a spelling/
+     punctuation drift (e.g. "Fiddler On The Roof" vs "Fiddler on the Roof") - so it silently never
+     renders anywhere on the site. Fix the title's spelling via Edit, or clear it if it's not worth
+     keeping.</p>
+  {% if orphaned_info %}
+    <h3>Show info ({{ orphaned_info|length }})</h3>
+    <ul class="plain-list">
+      {% for row in orphaned_info %}
+        <li>{{ row['show'] }} &mdash; <a href="{{ url_for('admin.edit_show_info', title=row['show']) }}">Edit &rarr;</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if orphaned_links %}
+    <h3>Show links ({{ orphaned_links|length }})</h3>
+    <ul class="plain-list">
+      {% for row in orphaned_links %}
+        <li>
+          {{ row['show'] }} &mdash; <a href="{{ row['url'] }}" rel="noopener" target="_blank">{{ row['url'] }}</a>
+          <form method="post" action="{{ url_for('admin.clear_show_link') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="show" value="{{ row['show'] }}">
+            <button type="submit" class="button-danger">Clear</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if not orphaned_info and not orphaned_links %}
+    <p class="meta">None found.</p>
+  {% endif %}
+{% endblock %}
