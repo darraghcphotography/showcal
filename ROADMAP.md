@@ -605,6 +605,14 @@ an idea, not started.
     `shows`/`historical_results` (the "Fiddler On The Roof" casing bug from Round 13) - links to
     the existing edit-show-info and clear-show-link actions.
 - Test suite grew 140 -> 145.
+- **Follow-up, same evening**: Darragh spotted a second instance of the exact same "mostly
+  permanent, not actually a backlog" pattern - "Shows missing a review link" (183) counted any show
+  where `review_status != 'Published'`, which included shows correctly marked **Not adjudicated** -
+  a deliberate, permanent state (that show will never have a review). Excluded it from both the
+  dashboard count and the `/admin/shows?needs_review=1` filtered list itself (not just the count),
+  so the number now only reflects genuinely fillable-in gaps. `Scheduled` still counts (temporarily
+  unresolved, worth chasing once published) - only `Not adjudicated` is excluded. Test suite grew
+  145 -> 148.
 
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
