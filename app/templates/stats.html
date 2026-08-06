@@ -217,12 +217,16 @@
 
   <h2>Signature show{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
   <div class="lb-card">
-    <p class="lb-meta">Each society's own most-repeated title since 23/24 - their "usual suspect" (at least 2 stagings to count)</p>
-    <ul class="plain-list">
-      {% for row in signature_show %}
-        <li>{{ row['label'] }} &mdash; <a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a> ({{ row['n'] }}&times;)</li>
-      {% endfor %}
-    </ul>
+    <p class="lb-meta">Each society's own most-repeated title since 23/24 - their "usual suspect" (at least 3 stagings to count)</p>
+    {% if signature_show %}
+      <ul class="plain-list">
+        {% for row in signature_show %}
+          <li>{{ row['label'] }} &mdash; <a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a> ({{ row['n'] }}&times;)</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="meta">No society has staged the same title 3 or more times yet{% if selected_region %} in {{ selected_region }}{% endif %}.</p>
+    {% endif %}
   </div>
 
   <h2>One-off productions ({{ one_offs|length }} shows){% if selected_region %} ({{ selected_region }}){% endif %}</h2>

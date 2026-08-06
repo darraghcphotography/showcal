@@ -307,7 +307,9 @@ def stats():
 
     # Recent era only (region-filterable, like the other shows-table stats) -
     # each society's own most-repeated title, i.e. their "usual suspect".
-    # Needs at least 2 stagings of the same title to count as a real signature.
+    # Needs at least 3 stagings of the same title to count as a real
+    # signature - 2 read as too weak/coincidental to Darragh (raised from the
+    # original threshold of 2 after seeing it live).
     params = [today]
     region_sql = ""
     if region:
@@ -324,7 +326,7 @@ def stats():
         )
         SELECT societies.name AS label, counts.show, counts.n
         FROM counts JOIN societies ON societies.id = counts.society_id
-        WHERE counts.rn = 1 AND counts.n >= 2
+        WHERE counts.rn = 1 AND counts.n >= 3
         ORDER BY counts.n DESC, label
         LIMIT ?
         """,
