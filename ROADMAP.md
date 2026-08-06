@@ -520,6 +520,51 @@ whether Marian's "Previous Productions" page was a one-off or worth actively hun
   - genuinely thin, not just unsearched. Marian's page looks like the exception, not the rule, at
   least among societies already known to be light on history.
 
+**Research pass 2 - all 104 remaining active societies (2026-08-06):** Darragh asked to scale this
+up rather than stop at the weakest-coverage sample - run via 4 parallel background agents on Haiku
+(cheap/fast model) instead of Sonnet, ~26 societies each. Turned out Marian and Ballyshannon weren't
+the exception after all once the *whole* list was checked, not just the thinnest-coverage slice -
+**23 more societies have a genuine online production archive**, not yet pulled into the database:
+
+| Society | URL | Years | Format |
+|---|---|---|---|
+| Castlebar Musical & Dramatic Society | castlebarmds.com | 2014-2026 | clean list |
+| Kilmacud Musical Society | kilmacudmusicalsociety.ie/the-history-of-kms/ | 1982-present | history page + programme archive |
+| Waterford Musical Society | waterfordtheatrearchive.com | 2015-2025 | dedicated archive site (video/audio too) |
+| Pop-Up Theatre, Sligo | popuptheatresligo.com | 2016-2026 | clean list |
+| Muse Productions | museproductions.org | 2011-present | per-year pages + photos |
+| Glencullen Dundrum MDS | glencullendundrum.com | 1971-present | "Past Show Archive", posters/programmes |
+| 9 Arch (Claregalway) Musical Society | 9archms.weebly.com | 2002-present | "Previous Shows" + AIMS critiques |
+| Castlerea Musical Society | castlereamusicalsociety.com | 1968-present | "Past Shows" nav section |
+| Roscrea Musical Society | roscreams.com | 1940-present | "Past Productions" page |
+| Boyle Musical Society | boylemusicalsociety.com | 1984-present | "History" + per-show pages |
+| Oyster Lane Theatre Group | oysterlane.wordpress.com/previous-shows/ | 1994-2025 | clean year-by-year list |
+| Ennis Musical Society | ennismusicalsociety.ie/past-productions.html | 1959-2024 | detailed archive |
+| **Ballywillan Drama Group** | ballywillan.com/wp/history/past-productions/ | **1952-2025** | detailed year-by-year, 70+ years |
+| Fortwilliam Musical Society | fortwilliammusicalsociety.org/past-shows | 1978-2025 | detailed year-by-year |
+| Limerick Musical Society | limerickmusicalsocietydotcom.wordpress.com/previous-productions/ | 2000-2017+ | clean "Year: Title" |
+| Dun Laoghaire Musical & Dramatic Society | dmds.ie | 1959-present | "Show History"/"Past Performances" |
+| Harolds Cross Tallaght Musical Society | hxt.ie | 1967-present | "Show History", 50+ years |
+| Carnew Musical Society | carnewmusicalsociety.wordpress.com/previous-shows/ | 1967-present | "Previous Shows" |
+| Killarney Musical Society | killarneymusicalsociety.ie | ~40 years | "Past Shows"/"History" sections |
+| Baldoyle Musical Society | baldoylemusicalsociety.ie/pages/past-shows | 1973-2026 | table: Year/Show/Pantomime |
+| Kilcock Musical & Dramatic Society | kilcockms.com/productions-to-date | 1970-2026 | categorized (musicals/pantos/plays) |
+| **Carrick-on-Suir Musical Society** | carrickmusicals.wordpress.com/past-productions | **1944-2017** | chronological list, 150+ productions |
+| **Wexford Light Opera Society** | wlos.ie/history.html | **1911-present** | history page (SSL issues blocked full fetch - confirm via search) |
+
+Worth a second look but not confirmed backfill-ready (partial/inconsistent dating, access issues, or
+gallery format instead of a real list): Encore Performing Arts Academy, Rush Musical Society, Naas
+Musical Society, Newcastle Glees Musical Society, Kilmainham Inchicore Musical Society (403
+blocked), Enniscorthy Musical Society (DNS/SSL issues), Belfast Operatic Company, St. Agnes Choral
+Society (Belfast, photo gallery not a list), Galway Musical Society (archive only covers 2023-2025
+despite a 1985 founding), Cecilian Musical Society Limerick (130 shows referenced historically, no
+structured public archive found).
+
+**Not started yet**: none of these 23 have been pulled into the database - this is a research
+inventory, not a completed backfill. Given the volume (23 societies, several with 50-70+ years of
+history each), this needs prioritization before diving in - see chat for how Darragh wants to
+sequence it.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
