@@ -138,11 +138,13 @@ def dashboard():
         "SELECT COUNT(*) FROM shows WHERE moderation_status = 'pending'"
     ).fetchone()[0]
 
+    # "Not adjudicated" is excluded - it's a deliberate, permanent state (that
+    # show will never have a review), not a gap waiting to be filled in.
     needs_review_count = db.execute(
         """
         SELECT COUNT(*) FROM shows
         WHERE moderation_status = 'approved' AND show IS NOT NULL
-          AND review_status != 'Published' AND season <= ?
+          AND review_status NOT IN ('Published', 'Not adjudicated') AND season <= ?
         """,
         (current,),
     ).fetchone()[0]
@@ -320,7 +322,12 @@ def shows_list():
         like = f"%{escaped}%"
         params += [like, like]
     if needs_review:
-        query += " AND shows.review_status != 'Published' AND shows.show IS NOT NULL"
+        # "Not adjudicated" is a deliberate, permanent state - that show will
+        # never have a review, so it's not something a moderator needs to
+        # come back and fix. Excluding it here (and from the dashboard's
+        # needs_review_count) keeps this filter meaning "still needs a link
+        # added", not "isn't Published for any reason".
+        query += " AND shows.review_status NOT IN ('Published', 'Not adjudicated') AND shows.show IS NOT NULL"
     if season == "":
         query += " AND shows.season <= ?"
         params.append(current)
