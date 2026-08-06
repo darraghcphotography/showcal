@@ -165,7 +165,11 @@ def society_detail(society_id):
     # per category (so a single production can appear several times, once per
     # category it was up for). show can be NULL here (person-level awards like
     # the Mary Kelly/Unsung Hero Award aren't tied to a specific production).
-    historical = db.execute(
+    # A row with no category/result at all isn't an award record - it's a
+    # bare "this production happened" entry (see admin.bulk_historical_
+    # productions) - split those into their own show-history list rather
+    # than rendering as a nomination row full of "—" placeholders.
+    historical_rows = db.execute(
         """
         SELECT year, tier, category_name, result, show, nominee_name, role, reason
         FROM historical_results
@@ -174,6 +178,8 @@ def society_detail(society_id):
         """,
         (society_id,),
     ).fetchall()
+    historical = [r for r in historical_rows if r["category_name"] is not None or r["result"] is not None]
+    historical_shows = [r for r in historical_rows if r["category_name"] is None and r["result"] is None]
 
     # A compact "trophy case" summary - total wins, Best Overall Show wins
     # specifically, and the earliest year on record (from the awards archive,
@@ -210,6 +216,7 @@ def society_detail(society_id):
 
     return render_template(
         "society_detail.html", society=society, shows=shows, future_shows=future_shows, historical=historical,
+        historical_shows=historical_shows,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
         society_login_url=society_login_url,

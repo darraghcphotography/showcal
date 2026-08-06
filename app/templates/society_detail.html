@@ -147,6 +147,31 @@
     {% endfor %}
   </div>
 
+  {% if historical_shows %}
+    <h2>Earlier show history (pre-23/24)</h2>
+    <p class="meta">{{ historical_shows|length }} production{{ '' if historical_shows|length == 1 else 's' }} on
+       record with no award/nomination attached - see "Awards &amp; nominations" below for the years this society
+       was up for an AIMS award.</p>
+    <table class="data-table">
+      <thead><tr><th>Year</th><th>Show</th></tr></thead>
+      <tbody>
+        {% for row in historical_shows %}
+          <tr>
+            <td>{{ row['year'] }}</td>
+            <td>
+              {% if row['show'] %}
+                <a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a>
+              {% else %}
+                —
+              {% endif %}
+              {% if row['reason'] %}<span class="meta">({{ row['reason'] }})</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
   {% if historical %}
     <h2>Awards &amp; nominations (AIMS awards archive)</h2>
     <p class="meta">{{ historical|length }} record{{ '' if historical|length == 1 else 's' }}{% if historical|length > 1 %}, {{ historical[-1]['year'] }}&ndash;{{ historical[0]['year'] }}{% else %}, {{ historical[0]['year'] }}{% endif %}.</p>
