@@ -591,6 +591,21 @@ an idea, not started.
   the fix is actually *live* before they use it - a push isn't a deploy, and this session had several
   commits queued up between redeploys.
 
+**Round 16 - Data quality dashboard (2026-08-06):** Darragh asked what else could go on the admin
+"Needs attention" board and how to get each row to 0, before wrapping up for the day.
+- Clarified that most existing rows are already optimally filtered (the link is the pre-filtered
+  view) - the one genuinely misleading number is "Award records with no society match", which is
+  mostly permanent (a genuinely defunct historical society has no modern `societies` row to match,
+  by design) - softened the dashboard label to say so rather than reading as an actionable backlog.
+- **Two new live checks added**, both reusing existing fix actions rather than building new ones:
+  - **Duplicate historical productions** - same query as `find_duplicate_historical_rows.py` (the
+    bug class from Round 15), now a live dashboard count with a per-row Delete button on a new
+    `/admin/data-quality` page, instead of needing shell access to catch a recurrence.
+  - **Orphaned title data** - `show_info`/`show_links` rows whose title has no exact match in
+    `shows`/`historical_results` (the "Fiddler On The Roof" casing bug from Round 13) - links to
+    the existing edit-show-info and clear-show-link actions.
+- Test suite grew 140 -> 145.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
