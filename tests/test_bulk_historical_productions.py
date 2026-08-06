@@ -1,0 +1,108 @@
+"""Admin bulk-add for historical productions with no award data attached -
+paste a society's own "previous productions" list and get bare
+historical_results rows, deduped against what's already on record. See
+admin.bulk_historical_productions for the year-convention rationale."""
+from conftest import seed_society, seed_user
+
+
+def login_as(client, user_id):
+    with client.session_transaction() as sess:
+        sess["user_id"] = user_id
+
+
+def test_bulk_add_inserts_rows_with_production_year_plus_one(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    login_as(client, admin_id)
+
+    resp = client.post(
+        "/admin/historical-productions/bulk",
+        data={
+            "society_id": society_id,
+            "production_years": "1",
+            "lines": "1998 Ham\n2017 Crazy For You",
+        },
+    )
+    assert resp.status_code == 302
+
+    rows = db.execute(
+        "SELECT year, show, category_name, result, source FROM historical_results ORDER BY year"
+    ).fetchall()
+    assert [(r["year"], r["show"]) for r in rows] == [(1999, "Ham"), (2018, "Crazy For You")]
+    assert rows[0]["category_name"] is None
+    assert rows[0]["result"] is None
+    assert rows[0]["source"] == "manual"
+
+
+def test_bulk_add_extracts_trailing_parenthetical_as_a_note(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    login_as(client, admin_id)
+
+    client.post(
+        "/admin/historical-productions/bulk",
+        data={"society_id": society_id, "production_years": "1", "lines": "2005 Jekyll & Hyde (Irish Premiere)"},
+    )
+
+    row = db.execute("SELECT show, reason FROM historical_results").fetchone()
+    assert row["show"] == "Jekyll & Hyde"
+    assert row["reason"] == "Irish Premiere"
+
+
+def test_bulk_add_skips_already_present_rows(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    login_as(client, admin_id)
+
+    lines = "1998 Ham"
+    client.post("/admin/historical-productions/bulk", data={"society_id": society_id, "production_years": "1", "lines": lines})
+    client.post("/admin/historical-productions/bulk", data={"society_id": society_id, "production_years": "1", "lines": lines})
+
+    count = db.execute("SELECT COUNT(*) FROM historical_results WHERE show = 'Ham'").fetchone()[0]
+    assert count == 1
+
+
+def test_bulk_add_unticked_checkbox_stores_year_as_typed(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    login_as(client, admin_id)
+
+    client.post(
+        "/admin/historical-productions/bulk",
+        data={"society_id": society_id, "lines": "2017 Crazy For You"},
+    )
+
+    row = db.execute("SELECT year FROM historical_results WHERE show = 'Crazy For You'").fetchone()
+    assert row["year"] == 2017
+
+
+def test_bulk_add_requires_login(client, db):
+    society_id = seed_society(db)
+    resp = client.get("/admin/historical-productions/bulk")
+    assert resp.status_code in (302, 401, 403)
+    resp = client.post(
+        "/admin/historical-productions/bulk",
+        data={"society_id": society_id, "production_years": "1", "lines": "1998 Ham"},
+    )
+    assert resp.status_code in (302, 401, 403)
+    assert db.execute("SELECT COUNT(*) FROM historical_results").fetchone()[0] == 0
+
+
+def test_bulk_add_unparsed_line_does_not_block_the_rest(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    login_as(client, admin_id)
+
+    resp = client.post(
+        "/admin/historical-productions/bulk",
+        data={
+            "society_id": society_id,
+            "production_years": "1",
+            "lines": "not a valid line\n1998 Ham",
+        },
+        follow_redirects=True,
+    )
+    # Apostrophe renders HTML-escaped ("Couldn&#x27;t"), so match around it.
+    assert "parse 1 line" in resp.get_data(as_text=True)
+    row = db.execute("SELECT year FROM historical_results WHERE show = 'Ham'").fetchone()
+    assert row["year"] == 1999

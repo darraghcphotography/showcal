@@ -1414,6 +1414,102 @@ def bulk_award():
     )
 
 
+HISTORICAL_PRODUCTION_LINE_RE = re.compile(r"^\s*(\d{4})\s+(.+?)\s*$")
+HISTORICAL_PRODUCTION_NOTE_RE = re.compile(r"^(.*?)\s*\(([^()]+)\)\s*$")
+
+
+@bp.route("/historical-productions/bulk", methods=("GET", "POST"))
+@login_required
+def bulk_historical_productions():
+    """Paste a society's own "previous productions" list (one "YEAR Title"
+    per line, straight off their website) and add whichever aren't already
+    on record as bare historical_results rows - no award/category attached,
+    just "this happened". Existing exact (year, show, society) rows are
+    skipped rather than duplicated, so the same list can be re-pasted safely
+    if it's ever extended.
+
+    AIMS's own year convention is one year after the actual production (a
+    show staged in autumn 2016 is recorded as year 2017, matching how a
+    season like "23/24" maps to SHOWS_COVERAGE_START_YEAR = 2024) - the
+    default assumes the pasted years are production years and adds 1
+    automatically; untick the box if you're instead entering AIMS years
+    directly (e.g. copying straight out of an old adjudication programme)."""
+    db = get_db()
+    societies = db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
+
+    if request.method == "POST":
+        society_id = request.form.get("society_id", "").strip()
+        lines_raw = request.form.get("lines", "")
+        production_years = "production_years" in request.form
+
+        society = db.execute("SELECT id, name FROM societies WHERE id = ?", (society_id,)).fetchone()
+        if society is None:
+            flash("Choose a valid society.", "error")
+            return render_template(
+                "admin/historical_bulk_form.html", societies=societies, form=request.form
+            )
+
+        inserted, skipped, unparsed = 0, 0, []
+        for raw_line in lines_raw.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            match = HISTORICAL_PRODUCTION_LINE_RE.match(line)
+            if not match:
+                unparsed.append(raw_line)
+                continue
+
+            year = int(match.group(1))
+            title = match.group(2)
+            note = None
+            note_match = HISTORICAL_PRODUCTION_NOTE_RE.match(title)
+            if note_match:
+                title, note = note_match.group(1).strip(), note_match.group(2).strip()
+            if not title:
+                unparsed.append(raw_line)
+                continue
+
+            stored_year = year + 1 if production_years else year
+
+            already_present = db.execute(
+                """
+                SELECT 1 FROM historical_results
+                WHERE year = ? AND show = ? AND society_id = ?
+                  AND category_name IS NULL AND result IS NULL
+                """,
+                (stored_year, title, society["id"]),
+            ).fetchone()
+            if already_present:
+                skipped += 1
+                continue
+
+            db.execute(
+                """
+                INSERT INTO historical_results (year, show, society_name, society_id, reason, source)
+                VALUES (?, ?, ?, ?, ?, 'manual')
+                """,
+                (stored_year, title, society["name"], society["id"], note),
+            )
+            inserted += 1
+
+        db.commit()
+        flash(
+            f"Added {inserted} production{'s' if inserted != 1 else ''} for {society['name']}"
+            f"{f', skipped {skipped} already on record' if skipped else ''}.",
+            "success" if inserted else "warning",
+        )
+        if unparsed:
+            flash(
+                "Couldn't parse " + str(len(unparsed)) + " line(s) (expected \"YEAR Title\") - "
+                "nothing else was skipped because of these: " + "; ".join(unparsed[:5])
+                + ("..." if len(unparsed) > 5 else ""),
+                "error",
+            )
+        return redirect(url_for("admin.bulk_historical_productions"))
+
+    return render_template("admin/historical_bulk_form.html", societies=societies, form={})
+
+
 @bp.route("/awards/new", methods=("GET", "POST"))
 @login_required
 def new_award():

@@ -447,6 +447,11 @@ fieldset { border: 1px solid var(--border); border-radius: 6px; }
 
 code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 
+.code-sample {
+  background: var(--row-alt); border: 1px solid var(--border); border-radius: 6px;
+  padding: 0.7rem 0.9rem; font-size: 0.85rem; overflow-x: auto; max-width: 480px;
+}
+
 .stat-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

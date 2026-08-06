@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Bulk add historical productions - DC Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to admin</a></p>
+  <h1>Bulk add historical productions</h1>
+  <p>For backfilling a society's own "previous productions" list - no award/category data, just a record that a
+     show happened. Paste one production per line as <code>YEAR Title</code>, straight off the society's own
+     website or programme - e.g.:</p>
+  <pre class="code-sample">1998 Ham
+2005 Jekyll &amp; Hyde (Irish Premiere)
+2013 Jesus Christ Superstar (Tuam 400 Celebration Special)</pre>
+  <p class="meta">A trailing <code>(...)</code> is saved as a note, not part of the title - so "Jekyll &amp; Hyde
+     (Irish Premiere)" is stored as the plain title "Jekyll &amp; Hyde" (matching how it's spelled everywhere else
+     on the site) with "Irish Premiere" kept as a note.</p>
+  <p class="meta"><strong>Year convention:</strong> AIMS records a show's year as one year after it actually opened
+     (a show staged in autumn 2016 is recorded as 2017 - the same convention behind season "23/24" mapping to
+     2024). Leave the box below ticked if you're typing the production year as the society remembers it (the
+     normal case); untick it only if you're entering the AIMS year directly.</p>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Society
+      <select name="society_id" required>
+        <option value="">— choose —</option>
+        {% for s in societies %}
+          <option value="{{ s['id'] }}" {% if form.get('society_id')|string == s['id']|string %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="checkbox-label">
+      <input type="checkbox" name="production_years" value="1" {% if form.get('production_years', '1') %}checked{% endif %}>
+      These are production years, not AIMS years (add 1 automatically)
+    </label>
+
+    <label>
+      Productions (one per line)
+      <textarea name="lines" rows="16" placeholder="1977 The Golden Years&#10;1978 The Student Prince">{{ form.get('lines', '') }}</textarea>
+    </label>
+
+    <button type="submit">Add these productions</button>
+  </form>
+
+  <p class="meta">Already-on-record productions (same year, title, and society) are skipped automatically, so
+     it's safe to re-paste an extended list later without creating duplicates.</p>
+{% endblock %}
