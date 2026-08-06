@@ -1416,6 +1416,10 @@ def bulk_award():
 
 HISTORICAL_PRODUCTION_LINE_RE = re.compile(r"^\s*(\d{4})\s+(.+?)\s*$")
 HISTORICAL_PRODUCTION_NOTE_RE = re.compile(r"^(.*?)\s*\(([^()]+)\)\s*$")
+# See bulk_historical_productions' docstring - "autumn" (Jul-Dec) shows are
+# recorded under the following calendar year; "spring" (Jan-Jun) shows and
+# already-AIMS-year input both need no adjustment.
+HISTORICAL_YEAR_OFFSETS = {"autumn": 1, "spring": 0, "exact": 0}
 
 
 @bp.route("/historical-productions/bulk", methods=("GET", "POST"))
@@ -1428,19 +1432,24 @@ def bulk_historical_productions():
     skipped rather than duplicated, so the same list can be re-pasted safely
     if it's ever extended.
 
-    AIMS's own year convention is one year after the actual production (a
-    show staged in autumn 2016 is recorded as year 2017, matching how a
-    season like "23/24" maps to SHOWS_COVERAGE_START_YEAR = 2024) - the
-    default assumes the pasted years are production years and adds 1
-    automatically; untick the box if you're instead entering AIMS years
-    directly (e.g. copying straight out of an old adjudication programme)."""
+    AIMS's own year convention is the season's *ending* calendar year, not
+    the year the show actually opened (matches how season "23/24" maps to
+    SHOWS_COVERAGE_START_YEAR = 2024) - for a society that stages its show
+    July-December, that's one year after the production (season "25/26"
+    ends in 2026, so an Oct 2025 show is recorded as 2026); for a society
+    that stages Jan-June, the production year already IS the AIMS year, no
+    adjustment needed. This is a per-society (sometimes per-show) fact, not
+    a universal +1 - HISTORICAL_YEAR_OFFSETS below turns the moderator's
+    plain-language choice into the right arithmetic."""
     db = get_db()
     societies = db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
 
     if request.method == "POST":
         society_id = request.form.get("society_id", "").strip()
         lines_raw = request.form.get("lines", "")
-        production_years = "production_years" in request.form
+        year_convention = request.form.get("year_convention", "autumn")
+        if year_convention not in HISTORICAL_YEAR_OFFSETS:
+            year_convention = "autumn"
 
         society = db.execute("SELECT id, name FROM societies WHERE id = ?", (society_id,)).fetchone()
         if society is None:
@@ -1469,7 +1478,7 @@ def bulk_historical_productions():
                 unparsed.append(raw_line)
                 continue
 
-            stored_year = year + 1 if production_years else year
+            stored_year = year + HISTORICAL_YEAR_OFFSETS[year_convention]
 
             already_present = db.execute(
                 """

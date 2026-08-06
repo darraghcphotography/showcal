@@ -1,7 +1,9 @@
 """Admin bulk-add for historical productions with no award data attached -
 paste a society's own "previous productions" list and get bare
 historical_results rows, deduped against what's already on record. See
-admin.bulk_historical_productions for the year-convention rationale."""
+admin.bulk_historical_productions for the year-convention rationale (the
+recorded year is the season's *ending* calendar year - +1 from the
+production year for an autumn/winter show, unchanged for a spring one)."""
 from conftest import seed_society, seed_user
 
 
@@ -10,7 +12,7 @@ def login_as(client, user_id):
         sess["user_id"] = user_id
 
 
-def test_bulk_add_inserts_rows_with_production_year_plus_one(client, db):
+def test_bulk_add_autumn_convention_adds_one_year(client, db):
     admin_id = seed_user(db)
     society_id = seed_society(db, name="Marian Choral Society, Tuam")
     login_as(client, admin_id)
@@ -19,7 +21,7 @@ def test_bulk_add_inserts_rows_with_production_year_plus_one(client, db):
         "/admin/historical-productions/bulk",
         data={
             "society_id": society_id,
-            "production_years": "1",
+            "year_convention": "autumn",
             "lines": "1998 Ham\n2017 Crazy For You",
         },
     )
@@ -34,6 +36,34 @@ def test_bulk_add_inserts_rows_with_production_year_plus_one(client, db):
     assert rows[0]["source"] == "manual"
 
 
+def test_bulk_add_spring_convention_keeps_year_as_typed(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Spring Show Society")
+    login_as(client, admin_id)
+
+    client.post(
+        "/admin/historical-productions/bulk",
+        data={"society_id": society_id, "year_convention": "spring", "lines": "2017 Crazy For You"},
+    )
+
+    row = db.execute("SELECT year FROM historical_results WHERE show = 'Crazy For You'").fetchone()
+    assert row["year"] == 2017
+
+
+def test_bulk_add_exact_convention_also_keeps_year_as_typed(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db)
+    login_as(client, admin_id)
+
+    client.post(
+        "/admin/historical-productions/bulk",
+        data={"society_id": society_id, "year_convention": "exact", "lines": "2017 Crazy For You"},
+    )
+
+    row = db.execute("SELECT year FROM historical_results WHERE show = 'Crazy For You'").fetchone()
+    assert row["year"] == 2017
+
+
 def test_bulk_add_extracts_trailing_parenthetical_as_a_note(client, db):
     admin_id = seed_user(db)
     society_id = seed_society(db, name="Marian Choral Society, Tuam")
@@ -41,7 +71,7 @@ def test_bulk_add_extracts_trailing_parenthetical_as_a_note(client, db):
 
     client.post(
         "/admin/historical-productions/bulk",
-        data={"society_id": society_id, "production_years": "1", "lines": "2005 Jekyll & Hyde (Irish Premiere)"},
+        data={"society_id": society_id, "year_convention": "autumn", "lines": "2005 Jekyll & Hyde (Irish Premiere)"},
     )
 
     row = db.execute("SELECT show, reason FROM historical_results").fetchone()
@@ -55,25 +85,11 @@ def test_bulk_add_skips_already_present_rows(client, db):
     login_as(client, admin_id)
 
     lines = "1998 Ham"
-    client.post("/admin/historical-productions/bulk", data={"society_id": society_id, "production_years": "1", "lines": lines})
-    client.post("/admin/historical-productions/bulk", data={"society_id": society_id, "production_years": "1", "lines": lines})
+    client.post("/admin/historical-productions/bulk", data={"society_id": society_id, "year_convention": "autumn", "lines": lines})
+    client.post("/admin/historical-productions/bulk", data={"society_id": society_id, "year_convention": "autumn", "lines": lines})
 
     count = db.execute("SELECT COUNT(*) FROM historical_results WHERE show = 'Ham'").fetchone()[0]
     assert count == 1
-
-
-def test_bulk_add_unticked_checkbox_stores_year_as_typed(client, db):
-    admin_id = seed_user(db)
-    society_id = seed_society(db, name="Marian Choral Society, Tuam")
-    login_as(client, admin_id)
-
-    client.post(
-        "/admin/historical-productions/bulk",
-        data={"society_id": society_id, "lines": "2017 Crazy For You"},
-    )
-
-    row = db.execute("SELECT year FROM historical_results WHERE show = 'Crazy For You'").fetchone()
-    assert row["year"] == 2017
 
 
 def test_bulk_add_requires_login(client, db):
@@ -82,7 +98,7 @@ def test_bulk_add_requires_login(client, db):
     assert resp.status_code in (302, 401, 403)
     resp = client.post(
         "/admin/historical-productions/bulk",
-        data={"society_id": society_id, "production_years": "1", "lines": "1998 Ham"},
+        data={"society_id": society_id, "year_convention": "autumn", "lines": "1998 Ham"},
     )
     assert resp.status_code in (302, 401, 403)
     assert db.execute("SELECT COUNT(*) FROM historical_results").fetchone()[0] == 0
@@ -97,7 +113,7 @@ def test_bulk_add_unparsed_line_does_not_block_the_rest(client, db):
         "/admin/historical-productions/bulk",
         data={
             "society_id": society_id,
-            "production_years": "1",
+            "year_convention": "autumn",
             "lines": "not a valid line\n1998 Ham",
         },
         follow_redirects=True,

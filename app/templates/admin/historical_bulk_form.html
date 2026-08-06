@@ -12,10 +12,15 @@
   <p class="meta">A trailing <code>(...)</code> is saved as a note, not part of the title - so "Jekyll &amp; Hyde
      (Irish Premiere)" is stored as the plain title "Jekyll &amp; Hyde" (matching how it's spelled everywhere else
      on the site) with "Irish Premiere" kept as a note.</p>
-  <p class="meta"><strong>Year convention:</strong> AIMS records a show's year as one year after it actually opened
-     (a show staged in autumn 2016 is recorded as 2017 - the same convention behind season "23/24" mapping to
-     2024). Leave the box below ticked if you're typing the production year as the society remembers it (the
-     normal case); untick it only if you're entering the AIMS year directly.</p>
+  <p class="meta"><strong>Year convention:</strong> AIMS records a show's year as the season's <em>ending</em>
+     calendar year, not the year it actually opened - a show staged July-December is recorded under the following
+     year (the same convention behind season "23/24" mapping to 2024), but a show staged January-June is already
+     recorded under the year it opened, no adjustment needed. Pick whichever matches this society's usual timing
+     below.</p>
+  <p class="meta"><strong>If this society stages two shows a year in different halves</strong> (or you're not sure
+     a whole list shares one timing), don't rely on the automatic adjustment for the whole batch - choose "I'm
+     entering the AIMS year directly", work out each show's real AIMS year yourself, and paste those instead (or
+     split the list into two batches, one per timing).</p>
 
   <form method="post" class="stacked-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -30,9 +35,13 @@
       </select>
     </label>
 
-    <label class="checkbox-label">
-      <input type="checkbox" name="production_years" value="1" {% if form.get('production_years', '1') %}checked{% endif %}>
-      These are production years, not AIMS years (add 1 automatically)
+    <label>
+      This society's usual show timing
+      <select name="year_convention">
+        <option value="autumn" {% if form.get('year_convention', 'autumn') == 'autumn' %}selected{% endif %}>Autumn/winter (Jul-Dec) - add 1 to get the AIMS year</option>
+        <option value="spring" {% if form.get('year_convention') == 'spring' %}selected{% endif %}>Spring (Jan-Jun) - AIMS year is the same as typed</option>
+        <option value="exact" {% if form.get('year_convention') == 'exact' %}selected{% endif %}>I'm entering the AIMS year directly</option>
+      </select>
     </label>
 
     <label>

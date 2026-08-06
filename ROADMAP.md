@@ -470,14 +470,19 @@ show worth reviving:
   - no award/category attached, just a record the production happened - deduped against what's
   already on record so a list can be safely re-pasted later. Prompted by Darragh having a full
   history for Marian Choral Society, Tuam and no way to bulk-enter it as admin.
-- **Found and confirmed AIMS's year convention while building it**: `historical_results.year` is
-  one year *after* the actual production (a show staged autumn 2016 is recorded as 2017) - matches
-  how season "23/24" maps to `SHOWS_COVERAGE_START_YEAR = 2024`. Confirmed by diffing Marian's full
-  49-title list against their existing 40 `historical_results` rows - every one of 21 overlapping
-  titles was off by exactly +1, no exceptions. The tool applies this automatically (toggleable, for
-  the rare case someone's typing an AIMS year directly rather than a production year).
-  Cross-referencing that list against the DB found 24 genuinely missing productions (1977-2017),
-  backfilled via the new tool once built and tested against a copy of the real data.
+- **Found AIMS's year convention while building it, then corrected an overgeneralization the same
+  day**: `historical_results.year` is the *season's ending* calendar year, not the year a show
+  physically opened - matches how season "23/24" maps to `SHOWS_COVERAGE_START_YEAR = 2024`.
+  Diffing Marian's full 49-title list against their existing 40 `historical_results` rows showed
+  every one of 21 overlapping titles off by exactly +1 - but Darragh pointed out that's only true
+  because Marian happens to always stage in October (autumn/winter); a society that stages
+  January-June has its production year already equal to the AIMS year, no +1, and some societies
+  stage twice a year in *different* halves - a single batch-wide offset can't be right for both
+  shows at once. The tool now asks the moderator which timing this society/batch uses (autumn/
+  spring/"entering the AIMS year directly") instead of assuming Jul-Dec-and-add-1 for everyone, and
+  the form explicitly tells a two-show-a-year moderator to compute the AIMS year themselves rather
+  than trust the automatic offset. Marian's own 24 backfilled rows needed no correction - October
+  is safely "autumn" - only the tool's default assumption for *other* societies was the bug.
 - **Known pre-existing gap surfaced, not yet fixed**: one inserted row ("Hello Dolly", 1995) landed
   on a title that already exists elsewhere in `historical_results` under a different spelling
   ("Hello, Dolly!") - fixed that one row by hand, but `fix_show_titles.py`'s title-cleanup RENAMES
@@ -485,9 +490,9 @@ show worth reviving:
   bug fixed twice already this cycle (`show_info`'s "Fiddler On The Roof"/"Man Of La Mancha" in
   Round 13) likely has more instances sitting in `historical_results` untouched - worth a dedicated
   audit pass rather than fixing opportunistically one row at a time.
-- Test suite grew 127 -> 134 (6 new tests for the bulk-add tool: insert, note extraction, dedupe,
-  the year-convention toggle, login gate, and unparsed-line handling not blocking the rest of the
-  batch).
+- Test suite grew 127 -> 135 (7 tests for the bulk-add tool: insert with the autumn offset, spring/
+  exact conventions keeping the year as typed, note extraction, dedupe, login gate, and
+  unparsed-line handling not blocking the rest of the batch).
 
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
