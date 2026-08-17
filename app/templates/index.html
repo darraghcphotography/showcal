@@ -82,9 +82,14 @@
   </form>
   <p class="meta">
     Subscribe in your calendar app:
-    <a href="{{ url_for('feeds.calendar_ics') }}">All shows</a> &middot;
+    <a href="{{ url_for('feeds.calendar_ics') }}">All shows</a>
+    <br>By tier:
     <a href="{{ url_for('feeds.calendar_ics', section='Gilbert') }}">Gilbert only</a> &middot;
     <a href="{{ url_for('feeds.calendar_ics', section='Sullivan') }}">Sullivan only</a>
+    <br>By region:
+    {% for r in regions %}
+      <a href="{{ url_for('feeds.calendar_ics', region=r) }}">{{ r }}</a>{% if not loop.last %} &middot; {% endif %}
+    {% endfor %}
     <br>In Google Calendar: Other calendars &rarr; + &rarr; From URL, then paste the link. It'll keep itself up to date from there.
   </p>
 

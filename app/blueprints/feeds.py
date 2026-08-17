@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
 
+from ..constants import REGIONS
 from ..db import get_db
 
 bp = Blueprint("feeds", __name__)
@@ -54,16 +55,21 @@ def calendar_ics():
     """Subscribable calendar feed of every approved, dated show - the full
     history, not just upcoming ones, since calendar apps handle past events
     fine and it keeps this simple (no separate "upcoming-only" feed to
-    maintain). An optional ?section=Gilbert/Sullivan narrows it to just that
-    tier - same feed mechanism, just filtered - so e.g. an adjudicator who
-    only covers one tier can subscribe to just their own shows and have it
-    genuinely auto-update (calendar apps periodically re-fetch a subscribed
-    .ics URL) rather than needing a one-off export. Any other/missing value
-    falls back to the unfiltered feed, same "invalid param -> default"
-    convention as the rest of the site."""
+    maintain). Optional ?section=Gilbert/Sullivan and/or ?region=<region>
+    narrow it - same feed mechanism, just filtered (and combinable, e.g.
+    ?section=Gilbert&region=Eastern), so e.g. an adjudicator who only covers
+    one tier, or a visitor who only cares about their own region, can
+    subscribe to just their own shows and have it genuinely auto-update
+    (calendar apps periodically re-fetch a subscribed .ics URL) rather than
+    needing a one-off export. Any other/missing value falls back to
+    unfiltered on that dimension, same "invalid param -> default" convention
+    as the rest of the site."""
     section = request.args.get("section")
     if section not in ("Gilbert", "Sullivan"):
         section = None
+    region = request.args.get("region")
+    if region not in REGIONS:
+        region = None
 
     db = get_db()
     query = """
@@ -73,14 +79,18 @@ def calendar_ics():
           AND shows.opening_date IS NOT NULL
           AND NOT societies.hidden
     """
-    params = ()
+    params = []
     if section:
         query += " AND shows.section = ?"
-        params = (section,)
+        params.append(section)
+    if region:
+        query += " AND shows.region = ?"
+        params.append(region)
     query += " ORDER BY shows.opening_date"
     rows = db.execute(query, params).fetchall()
 
-    calname = f"DC Show Tracker - {section}" if section else "DC Show Tracker"
+    calname_bits = [b for b in (section, region) if b]
+    calname = f"DC Show Tracker - {' - '.join(calname_bits)}" if calname_bits else "DC Show Tracker"
     stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
     lines = [
         "BEGIN:VCALENDAR",
