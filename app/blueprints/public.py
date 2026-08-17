@@ -1,5 +1,5 @@
-from datetime import date
-from urllib.parse import quote_plus
+from datetime import date, timedelta
+from urllib.parse import quote_plus, urlencode
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
@@ -15,6 +15,23 @@ bp = Blueprint("public", __name__)
 
 UPCOMING_LIMIT = 6
 CHANGELOG_TEASER_LIMIT = 3
+
+GOOGLE_CALENDAR_RENDER_URL = "https://calendar.google.com/calendar/render"
+
+
+def _google_calendar_url(text, start, end_exclusive, details="", location=""):
+    """A "Add to Google Calendar" link - just a URL, no auth/API integration
+    needed. All-day event, so `end_exclusive` is the day *after* the event
+    ends (Google's own convention, same as the .ics feed's DTEND)."""
+    params = {
+        "action": "TEMPLATE",
+        "text": text,
+        "dates": f"{start.strftime('%Y%m%d')}/{end_exclusive.strftime('%Y%m%d')}",
+        "details": details,
+    }
+    if location:
+        params["location"] = location
+    return f"{GOOGLE_CALENDAR_RENDER_URL}?{urlencode(params)}"
 
 
 @bp.route("/")
@@ -245,7 +262,39 @@ def show_detail(show_id):
         and show["opening_date"] >= date.today().isoformat()
     )
 
-    return render_template("show_detail.html", show=show, is_upcoming=is_upcoming)
+    gcal_show_url = None
+    gcal_adjudication_url = None
+    if show["opening_date"]:
+        opening = date.fromisoformat(show["opening_date"])
+        closing = date.fromisoformat(show["closing_date"]) if show["closing_date"] else opening
+        gcal_show_url = _google_calendar_url(
+            text=f"{show['show']} - {show['society_name']}",
+            start=opening,
+            end_exclusive=closing + timedelta(days=1),
+            details=f"AIMS production - {url_for('public.show_detail', show_id=show['id'], _external=True)}",
+            location=show["venue"] or "",
+        )
+        # AIMS requires an adjudication application at least 6 weeks before
+        # opening night - this reminder fires 2 weeks earlier than that
+        # deadline as a buffer, not on the deadline itself. Skipped for a
+        # show explicitly marked as not being adjudicated at all.
+        if show["review_status"] != "Not adjudicated":
+            reminder = opening - timedelta(weeks=8)
+            gcal_adjudication_url = _google_calendar_url(
+                text=f"CHECK ADJUDICATION FORMS WERE SUBMITTED - {show['show']} ({show['society_name']})",
+                start=reminder,
+                end_exclusive=reminder + timedelta(days=1),
+                details=(
+                    f"AIMS requires an adjudication application at least 6 weeks before opening night. "
+                    f"{show['show']} opens {opening.isoformat()} - double check the forms are in. "
+                    f"{url_for('public.show_detail', show_id=show['id'], _external=True)}"
+                ),
+            )
+
+    return render_template(
+        "show_detail.html", show=show, is_upcoming=is_upcoming,
+        gcal_show_url=gcal_show_url, gcal_adjudication_url=gcal_adjudication_url,
+    )
 
 
 TITLES_SORT_OPTIONS = {

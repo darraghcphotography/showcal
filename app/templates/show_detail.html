@@ -34,10 +34,18 @@
     <dt>Dates</dt>
     <dd>
       {% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}
+      {% if gcal_show_url %}
+        <br><a href="{{ gcal_show_url }}" rel="noopener" target="_blank">📅 Add show to Google Calendar</a>
+      {% endif %}
     </dd>
 
     <dt>Adjudication</dt>
-    <dd>{{ show['adjudication_date']|irish_date or show['adjudication_month_raw'] or 'Not yet scheduled' }}</dd>
+    <dd>
+      {{ show['adjudication_date']|irish_date or show['adjudication_month_raw'] or 'Not yet scheduled' }}
+      {% if gcal_adjudication_url %}
+        <br><a href="{{ gcal_adjudication_url }}" rel="noopener" target="_blank">⏰ Remind me: check adjudication forms were submitted (8 weeks before opening)</a>
+      {% endif %}
+    </dd>
 
     <dt>Venue</dt>
     <dd>{{ show['venue'] or '—' }}</dd>
