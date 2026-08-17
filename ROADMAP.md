@@ -681,6 +681,29 @@ on each show page:
 - Test suite grew 153 -> 157 (`tests/test_show_calendar_links.py`: date-range math, the exact 8-week
   offset, the not-adjudicated hide case, and no links at all when `opening_date` is unset).
 
+**Round 18 follow-up - hide past-show links, Gilbert/Sullivan calendar subscriptions (2026-08-17):**
+Two more requests once Round 18 was live:
+- **Both calendar links now hidden once a show is finished** - "maybe hide the links as they are
+  redundant" - reuses the same `is_upcoming` flag already computed on the page for the ticket/poster
+  nudge, so a past show's Dates/Adjudication fields just show plain info with no dead links.
+- **`/calendar.ics` gets an optional `?section=Gilbert`/`Sullivan` filter** - asked for "a Google
+  calendar that... auto-updates with all Sullivan shows and all Gilbert shows." The real answer is
+  `.ics` (a subscribable feed a calendar app periodically re-fetches), not a Google-specific
+  one-click "add event" link like the show-page ones - those two are different mechanisms, and only
+  `.ics` actually supports "keeps itself updated." Reused the existing unfiltered feed's logic rather
+  than building a new one; `X-WR-CALNAME` changes per tier so a subscribed calendar is
+  distinguishable in the calendar app's own list. Linked from the homepage next to the existing full
+  feed, with a plain-language line on how to actually subscribe to a calendar URL in Google Calendar
+  (Other calendars &rarr; + &rarr; From URL) since that's a less obvious flow than clicking a normal
+  link.
+- **Caught mid-round: `CHANGELOG.md` (the public-facing file that feeds the homepage's "Recently
+  shipped" and the public Roadmap page) hadn't been touched all day** - Rounds 17 and 18's work was
+  only ever logged here in `ROADMAP.md` (internal/dev-facing). Added a real entry for both rounds in
+  plain visitor-facing language, published the moment this gets redeployed - see
+  `app/changelog_sync.py`.
+- Test suite grew 157 -> 162 (`tests/test_calendar_feeds.py`: unfiltered/Gilbert/Sullivan/invalid
+  section filtering + calendar name x4; past-show link-hiding x1).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
