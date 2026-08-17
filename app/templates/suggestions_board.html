@@ -14,7 +14,12 @@
     <div class="lane-body">
       {% for s in lanes[status] %}
         <div class="lane-row">
-          <span>{{ s['message'] }}</span>
+          <span>
+            {{ s['message'] }}
+            {% if status == 'Done' and s['admin_note'] %}
+              <br><span class="meta">&mdash; {{ s['admin_note'] }}</span>
+            {% endif %}
+          </span>
           <span class="cat">{{ category_dot(s['category']) }}{{ s['category'] }}</span>
         </div>
       {% else %}

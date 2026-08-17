@@ -20,6 +20,7 @@
           <option value="{{ st }}" {% if s['triage_status'] == st %}selected{% endif %}>{{ st }}</option>
         {% endfor %}
       </select>
+      <textarea name="admin_note" rows="2" placeholder="Your note - shown publicly once marked Done">{{ s['admin_note'] or '' }}</textarea>
       <button type="submit">Save</button>
     </form>
     <form method="post" action="{{ url_for('admin.delete_suggestion', suggestion_id=s['id']) }}" class="inline-form"

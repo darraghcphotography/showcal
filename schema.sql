@@ -178,7 +178,13 @@ CREATE TABLE IF NOT EXISTS feature_suggestions (
     -- Set whenever a moderator saves a category/status change - lets a
     -- 'Done' suggestion sort into the Roadmap page's "Recently shipped"
     -- list by when it actually shipped, not by its original submission date.
-    triaged_at      TEXT
+    triaged_at      TEXT,
+    -- Moderator's own free-text note on how a suggestion was interpreted/
+    -- addressed - shown publicly on the Roadmap page, but only next to a
+    -- 'Done' card (see suggestions_board.html), so the original submitter
+    -- can see how it was actually handled without this cluttering every
+    -- other lane.
+    admin_note      TEXT
 );
 
 -- One admin-authored line per shipped update, shown on the public

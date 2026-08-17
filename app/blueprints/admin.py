@@ -1010,12 +1010,13 @@ def update_suggestion(suggestion_id):
         abort(404)
     category = request.form.get("category", "")
     triage_status = request.form.get("triage_status", "")
+    admin_note = request.form.get("admin_note", "").strip() or None
     if category not in SUGGESTION_CATEGORIES or triage_status not in SUGGESTION_STATUSES:
         flash("Choose a valid category and status.", "error")
         return redirect(url_for("admin.suggestions"))
     db.execute(
-        "UPDATE feature_suggestions SET category = ?, triage_status = ?, triaged_at = datetime('now') WHERE id = ?",
-        (category, triage_status, suggestion_id),
+        "UPDATE feature_suggestions SET category = ?, triage_status = ?, admin_note = ?, triaged_at = datetime('now') WHERE id = ?",
+        (category, triage_status, admin_note, suggestion_id),
     )
     db.commit()
     flash("Suggestion updated.", "success")

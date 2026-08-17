@@ -81,6 +81,43 @@ def test_roadmap_page_shows_triaged_and_hides_new(client, db):
     assert "Untriaged idea" not in body
 
 
+def test_admin_note_shown_publicly_only_for_done_suggestions(client, db):
+    admin_id = seed_user(db, username="mod", role="moderator")
+    db.execute(
+        "INSERT INTO feature_suggestions (message, category, triage_status) "
+        "VALUES ('Prop rental listings', 'Idea/Feature', 'Planned')"
+    )
+    db.commit()
+    suggestion_id = db.execute("SELECT id FROM feature_suggestions").fetchone()["id"]
+    login_as(client, admin_id)
+
+    client.post(
+        f"/admin/suggestions/{suggestion_id}/update",
+        data={
+            "category": "Idea/Feature", "triage_status": "Planned",
+            "admin_note": "Scoped down to just costume listings for now",
+        },
+        follow_redirects=False,
+    )
+    row = db.execute("SELECT admin_note FROM feature_suggestions WHERE id = ?", (suggestion_id,)).fetchone()
+    assert row["admin_note"] == "Scoped down to just costume listings for now"
+
+    # Saved, but not shown publicly yet - still in the Planned lane, not Done.
+    roadmap = client.get("/suggestions").get_data(as_text=True)
+    assert "Scoped down to just costume listings for now" not in roadmap
+
+    client.post(
+        f"/admin/suggestions/{suggestion_id}/update",
+        data={
+            "category": "Idea/Feature", "triage_status": "Done",
+            "admin_note": "Shipped as a costume/prop listings section on society pages",
+        },
+        follow_redirects=False,
+    )
+    roadmap = client.get("/suggestions").get_data(as_text=True)
+    assert "Shipped as a costume/prop listings section on society pages" in roadmap
+
+
 def test_admin_can_publish_and_delete_changelog_entry(client, db):
     admin_id = seed_user(db, username="mod", role="moderator")
     login_as(client, admin_id)

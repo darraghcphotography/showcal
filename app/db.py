@@ -59,6 +59,7 @@ COLUMN_MIGRATIONS = [
     ("societies", "hidden", "ALTER TABLE societies ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
     ("show_info", "premiere_year", "ALTER TABLE show_info ADD COLUMN premiere_year INTEGER"),
     ("show_info", "premiere_place", "ALTER TABLE show_info ADD COLUMN premiere_place TEXT"),
+    ("feature_suggestions", "admin_note", "ALTER TABLE feature_suggestions ADD COLUMN admin_note TEXT"),
 ]
 
 
