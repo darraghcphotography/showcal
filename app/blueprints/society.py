@@ -1,9 +1,10 @@
 import re
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
 from ..auth import active_society_code, society_required
+from ..calendar_links import google_calendar_url
 from ..constants import SHOW_SECTIONS
 from ..db import get_db
 from ..rate_limit import limiter
@@ -93,6 +94,32 @@ def _validate(fields, require_title):
     if fields["section"] and fields["section"] not in SHOW_SECTIONS:
         errors.append("Choose a valid tier.")
     return errors
+
+
+def _adjudication_reminder_url(show):
+    """"Remind me to check adjudication forms were submitted" calendar link
+    for the show's own committee - only useful while the show hasn't
+    happened yet and it's actually being adjudicated at all. Public-page
+    version of this was removed (see public.show_detail()) since a random
+    visitor has no reason to want this reminder on their own calendar."""
+    if (
+        not show["opening_date"]
+        or show["opening_date"] < date.today().isoformat()
+        or show["status"] == "Cancelled"
+        or show["review_status"] == "Not adjudicated"
+    ):
+        return None
+    opening = date.fromisoformat(show["opening_date"])
+    reminder = opening - timedelta(weeks=8)
+    return google_calendar_url(
+        text=f"CHECK ADJUDICATION FORMS WERE SUBMITTED - {show['show']}",
+        start=reminder,
+        end_exclusive=reminder + timedelta(days=1),
+        details=(
+            f"AIMS requires an adjudication application at least 6 weeks before opening night. "
+            f"{show['show']} opens {opening.isoformat()} - double check the forms are in."
+        ),
+    )
 
 
 @bp.route("/logo", methods=("POST",))
@@ -253,6 +280,8 @@ def edit_show(show_id):
     if show is None:
         abort(404)
 
+    gcal_adjudication_url = _adjudication_reminder_url(show)
+
     if request.method == "POST":
         fields = _read_form(request.form)
         errors = _validate(fields, require_title=False)
@@ -272,7 +301,7 @@ def edit_show(show_id):
                 flash(e, "error")
             return render_template(
                 "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
-                show=show, mode="edit",
+                show=show, mode="edit", gcal_adjudication_url=gcal_adjudication_url,
             )
 
         # Deliberately no review_status/review_url here - a society login can
@@ -299,7 +328,7 @@ def edit_show(show_id):
 
     return render_template(
         "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
-        show=show, mode="edit",
+        show=show, mode="edit", gcal_adjudication_url=gcal_adjudication_url,
     )
 
 

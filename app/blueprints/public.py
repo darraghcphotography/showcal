@@ -1,10 +1,11 @@
 from datetime import date, timedelta
-from urllib.parse import quote_plus, urlencode
+from urllib.parse import quote_plus
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
 from .. import notify
 from ..auth import current_user
+from ..calendar_links import google_calendar_url
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
 from ..rate_limit import limiter
@@ -15,23 +16,6 @@ bp = Blueprint("public", __name__)
 
 UPCOMING_LIMIT = 6
 CHANGELOG_TEASER_LIMIT = 3
-
-GOOGLE_CALENDAR_RENDER_URL = "https://calendar.google.com/calendar/render"
-
-
-def _google_calendar_url(text, start, end_exclusive, details="", location=""):
-    """A "Add to Google Calendar" link - just a URL, no auth/API integration
-    needed. All-day event, so `end_exclusive` is the day *after* the event
-    ends (Google's own convention, same as the .ics feed's DTEND)."""
-    params = {
-        "action": "TEMPLATE",
-        "text": text,
-        "dates": f"{start.strftime('%Y%m%d')}/{end_exclusive.strftime('%Y%m%d')}",
-        "details": details,
-    }
-    if location:
-        params["location"] = location
-    return f"{GOOGLE_CALENDAR_RENDER_URL}?{urlencode(params)}"
 
 
 @bp.route("/")
@@ -262,40 +246,34 @@ def show_detail(show_id):
         and show["opening_date"] >= date.today().isoformat()
     )
 
+    # The show-dates calendar link is redundant once a show has already
+    # happened - gated on the same is_upcoming used for the ticket/poster
+    # nudge above. (The adjudication-forms reminder used to live here too,
+    # but it's only actually useful to the show's own committee, not a
+    # random visitor - it now lives on the society's own edit-show page,
+    # see society.edit_show().)
     gcal_show_url = None
-    gcal_adjudication_url = None
-    # Both calendar links are redundant once a show has already happened -
-    # gated on the same is_upcoming used for the ticket/poster nudge above.
+    # Just opening_date minus 6 weeks (AIMS's real application deadline) -
+    # unlike the actual scheduled adjudication_date, this is fine to show
+    # publicly since it's only ever arithmetic on a date the page already
+    # displays, never AIMS's own internal scheduling info.
+    adjudication_cutoff = None
     if is_upcoming:
         opening = date.fromisoformat(show["opening_date"])
         closing = date.fromisoformat(show["closing_date"]) if show["closing_date"] else opening
-        gcal_show_url = _google_calendar_url(
+        gcal_show_url = google_calendar_url(
             text=f"{show['show']} - {show['society_name']}",
             start=opening,
             end_exclusive=closing + timedelta(days=1),
             details=f"AIMS production - {url_for('public.show_detail', show_id=show['id'], _external=True)}",
             location=show["venue"] or "",
         )
-        # AIMS requires an adjudication application at least 6 weeks before
-        # opening night - this reminder fires 2 weeks earlier than that
-        # deadline as a buffer, not on the deadline itself. Skipped for a
-        # show explicitly marked as not being adjudicated at all.
         if show["review_status"] != "Not adjudicated":
-            reminder = opening - timedelta(weeks=8)
-            gcal_adjudication_url = _google_calendar_url(
-                text=f"CHECK ADJUDICATION FORMS WERE SUBMITTED - {show['show']} ({show['society_name']})",
-                start=reminder,
-                end_exclusive=reminder + timedelta(days=1),
-                details=(
-                    f"AIMS requires an adjudication application at least 6 weeks before opening night. "
-                    f"{show['show']} opens {opening.isoformat()} - double check the forms are in. "
-                    f"{url_for('public.show_detail', show_id=show['id'], _external=True)}"
-                ),
-            )
+            adjudication_cutoff = (opening - timedelta(weeks=6)).isoformat()
 
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
-        gcal_show_url=gcal_show_url, gcal_adjudication_url=gcal_adjudication_url,
+        gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff,
     )
 
 
@@ -496,7 +474,7 @@ def suggestions_board():
     # that column existed) so the most recently-moved item floats to the top.
     rows = db.execute(
         """
-        SELECT message, category, triage_status FROM feature_suggestions
+        SELECT message, category, triage_status, admin_note FROM feature_suggestions
         WHERE triage_status IN ('Planned', 'In Progress', 'Done', 'Not planned')
         ORDER BY
             CASE triage_status WHEN 'Planned' THEN 0 WHEN 'In Progress' THEN 1 WHEN 'Done' THEN 2 WHEN 'Not planned' THEN 3 END,

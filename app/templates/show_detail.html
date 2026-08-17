@@ -39,13 +39,6 @@
       {% endif %}
     </dd>
 
-    {% if gcal_adjudication_url %}
-      <dt>Adjudication</dt>
-      <dd>
-        <a href="{{ gcal_adjudication_url }}" rel="noopener" target="_blank">⏰ Remind me: check adjudication forms were submitted (8 weeks before opening)</a>
-      </dd>
-    {% endif %}
-
     <dt>Venue</dt>
     <dd>{{ show['venue'] or '—' }}</dd>
 
@@ -72,6 +65,11 @@
           {{ show['review_status'] }}
         {% endif %}
       </dd>
+    {% endif %}
+
+    {% if adjudication_cutoff %}
+      <dt>Adjudication submission cut-off</dt>
+      <dd>{{ adjudication_cutoff|irish_date }} <span class="meta">(6 weeks before opening night, per AIMS rules)</span></dd>
     {% endif %}
   </dl>
 {% endblock %}
