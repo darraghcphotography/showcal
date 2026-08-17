@@ -48,3 +48,8 @@ Roadmap page: a shipped suggestion can now show a short note on how it was actua
 ---
 
 New calendar subscriptions for each region, alongside the existing Gilbert/Sullivan ones - subscribe to just your own region and it stays up to date automatically
+
+---
+
+About page: added an explanation of what the Gilbert and Sullivan sections actually are
+Fixed some small helper text around the site that wasn't displaying correctly

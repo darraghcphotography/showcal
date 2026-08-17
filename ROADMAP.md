@@ -754,6 +754,16 @@ instead of 3. Only the two single-dimension link sets are surfaced on the page -
 tier-region combinations as clickable links would have been too much. Test suite grew 171 -> 174
 (region-only filter, invalid-region fallback, section+region combined).
 
+**Site audit (2026-08-17):** Quick pass at Darragh's request - found `.hint` (used in 12 templates)
+had no matching CSS rule, ever, so it rendered unstyled everywhere; and that "Gilbert"/"Sullivan"
+were never explained anywhere on the public site despite being used constantly. Both fixed - `.hint`
+styled to match `.meta`, and a new "What are the Gilbert and Sullivan sections?" section added to
+`/about` (Darragh's own text). Also flagged, not yet acted on: duplicated "is this show upcoming"
+logic in `public.py`/`society.py` (small refactor), and that the parked adjudicator-planning-calendar
+backlog item is now partly superseded by the tier `.ics` feeds from the round above. A deeper
+redundancy/dead-code pass was started but not finished (background agent hit the session's usage
+cap) - worth resuming if a full codebase health check is wanted.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
