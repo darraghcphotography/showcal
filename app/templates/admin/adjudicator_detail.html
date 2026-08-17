@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ adjudicator['name'] }} - DC Show Tracker{% endblock %}
+{% block content %}
+  <p class="meta"><a href="{{ url_for('admin.adjudicators') }}">&larr; All adjudicators</a></p>
+  <h1>{{ adjudicator['name'] }}</h1>
+  {% if adjudicator['notes'] %}<p class="meta">{{ adjudicator['notes'] }}</p>{% endif %}
+
+  <h2>Seasons judged</h2>
+  {% if seasons_judged %}
+    <p class="meta">
+      {% for s in seasons_judged %}{{ s['season'] }} ({{ s['section'] }}){% if not loop.last %} &middot; {% endif %}{% endfor %}
+    </p>
+  {% else %}
+    <p class="meta">Not yet assigned to any season.</p>
+  {% endif %}
+
+  <h2>Shows in those seasons/tiers</h2>
+  <p class="meta">Every show from a season/tier {{ adjudicator['name'] }} judged - cross-check the review link
+     against their byline to confirm the match. Includes shows without a published review yet.</p>
+  {% if reviews %}
+    <table class="data-table">
+      <thead><tr><th>Season</th><th>Tier</th><th>Society</th><th>Show</th><th>Opened</th><th>Review</th></tr></thead>
+      <tbody>
+        {% for r in reviews %}
+          <tr>
+            <td>{{ r['season'] }}</td>
+            <td>{{ r['section'] }}</td>
+            <td>{{ r['society_name'] }}</td>
+            <td>{{ r['show'] or '(TBA)' }}</td>
+            <td>{{ r['opening_date'] or '—' }}</td>
+            <td>
+              {% if r['review_url'] %}
+                <a href="{{ r['review_url'] }}" target="_blank" rel="noopener">{{ r['review_status'] }}</a>
+              {% else %}
+                {{ r['review_status'] }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No shows found for their assigned seasons/tiers.</p>
+  {% endif %}
+{% endblock %}

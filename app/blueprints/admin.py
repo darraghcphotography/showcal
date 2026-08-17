@@ -1760,3 +1760,116 @@ def delete_award(award_id):
     db.commit()
     flash("Award result deleted.", "success")
     return redirect(url_for("admin.awards_list"))
+
+
+def _assignment_field(season, section):
+    # "/" in a season string (e.g. "23/24") is a perfectly valid form-field
+    # name, no escaping needed either side of the request.
+    return f"{section}|{season}"
+
+
+@bp.route("/adjudicators", methods=("GET", "POST"))
+@login_required
+def adjudicators():
+    db = get_db()
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        notes = request.form.get("notes", "").strip() or None
+        if not name:
+            flash("Name is required.", "error")
+        elif db.execute("SELECT id FROM adjudicators WHERE name = ?", (name,)).fetchone():
+            flash(f'"{name}" is already on the list.', "error")
+        else:
+            db.execute("INSERT INTO adjudicators (name, notes) VALUES (?, ?)", (name, notes))
+            db.commit()
+            flash(f'"{name}" added.', "success")
+        return redirect(url_for("admin.adjudicators"))
+
+    seasons = season_range(db)
+    adjudicator_list = db.execute(
+        """
+        SELECT adjudicators.*, COUNT(adjudicator_assignments.season) AS season_count
+        FROM adjudicators
+        LEFT JOIN adjudicator_assignments ON adjudicator_assignments.adjudicator_id = adjudicators.id
+        GROUP BY adjudicators.id ORDER BY adjudicators.name
+        """
+    ).fetchall()
+    assignments = {
+        (row["season"], row["section"]): row["adjudicator_id"]
+        for row in db.execute("SELECT season, section, adjudicator_id FROM adjudicator_assignments").fetchall()
+    }
+    return render_template(
+        "admin/adjudicators.html", adjudicators=adjudicator_list, seasons=seasons,
+        assignments=assignments, field=_assignment_field,
+    )
+
+
+@bp.route("/adjudicators/assign", methods=("POST",))
+@login_required
+def save_adjudicator_assignments():
+    db = get_db()
+    for season in season_range(db):
+        for section in ("Gilbert", "Sullivan"):
+            value = request.form.get(_assignment_field(season, section), "")
+            if value:
+                db.execute(
+                    """
+                    INSERT INTO adjudicator_assignments (season, section, adjudicator_id) VALUES (?, ?, ?)
+                    ON CONFLICT(season, section) DO UPDATE SET adjudicator_id = excluded.adjudicator_id
+                    """,
+                    (season, section, int(value)),
+                )
+            else:
+                db.execute(
+                    "DELETE FROM adjudicator_assignments WHERE season = ? AND section = ?", (season, section)
+                )
+    db.commit()
+    flash("Adjudicator assignments saved.", "success")
+    return redirect(url_for("admin.adjudicators"))
+
+
+@bp.route("/adjudicators/<int:adjudicator_id>")
+@login_required
+def adjudicator_detail(adjudicator_id):
+    db = get_db()
+    adjudicator = db.execute("SELECT * FROM adjudicators WHERE id = ?", (adjudicator_id,)).fetchone()
+    if adjudicator is None:
+        abort(404)
+
+    seasons_judged = db.execute(
+        "SELECT season, section FROM adjudicator_assignments WHERE adjudicator_id = ? ORDER BY season DESC",
+        (adjudicator_id,),
+    ).fetchall()
+    reviews = db.execute(
+        """
+        SELECT shows.id, shows.show, shows.season, shows.section, shows.opening_date,
+               shows.review_status, shows.review_url, societies.name AS society_name
+        FROM shows
+        JOIN adjudicator_assignments
+            ON adjudicator_assignments.season = shows.season AND adjudicator_assignments.section = shows.section
+        JOIN societies ON societies.id = shows.society_id
+        WHERE adjudicator_assignments.adjudicator_id = ?
+        ORDER BY shows.opening_date DESC
+        """,
+        (adjudicator_id,),
+    ).fetchall()
+    return render_template(
+        "admin/adjudicator_detail.html", adjudicator=adjudicator, seasons_judged=seasons_judged, reviews=reviews,
+    )
+
+
+@bp.route("/adjudicators/<int:adjudicator_id>/delete", methods=("POST",))
+@admin_required
+def delete_adjudicator(adjudicator_id):
+    db = get_db()
+    in_use = db.execute(
+        "SELECT 1 FROM adjudicator_assignments WHERE adjudicator_id = ?", (adjudicator_id,)
+    ).fetchone()
+    if in_use:
+        flash("Can't delete - this adjudicator is still assigned to a season. Clear those first.", "error")
+    else:
+        db.execute("DELETE FROM adjudicators WHERE id = ?", (adjudicator_id,))
+        db.commit()
+        flash("Adjudicator deleted.", "success")
+    return redirect(url_for("admin.adjudicators"))

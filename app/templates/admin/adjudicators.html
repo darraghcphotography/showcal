@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Adjudicators - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Adjudicators</h1>
+  <p class="meta">AIMS assigns one adjudicator per tier per season, not per show - recording who covered
+     Gilbert/Sullivan each season lets you match a show's published review to its likely author, and pull
+     up every review a given adjudicator wrote.</p>
+
+  <h2>Add an adjudicator</h2>
+  <form method="post" action="{{ url_for('admin.adjudicators') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Name <input type="text" name="name" required></label>
+    <label>Notes <input type="text" name="notes" placeholder="optional"></label>
+    <button type="submit">Add</button>
+  </form>
+
+  <h2>Season assignments</h2>
+  {% if adjudicators %}
+    <form method="post" action="{{ url_for('admin.save_adjudicator_assignments') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <table class="data-table">
+        <thead><tr><th>Season</th><th>Gilbert adjudicator</th><th>Sullivan adjudicator</th></tr></thead>
+        <tbody>
+          {% for season in seasons %}
+            <tr>
+              <td>{{ season }}</td>
+              {% for section in ("Gilbert", "Sullivan") %}
+                <td>
+                  <select name="{{ field(season, section) }}">
+                    <option value="">— none —</option>
+                    {% for a in adjudicators %}
+                      <option value="{{ a['id'] }}" {% if assignments.get((season, section)) == a['id'] %}selected{% endif %}>
+                        {{ a['name'] }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="submit">Save assignments</button>
+    </form>
+  {% else %}
+    <p class="meta">Add at least one adjudicator above before you can assign them to a season.</p>
+  {% endif %}
+
+  <h2>All adjudicators</h2>
+  {% if adjudicators %}
+    <table class="data-table">
+      <thead><tr><th>Name</th><th>Notes</th><th>Seasons assigned</th><th></th></tr></thead>
+      <tbody>
+        {% for a in adjudicators %}
+          <tr>
+            <td><a href="{{ url_for('admin.adjudicator_detail', adjudicator_id=a['id']) }}">{{ a['name'] }}</a></td>
+            <td class="meta">{{ a['notes'] or '—' }}</td>
+            <td>{{ a['season_count'] }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.delete_adjudicator', adjudicator_id=a['id']) }}"
+                    onsubmit="return confirm('Delete {{ a['name'] }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No adjudicators added yet.</p>
+  {% endif %}
+{% endblock %}

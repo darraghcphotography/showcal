@@ -299,6 +299,31 @@ CREATE TABLE IF NOT EXISTS historical_society_regions (
     updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- One row per person who has adjudicated for AIMS. Built up as
+-- adjudicator_assignments below is filled in, so a name typed once (e.g.
+-- "Jane Smith") stays consistent across every season they judged rather than
+-- drifting spelling season to season - see also historical_results.reason,
+-- the free-text adjudicator's note that predates this table.
+CREATE TABLE IF NOT EXISTS adjudicators (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL UNIQUE,
+    notes           TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Which adjudicator covered each tier in a given season - AIMS assigns one
+-- per tier per season, not per show. An unfilled season/tier combination
+-- simply has no row here. Lets a moderator match a show's published review
+-- to its likely author (same adjudicator judges every show in their tier
+-- that season) and find every review a given adjudicator wrote, without a
+-- per-show author field.
+CREATE TABLE IF NOT EXISTS adjudicator_assignments (
+    season          TEXT NOT NULL,
+    section         TEXT NOT NULL CHECK (section IN ('Gilbert', 'Sullivan')),
+    adjudicator_id  INTEGER NOT NULL REFERENCES adjudicators(id),
+    PRIMARY KEY (season, section)
+);
+
 -- Full-text search indexes (SQLite FTS5, built in - no extra dependency).
 -- External-content tables: the FTS index stores only the tokenized text, the
 -- real data stays in societies/historical_results, kept in sync via the

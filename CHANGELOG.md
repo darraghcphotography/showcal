@@ -53,3 +53,7 @@ New calendar subscriptions for each region, alongside the existing Gilbert/Sulli
 
 About page: added an explanation of what the Gilbert and Sullivan sections actually are
 Fixed some small helper text around the site that wasn't displaying correctly
+
+---
+
+New admin tool: record which adjudicator covered Gilbert and Sullivan each season, and pull up every show they judged to help match reviews to their author

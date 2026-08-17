@@ -764,6 +764,28 @@ backlog item is now partly superseded by the tier `.ics` feeds from the round ab
 redundancy/dead-code pass was started but not finished (background agent hit the session's usage
 cap) - worth resuming if a full codebase health check is wanted.
 
+**Round 19 - Adjudicator tracking, admin-only (2026-08-17):** Darragh's own idea, raised right after
+the site audit above: AIMS assigns one adjudicator per tier (Gilbert/Sullivan) per season, and knowing
+who that was each year would help him match a published review's byline to its likely author, plus
+find every review a given adjudicator wrote.
+- **New `adjudicators` table** (name, free-text notes) and **`adjudicator_assignments`** (one row per
+  season+tier that's been filled in, `PRIMARY KEY (season, section)`) - a reusable picker rather than
+  free text per season, so "Jane Smith" typed once stays consistent across every year she judged
+  instead of drifting spelling season to season. Brand-new tables, so no `COLUMN_MIGRATIONS` entry
+  needed (`CREATE TABLE IF NOT EXISTS` in `schema.sql` handles it).
+- **New `/admin/adjudicators`**: add an adjudicator, then a plain Season / Gilbert / Sullivan grid
+  (one `<select>` per season/tier, single Save button - no per-field autosave JS, unlike `/admin/
+  venues`, since this grid is far smaller) to assign who covered each. Each adjudicator's name links
+  to **`/admin/adjudicators/<id>`**, which lists every show from a season/tier they were assigned to
+  (joining `shows` on `season`+`section`) alongside its review link, for Darragh to cross-check the
+  byline against. Delete is blocked while an adjudicator is still assigned to any season.
+- **Scoped via an explicit question first**: kept admin-only for now (no public "Reviewed by X" credit
+  or public reviews-by-adjudicator page yet) - Darragh can revisit making it public-facing once the
+  data's actually filled in. Darragh's offered to backfill past seasons from memory via the new grid.
+- Test suite grew 174 -> 183 (`tests/test_adjudicators.py`: add/dedupe, assignment save/clear, the
+  per-adjudicator show list joining correctly on season+tier and excluding other seasons, 404 on an
+  unknown id, delete blocked-while-assigned vs. removed-when-unassigned).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
