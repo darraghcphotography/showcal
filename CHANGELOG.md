@@ -44,3 +44,7 @@ Show pages: the Review field now stays hidden until a show has actually happened
 Show pages now display an "Adjudication submission cut-off" date (6 weeks before opening night, per AIMS rules) instead of the internal adjudication date
 The "remind me to check adjudication forms were submitted" calendar reminder moved to a society's own login area, alongside their other show details
 Roadmap page: a shipped suggestion can now show a short note on how it was actually interpreted and built
+
+---
+
+New calendar subscriptions for each region, alongside the existing Gilbert/Sullivan ones - subscribe to just your own region and it stays up to date automatically

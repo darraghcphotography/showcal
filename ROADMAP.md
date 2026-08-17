@@ -744,6 +744,16 @@ actually belongs, then separately asked for a way to leave his own commentary on
   upcoming show, hidden when not-adjudicated/finished, 404 for a different society's show x4;
   `tests/test_suggestions_roadmap.py` gained the admin-note-only-shown-once-Done case).
 
+**Round 18 fourth follow-up - per-region .ics calendars (2026-08-17):** "I like the ics link - could
+we get one per region as well?" Extended `/calendar.ics`'s existing `?section=` filter with a
+combinable `?region=<region>` one (validated against `constants.REGIONS`, same "invalid ->
+unfiltered" fallback convention). Homepage subscribe block reorganized into three short lines (All
+shows / By tier / By region) instead of one run-on paragraph now that there are 9 links total
+instead of 3. Only the two single-dimension link sets are surfaced on the page - the combined
+`?section=X&region=Y` form works for anyone who constructs the URL by hand, but listing all 12
+tier-region combinations as clickable links would have been too much. Test suite grew 171 -> 174
+(region-only filter, invalid-region fallback, section+region combined).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
