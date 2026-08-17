@@ -1,5 +1,52 @@
 {% extends "base.html" %}
 {% block title %}DC Show Tracker{% endblock %}
+
+{% macro upcoming_rows(shows) %}
+  {% for show in shows %}
+    <tr>
+      <td>
+        <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+        {% if show['venue'] %}
+          <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+        {% endif %}
+      </td>
+      <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
+      <td>{{ show['region'] }}</td>
+      <td>{{ show['opening_date']|date_range(show['closing_date']) }}</td>
+      <td>
+        {% if show['ticket_url'] %}
+          <a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a>
+        {% else %}
+          Not listed
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+{% endmacro %}
+
+{% macro upcoming_cards(shows) %}
+  {% for show in shows %}
+    <div class="queue-item">
+      <div class="primary"><a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a></div>
+      {% if show['venue'] %}
+        <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+      {% endif %}
+      <div class="meta-chips">
+        <span><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></span>
+        <span>&middot; {{ show['region'] }}</span>
+        <span>&middot; {{ show['opening_date']|date_range(show['closing_date']) }}</span>
+        <span>&middot;
+          {% if show['ticket_url'] %}
+            <a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a>
+          {% else %}
+            Not listed
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  {% endfor %}
+{% endmacro %}
+
 {% block content %}
   <div class="site-notice">
     <p>Want to help update your society's history, add past shows, or fix any missing information?
@@ -36,33 +83,13 @@
   <p class="meta"><a href="{{ url_for('feeds.calendar_ics') }}">Subscribe in your calendar app (.ics) &darr;</a></p>
 
   {% if upcoming %}
-    <table class="data-table">
+    <table class="data-table table-wide">
       <thead>
         <tr><th>Show</th><th>Society</th><th>Region</th><th>Dates</th><th>Tickets</th></tr>
       </thead>
-      <tbody>
-        {% for show in upcoming %}
-          <tr>
-            <td>
-              <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-              {% if show['venue'] %}
-                <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
-              {% endif %}
-            </td>
-            <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
-            <td>{{ show['region'] }}</td>
-            <td>{{ show['opening_date']|date_range(show['closing_date']) }}</td>
-            <td>
-              {% if show['ticket_url'] %}
-                <a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a>
-              {% else %}
-                Not listed
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
+      <tbody>{{ upcoming_rows(upcoming) }}</tbody>
     </table>
+    <div class="table-cards">{{ upcoming_cards(upcoming) }}</div>
   {% else %}
     <p>No upcoming shows{% if upcoming_region %} in {{ upcoming_region }} right now{% endif %}.</p>
   {% endif %}

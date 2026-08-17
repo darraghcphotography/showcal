@@ -368,6 +368,14 @@ def title_detail(title):
     )
 
 
+@bp.route("/more")
+def more():
+    """Mobile-only "More" tab destination - everything that isn't one of the
+    bottom bar's 5 main tabs. Renders fine at any width, just isn't linked
+    from anywhere except the bottom bar (see base.html)."""
+    return render_template("more.html")
+
+
 @bp.route("/about")
 def about():
     db = get_db()

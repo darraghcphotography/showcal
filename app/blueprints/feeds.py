@@ -3,7 +3,7 @@ import io
 import json
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, Response, url_for
+from flask import Blueprint, Response, current_app, send_from_directory, url_for
 
 from ..db import get_db
 
@@ -115,9 +115,23 @@ def manifest():
         "theme_color": "#c8102e",
         "icons": [
             {"src": url_for("static", filename="favicon.svg"), "sizes": "any", "type": "image/svg+xml"},
+            {"src": url_for("static", filename="icons/icon-192.png"), "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": url_for("static", filename="icons/icon-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": url_for("static", filename="icons/icon-maskable-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
         ],
     })
     return Response(body, mimetype="application/manifest+json")
+
+
+@bp.route("/sw.js")
+def service_worker():
+    """Served at the root path (not /static/sw.js) so the service worker's
+    default scope covers the whole site, not just /static/ - registered via
+    url_for('feeds.service_worker') so this still resolves correctly when
+    the app is mounted under a URL_PREFIX sub-path in production."""
+    return send_from_directory(
+        current_app.static_folder, "sw.js", mimetype="application/javascript"
+    )
 
 
 @bp.route("/robots.txt")

@@ -641,8 +641,15 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 @media (max-width: 600px) {
   .plain-list { columns: 1; }
   .rank-row { grid-template-columns: 1.6rem 1fr auto; gap: 0.5rem; }
-  .table-wide { display: none; }
-  .table-cards { display: flex; }
+  /* Qualified with the element type (table.table-wide / div.table-cards),
+     not just the bare class, so these reliably outrank the unconditional
+     `table.data-table { display: block }` and `.table-cards { display: none }`
+     base rules regardless of source order - a bare `.table-wide`/`.table-cards`
+     here loses that specificity/order fight and silently never applies (this
+     card-swap never actually worked on any page using it - found while
+     testing this pattern in a real mobile-width browser for the first time). */
+  table.table-wide { display: none; }
+  div.table-cards { display: flex; }
 }
 
 /* A dense multi-column data-table forces horizontal scrolling on a phone -
@@ -662,3 +669,73 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem;
 }
 .meta-chips span { white-space: nowrap; }
+
+/* Mobile bottom tab bar (installable-app nav) - public pages only, never
+   rendered on /admin or /society (see base.html's mobile_chrome check), so
+   the padding-bottom below is scoped to body.has-bottom-nav rather than
+   applying everywhere. Desktop is untouched: hidden above 768px. */
+.bottom-tab-bar {
+  display: none;
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 100;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom));
+}
+.tab-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.25rem 0;
+}
+.tab-link svg { width: 22px; height: 22px; }
+.tab-link.active { color: #c8102e; }
+
+.install-hint {
+  position: relative;
+  background: var(--row-alt);
+  border-left: 3px solid var(--gold);
+  border-radius: 4px;
+  padding: 0.75rem 2.2rem 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+.install-hint p { margin: 0; font-size: 0.9rem; }
+.install-hint-close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+}
+.install-hint-close:hover { color: var(--fg); }
+
+@media (max-width: 768px) {
+  .bottom-tab-bar { display: flex; }
+  body.has-bottom-nav .container {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* More page: .queue-item is normally a <div>/<article>, here the whole card
+   is the link itself, so it needs block display and the site's default
+   underlined link colour turned off (the card border/hover already signal
+   "clickable"). */
+a.queue-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+a.queue-item:hover { border-color: var(--accent); }

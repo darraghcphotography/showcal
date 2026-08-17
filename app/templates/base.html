@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <script>
     (function() {
       var t = localStorage.getItem('theme');
@@ -12,7 +12,7 @@
   <title>{% block title %}DC Show Tracker{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <link rel="manifest" href="{{ url_for('feeds.manifest') }}">
   <meta name="theme-color" content="#c8102e">
 
@@ -23,7 +23,8 @@
   <meta property="og:description" content="{% block og_description %}Browse AIMS member societies' show history, upcoming productions, and the AIMS awards archive.{% endblock %}">
   {% block og_image %}{% endblock %}
 </head>
-<body>
+{% set mobile_chrome = request.blueprint not in ('admin', 'society') %}
+<body{% if mobile_chrome %} class="has-bottom-nav"{% endif %}>
   <header class="site-header">
     <a class="brand" href="{{ url_for('public.index') }}">
       <svg class="brand-icon" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true">
@@ -61,6 +62,12 @@
   </header>
 
   <main class="container">
+    {% if mobile_chrome %}
+      <div class="install-hint" id="iosInstallHint" hidden>
+        <p>📲 Install this app: tap <strong>Share</strong>, then <strong>&ldquo;Add to Home Screen&rdquo;</strong>.</p>
+        <button type="button" class="install-hint-close" id="iosInstallHintClose" aria-label="Dismiss">&times;</button>
+      </div>
+    {% endif %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <ul class="flashes">
@@ -87,6 +94,57 @@
       {% endif %}
     </p>
   </footer>
+
+  {% if mobile_chrome %}
+    <nav class="bottom-tab-bar" aria-label="Primary">
+      <a class="tab-link {{ 'active' if request.endpoint == 'public.index' else '' }}" href="{{ url_for('public.index') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/><path d="M9.5 20v-6h5v6"/></svg>
+        <span>Home</span>
+      </a>
+      <a class="tab-link {{ 'active' if request.endpoint == 'public.societies_list' else '' }}" href="{{ url_for('public.societies_list') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.4"/><path d="M15.5 12.2a5 5 0 0 1 6.5 4.8"/></svg>
+        <span>Societies</span>
+      </a>
+      <a class="tab-link {{ 'active' if request.endpoint == 'info.season_summary' else '' }}" href="{{ url_for('info.season_summary') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/></svg>
+        <span>This season</span>
+      </a>
+      <a class="tab-link {{ 'active' if request.endpoint == 'info.stats' else '' }}" href="{{ url_for('info.stats') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11M11 20V4M18 20v-7"/></svg>
+        <span>Stats</span>
+      </a>
+      <a class="tab-link {{ 'active' if request.endpoint == 'public.more' else '' }}" href="{{ url_for('public.more') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+        <span>More</span>
+      </a>
+    </nav>
+
+    <script>
+      (function() {
+        var hint = document.getElementById('iosInstallHint');
+        var closeBtn = document.getElementById('iosInstallHintClose');
+        if (!hint || !closeBtn) return;
+        var isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
+          || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var isStandalone = window.navigator.standalone === true
+          || window.matchMedia('(display-mode: standalone)').matches;
+        var dismissed = localStorage.getItem('iosInstallHintDismissed') === '1';
+        if (isIos && !isStandalone && !dismissed) hint.hidden = false;
+        closeBtn.addEventListener('click', function() {
+          hint.hidden = true;
+          localStorage.setItem('iosInstallHintDismissed', '1');
+        });
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('{{ url_for("feeds.service_worker") }}');
+        });
+      }
+    </script>
+  {% endif %}
 
   <script>
     (function() {

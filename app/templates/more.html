@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}More - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>More</h1>
+
+  <a class="queue-item" href="{{ url_for('info.awards') }}">
+    <span class="primary">Awards</span>
+    <p class="meta">Full AIMS awards archive</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('submit.unlock') }}">
+    <span class="primary">Submit a show</span>
+    <p class="meta">Add your society's production</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('public.suggest') }}">
+    <span class="primary">Suggest a feature</span>
+    <p class="meta">Ideas, bug reports, data corrections</p>
+  </a>
+
+  {% if society_session %}
+    <a class="queue-item" href="{{ url_for('society.dashboard') }}">
+      <span class="primary">My society</span>
+      <p class="meta">Manage your own shows &amp; profile</p>
+    </a>
+  {% else %}
+    <a class="queue-item" href="{{ url_for('society.login') }}">
+      <span class="primary">Society login</span>
+      <p class="meta">Manage your own shows &amp; profile</p>
+    </a>
+  {% endif %}
+
+  {% if current_user %}
+    <a class="queue-item" href="{{ url_for('admin.dashboard') }}">
+      <span class="primary">Admin</span>
+      <p class="meta">Moderator dashboard</p>
+    </a>
+  {% else %}
+    <a class="queue-item" href="{{ url_for('admin.login') }}">
+      <span class="primary">Moderator login</span>
+      <p class="meta">Admin access</p>
+    </a>
+  {% endif %}
+
+  <a class="queue-item" href="{{ url_for('public.about') }}">
+    <span class="primary">About</span>
+    <p class="meta">What this site is, and why it exists</p>
+  </a>
+{% endblock %}
