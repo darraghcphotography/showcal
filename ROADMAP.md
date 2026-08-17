@@ -662,6 +662,25 @@ columns, a GDPR consent flow, a new daily sidecar job) - see the plan notes for 
   the passing test suite, rather than a literal 390px phone-width screenshot. Worth Darragh
   double-checking the real mobile layout on an actual phone once deployed.
 
+**Round 18 - Show-page "Add to Google Calendar" + adjudication reminder link (2026-08-17):** Once
+Round 17 was live, Darragh came back with a much smaller version of the "Part 2" ask parked at the
+end of that round - not the full email/GDPR/scheduler system, just two plain calendar-render links
+on each show page:
+- **"Add show to Google Calendar"** - covers the full run, opening night to closing night.
+- **"Remind me: check adjudication forms were submitted (8 weeks before opening)"** - a single-day
+  reminder event 8 weeks before opening. AIMS's real rule is an application at least 6 weeks out, so
+  this lands 2 weeks ahead of that deadline as a buffer, not right on it. Automatically hidden for a
+  show marked `review_status = 'Not adjudicated'`.
+- Both are just `https://calendar.google.com/calendar/render?action=TEMPLATE&...` URLs built in
+  `public.show_detail()` (`_google_calendar_url()`) - no Google auth/API integration, no new
+  `shows`/`societies` columns, no outbound email, no scheduled job. This covers the "save the show"
+  and "don't forget adjudication" asks from the original Part 2 scoping without any of the backend
+  work that was deliberately deferred in Round 17 - the fuller email-both-contacts version is only
+  still worth building if Darragh wants a nag that doesn't depend on someone remembering to click a
+  link.
+- Test suite grew 153 -> 157 (`tests/test_show_calendar_links.py`: date-range math, the exact 8-week
+  offset, the not-adjudicated hide case, and no links at all when `opening_date` is unset).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
