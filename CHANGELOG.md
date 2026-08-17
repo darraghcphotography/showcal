@@ -27,3 +27,9 @@ New admin tool: paste a society's own production list to bulk-backfill their his
 ---
 
 Society pages: older productions with no award record now show under their own "Earlier show history" section instead of cluttering Awards & nominations
+
+---
+
+The site can now be added to your phone's home screen like an app, with a bottom navigation bar for quick access to Home, Societies, This Season, Stats, and More
+Show pages: new "Add to Google Calendar" button, plus an optional reminder 8 weeks before opening night to check adjudication forms were submitted
+New Gilbert-only and Sullivan-only calendar subscriptions alongside the existing full calendar feed - genuinely auto-updates as shows are added or dates change

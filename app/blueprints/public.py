@@ -264,7 +264,9 @@ def show_detail(show_id):
 
     gcal_show_url = None
     gcal_adjudication_url = None
-    if show["opening_date"]:
+    # Both calendar links are redundant once a show has already happened -
+    # gated on the same is_upcoming used for the ticket/poster nudge above.
+    if is_upcoming:
         opening = date.fromisoformat(show["opening_date"])
         closing = date.fromisoformat(show["closing_date"]) if show["closing_date"] else opening
         gcal_show_url = _google_calendar_url(

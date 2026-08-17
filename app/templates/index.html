@@ -80,7 +80,13 @@
     </label>
     <noscript><button type="submit">Filter</button></noscript>
   </form>
-  <p class="meta"><a href="{{ url_for('feeds.calendar_ics') }}">Subscribe in your calendar app (.ics) &darr;</a></p>
+  <p class="meta">
+    Subscribe in your calendar app:
+    <a href="{{ url_for('feeds.calendar_ics') }}">All shows</a> &middot;
+    <a href="{{ url_for('feeds.calendar_ics', section='Gilbert') }}">Gilbert only</a> &middot;
+    <a href="{{ url_for('feeds.calendar_ics', section='Sullivan') }}">Sullivan only</a>
+    <br>In Google Calendar: Other calendars &rarr; + &rarr; From URL, then paste the link. It'll keep itself up to date from there.
+  </p>
 
   {% if upcoming %}
     <table class="data-table table-wide">

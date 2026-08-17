@@ -3,7 +3,7 @@ import io
 import json
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, Response, current_app, send_from_directory, url_for
+from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
 
 from ..db import get_db
 
@@ -54,26 +54,40 @@ def calendar_ics():
     """Subscribable calendar feed of every approved, dated show - the full
     history, not just upcoming ones, since calendar apps handle past events
     fine and it keeps this simple (no separate "upcoming-only" feed to
-    maintain)."""
+    maintain). An optional ?section=Gilbert/Sullivan narrows it to just that
+    tier - same feed mechanism, just filtered - so e.g. an adjudicator who
+    only covers one tier can subscribe to just their own shows and have it
+    genuinely auto-update (calendar apps periodically re-fetch a subscribed
+    .ics URL) rather than needing a one-off export. Any other/missing value
+    falls back to the unfiltered feed, same "invalid param -> default"
+    convention as the rest of the site."""
+    section = request.args.get("section")
+    if section not in ("Gilbert", "Sullivan"):
+        section = None
+
     db = get_db()
-    rows = db.execute(
-        """
+    query = """
         SELECT shows.*, societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.moderation_status = 'approved' AND shows.show IS NOT NULL
           AND shows.opening_date IS NOT NULL
           AND NOT societies.hidden
-        ORDER BY shows.opening_date
-        """
-    ).fetchall()
+    """
+    params = ()
+    if section:
+        query += " AND shows.section = ?"
+        params = (section,)
+    query += " ORDER BY shows.opening_date"
+    rows = db.execute(query, params).fetchall()
 
+    calname = f"DC Show Tracker - {section}" if section else "DC Show Tracker"
     stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         "PRODID:-//DC Show Tracker//EN",
         "CALSCALE:GREGORIAN",
-        "X-WR-CALNAME:DC Show Tracker",
+        f"X-WR-CALNAME:{calname}",
     ]
 
     for row in rows:

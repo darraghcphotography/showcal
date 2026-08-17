@@ -47,6 +47,14 @@ def test_adjudication_reminder_hidden_when_not_adjudicated(client, db):
     assert "calendar.google.com/calendar/render" in body
 
 
+def test_calendar_links_hidden_once_show_is_finished(client, db):
+    society_id = seed_society(db)
+    show_id = _insert_show(db, society_id, "2020-01-06", "2020-01-10")
+
+    body = client.get(f"/shows/{show_id}").get_data(as_text=True)
+    assert "calendar.google.com" not in body
+
+
 def test_no_calendar_links_when_opening_date_unset(client, db):
     society_id = seed_society(db)
     db.execute(
