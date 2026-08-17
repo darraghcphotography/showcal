@@ -704,6 +704,23 @@ Two more requests once Round 18 was live:
 - Test suite grew 157 -> 162 (`tests/test_calendar_feeds.py`: unfiltered/Gilbert/Sullivan/invalid
   section filtering + calendar name x4; past-show link-hiding x1).
 
+**Round 18 second follow-up - hide adjudication date + empty Review field (2026-08-17):** Two more
+small show-page privacy/polish asks:
+- **The raw adjudication date is no longer shown publicly** - "it is just information that's on the
+  review," not meant to be broadcast ahead of time. That row now shows only the "remind me to check
+  adjudication forms were submitted" calendar link (from the second follow-up above) where one
+  applies - nothing is deleted from the database, `shows.adjudication_date` still exists and still
+  feeds the admin side, just no longer rendered on the public page.
+- **"Review: None" hidden for a show that hasn't happened yet** - an unpopulated default reads as a
+  gap, not information. Scoped to upcoming shows only (`is_upcoming and review_status == 'None'`) - a
+  *past* show still showing "None" stays visible, since that's a real, actionable data gap rather than
+  noise.
+- Also prompted Darragh to ask directly whether `CHANGELOG.md` (public-facing) was being kept in sync
+  with `ROADMAP.md` (internal) as work shipped - it hadn't been, every round today (see the
+  "Caught mid-round" note above). Now both get updated every round, not just `ROADMAP.md`.
+- Test suite grew 162 -> 166 (`tests/test_show_detail_review_adjudication.py`: Review hidden/shown
+  across upcoming vs. past vs. real-status cases x3, raw adjudication date never rendered x1).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
