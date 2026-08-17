@@ -39,13 +39,12 @@
       {% endif %}
     </dd>
 
-    <dt>Adjudication</dt>
-    <dd>
-      {{ show['adjudication_date']|irish_date or show['adjudication_month_raw'] or 'Not yet scheduled' }}
-      {% if gcal_adjudication_url %}
-        <br><a href="{{ gcal_adjudication_url }}" rel="noopener" target="_blank">⏰ Remind me: check adjudication forms were submitted (8 weeks before opening)</a>
-      {% endif %}
-    </dd>
+    {% if gcal_adjudication_url %}
+      <dt>Adjudication</dt>
+      <dd>
+        <a href="{{ gcal_adjudication_url }}" rel="noopener" target="_blank">⏰ Remind me: check adjudication forms were submitted (8 weeks before opening)</a>
+      </dd>
+    {% endif %}
 
     <dt>Venue</dt>
     <dd>{{ show['venue'] or '—' }}</dd>
@@ -64,13 +63,15 @@
     <dt>Choreographer</dt>
     <dd>{{ show['choreographer'] or '—' }}</dd>
 
-    <dt>Review</dt>
-    <dd>
-      {% if show['review_status'] == 'Published' and show['review_url'] %}
-        <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read the AIMS review</a>
-      {% else %}
-        {{ show['review_status'] }}
-      {% endif %}
-    </dd>
+    {% if not (is_upcoming and show['review_status'] == 'None') %}
+      <dt>Review</dt>
+      <dd>
+        {% if show['review_status'] == 'Published' and show['review_url'] %}
+          <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read the AIMS review</a>
+        {% else %}
+          {{ show['review_status'] }}
+        {% endif %}
+      </dd>
+    {% endif %}
   </dl>
 {% endblock %}
