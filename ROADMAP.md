@@ -614,6 +614,54 @@ an idea, not started.
   unresolved, worth chasing once published) - only `Not adjudicated` is excluded. Test suite grew
   145 -> 148.
 
+**Round 17 - Installable mobile PWA + bottom tab bar (2026-08-17):** Darragh came back from a
+break with two asks - this round covers the first (PWA/bottom nav); the second (show-page Google
+Calendar link + adjudication-deadline email reminders) was deliberately split off into its own
+future session, since it needs real backend/schema/infra work (a generalized mailer, new `shows`
+columns, a GDPR consent flow, a new daily sidecar job) - see the plan notes for that scoping.
+- **Mockup-first, twice** - a published Artifact (phone-frame mockups reusing the site's real CSS
+  tokens, not placeholders) was built and iterated on before any real template was touched, per
+  Darragh's explicit ask ("can we do a mockup first too? what if you break the website?"). Tab
+  composition changed twice during review: Awards briefly swapped in for Stats as the 4th tab, then
+  reverted once actual `/admin/traffic` history showed Stats (116 views) narrowly ahead of Awards
+  (99) as of the last snapshot - Stats kept its tab, Awards moved to the new More page instead.
+- **Manifest + icons + service worker**: real `icon-192`/`icon-512`/`icon-maskable-512`/
+  `apple-touch-icon` PNGs generated from the existing `favicon.svg` brand mark via a new
+  `generate_icons.py` (Pillow, dev-only, not a runtime dependency) - iOS doesn't accept SVG for its
+  home-screen icon at all, so this was silently non-functional before. A minimal app-shell service
+  worker (`app/static/sw.js`, registered at `/sw.js` so its scope covers the whole site even under
+  the `/showcal` URL_PREFIX) caches only the unchanging static assets - enough to satisfy Chrome/
+  Android's installability checklist without pretending to be full offline support.
+- **Bottom tab bar** (Home / Societies / This season / Stats / More) - mobile-only (hidden ≥768px),
+  brand-red active state, safe-area padding for notches. Deliberately hidden on `/admin` and
+  `/society` pages (`request.blueprint` check in `base.html`) - those are Darragh's own task screens,
+  already dense with forms, not places that need "Home/Societies/Stats" navigation.
+- **New `/more` page** (not a slide-up bottom sheet - lower-risk, reuses the existing `.queue-item`
+  card component) holds everything not in the main 5: Awards, Submit a show, Suggest a feature,
+  Society login, Moderator login, About.
+- **iOS-only "Add to Home Screen" hint** - Android/Chrome prompts to install automatically; iPhone
+  Safari never does, so without this most iPhone visitors would never discover the feature exists.
+  Dismissible, remembers the dismissal.
+- **Homepage's Upcoming Shows table now swaps to stacked cards on phones** (same pattern as Season
+  Archive/Awards/society pages), closing the "I need the same info as desktop" gap Darragh flagged -
+  the old 5-column table forced sideways scrolling on a phone.
+- **Real bug found and fixed, not something this round introduced**: while verifying the card-swap
+  in an actual browser, found the site's existing table&rarr;cards responsive pattern has had a CSS
+  specificity/source-order bug since it was introduced - `.table-wide`/`.table-cards` were bare
+  class selectors losing the cascade to earlier unconditional rules on the same elements, so the
+  swap has **never actually applied on any page that uses it**, including in production. Fixed by
+  qualifying both selectors with their element type (`table.table-wide` / `div.table-cards`) so they
+  reliably win regardless of source order - a 4-line CSS fix in `style.css` with a wide blast radius
+  fix (Season Archive, Awards, and society pages all get working mobile card views as a side effect).
+- Test suite grew 148 -> 153 (`tests/test_pwa.py`: manifest icon purposes, the `/sw.js` route, the
+  More page's links, and that the bottom bar is present on public pages but absent on admin/society).
+- **Lesson**: the local screenshot tooling used to verify this (headless Edge on this Windows
+  machine) has its own bug at narrow/phone-width window sizes - confirmed via an isolated red-border
+  test page, not a real site issue - so final verification used a 550px-wide screenshot (below the
+  table-cards breakpoint, above whatever narrow-width threshold triggers the tool's own glitch) plus
+  the passing test suite, rather than a literal 390px phone-width screenshot. Worth Darragh
+  double-checking the real mobile layout on an actual phone once deployed.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
