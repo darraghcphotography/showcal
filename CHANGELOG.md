@@ -38,3 +38,9 @@ New Gilbert-only and Sullivan-only calendar subscriptions alongside the existing
 
 Show pages: the exact adjudication date is no longer shown publicly - it's internal AIMS scheduling info, not something to broadcast ahead of time
 Show pages: the Review field now stays hidden until a show has actually happened and there's something worth showing
+
+---
+
+Show pages now display an "Adjudication submission cut-off" date (6 weeks before opening night, per AIMS rules) instead of the internal adjudication date
+The "remind me to check adjudication forms were submitted" calendar reminder moved to a society's own login area, alongside their other show details
+Roadmap page: a shipped suggestion can now show a short note on how it was actually interpreted and built

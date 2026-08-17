@@ -721,6 +721,29 @@ small show-page privacy/polish asks:
 - Test suite grew 162 -> 166 (`tests/test_show_detail_review_adjudication.py`: Review hidden/shown
   across upcoming vs. past vs. real-status cases x3, raw adjudication date never rendered x1).
 
+**Round 18 third follow-up - reminder link moved to society login, public cut-off date, admin notes
+on Done suggestions (2026-08-17):** Darragh reconsidered where the adjudication reminder link
+actually belongs, then separately asked for a way to leave his own commentary on shipped suggestions:
+- **The "remind me to check adjudication forms" calendar link moved off the public show page
+  entirely, onto the society's own logged-in edit-show page** (`society.edit_show()` /
+  `society_show_form.html`) - it's only actually useful to that show's own committee, not a random
+  visitor, so it didn't belong on the public page in the first place. New shared
+  `app/calendar_links.py` (the URL-builder moved out of `public.py` since `society.py` needs it now
+  too) so the logic isn't duplicated.
+- **The public show page gained a plain "Adjudication submission cut-off" date instead** - just
+  `opening_date` minus 6 weeks (AIMS's real rule), computed on the fly. Safe to show publicly, unlike
+  the actual scheduled `adjudication_date` (hidden in the second follow-up above) - this one is pure
+  arithmetic on a date the page already displays, never AIMS's own internal scheduling.
+- **New `feature_suggestions.admin_note`** - a free-text field Darragh can fill in from
+  `/admin/suggestions` (same inline form as the existing category/status dropdowns), shown on the
+  public Roadmap page **only next to a suggestion once it's marked Done** - "I'd like to add a
+  comment beside 'done suggestions' where they can see how I've interpreted it." Scoped to the Done
+  lane specifically (checked in `suggestions_board.html`'s `lane()` macro) so it doesn't clutter
+  Planned/In Progress/Not planned.
+- Test suite grew 166 -> 171 (`tests/test_society_adjudication_reminder.py`: reminder shown for own
+  upcoming show, hidden when not-adjudicated/finished, 404 for a different society's show x4;
+  `tests/test_suggestions_roadmap.py` gained the admin-note-only-shown-once-Done case).
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde
