@@ -30,6 +30,7 @@ import json
 import re
 import sys
 import unicodedata
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import fitz
@@ -37,14 +38,76 @@ import fitz
 ARCHIVE_DIR = Path("E:/showtimes archive")
 ROOT = Path(__file__).parent
 
-# Each round of this script adds more issues here as they're processed -
-# started with the 2022-2023 pilot season (Round "Step 4 pilot").
-ISSUES = [
-    ("Show Times November '22 Web.pdf", "Issue 160, December 2022"),
-    ("Show Times February '23 WEB .pdf", "Issue 161, February 2023"),
-    ("Show Times April '23 Web.pdf", "Issue 163, April 2023"),
-    ("Show Times Autumn '23 Web.pdf", "Issue 166, Autumn 2023"),
-]
+MONTH_NUMBERS = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    "spring": 4, "summer": 7, "autumn": 10, "winter": 12,
+}
+MONTH_NAME_RE = "|".join(MONTH_NUMBERS)
+# "December '15/January '16" (spans a year boundary) - checked first since it's
+# a more specific shape than the plain "<Month> <Year>" pattern below.
+DOUBLE_MONTH_DATE_RE = re.compile(
+    rf"({MONTH_NAME_RE})\s*.(\d{{2}})/({MONTH_NAME_RE})\s*.(\d{{2}})", re.I
+)
+MONTH_YEAR_DATE_RE = re.compile(rf"({MONTH_NAME_RE})\s+(\d{{4}})", re.I)
+SEASON_WORD_YEAR_DATE_RE = re.compile(rf"({MONTH_NAME_RE})\s*.?(\d{{2,4}})", re.I)
+ISSUE_NUMBER_RE = re.compile(r"Issue\s*(\d+)")
+
+
+def parse_cover(doc):
+    """Every issue's front cover states its own real "Issue N" and a
+    month/year (or "Spring/Summer/Autumn/Winter YYYY", or a two-month range
+    spanning a year boundary) - far more reliable than anything in the
+    ShowReviews section itself, which varies a lot more across 14 years of
+    layout changes. Returns (issue_number, date_label, season) or
+    (None, None, None) if the cover doesn't match any known shape."""
+    text = clean(doc[0].get_text())
+    issue_m = ISSUE_NUMBER_RE.search(text)
+    if not issue_m:
+        return None, None, None
+    issue_number = issue_m.group(1)
+
+    m = DOUBLE_MONTH_DATE_RE.search(text)
+    if m:
+        label, month, year = m.group(0), MONTH_NUMBERS[m.group(1).lower()], 2000 + int(m.group(2))
+    else:
+        m = MONTH_YEAR_DATE_RE.search(text)
+        if m:
+            label, month, year = m.group(0), MONTH_NUMBERS[m.group(1).lower()], int(m.group(2))
+        else:
+            m = SEASON_WORD_YEAR_DATE_RE.search(text)
+            if not m:
+                return issue_number, None, None
+            label, month = m.group(0), MONTH_NUMBERS[m.group(1).lower()]
+            year = int(m.group(2)) if len(m.group(2)) == 4 else 2000 + int(m.group(2))
+    season = f"{(year - 1) % 100:02d}/{year % 100:02d}" if month < 8 else f"{year % 100:02d}/{(year + 1) % 100:02d}"
+    return issue_number, label, season
+
+
+def discover_issues():
+    """Scans the whole archive directory rather than a hand-maintained list -
+    every PDF's own front cover carries the metadata needed. A handful of
+    issues exist twice under two different filenames (confirmed identical or
+    near-identical by page count) - deduping on (issue_number, date_label)
+    keeps exactly one copy of each, without wrongly treating AIMS's own
+    occasional duplicate-printed issue-number (e.g. two real, different
+    issues both say 'Issue 64') as the same thing, since those have
+    different dates."""
+    seen = set()
+    issues = []
+    skipped = []
+    for path in sorted(ARCHIVE_DIR.glob("*.pdf")):
+        doc = fitz.open(path)
+        issue_number, label, season = parse_cover(doc)
+        if not issue_number or not label:
+            skipped.append(path.name)
+            continue
+        key = (issue_number, label)
+        if key in seen:
+            continue
+        seen.add(key)
+        issues.append((path.name, f"Issue {issue_number}, {label}", season))
+    return issues, skipped
 
 SHORT_BLOCK_MAX_HEIGHT = 30
 SHORT_BLOCK_MAX_LINES = 2
@@ -89,13 +152,50 @@ def parse_header(doc, start_page):
     tier_by_name = {}
     pending_names = []
     for line in lines:
-        m = re.match(r"^(Gilbert|Sullivan) Section$", line)
+        m = re.match(r"^(Gilbert|Sullivan) Sections?$", line)
         if m:
             if pending_names:
                 tier_by_name[pending_names.pop(0)] = m.group(1)
-        elif line not in ("ShowTimes", "ShowReviews") and not re.match(r"^\d{4}\s*-\s*\d{4}$", line):
+        # "Reviews" - older issues render this as one block with ShowReviews
+        # itself ("Reviews\nShowReviews\n...") rather than two separate ones -
+        # without excluding it too, it gets treated as a fake adjudicator name.
+        elif line not in ("ShowTimes", "ShowReviews", "Reviews") and not re.match(r"^\d{4}\s*-\s*\d{4}$", line):
             pending_names.append(line)
     return season, tier_by_name
+
+
+# Known-bad spellings found while auditing the full archive's output, not
+# guessed - "Gred Currid" is a typo repeated across many real printed issues
+# of that era (64 reviews' worth), and "Ciar�n Mooney" is the PDF's own
+# font encoding permanently losing the accented "á" (confirmed by looking
+# at the raw extracted bytes - not something extraction can recover, only
+# correct once the right spelling is already known).
+NAME_CORRECTIONS = {
+    "Gred Currid": "Greg Currid",
+    "Ciar�n Mooney": "Ciarán Mooney",
+    "Ritchie Ryan": "Richie Ryan",
+}
+
+NAME_MATCH_RATIO = 0.85
+
+
+def fuzzy_name_match(text, known_names):
+    """Returns the known_names entry text most likely matches, or None. The
+    header banner and a review's own printed sign-off don't always spell an
+    adjudicator's name identically across 14 years of hand-typed issues
+    (e.g. 'Ritchie Ryan' in one place, 'Richie Ryan' in another, in the
+    same issue) - exact matching alone silently drops every review signed
+    with the variant spelling. A close (but not exact) match is safe here
+    specifically because sign-off lines are short, distinctive full names,
+    not generic text a false-positive match could plausibly collide with."""
+    if text in known_names:
+        return text
+    for name in known_names:
+        if abs(len(text) - len(name)) > 4:
+            continue  # a real spelling variant is a character or two, not a length shift
+        if SequenceMatcher(None, text.lower(), name.lower()).ratio() >= NAME_MATCH_RATIO:
+            return name
+    return None
 
 
 def find_calendar_boundary(page):
@@ -137,7 +237,7 @@ def page_body_lines(page, known_names, is_header_page):
             continue
         height = by1 - by0
         is_short = height < SHORT_BLOCK_MAX_HEIGHT or len(block_lines) <= SHORT_BLOCK_MAX_LINES
-        if is_short and block_text not in known_names:
+        if is_short and fuzzy_name_match(block_text, known_names) is None:
             continue
         kept_blocks.append((bx0, by0, block_lines))
 
@@ -207,13 +307,15 @@ def join_paragraphs(lines):
 
 def split_reviews(body_lines, tier_by_name, source_issue):
     """body_lines is the whole review section's (text, width_ratio) lines,
-    in reading order. Splits on whichever line's text exactly equals one of
-    this issue's two adjudicator names - that's each review's sign-off."""
-    split_points = [i for i, (text, _) in enumerate(body_lines) if text in tier_by_name]
+    in reading order. Splits on whichever line's text closely matches one of
+    this issue's two adjudicator names - that's each review's sign-off (see
+    fuzzy_name_match - the header banner and a review's own sign-off don't
+    always agree on spelling)."""
+    matches = [(i, fuzzy_name_match(text, tier_by_name)) for i, (text, _) in enumerate(body_lines)]
+    split_points = [(i, name) for i, name in matches if name is not None]
     reviews = []
     prev_end = 0
-    for split_i in split_points:
-        adjudicator = body_lines[split_i][0]
+    for split_i, adjudicator in split_points:
         segment = body_lines[prev_end:split_i]
         prev_end = split_i + 1
         parsed = parse_heading(segment)
@@ -234,7 +336,7 @@ def split_reviews(body_lines, tier_by_name, source_issue):
     return reviews
 
 
-def extract_issue(filename, source_issue):
+def extract_issue(filename, source_issue, season_hint=None, fallback_names=None):
     path = ARCHIVE_DIR / filename
     doc = fitz.open(path)
     start = find_review_section_start(doc)
@@ -242,7 +344,15 @@ def extract_issue(filename, source_issue):
         print(f"!! no ShowReviews header found in {filename}", file=sys.stderr)
         return []
     season, tier_by_name = parse_header(doc, start)
-    print(f"{filename}: season={season} adjudicators={tier_by_name}")
+    season = season or season_hint
+    used_fallback = False
+    if not tier_by_name and fallback_names and season in fallback_names:
+        tier_by_name = fallback_names[season]
+        used_fallback = True
+    print(f"{filename}: season={season} adjudicators={tier_by_name}" + (" (fallback)" if used_fallback else ""))
+    if not tier_by_name or not season:
+        print(f"  !! skipping {filename} - no season and/or adjudicator names available", file=sys.stderr)
+        return []
 
     all_lines = []
     for i in range(start, doc.page_count):
@@ -257,15 +367,56 @@ def extract_issue(filename, source_issue):
     return reviews
 
 
+def build_fallback_names(issues):
+    """A season -> {tier: name} lookup built by majority vote across every
+    issue where the in-body ShowReviews header *did* state names, for the
+    handful of issues where it doesn't (a real layout gap in those specific
+    issues, not a parsing failure - see the archive survey). Deliberately
+    derived from the data itself rather than hand-typed, since a hand-typed
+    list would need updating every time more issues are added here."""
+    from collections import Counter
+    votes = {}  # season -> tier -> Counter(name)
+    for filename, source_issue, season_hint in issues:
+        doc = fitz.open(ARCHIVE_DIR / filename)
+        start = find_review_section_start(doc)
+        if start is None:
+            continue
+        season, tier_by_name = parse_header(doc, start)
+        season = season or season_hint
+        if not season or not tier_by_name:
+            continue
+        for name, tier in tier_by_name.items():
+            votes.setdefault(season, {}).setdefault(tier, Counter())[name] += 1
+    fallback = {}
+    for season, tiers in votes.items():
+        fallback[season] = {name: tier for tier, counter in tiers.items() for name, _ in [counter.most_common(1)[0]]}
+    # fallback[season] above is built {name: tier}; split_reviews/extract_issue
+    # expect tier_by_name in that same {name: tier} shape, so this is already
+    # the right structure to pass straight through.
+    return fallback
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=str(ROOT / "historical_reviews_pilot.json"))
+    parser.add_argument("--limit", type=int, default=None, help="process only the first N discovered issues (for testing)")
     args = parser.parse_args()
 
+    issues, skipped_covers = discover_issues()
+    print(f"Discovered {len(issues)} issues ({len(skipped_covers)} couldn't be identified from their cover page)")
+    if skipped_covers:
+        print("  unidentified:", ", ".join(skipped_covers), file=sys.stderr)
+    if args.limit:
+        issues = issues[: args.limit]
+
+    fallback_names = build_fallback_names(issues)
+
     all_reviews = []
-    for filename, source_issue in ISSUES:
-        all_reviews.extend(extract_issue(filename, source_issue))
-    print(f"\n{len(all_reviews)} reviews extracted from {len(ISSUES)} issue(s)")
+    for filename, source_issue, season_hint in issues:
+        all_reviews.extend(extract_issue(filename, source_issue, season_hint, fallback_names))
+    for r in all_reviews:
+        r["adjudicator"] = NAME_CORRECTIONS.get(r["adjudicator"], r["adjudicator"])
+    print(f"\n{len(all_reviews)} reviews extracted from {len(issues)} issue(s)")
 
     Path(args.out).write_text(json.dumps(all_reviews, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Wrote {args.out} - load it into a database with load_historical_reviews.py.")
