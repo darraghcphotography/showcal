@@ -105,6 +105,94 @@ def _migrate_adjudicator_assignments_table(db):
     db.execute("ALTER TABLE adjudicator_assignments_new RENAME TO adjudicator_assignments")
 
 
+def _migrate_shows_source_check(db):
+    """shows.source originally only allowed 'import'/'submission' - Step 4's
+    skeleton shows (see schema.sql) need a third value, 'historical', and
+    SQLite can't ALTER a CHECK constraint in place, so this rebuilds the
+    table the standard SQLite way (new table, copy, drop, rename) - same
+    pattern as _migrate_adjudicator_assignments_table above. Unlike that
+    table, shows.id is a stable public identifier (linked from bookmarks,
+    /shows/<id> URLs, the calendar feed) - every row is copied with its
+    original id preserved explicitly, and AUTOINCREMENT's own sequence
+    tracking picks up the max id automatically from that, so the next
+    genuinely-new show still gets a fresh, never-reused id. Keyed off
+    whether the live table's own CHECK constraint text already mentions
+    'historical' (read straight from sqlite_master, not schema.sql - that
+    file's text changes the moment this migration is written, long before
+    any given database has actually been migrated), so this is a no-op on
+    every startup once a database has been migrated - including a brand-new
+    one, where schema.sql already creates the table in its final shape."""
+    current_sql = db.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'shows'"
+    ).fetchone()[0]
+    if "historical" in current_sql:
+        return
+
+    db.execute(
+        """
+        CREATE TABLE shows_new (
+            id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+            society_id             INTEGER NOT NULL REFERENCES societies(id),
+            season                 TEXT NOT NULL,
+            region                 TEXT NOT NULL CHECK (region IN (
+                                        'Eastern', 'Western', 'Northern',
+                                        'South-West', 'South-East', 'Midlands'
+                                    )),
+            section                TEXT CHECK (section IN ('Gilbert', 'Sullivan', 'Non-AIMS') OR section IS NULL),
+            show                   TEXT,
+            opening_date           TEXT,
+            closing_date           TEXT,
+            adjudication_date      TEXT,
+            adjudication_month_raw TEXT,
+            venue                  TEXT,
+            director               TEXT,
+            musical_director       TEXT,
+            choreographer          TEXT,
+            review_status          TEXT NOT NULL DEFAULT 'None' CHECK (review_status IN (
+                                        'Published', 'Scheduled', 'Not adjudicated', 'None'
+                                    )),
+            review_url             TEXT,
+            ticket_url             TEXT,
+            poster_filename        TEXT,
+            status                 TEXT CHECK (status IN ('Cancelled') OR status IS NULL),
+            moderation_status      TEXT NOT NULL DEFAULT 'approved' CHECK (moderation_status IN (
+                                        'pending', 'approved', 'rejected'
+                                    )),
+            source                 TEXT NOT NULL DEFAULT 'import' CHECK (source IN ('import', 'submission', 'historical')),
+            submitted_by           TEXT,
+            invite_code_id         INTEGER REFERENCES invite_codes(id),
+            moderated_by           TEXT,
+            moderated_at           TEXT,
+            created_at             TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO shows_new (
+            id, society_id, season, region, section, show, opening_date, closing_date,
+            adjudication_date, adjudication_month_raw, venue, director, musical_director, choreographer,
+            review_status, review_url, ticket_url, poster_filename, status, moderation_status, source,
+            submitted_by, invite_code_id, moderated_by, moderated_at, created_at, updated_at
+        )
+        SELECT
+            id, society_id, season, region, section, show, opening_date, closing_date,
+            adjudication_date, adjudication_month_raw, venue, director, musical_director, choreographer,
+            review_status, review_url, ticket_url, poster_filename, status, moderation_status, source,
+            submitted_by, invite_code_id, moderated_by, moderated_at, created_at, updated_at
+        FROM shows
+        """
+    )
+    db.execute("DROP TABLE shows")
+    db.execute("ALTER TABLE shows_new RENAME TO shows")
+    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_shows_natural_key ON shows(society_id, season, COALESCE(show, ''))")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_shows_society_id ON shows(society_id)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_shows_season ON shows(season)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_shows_moderation_status ON shows(moderation_status)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_shows_review_status ON shows(review_status)")
+
+
 # FTS5 external-content tables need an explicit 'rebuild' to actually build
 # the searchable index from their source table - the triggers in schema.sql
 # only cover changes from this point on. Deliberately NOT guarded by a
@@ -130,6 +218,7 @@ def init_schema():
     with open(schema_path, encoding="utf-8") as f:
         db.executescript(f.read())
     _migrate_adjudicator_assignments_table(db)
+    _migrate_shows_source_check(db)
     _apply_column_migrations(db)
     db.commit()
 

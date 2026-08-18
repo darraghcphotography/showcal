@@ -361,6 +361,13 @@ details table { margin-top: 0.5rem; }
 .detail-list dd { margin: 0; }
 .detail-list.compact { font-size: 0.9rem; }
 
+.review-block { margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.15rem; background: var(--row-alt); }
+.review-block .review-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.review-block .source { font-family: monospace; font-size: 0.75rem; color: var(--muted); }
+.review-block p { font-size: 0.92rem; margin: 0 0 0.6rem; }
+.review-block p:last-of-type { margin-bottom: 0; }
+.review-credit { font-size: 0.82rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 0.6rem; margin-top: 0.8rem; }
+
 .tag {
   display: inline-block;
   font-size: 0.75rem;
@@ -371,6 +378,7 @@ details table { margin-top: 0.5rem; }
 
 .tag-cancelled { background: rgba(160, 47, 47, 0.15); color: var(--danger); }
 .tag-active { background: rgba(47, 122, 63, 0.15); color: var(--success); }
+.tag-warning { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning); }
 .tag-past { background: var(--row-alt); color: var(--muted); }
 .tag-gold { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); font-weight: 600; }
 .tag-silver { background: color-mix(in srgb, var(--silver) 18%, transparent); color: var(--silver); font-weight: 600; }

@@ -139,20 +139,27 @@ def dashboard():
     ).fetchone()[0]
 
     # "Not adjudicated" is excluded - it's a deliberate, permanent state (that
-    # show will never have a review), not a gap waiting to be filled in.
+    # show will never have a review), not a gap waiting to be filled in. A
+    # skeleton show (source='historical') is excluded too - its review lives
+    # in historical_reviews, not review_url, so review_status stays 'None' by
+    # design and would otherwise sit in this count forever, unfixable.
     needs_review_count = db.execute(
         """
         SELECT COUNT(*) FROM shows
-        WHERE moderation_status = 'approved' AND show IS NOT NULL
+        WHERE moderation_status = 'approved' AND show IS NOT NULL AND source != 'historical'
           AND review_status NOT IN ('Published', 'Not adjudicated') AND season <= ?
         """,
         (current,),
     ).fetchone()[0]
 
+    # Same reasoning as needs_review_count above - a skeleton show is
+    # deliberately minimal (show/society/season/tier only) and will never
+    # have real dates on record, so it's excluded rather than sitting in this
+    # count forever unfixable.
     missing_dates_count = db.execute(
         """
         SELECT COUNT(*) FROM shows
-        WHERE moderation_status = 'approved' AND show IS NOT NULL
+        WHERE moderation_status = 'approved' AND show IS NOT NULL AND source != 'historical'
           AND (opening_date IS NULL OR closing_date IS NULL)
         """
     ).fetchone()[0]
@@ -186,6 +193,10 @@ def dashboard():
     duplicate_historical_count = len(_duplicate_historical_rows(db))
     orphaned_info, orphaned_links = _orphaned_titles(db)
     orphaned_titles_count = len({r["show"] for r in orphaned_info} | {r["show"] for r in orphaned_links})
+
+    historical_reviews_pending_count = db.execute(
+        "SELECT COUNT(*) FROM historical_reviews WHERE moderation_status = 'pending'"
+    ).fetchone()[0]
 
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
@@ -221,6 +232,7 @@ def dashboard():
         duplicate_historical_count=duplicate_historical_count,
         orphaned_titles_count=orphaned_titles_count,
         awards_pending_season=awards_pending_season,
+        historical_reviews_pending_count=historical_reviews_pending_count,
     )
 
 
@@ -324,10 +336,14 @@ def shows_list():
     if needs_review:
         # "Not adjudicated" is a deliberate, permanent state - that show will
         # never have a review, so it's not something a moderator needs to
-        # come back and fix. Excluding it here (and from the dashboard's
-        # needs_review_count) keeps this filter meaning "still needs a link
+        # come back and fix. A skeleton show is excluded too - its review
+        # lives in historical_reviews, not review_url (see needs_review_count).
+        # Excluding both here keeps this filter meaning "still needs a link
         # added", not "isn't Published for any reason".
-        query += " AND shows.review_status NOT IN ('Published', 'Not adjudicated') AND shows.show IS NOT NULL"
+        query += (
+            " AND shows.review_status NOT IN ('Published', 'Not adjudicated')"
+            " AND shows.show IS NOT NULL AND shows.source != 'historical'"
+        )
     if season == "":
         query += " AND shows.season <= ?"
         params.append(current)
@@ -1906,3 +1922,157 @@ def delete_adjudicator(adjudicator_id):
         db.commit()
         flash("Adjudicator deleted.", "success")
     return redirect(url_for("admin.adjudicators"))
+
+
+@bp.route("/historical-reviews")
+@login_required
+def historical_reviews_queue():
+    db = get_db()
+    reviews = db.execute(
+        """
+        SELECT historical_reviews.*, adjudicators.name AS adjudicator_name,
+               societies.name AS matched_society_name, shows.show AS matched_show_title
+        FROM historical_reviews
+        LEFT JOIN adjudicators ON adjudicators.id = historical_reviews.adjudicator_id
+        LEFT JOIN societies ON societies.id = historical_reviews.society_id
+        LEFT JOIN shows ON shows.id = historical_reviews.show_id
+        WHERE historical_reviews.moderation_status = 'pending'
+        ORDER BY historical_reviews.season, historical_reviews.tier, historical_reviews.society_raw
+        """
+    ).fetchall()
+    total_pending = len(reviews)
+    return render_template("admin/historical_reviews_queue.html", reviews=reviews, total_pending=total_pending)
+
+
+@bp.route("/historical-reviews/<int:review_id>/approve", methods=("POST",))
+@login_required
+def approve_historical_review(review_id):
+    db = get_db()
+    user = current_user()
+    review = db.execute(
+        "SELECT * FROM historical_reviews WHERE id = ? AND moderation_status = 'pending'", (review_id,)
+    ).fetchone()
+    if review is None:
+        abort(404)
+    if review["society_id"] is None:
+        flash("This review needs a society matched (use Edit fields) before it can be approved.", "error")
+        return redirect(url_for("admin.historical_reviews_queue"))
+
+    show_id = review["show_id"]
+    if show_id is None:
+        # No existing shows/historical_results row for this production - a
+        # minimal "skeleton" row (source='historical') gives the review a
+        # real page to live on, same idea as a society backfilling their own
+        # history, just moderator-triggered. Deliberately excluded from every
+        # stats/leaderboard query (see schema.sql) so it can't double-count.
+        society = db.execute("SELECT region FROM societies WHERE id = ?", (review["society_id"],)).fetchone()
+        show_id = db.execute(
+            """
+            INSERT INTO shows (society_id, season, region, section, show, source, moderation_status)
+            VALUES (?, ?, ?, ?, ?, 'historical', 'approved')
+            """,
+            (review["society_id"], review["season"], society["region"], review["tier"], review["show_raw"]),
+        ).lastrowid
+
+    db.execute(
+        """
+        UPDATE historical_reviews
+        SET show_id = ?, moderation_status = 'approved', moderated_by = ?, moderated_at = ?
+        WHERE id = ?
+        """,
+        (show_id, user["username"], datetime.utcnow().isoformat(), review_id),
+    )
+    db.commit()
+    flash("Review approved and published.", "success")
+    return redirect(url_for("admin.historical_reviews_queue"))
+
+
+@bp.route("/historical-reviews/<int:review_id>/reject", methods=("POST",))
+@login_required
+def reject_historical_review(review_id):
+    db = get_db()
+    user = current_user()
+    db.execute(
+        """
+        UPDATE historical_reviews
+        SET moderation_status = 'rejected', moderated_by = ?, moderated_at = ?
+        WHERE id = ? AND moderation_status = 'pending'
+        """,
+        (user["username"], datetime.utcnow().isoformat(), review_id),
+    )
+    db.commit()
+    flash("Review skipped.", "success")
+    return redirect(url_for("admin.historical_reviews_queue"))
+
+
+@bp.route("/historical-reviews/<int:review_id>/edit", methods=("GET", "POST"))
+@login_required
+def edit_historical_review(review_id):
+    db = get_db()
+    review = db.execute(
+        "SELECT * FROM historical_reviews WHERE id = ? AND moderation_status = 'pending'", (review_id,)
+    ).fetchone()
+    if review is None:
+        abort(404)
+
+    if request.method == "POST":
+        season = request.form.get("season", "").strip()
+        tier = request.form.get("tier") or None
+        show_raw = request.form.get("show_raw", "").strip()
+        society_raw = request.form.get("society_raw", "").strip()
+        society_id = request.form.get("society_id") or None
+        review_text = request.form.get("review_text", "").strip()
+        source_issue = request.form.get("source_issue", "").strip() or None
+
+        errors = []
+        if not season:
+            errors.append("Season is required.")
+        if tier is not None and tier not in SHOW_SECTIONS:
+            errors.append("Choose a valid tier.")
+        if not show_raw:
+            errors.append("Show title is required.")
+        if not society_raw:
+            errors.append("Society name is required.")
+        if not review_text:
+            errors.append("Review text is required.")
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "admin/historical_review_edit.html", review=review, societies=_all_societies(db), form=request.form,
+            )
+
+        society_id = int(society_id) if society_id else None
+        show_id = match_show_for_edit(db, society_id, season, show_raw)
+        flag = None if show_id is not None else ("no_show_match" if society_id is not None else "needs_check")
+
+        db.execute(
+            """
+            UPDATE historical_reviews
+            SET season = ?, tier = ?, show_raw = ?, society_raw = ?, society_id = ?, show_id = ?,
+                review_text = ?, source_issue = ?, flag = ?
+            WHERE id = ?
+            """,
+            (season, tier, show_raw, society_raw, society_id, show_id, review_text, source_issue, flag, review_id),
+        )
+        db.commit()
+        flash("Review updated.", "success")
+        return redirect(url_for("admin.historical_reviews_queue"))
+
+    return render_template(
+        "admin/historical_review_edit.html", review=review, societies=_all_societies(db), form=review,
+    )
+
+
+def _all_societies(db):
+    return db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
+
+
+def match_show_for_edit(db, society_id, season, show_raw):
+    if society_id is None:
+        return None
+    row = db.execute(
+        "SELECT id FROM shows WHERE society_id = ? AND season = ? AND show = ? AND moderation_status = 'approved'",
+        (society_id, season, show_raw),
+    ).fetchone()
+    return row[0] if row else None

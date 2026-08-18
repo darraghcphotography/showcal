@@ -7,9 +7,14 @@
 --    that production (a society's tier can change season to season - shows keeps history
 --    accurate even after a society moves Sullivan <-> Gilbert).
 --  * shows.source distinguishes rows that came from the CSV export ('import') from rows
---    created via the member-submission workflow ('submission'). The import script only
+--    created via the member-submission workflow ('submission'), and from a minimal
+--    "skeleton" row (source='historical') created only to give an approved historical_review
+--    a real page to live on when no real show record exists yet. The import script only
 --    ever updates 'import' rows, so re-running it after a spreadsheet update can never
---    overwrite or delete member-submitted / moderator-edited data.
+--    overwrite or delete member-submitted / moderator-edited / historical-skeleton data.
+--    A 'historical' row is deliberately excluded from every stats/leaderboard query -
+--    historical_results stays the one source of truth for counting pre-24/25 productions,
+--    so a skeleton show can never double-count against it.
 --  * shows.moderation_status is the public-visibility gate: only 'approved' rows should
 --    ever be shown on public pages. CSV-imported rows are approved on first insert since
 --    they're already-published historical record; new member submissions default to
@@ -89,7 +94,7 @@ CREATE TABLE IF NOT EXISTS shows (
     moderation_status      TEXT NOT NULL DEFAULT 'approved' CHECK (moderation_status IN (
                                 'pending', 'approved', 'rejected'
                             )),
-    source                 TEXT NOT NULL DEFAULT 'import' CHECK (source IN ('import', 'submission')),
+    source                 TEXT NOT NULL DEFAULT 'import' CHECK (source IN ('import', 'submission', 'historical')),
     submitted_by           TEXT,                 -- member identifier/email/name who submitted it
     invite_code_id         INTEGER REFERENCES invite_codes(id),
     moderated_by           TEXT,
@@ -331,6 +336,50 @@ CREATE TABLE IF NOT EXISTS adjudicator_assignments (
     notes           TEXT,
     UNIQUE (season, section, adjudicator_id)
 );
+
+-- One row per review extracted from the AIMS ShowTimes PDF archive (Step 4 -
+-- see ROADMAP.md's "Step 4 scoping" sections). Nothing here is public until a
+-- moderator approves it via /admin/historical-reviews - same moderation_status
+-- gate as shows.moderation_status, deliberately a separate status rather than
+-- reusing that column since a review can be approved independently of - and
+-- before - the show/society match underneath it is fully confirmed.
+-- show_raw/society_raw keep exactly what the parser read off the page; show_id/
+-- society_id are only filled in once a moderator has matched (or the approve
+-- step has created) the real row - never auto-resolved and treated as
+-- confirmed. tier can be NULL ('unknown') when the source issue's header
+-- didn't state adjudicator names, same real gap the archive report surfaces.
+CREATE TABLE IF NOT EXISTS historical_reviews (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    season          TEXT NOT NULL,        -- 'YY/YY', same convention as shows.season
+    tier            TEXT CHECK (tier IN ('Gilbert', 'Sullivan') OR tier IS NULL),
+    show_raw        TEXT NOT NULL,
+    society_raw     TEXT NOT NULL,
+    adjudicator_id  INTEGER REFERENCES adjudicators(id),
+    review_text     TEXT NOT NULL,
+    source_issue    TEXT,                 -- e.g. 'ShowTimes Issue 163, April 2023' - the public citation
+    source_file     TEXT,                 -- e.g. 'Show Times April '23 Web.pdf' - moderator-facing only
+
+    show_id         INTEGER REFERENCES shows(id),
+    society_id      INTEGER REFERENCES societies(id),
+
+    -- Moderator-facing hint from the extraction pass, not shown publicly:
+    -- 'needs_check' = a show/society match exists but looked uncertain (e.g.
+    -- text that may be calendar/listing content, not a real review);
+    -- 'no_show_match' = no shows/historical_results row at all was found for
+    -- this show+society+season - approving this one creates a skeleton show.
+    flag            TEXT CHECK (flag IN ('needs_check', 'no_show_match') OR flag IS NULL),
+
+    moderation_status TEXT NOT NULL DEFAULT 'pending' CHECK (moderation_status IN (
+                            'pending', 'approved', 'rejected'
+                        )),
+    moderated_by    TEXT,
+    moderated_at    TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_historical_reviews_show_id ON historical_reviews(show_id);
+CREATE INDEX IF NOT EXISTS idx_historical_reviews_moderation_status ON historical_reviews(moderation_status);
+CREATE INDEX IF NOT EXISTS idx_historical_reviews_season_tier ON historical_reviews(season, tier);
 
 -- Full-text search indexes (SQLite FTS5, built in - no extra dependency).
 -- External-content tables: the FTS index stores only the tokenized text, the

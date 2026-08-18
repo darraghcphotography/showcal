@@ -75,12 +75,12 @@ def stats():
     total_societies = db.execute("SELECT COUNT(*) FROM societies").fetchone()[0]
 
     params = [today]
-    query = f"SELECT COUNT(*) FROM shows WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}"
+    query = f"SELECT COUNT(*) FROM shows WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}"
     query += region_clause(params)
     total_shows = db.execute(query, params).fetchone()[0]
 
     params = [today]
-    query = f"SELECT COUNT(DISTINCT shows.show) FROM shows WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}"
+    query = f"SELECT COUNT(DISTINCT shows.show) FROM shows WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}"
     query += region_clause(params)
     total_titles = db.execute(query, params).fetchone()[0]
 
@@ -95,7 +95,7 @@ def stats():
         params = [today]
         query = f"""
             SELECT show, COUNT(*) AS n FROM shows
-            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
+            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
             {region_clause(params)}
             GROUP BY show ORDER BY n DESC, show LIMIT ?
             """
@@ -107,7 +107,7 @@ def stats():
         query = f"""
             SELECT show, COUNT(*) AS n FROM (
                 SELECT shows.show AS show FROM shows
-                WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
+                WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
                 {region_clause(params)}
                 UNION ALL
                 SELECT historical_results.show AS show FROM historical_results {hist_join}
@@ -129,7 +129,7 @@ def stats():
     params = [today]
     query = f"""
         SELECT show, COUNT(DISTINCT society_id) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
     """
     query += region_clause(params)
     query += " GROUP BY show ORDER BY n DESC, show LIMIT ?"
@@ -142,7 +142,7 @@ def stats():
     query = f"""
         SELECT show, COUNT(DISTINCT society_key) AS n FROM (
             SELECT shows.show AS show, 'id:' || shows.society_id AS society_key FROM shows
-            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
+            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
             {region_clause(params)}
             UNION ALL
             SELECT historical_results.show AS show,
@@ -162,7 +162,7 @@ def stats():
     query = f"""
         SELECT show FROM (
             SELECT shows.show AS show FROM shows
-            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
+            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
             {region_clause(params)}
             UNION ALL
             SELECT historical_results.show AS show FROM historical_results {hist_join}
@@ -356,7 +356,7 @@ def stats():
             SELECT society_id, show, COUNT(*) AS n,
                    ROW_NUMBER() OVER (PARTITION BY society_id ORDER BY COUNT(*) DESC, show) AS rn
             FROM shows
-            WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}{region_sql}
+            WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}{region_sql}
             GROUP BY society_id, show
         )
         SELECT societies.name AS label, counts.show, counts.n
@@ -379,7 +379,7 @@ def stats():
         query = f"""
             SELECT societies.name AS label, COUNT(*) AS n
             FROM shows JOIN societies ON societies.id = shows.society_id
-            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
+            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
             {region_filter_shows}
             GROUP BY shows.society_id ORDER BY n DESC, label LIMIT ?
             """
@@ -393,7 +393,7 @@ def stats():
             SELECT label, COUNT(*) AS n FROM (
                 SELECT 'id:' || shows.society_id AS key, societies.name AS label
                 FROM shows JOIN societies ON societies.id = shows.society_id
-                WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND {happened}
+                WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
                 {region_filter_shows}
                 UNION ALL
                 SELECT COALESCE('id:' || historical_results.society_id, 'name:' || historical_results.society_name) AS key,
@@ -418,7 +418,7 @@ def stats():
             SUM(CASE WHEN {happened} THEN 1 ELSE 0 END) AS total,
             COUNT(DISTINCT CASE WHEN {happened} THEN show END) AS distinct_titles
         FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved'
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
     """
     query += region_clause(params)
     query += " GROUP BY season ORDER BY season DESC"
@@ -437,7 +437,7 @@ def stats():
     by_region = db.execute(
         f"""
         SELECT region AS label, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
         GROUP BY region ORDER BY n DESC
         """,
         (today,),
@@ -446,7 +446,7 @@ def stats():
     params = [today]
     query = f"""
         SELECT section AS label, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND section IS NOT NULL AND {happened}
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND section IS NOT NULL AND {happened}
     """
     query += region_clause(params)
     query += " GROUP BY section ORDER BY n DESC"
@@ -458,7 +458,7 @@ def stats():
     params = [today]
     query = f"""
         SELECT season, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND {happened}
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
     """
     query += region_clause(params)
     query += " GROUP BY season ORDER BY n DESC LIMIT 1"

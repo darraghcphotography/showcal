@@ -7,15 +7,44 @@ phase changes.
 
 ## Start here (updated 2026-08-18)
 
-**Deployed state**: last pushed commit is `ab19219` ("Support a real mid-season adjudicator
-change, fix the 09/10 grid gap") - **not yet redeployed**. Confirm with Darragh whether he's
-redeployed via Portainer before assuming any of Round 22's fixes are live. After redeploy, check
-`/admin/adjudicators` still shows every row Darragh already hand-entered - the migration is additive
-and tested, but worth a glance since he was actively entering data through the *old* grid mid-session.
+**Deployed state**: last pushed commit is still `ab19219` - **nothing from this session or Round
+22 is deployed yet** (Darragh's at work, can't reach Portainer). Confirm with Darragh before
+assuming any of it is live. After redeploy: check `/admin/adjudicators` still shows every row
+Darragh already hand-entered (Round 22's migration is additive/tested, worth a glance since he was
+entering data through the *old* grid mid-session); and separately, `extract_historical_reviews.py`
+needs running manually in the container (`docker compose exec aims-web python
+extract_historical_reviews.py --db /data/aims.db`) to load the 47 pilot reviews - it's a script, not
+something the app runs on its own on startup.
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
 below.
+
+**Step 4 pilot build (2026-08-18) - schema, extraction, and the moderation queue are built and
+tested; not deployed.** Full session detail below the fold ("Round 24"). Short version:
+- New `historical_reviews` table + `shows.source = 'historical'` (migration verified against a
+  copy of the real `aims.db` - preserves every row/id exactly, idempotent). `extract_historical_reviews.py`
+  pulls reviews out of the ShowTimes PDFs at `E:\showtimes archive` by *positioned* text blocks (not
+  raw reading order) so photo captions and the Calendar section can't leak into review text - the
+  adjudicator's sign-off line is what actually splits the page into individual reviews.
+- Piloted on the 2022-2023 season (4 issues, 47 reviews, zero parse failures) - `/admin/historical-reviews`
+  is a real moderation queue (Approve & publish / Edit fields / Skip), and an approved review with no
+  matching `shows` row creates the "skeleton show" agreed in scoping. `show_detail()`/`show_detail.html`
+  render the approved review text with its ShowTimes citation.
+- **Correction to the pilot-season pick**: 2022-2023 was chosen expecting "most shows already exist,
+  fewer skeleton cases" - wrong, since `SHOWS_COVERAGE_START_YEAR = 2024` means `shows` has *no*
+  coverage at all before 23/24. Every one of the 47 pilot reviews needs a skeleton row. Not a
+  problem in practice (it's exactly the mechanism this build exists to prove out, and it now has
+  real test coverage), but worth remembering when picking language for how "clean" any given season
+  will be - only 23/24 onward would actually have pre-existing `shows` rows to match against.
+- **Stats-exclusion gap found and fixed the same session**: `/titles` and `/search`'s title-count
+  queries could double-count a skeleton show against its own `historical_results` award record
+  (most of `info.py`'s stats() leaderboards turned out to be naturally safe already - they filter
+  on "has this happened by today", which a dateless skeleton show always fails). Fixed, plus two
+  admin dashboard counts that would otherwise count a skeleton show's blank dates/review-link as an
+  actionable gap forever. Proven with a real regression test (see Round 24 below), not added on faith.
+- **Not built yet**: the adjudicator-page season-grouping refinement and the new `/reviews` search
+  hub (the mockup's Pieces 1 and 2) - deferred past this pilot.
 
 **Next build priorities, in order:**
 1. **Step 4 - historical review import** - fully scoped as of the "Step 4 scoping session" below
@@ -115,6 +144,83 @@ site's existing GET-param filter-form convention (same pattern as the region fil
 - Test suite grew 225 -> 229 (`tests/test_stats_and_season_filters.py`: headline reframed, leaderboards
   default to recent-era, Explorer respects `era`, invalid `era` falls back to recent).
 - Not deployed yet, same as Rounds 21/22 - Darragh can't reach Portainer remotely right now.
+
+**Round 24 - Step 4 pilot build: schema, PDF extraction, moderation queue (2026-08-18):**
+The first real build session on Step 4, following on directly from the scoping sessions above -
+checkpointed with Darragh after each piece (schema, then extraction, then queue+public rendering)
+rather than building the whole thing blind.
+- **Schema**: `historical_reviews` (season, tier, raw show/society text as extracted, adjudicator_id,
+  review_text, source_issue citation, matched show_id/society_id, a moderator-facing `flag`, its own
+  moderation_status) plus `shows.source` gains `'historical'` for skeleton rows. SQLite can't ALTER a
+  CHECK constraint, so the latter needed the same rebuild-the-table migration pattern as the earlier
+  adjudicator_assignments fix - verified against a **copy** of the real `aims.db` (never the live
+  file): row count and every `id` preserved exactly (public `/shows/<id>` links can't break), the
+  migration is idempotent, and a fresh insert after migrating correctly continues the id sequence
+  rather than colliding or resetting it.
+- **`extract_historical_reviews.py`**: reads the PDFs directly from `E:\showtimes archive`. The key
+  decision, per Darragh's explicit ask to keep photo captions out of review text and rely on the
+  adjudicator's sign-off as the anchor: extract text as *positioned blocks* (`page.get_text('blocks')`,
+  with bounding boxes) rather than raw reading-order text, and classify each block by geometry -
+  a short block (1-2 lines) is a photo caption/page-furniture and gets dropped, *unless* it exactly
+  matches one of the two adjudicator names for that issue, in which case it's kept as the review's
+  sign-off. That sign-off line is what actually splits the page text into individual reviews (and
+  identifies each one's tier, since AIMS assigns one adjudicator per tier per season) - confirmed
+  clean by grepping the final extracted text for caption-shaped phrases ("cast of", "chorus of",
+  "steals a selfie" etc.) and checking every hit was genuine review prose, not a leaked caption.
+  The one page where an issue's Calendar section and a review's tail text were interleaved in the
+  raw block list is handled by the same y-position-based approach (keep only blocks above the
+  Calendar header's own y-position).
+- **Piloted on 2022-2023** (4 issues: Nov '22, Feb '23, Apr '23, Autumn '23) - **47 reviews, zero
+  parse failures**. Two real bugs caught and fixed while verifying, not just assumed correct: an
+  adjudicator name was mis-paired with the wrong tier (a stray "ShowTimes" watermark line leaking
+  into the header-parsing loop), and the very last review in an issue was silently dropped because
+  its sign-off has nothing after it but end-of-string, not a trailing newline the split regex
+  required. Society-name matching against the live `societies` table is exact-only (same
+  deliberately-not-fuzzy convention as the rest of this site) - roughly half matched cleanly, the
+  rest correctly flagged `needs_check` for a moderator to resolve via the queue's society picker.
+- **`/admin/historical-reviews`**: Approve & publish / Edit fields / Skip, matching the accepted
+  mockup shape. Approve on a review with no matching `shows` row creates the skeleton show agreed in
+  scoping (`source='historical'`, minimal fields only) and links the review to it; Edit fields lets a
+  moderator pick the real society from a dropdown and recomputes the match flag on save without
+  approving. `show_detail()`/`show_detail.html` now render an approved review's full text with its
+  "Originally published in AIMS ShowTimes Digital Edition, Issue X" citation and a "Reviewed by"
+  link to the adjudicator's page.
+- **Correction to the pilot-season pick, found while building rather than assumed away**: 2022-2023
+  was picked expecting fewer skeleton-show cases since it's recent - wrong, because
+  `SHOWS_COVERAGE_START_YEAR = 2024` means `shows` has no coverage at all before season 23/24.
+  Every one of the 47 pilot reviews needs a skeleton row, not a minority of them. Not a real problem
+  (skeleton creation is exactly the path this build needs proven, and it's now got real test
+  coverage) - just a reminder that only 23/24-onward seasons would actually have existing `shows`
+  rows to match against; nothing about the archive itself was misjudged.
+- Verified end-to-end against a scratch copy of the real `aims.db`, not just pytest: logged in as a
+  throwaway admin, approved one review (confirmed the skeleton show and its public page render
+  correctly, citation included), skipped one, and edited-then-matched a third - all three actions
+  behaved as expected before the throwaway login was deleted again.
+- Test suite grew 229 -> 238 (`tests/test_historical_reviews.py`: queue listing, approve with/without
+  an existing show, approve refused with no society matched, skip, edit-fields flag recomputation,
+  the approved review rendering on the resulting show's page, and a skeleton show not double-counting
+  against its own `historical_results` award record).
+- **Stats-exclusion gap found while auditing this, fixed the same session**: checked every place in
+  the app that counts/aggregates `shows` rows to see what a real skeleton row would do to it (there
+  was now one to test against, from verification above). Most of `info.py`'s stats() leaderboards
+  turned out to already be safe - they filter on "has this happened by today"
+  (`COALESCE(closing_date, opening_date) <= today`), which a dateless skeleton show always fails.
+  Two spots genuinely needed the explicit `shows.source != 'historical'` exclusion since they don't
+  depend on dates at all: `/titles` and `/search`'s title-count queries (would otherwise double-count
+  a skeleton show against its own pre-2024 `historical_results` award record). Also excluded skeleton
+  shows from two admin dashboard counts (`needs_review_count`, `missing_dates_count`) - a skeleton
+  row's blank dates/review-link are permanent by design (the real review lives in `historical_reviews`,
+  not `review_url`), so leaving them counted would make those counters permanently non-zero for
+  something that will never be "fixed" - same pattern as Round 16's `Not adjudicated` exclusion.
+  Verified the `/titles` fix actually does something (not just cosmetic): temporarily reverted it,
+  watched the new double-count test fail (count came back 2, not 1), restored it, watched it pass.
+- **Not built yet, deferred past this pilot**: the adjudicator-page season-grouping refinement and
+  the new `/reviews` search hub (the mockup's Pieces 1 and 2) - only the show-page review rendering
+  (Piece 0) shipped this round.
+- Not deployed - local `aims.db` has the 47 pilot reviews loaded (one approved for real during
+  verification, one rejected, one edited/matched, 44 still pending) via `extract_historical_reviews.py`;
+  production needs the migration (automatic on next redeploy) *and* that script run manually
+  afterward (it's a one-off loader, not something the app runs itself).
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute

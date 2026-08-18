@@ -147,7 +147,7 @@ def search():
         titles = db.execute(
             """
             SELECT show, COUNT(*) AS n FROM (
-                SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+                SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
                 UNION ALL
                 SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
             )
@@ -410,9 +410,27 @@ def show_detail(show_id):
         ).fetchall()
         reviewed_by = candidates[0] if len(candidates) == 1 else None
 
+    # Full extracted review text from the AIMS ShowTimes archive (Step 4) -
+    # separate from the review_status/review_url pair above, which is a
+    # plain external link for 23/24-onward shows that were never in the PDF
+    # archive. A show can only ever have one of these approved at once in
+    # practice (the archive stops before this site's own coverage begins),
+    # but nothing enforces that, so this is its own independent lookup.
+    historical_review = db.execute(
+        """
+        SELECT historical_reviews.review_text, historical_reviews.source_issue,
+               adjudicators.id AS adjudicator_id, adjudicators.name AS adjudicator_name
+        FROM historical_reviews
+        LEFT JOIN adjudicators ON adjudicators.id = historical_reviews.adjudicator_id
+        WHERE historical_reviews.show_id = ? AND historical_reviews.moderation_status = 'approved'
+        """,
+        (show_id,),
+    ).fetchone()
+
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
         gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
+        historical_review=historical_review,
     )
 
 
@@ -436,7 +454,7 @@ def titles_list():
 
     query = """
         SELECT show, COUNT(*) AS n FROM (
-            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
             UNION ALL
             SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
         )

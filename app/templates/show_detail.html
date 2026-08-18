@@ -75,4 +75,22 @@
       <dd>{{ adjudication_cutoff|irish_date }} <span class="meta">(6 weeks before opening night, per AIMS rules)</span></dd>
     {% endif %}
   </dl>
+
+  {% if historical_review %}
+    <h2>Review</h2>
+    <div class="review-block">
+      <div class="review-head">
+        {% if historical_review['adjudicator_name'] %}
+          <strong>Reviewed by <a href="{{ url_for('public.adjudicator_detail', adjudicator_id=historical_review['adjudicator_id']) }}">{{ historical_review['adjudicator_name'] }}</a></strong>
+        {% endif %}
+        {% if historical_review['source_issue'] %}<span class="source">{{ historical_review['source_issue'] }}</span>{% endif %}
+      </div>
+      {% for para in historical_review['review_text'].split('\n') if para.strip() %}
+        <p>{{ para }}</p>
+      {% endfor %}
+      {% if historical_review['source_issue'] %}
+        <div class="review-credit">Originally published in AIMS <em>ShowTimes</em> Digital Edition, {{ historical_review['source_issue'] }}.</div>
+      {% endif %}
+    </div>
+  {% endif %}
 {% endblock %}

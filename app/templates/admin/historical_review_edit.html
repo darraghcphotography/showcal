@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Edit historical review - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Edit historical review</h1>
+  <p class="meta">{{ review['source_issue'] }}</p>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Season
+      <input type="text" name="season" value="{{ form['season'] }}" required>
+    </label>
+
+    <label>
+      Tier
+      <select name="tier">
+        <option value="">unknown</option>
+        <option value="Gilbert" {% if form['tier'] == 'Gilbert' %}selected{% endif %}>Gilbert</option>
+        <option value="Sullivan" {% if form['tier'] == 'Sullivan' %}selected{% endif %}>Sullivan</option>
+      </select>
+    </label>
+
+    <label>
+      Show title
+      <input type="text" name="show_raw" value="{{ form['show_raw'] }}" required>
+    </label>
+
+    <label>
+      Society name (as printed)
+      <input type="text" name="society_raw" value="{{ form['society_raw'] }}" required>
+    </label>
+
+    <label>
+      Matched society
+      <select name="society_id">
+        <option value="">— not matched —</option>
+        {% for s in societies %}
+          <option value="{{ s['id'] }}" {% if form['society_id']|string == s['id']|string %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+      <span class="hint">Approving with no society matched isn't possible - pick one here first.</span>
+    </label>
+
+    <label>
+      Review text
+      <textarea name="review_text" rows="16">{{ form['review_text'] }}</textarea>
+    </label>
+
+    <label>
+      Source citation
+      <input type="text" name="source_issue" value="{{ form['source_issue'] or '' }}">
+    </label>
+
+    <button type="submit">Save</button>
+  </form>
+
+  <a href="{{ url_for('admin.historical_reviews_queue') }}">&larr; Back to queue</a>
+{% endblock %}

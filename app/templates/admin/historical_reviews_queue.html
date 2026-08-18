@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Historical reviews - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Historical reviews to review</h1>
+  <p>{{ total_pending }} review{{ '' if total_pending == 1 else 's' }} pending, from the AIMS ShowTimes archive.</p>
+
+  {% for review in reviews %}
+    <article class="queue-item">
+      <h2>{{ review['show_raw'] }}
+        {% if review['flag'] == 'no_show_match' %}
+          <span class="tag tag-warning">no matching show on record</span>
+        {% elif review['flag'] == 'needs_check' %}
+          <span class="tag tag-warning">show/society need a check</span>
+        {% else %}
+          <span class="tag tag-active">show matched: {{ review['matched_society_name'] }}</span>
+        {% endif %}
+      </h2>
+      <p class="meta">
+        {{ review['matched_society_name'] or review['society_raw'] }} &middot;
+        {{ review['season'] }} &middot; {{ review['tier'] or 'unknown' }} &middot;
+        {{ review['adjudicator_name'] or '—' }} &middot; {{ review['source_issue'] }}
+      </p>
+      <p class="preview">{{ review['review_text'][:220] }}&hellip;</p>
+      <div class="actions">
+        <form method="post" action="{{ url_for('admin.approve_historical_review', review_id=review['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button-primary" {% if review['society_id'] is none %}disabled{% endif %}>Approve &amp; publish</button>
+        </form>
+        <a href="{{ url_for('admin.edit_historical_review', review_id=review['id']) }}">Edit fields</a>
+        <form method="post" action="{{ url_for('admin.reject_historical_review', review_id=review['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button-danger">Skip</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <p>Nothing waiting for review.</p>
+  {% endfor %}
+{% endblock %}
