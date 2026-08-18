@@ -55,14 +55,28 @@ def match_show(db, society_id, season, show_raw):
 
 
 def load_reviews(db, reviews):
-    inserted = skipped = matched = 0
+    inserted = skipped = matched = refreshed = 0
     for r in reviews:
-        exists = db.execute(
-            "SELECT 1 FROM historical_reviews WHERE source_issue = ? AND society_raw = ? AND show_raw = ?",
+        existing = db.execute(
+            "SELECT id, review_text, moderation_status FROM historical_reviews "
+            "WHERE source_issue = ? AND society_raw = ? AND show_raw = ?",
             (r["source_issue"], r["society_raw"], r["show_raw"]),
         ).fetchone()
-        if exists:
-            skipped += 1
+        if existing:
+            # Still pending (never approved or hand-edited) and the freshly
+            # re-extracted text differs - re-run this after an extraction
+            # fix (e.g. the line-wrap-per-line formatting bug) and already-
+            # loaded rows pick up the corrected text too, not just new ones.
+            # Never touches an approved row - that's already public/reviewed,
+            # so a silent rewrite isn't safe even if the source text changed.
+            if existing["moderation_status"] == "pending" and existing["review_text"] != r["review_text"]:
+                db.execute(
+                    "UPDATE historical_reviews SET review_text = ? WHERE id = ?",
+                    (r["review_text"], existing["id"]),
+                )
+                refreshed += 1
+            else:
+                skipped += 1
             continue
 
         adjudicator_id = get_or_create_adjudicator(db, r["adjudicator"])
@@ -87,7 +101,7 @@ def load_reviews(db, reviews):
         )
         inserted += 1
     db.commit()
-    return inserted, skipped, matched
+    return inserted, skipped, matched, refreshed
 
 
 def main():
@@ -98,8 +112,12 @@ def main():
 
     reviews = json.loads(Path(args.json).read_text(encoding="utf-8"))
     db = sqlite3.connect(args.db)
-    inserted, skipped, matched = load_reviews(db, reviews)
-    print(f"Inserted {inserted}, skipped {skipped} already-loaded, {matched} matched an existing show cleanly.")
+    db.row_factory = sqlite3.Row
+    inserted, skipped, matched, refreshed = load_reviews(db, reviews)
+    print(
+        f"Inserted {inserted}, skipped {skipped} already-loaded, {refreshed} refreshed with corrected "
+        f"text, {matched} matched an existing show cleanly."
+    )
 
 
 if __name__ == "__main__":

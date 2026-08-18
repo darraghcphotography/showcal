@@ -136,7 +136,14 @@ def parse_heading(segment):
         idx += 1
     society_raw = ", ".join(l.rstrip(",") for l in society_lines)
     show_raw = " ".join(title_lines).rstrip(" .")
-    review_text = "\n".join(lines[idx:]).strip()
+    # Each line here is one line of the *printed column*, not one sentence or
+    # paragraph - PyMuPDF's block text has a newline at every line-wrap, same
+    # as the source PDF's own justified layout. Joining with a space (not \n)
+    # turns that back into normal flowing prose; there's no reliable signal
+    # in the extracted text for where a real paragraph break was, so this
+    # review reads as one continuous piece, same as most of these actually
+    # are in print.
+    review_text = " ".join(lines[idx:]).strip()
     return society_raw, show_raw, review_text
 
 
