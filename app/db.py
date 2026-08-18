@@ -70,6 +70,41 @@ def _apply_column_migrations(db):
             db.execute(ddl)
 
 
+def _migrate_adjudicator_assignments_table(db):
+    """adjudicator_assignments originally allowed only one adjudicator per
+    season+tier (PRIMARY KEY (season, section)) - a real mid-season change
+    (see ROADMAP) needs a second row for the same season+tier, which that
+    constraint physically can't hold. SQLite can't ALTER a PRIMARY KEY in
+    place, so this rebuilds the table the standard SQLite way (new table,
+    copy, drop, rename) - a plain ADD COLUMN (COLUMN_MIGRATIONS) isn't
+    enough here since the key itself has to change, not just add a field.
+    Keyed off whether `notes` already exists (added in the same rebuild), so
+    this is a no-op on every startup once a database has been migrated -
+    including a brand-new database, where schema.sql already creates the
+    table in its final shape."""
+    existing = {row[1] for row in db.execute("PRAGMA table_info(adjudicator_assignments)")}
+    if "notes" in existing:
+        return
+    db.execute(
+        """
+        CREATE TABLE adjudicator_assignments_new (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            season          TEXT NOT NULL,
+            section         TEXT NOT NULL CHECK (section IN ('Gilbert', 'Sullivan')),
+            adjudicator_id  INTEGER NOT NULL REFERENCES adjudicators(id),
+            notes           TEXT,
+            UNIQUE (season, section, adjudicator_id)
+        )
+        """
+    )
+    db.execute(
+        "INSERT INTO adjudicator_assignments_new (season, section, adjudicator_id) "
+        "SELECT season, section, adjudicator_id FROM adjudicator_assignments"
+    )
+    db.execute("DROP TABLE adjudicator_assignments")
+    db.execute("ALTER TABLE adjudicator_assignments_new RENAME TO adjudicator_assignments")
+
+
 # FTS5 external-content tables need an explicit 'rebuild' to actually build
 # the searchable index from their source table - the triggers in schema.sql
 # only cover changes from this point on. Deliberately NOT guarded by a
@@ -94,6 +129,7 @@ def init_schema():
     schema_path = current_app.config["SCHEMA_PATH"]
     with open(schema_path, encoding="utf-8") as f:
         db.executescript(f.read())
+    _migrate_adjudicator_assignments_table(db)
     _apply_column_migrations(db)
     db.commit()
 

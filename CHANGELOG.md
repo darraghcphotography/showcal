@@ -64,3 +64,7 @@ New: search box in the header - find any society or show from anywhere on the si
 New: an Adjudicators page - browse who judged each season and read their published reviews, credited on the show's own page too
 Fixed: shared show-page links (posters, calendar files) now use secure https:// links, so link previews on WhatsApp/Slack/iMessage show the poster image properly
 Behind the scenes: a proper error page if something breaks, tighter security headers, and a bit of cleanup - no visible change
+
+---
+
+Admin: the adjudicator season grid now supports the rare case AIMS swapped adjudicators mid-season, and can be filled in as far back as 2009

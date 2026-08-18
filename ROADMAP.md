@@ -863,6 +863,97 @@ document with mockups: https://claude.ai/code/artifact/65dd6ff0-b78a-4f39-bf00-c
 - Not deployed - Darragh reviews and redeploys via Portainer when ready. Round 2 (Stats reframing)
   remains open, not attempted this round.
 
+**Round 21 - ShowTimes PDF archive: adjudicator backfill research (2026-08-18):** Darragh has ~14 years
+of the AIMS *ShowTimes* magazine as PDFs (`E:\showtimes archive`) - the reviews for every season before
+the site's own 23/24 coverage started. Explored whether these could backfill `adjudicator_assignments`
+(Round 19) and, longer-term, real historical review content.
+- **Feasibility confirmed on the oldest issue first** (Dec 2010) - real text layer, not scanned images.
+  A one-off `pypdf`-based parser (scratch script, not shipped) extracts each review's show/society/venue/
+  adjudicator/full text cleanly, keyed off a "ShowReviews" section header that names that season's two
+  adjudicators (one Gilbert, one Sullivan) - the same one-per-tier-per-season model already built.
+- **Ran the parser across the full archive**: 106 unique PDF issues after dedup (the folder's several
+  `.zip` files turned out to be pure backup duplicates of PDFs already loose in the folder, confirmed by
+  hash, not extra content) - 920 reviews extracted, published as a browsable/searchable report (adjudicator
+  candidates, every review's full text, and a "no matching show in the CSVs" gap list) rather than raw CSVs
+  alone, so Darragh could look things up without touching a spreadsheet.
+- **Real bug caught before it reached anyone**: told Darragh a fix was live and republished when it
+  wasn't (a `Gred Currid` → `Greg Currid` typo-fix that was only *said*, not actually done). Caught on
+  the next round when the correction still wasn't showing - verified with `WebFetch` against the live
+  artifact before claiming success again, not just re-trusting the local file.
+- **Three findings walked back or confirmed only after direct evidence, not assumption** - worth noting
+  as the actual lesson of this round, not just the individual facts:
+  - **2012-2013 and 2013-2014**: no adjudicator names in the extracted text at all for these years -
+    turned out the names are printed as part of a photo banner image, not real text, so no amount of
+    parser tuning would ever find them. Resolved once Darragh sent screenshots of the actual banners:
+    2012-2013 = Pat McElwain (Gilbert) / Richie Ryan (Sullivan); 2013-2014 = a genuine mid-season change,
+    Richie Ryan → Damien Murray on Gilbert, John Grayden Sullivan throughout.
+  - **2016-2017 "mid-season swap" - claimed confirmed, then found wrong on push-back.** Darragh
+    correctly doubted the finding rather than accepting it; laying out issue-by-issue dates against the
+    banner's own season label showed it was never a real swap - Peter Kennedy/Greg Currid were 2016-2017's
+    only pair. The apparent second half (Ciarán Mooney/Peter Kennedy) was actually 2017-2018 starting
+    early (October), just printed under a stale season label for its first three issues before the
+    banner caught up in February - same kind of one-off editorial lag as an unrelated stray "10 March
+    2011" leftover date found earlier in a 2013 issue. Real lesson: "the banner says X" isn't the same
+    as "X is true" without checking the actual chronology.
+  - **2020-2021: genuinely no reviews, confirmed as COVID, not a parser failure.** Five consecutive
+    issues (June 2020 - Winter 2021/22) have no ShowReviews section at all - confirmed by reading the
+    Summer 2020 issue directly ("keep in touch during the pandemic... cancellation of AIMS Award in
+    Killarney... from our stage to your home" - a livestreamed awards night, not real productions).
+    Nothing to backfill for that stretch because nothing happened.
+- **Final result: 29 confirmed season/tier/adjudicator combos, 2009-2023**, ready to hand-enter via
+  `/admin/adjudicators` - not yet done, no code or data has actually changed. See chat for the full list
+  (also captured in the published report).
+- **A real schema gap surfaced by the 2013-2014/2016-2017 investigation**: `adjudicator_assignments`
+  has `PRIMARY KEY (season, section)` - it can't represent a real mid-season change at all right now.
+  Planned fix (not yet built): drop to a non-unique key plus a free-text `notes` column, same
+  "simple text log, not a structured audit trail" pattern `societies.section_history` already uses -
+  deliberately not a date-range/versioning system.
+- **Longer-term, only planned so far**: importing the 920 reviews' own full text as real historical
+  content (own table, not `shows`/`historical_results` - different shape entirely), landing in a
+  moderation queue before anything public, same `pending/approved/rejected` shape the submission system
+  already uses. Mockups published for both the schema-change admin UI and the moderation queue; nothing
+  built. Recommended to pilot on one small season end-to-end before running the full archive through.
+- Also flagged, not decided: the magazine states its own content is AIMS Ltd's copyright - worth
+  Darragh's own explicit sign-off before publishing full review text, given the site's own "not an
+  official AIMS website" disclaimer.
+- **Two findings from Round 21 corrected on Darragh's own push-back, not accepted first-pass**: the
+  "2016-2017 mid-season swap" turned out to be a stale season label on 2017-2018's first three issues,
+  not a real swap - only caught because Darragh doubted a "confirmed" claim that was really just one
+  image, not a checked timeline. 2020-2021's missing reviews are genuinely COVID (no productions), not
+  a parser failure - confirmed by reading the issue's own text ("cancellation of AIMS Award in
+  Killarney... from our stage to your home"). Final list: 29 combos, 2009-2023 (2020-2021 excluded,
+  nothing to record).
+
+**Round 22 - Step 3: mid-season adjudicator support (2026-08-18):** Built and shipped (not yet deployed) -
+the schema gap Round 21 surfaced.
+- **`adjudicator_assignments` rebuilt** from `PRIMARY KEY (season, section)` (physically only one row per
+  season/tier) to `id` + `UNIQUE (season, section, adjudicator_id)` + a free-text `notes` column - same
+  "simple text log, not a structured history table" pattern `societies.section_history` already uses.
+  SQLite can't `ALTER` a primary key in place, so `app/db.py` rebuilds the table (new table, copy, drop,
+  rename) on any database still in the old shape - a no-op once migrated, including a brand-new database
+  where `schema.sql` already creates it in the final shape.
+- **`/admin/adjudicators` grid gets a second slot per season/tier**, each with its own optional note -
+  only shows as a real second row when actually filled in, so the ~90% of seasons with one adjudicator
+  look exactly as before. Fixed-two-slots rather than an open-ended "add more" control (no season has
+  ever needed a third), keeping this JS-free like the rest of the admin forms.
+- **Real second bug caught mid-build, unrelated to the schema work**: Darragh found he couldn't enter
+  09/10 or 10/11 on the live grid at all - `season_range()` anchors its earliest season to `MIN(year)
+  FROM historical_results` (the awards archive), which doesn't go back that far on production even
+  though the ShowTimes-archive backfill does. Fixed by having the adjudicators route independently
+  extend the season list back to 09/10 regardless of what the awards archive covers, rather than trying
+  to fix `season_range()` itself (still correct for its other callers - the society login's historical
+  entry dropdown, which has no reason to go back further than real award data exists).
+- **Public "reviewed by" credit deliberately declines to guess** when a season/tier has two adjudicators
+  on record - there's no per-show date data to say which of the two actually wrote a specific review, so
+  `show_detail()` only credits when exactly one candidate exists, rather than picking one arbitrarily.
+- Test suite grew 214 -> 225 (`tests/test_adjudicator_assignments_migration.py`: rebuild preserves data,
+  allows a second row, is idempotent; `tests/test_adjudicator_mid_season.py`: two-slot save/clear,
+  the 09/10 floor, and the show-page non-guessing behavour x2). Local preview seeded with the real
+  confirmed 09/10 and 13/14 (Richie Ryan -> Damien Murray) data before calling it done.
+- Not deployed - Darragh reviews and redeploys via Portainer when ready. He'd already started
+  hand-entering the Round 21 combo list into the live (pre-fix) grid - safe, since the migration only
+  ever adds structure and preserves every existing row exactly.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde

@@ -311,17 +311,25 @@ CREATE TABLE IF NOT EXISTS adjudicators (
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Which adjudicator covered each tier in a given season - AIMS assigns one
--- per tier per season, not per show. An unfilled season/tier combination
+-- Which adjudicator(s) covered each tier in a given season - normally
+-- exactly one per tier per season, not per show, but AIMS has occasionally
+-- swapped an adjudicator mid-season (see notes) - a season/tier can have
+-- more than one row for that reason. An unfilled season/tier combination
 -- simply has no row here. Lets a moderator match a show's published review
 -- to its likely author (same adjudicator judges every show in their tier
--- that season) and find every review a given adjudicator wrote, without a
--- per-show author field.
+-- that season, except across a recorded mid-season change) and find every
+-- review a given adjudicator wrote, without a per-show author field.
+-- notes is a plain free-text log for a mid-season change ("Aug-Dec 2013",
+-- "took over from Richie Ryan") - same "simple text log, not a structured
+-- history table" pattern as societies.section_history, deliberately not a
+-- real date-range/versioning model.
 CREATE TABLE IF NOT EXISTS adjudicator_assignments (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     season          TEXT NOT NULL,
     section         TEXT NOT NULL CHECK (section IN ('Gilbert', 'Sullivan')),
     adjudicator_id  INTEGER NOT NULL REFERENCES adjudicators(id),
-    PRIMARY KEY (season, section)
+    notes           TEXT,
+    UNIQUE (season, section, adjudicator_id)
 );
 
 -- Full-text search indexes (SQLite FTS5, built in - no extra dependency).

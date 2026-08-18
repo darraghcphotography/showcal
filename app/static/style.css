@@ -144,6 +144,15 @@ body {
   padding: 0.15rem 0.55rem;
 }
 
+.assignment-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.4rem;
+}
+.assignment-slot:last-child { margin-bottom: 0; }
+.assignment-notes { font-size: 0.8rem; }
+
 .site-search input {
   padding: 0.3rem 0.65rem;
   border-radius: 999px;

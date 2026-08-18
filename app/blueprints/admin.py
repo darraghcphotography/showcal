@@ -16,7 +16,7 @@ from ..db import get_db
 from ..dedupe import find_candidates
 from ..invite_words import ADJECTIVES, NOUNS
 from ..rate_limit import limiter
-from ..season import current_season, season_range
+from ..season import current_season, next_season, season_range
 from ..similarity import find_close_title
 from ..uploads import save_poster
 
@@ -1762,10 +1762,38 @@ def delete_award(award_id):
     return redirect(url_for("admin.awards_list"))
 
 
-def _assignment_field(season, section):
+# A season/tier is normally one adjudicator, but a real mid-season change
+# (see ROADMAP) needs a second - the grid offers exactly two slots per tier
+# per season rather than an open-ended add-more control, since AIMS has
+# never had more than one substitution in a season and a fixed two keeps
+# the form (and this code) simple.
+ASSIGNMENT_SLOTS = (1, 2)
+
+# The ShowTimes PDF archive backfill goes back to 09/10, further than the
+# awards archive (season_range()'s own anchor) currently does on production -
+# without this floor, a season with confirmed adjudicator data could be
+# impossible to enter because it's simply missing from the dropdown.
+ADJUDICATOR_GRID_FLOOR_SEASON = "09/10"
+
+
+def _assignment_field(season, section, slot=1):
     # "/" in a season string (e.g. "23/24") is a perfectly valid form-field
-    # name, no escaping needed either side of the request.
-    return f"{section}|{season}"
+    # name, no escaping needed either side of the request. Slot 1 keeps the
+    # bare "section|season" name from before multi-slot support existed.
+    base = f"{section}|{season}"
+    return base if slot == 1 else f"{base}|{slot}"
+
+
+def _adjudicator_grid_seasons(db):
+    seasons = season_range(db)
+    if not seasons or seasons[-1] <= ADJUDICATOR_GRID_FLOOR_SEASON:
+        return seasons
+    extra = []
+    s = ADJUDICATOR_GRID_FLOOR_SEASON
+    while s < seasons[-1]:
+        extra.append(s)
+        s = next_season(s)
+    return seasons + list(reversed(extra))
 
 
 @bp.route("/adjudicators", methods=("GET", "POST"))
@@ -1786,22 +1814,25 @@ def adjudicators():
             flash(f'"{name}" added.', "success")
         return redirect(url_for("admin.adjudicators"))
 
-    seasons = season_range(db)
+    seasons = _adjudicator_grid_seasons(db)
     adjudicator_list = db.execute(
         """
-        SELECT adjudicators.*, COUNT(adjudicator_assignments.season) AS season_count
+        SELECT adjudicators.*, COUNT(adjudicator_assignments.id) AS season_count
         FROM adjudicators
         LEFT JOIN adjudicator_assignments ON adjudicator_assignments.adjudicator_id = adjudicators.id
         GROUP BY adjudicators.id ORDER BY adjudicators.name
         """
     ).fetchall()
-    assignments = {
-        (row["season"], row["section"]): row["adjudicator_id"]
-        for row in db.execute("SELECT season, section, adjudicator_id FROM adjudicator_assignments").fetchall()
-    }
+    assignments = {}
+    for row in db.execute(
+        "SELECT season, section, adjudicator_id, notes FROM adjudicator_assignments ORDER BY id"
+    ).fetchall():
+        assignments.setdefault((row["season"], row["section"]), []).append(
+            {"adjudicator_id": row["adjudicator_id"], "notes": row["notes"] or ""}
+        )
     return render_template(
         "admin/adjudicators.html", adjudicators=adjudicator_list, seasons=seasons,
-        assignments=assignments, field=_assignment_field,
+        assignments=assignments, field=_assignment_field, slots=ASSIGNMENT_SLOTS,
     )
 
 
@@ -1809,20 +1840,22 @@ def adjudicators():
 @login_required
 def save_adjudicator_assignments():
     db = get_db()
-    for season in season_range(db):
+    for season in _adjudicator_grid_seasons(db):
         for section in ("Gilbert", "Sullivan"):
-            value = request.form.get(_assignment_field(season, section), "")
-            if value:
+            db.execute("DELETE FROM adjudicator_assignments WHERE season = ? AND section = ?", (season, section))
+            seen_ids = set()
+            for slot in ASSIGNMENT_SLOTS:
+                value = request.form.get(_assignment_field(season, section, slot), "")
+                if not value:
+                    continue
+                adjudicator_id = int(value)
+                if adjudicator_id in seen_ids:
+                    continue  # same person picked in both slots - one row is enough
+                seen_ids.add(adjudicator_id)
+                notes = request.form.get(_assignment_field(season, section, slot) + "|notes", "").strip() or None
                 db.execute(
-                    """
-                    INSERT INTO adjudicator_assignments (season, section, adjudicator_id) VALUES (?, ?, ?)
-                    ON CONFLICT(season, section) DO UPDATE SET adjudicator_id = excluded.adjudicator_id
-                    """,
-                    (season, section, int(value)),
-                )
-            else:
-                db.execute(
-                    "DELETE FROM adjudicator_assignments WHERE season = ? AND section = ?", (season, section)
+                    "INSERT INTO adjudicator_assignments (season, section, adjudicator_id, notes) VALUES (?, ?, ?, ?)",
+                    (season, section, adjudicator_id, notes),
                 )
     db.commit()
     flash("Adjudicator assignments saved.", "success")

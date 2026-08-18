@@ -392,10 +392,14 @@ def show_detail(show_id):
     # AIMS assigns one adjudicator per tier per season, not per show - so a
     # published review's likely author is whoever covered this show's own
     # season+section, looked up via app.admin's adjudicator_assignments
-    # rather than a per-show author field (see /admin/adjudicators).
+    # rather than a per-show author field (see /admin/adjudicators). A
+    # season/tier can rarely have two rows (a recorded mid-season change) -
+    # there's no per-show date-range data to say which of the two actually
+    # wrote this specific review, so deliberately don't guess: only credit
+    # when exactly one adjudicator is on record for that season/tier.
     reviewed_by = None
     if show["review_status"] == "Published" and show["review_url"] and show["section"]:
-        reviewed_by = db.execute(
+        candidates = db.execute(
             """
             SELECT adjudicators.id, adjudicators.name
             FROM adjudicator_assignments
@@ -403,7 +407,8 @@ def show_detail(show_id):
             WHERE adjudicator_assignments.season = ? AND adjudicator_assignments.section = ?
             """,
             (show["season"], show["section"]),
-        ).fetchone()
+        ).fetchall()
+        reviewed_by = candidates[0] if len(candidates) == 1 else None
 
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
