@@ -153,6 +153,13 @@ body {
 .assignment-slot:last-child { margin-bottom: 0; }
 .assignment-notes { font-size: 0.8rem; }
 
+.mid-season-change { margin-top: 0.3rem; }
+.mid-season-change summary { font-size: 0.78rem; color: var(--muted); cursor: pointer; }
+.mid-season-change[open] summary { margin-bottom: 0.3rem; }
+.completed-seasons { margin: 1rem 0; }
+.completed-seasons summary { cursor: pointer; font-weight: 600; }
+.completed-seasons table { margin-top: 0.75rem; }
+
 .site-search input {
   padding: 0.3rem 0.65rem;
   border-radius: 999px;

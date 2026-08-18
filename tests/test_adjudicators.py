@@ -121,6 +121,77 @@ def test_adjudicator_detail_lists_shows_in_their_seasons(client, db):
     assert "Cabaret" not in body
 
 
+def test_grid_seasons_no_duplicates_when_archive_reaches_1977(client, db):
+    """_adjudicator_grid_seasons() pads back to 09/10 (the ShowTimes PDF
+    backfill's own floor) only when the real awards archive doesn't already
+    reach that far - comparing two-digit season *strings* to decide that
+    ('76/77' <= '09/10') is wrong across the 1999/2000 rollover, since plain
+    text sorts '76' after '09'. With a real archive starting in 1977 (as
+    production's does), that bug silently padded 09/10-27/28 in on top of
+    the seasons season_range() already returned for that range, duplicating
+    every one of them."""
+    from app.blueprints.admin import _adjudicator_grid_seasons
+    from app.db import get_db
+
+    _anchor_current_season_at_2324(db)
+    db.execute("INSERT INTO historical_results (year, show) VALUES (1977, 'Old Show')")
+    db.commit()
+
+    seasons = _adjudicator_grid_seasons(get_db())
+    assert len(seasons) == len(set(seasons)), f"duplicate seasons: {[s for s in set(seasons) if seasons.count(s) > 1]}"
+    assert "09/10" in seasons
+
+
+def test_completed_seasons_collapse_separately_from_incomplete(client, db):
+    admin_id = seed_user(db)
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    _anchor_current_season_at_2324(db)
+    db.execute(
+        "INSERT INTO adjudicator_assignments (season, section, adjudicator_id) VALUES ('23/24', 'Gilbert', ?)",
+        (jane_id,),
+    )
+    db.execute(
+        "INSERT INTO adjudicator_assignments (season, section, adjudicator_id) VALUES ('23/24', 'Sullivan', ?)",
+        (jane_id,),
+    )
+    # 24/25 deliberately left with only one tier filled in - stays visible.
+    db.execute(
+        "INSERT INTO adjudicator_assignments (season, section, adjudicator_id) VALUES ('24/25', 'Gilbert', ?)",
+        (jane_id,),
+    )
+    db.commit()
+    login_as(client, admin_id)
+
+    body = client.get("/admin/adjudicators").get_data(as_text=True)
+    assert "1 season already fully assigned" in body
+    before_details = body.split("<details class=\"completed-seasons\">")[0]
+    inside_details = body.split("<details class=\"completed-seasons\">")[1]
+    assert ">24/25<" in before_details
+    assert ">23/24<" not in before_details
+    assert ">23/24<" in inside_details
+
+
+def test_mid_season_slot_collapsed_unless_already_used(client, db):
+    admin_id = seed_user(db)
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    john_id = seed_adjudicator(db, name="John Doe")
+    _anchor_current_season_at_2324(db)
+    db.execute(
+        "INSERT INTO adjudicator_assignments (season, section, adjudicator_id, notes) VALUES "
+        "('23/24', 'Gilbert', ?, NULL), ('23/24', 'Gilbert', ?, 'took over in Oct')",
+        (jane_id, john_id),
+    )
+    db.commit()
+    login_as(client, admin_id)
+
+    body = client.get("/admin/adjudicators").get_data(as_text=True)
+    # The season with a real mid-season change has its <details> open so the
+    # second entry is visible without an extra click.
+    assert 'class="mid-season-change" open' in body
+    # A season with only one adjudicator still renders the toggle, just closed.
+    assert body.count('class="mid-season-change"') > body.count('class="mid-season-change" open')
+
+
 def test_adjudicator_detail_404_for_unknown_id(client, db):
     admin_id = seed_user(db)
     login_as(client, admin_id)

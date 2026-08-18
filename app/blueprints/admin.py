@@ -1801,8 +1801,19 @@ def _assignment_field(season, section, slot=1):
 
 
 def _adjudicator_grid_seasons(db):
+    """season_range() already reaches back to the real awards-archive start
+    (1977, historical_results' own earliest year) - this floor only ever
+    needs to pad anything when that archive is thinner than 09/10. Checked
+    by plain membership rather than comparing season strings with <=/< - a
+    two-digit season string doesn't sort correctly across the 1999/2000
+    rollover ('76/77' sorts after '09/10' as plain text despite being an
+    earlier season), which silently duplicated every season from 09/10
+    onward once the archive actually reached back to 1977 (found while
+    reworking this page's layout, not a new gap - the padding logic below
+    only ever runs on the century-safe case, where the archive is too
+    recent to reach 09/10 at all)."""
     seasons = season_range(db)
-    if not seasons or seasons[-1] <= ADJUDICATOR_GRID_FLOOR_SEASON:
+    if not seasons or ADJUDICATOR_GRID_FLOOR_SEASON in seasons:
         return seasons
     extra = []
     s = ADJUDICATOR_GRID_FLOOR_SEASON
@@ -1846,8 +1857,21 @@ def adjudicators():
         assignments.setdefault((row["season"], row["section"]), []).append(
             {"adjudicator_id": row["adjudicator_id"], "notes": row["notes"] or ""}
         )
+
+    # A season with both tiers already filled in is "done" - collapsing those
+    # behind a disclosure (same pattern as the suggestions board's archived
+    # lane / stats page's earlier-seasons collapse) keeps the still-blank/
+    # partial seasons that actually need attention on screen without a long
+    # scroll past ones that don't, regardless of whether "done" happens to be
+    # a recent season or one from the historical backfill.
+    seasons_incomplete, seasons_complete = [], []
+    for season in seasons:
+        complete = assignments.get((season, "Gilbert")) and assignments.get((season, "Sullivan"))
+        (seasons_complete if complete else seasons_incomplete).append(season)
+
     return render_template(
-        "admin/adjudicators.html", adjudicators=adjudicator_list, seasons=seasons,
+        "admin/adjudicators.html", adjudicators=adjudicator_list,
+        seasons_incomplete=seasons_incomplete, seasons_complete=seasons_complete,
         assignments=assignments, field=_assignment_field, slots=ASSIGNMENT_SLOTS,
     )
 

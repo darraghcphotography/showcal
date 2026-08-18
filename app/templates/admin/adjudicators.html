@@ -4,9 +4,10 @@
   <h1>Adjudicators</h1>
   <p class="meta">AIMS assigns one adjudicator per tier per season, not per show - recording who covered
      Gilbert/Sullivan each season lets you match a show's published review to its likely author, and pull
-     up every review a given adjudicator wrote. A season/tier normally needs only the first slot below -
-     the second is there for the rare case AIMS swapped adjudicators mid-season; use the note to say when/why
-     (e.g. "took over from X in October").</p>
+     up every review a given adjudicator wrote. A season/tier normally needs only the one dropdown - open
+     "+ Add a mid-season change" for the rare case AIMS swapped adjudicators partway through, and use the
+     note to say when/why (e.g. "took over from X in October"). Seasons with both tiers already filled in
+     collapse out of the way below the main list.</p>
 
   <h2>Add an adjudicator</h2>
   <form method="post" action="{{ url_for('admin.adjudicators') }}">
@@ -20,39 +21,66 @@
   {% if adjudicators %}
     <form method="post" action="{{ url_for('admin.save_adjudicator_assignments') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% macro season_rows(season_list) %}
+        {% for season in season_list %}
+          <tr>
+            <td>{{ season }}</td>
+            {% for section in ("Gilbert", "Sullivan") %}
+              {% set entries = assignments.get((season, section), []) %}
+              <td>
+                {% set entry1 = entries[0] if entries|length >= 1 else None %}
+                <div class="assignment-slot">
+                  <select name="{{ field(season, section, 1) }}">
+                    <option value="">— none —</option>
+                    {% for a in adjudicators %}
+                      <option value="{{ a['id'] }}" {% if entry1 and entry1['adjudicator_id'] == a['id'] %}selected{% endif %}>
+                        {{ a['name'] }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if entry1 %}
+                    <input type="text" class="assignment-notes" name="{{ field(season, section, 1) }}|notes"
+                           value="{{ entry1['notes'] }}" placeholder="optional note">
+                  {% endif %}
+                </div>
+                {% set entry2 = entries[1] if entries|length >= 2 else None %}
+                <details class="mid-season-change" {% if entry2 %}open{% endif %}>
+                  <summary>+ Add a mid-season change</summary>
+                  <div class="assignment-slot">
+                    <select name="{{ field(season, section, 2) }}">
+                      <option value="">— none —</option>
+                      {% for a in adjudicators %}
+                        <option value="{{ a['id'] }}" {% if entry2 and entry2['adjudicator_id'] == a['id'] %}selected{% endif %}>
+                          {{ a['name'] }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <input type="text" class="assignment-notes" name="{{ field(season, section, 2) }}|notes"
+                           value="{{ entry2['notes'] if entry2 else '' }}" placeholder="note, e.g. took over in Oct">
+                  </div>
+                </details>
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      {% endmacro %}
+
       <table class="data-table">
         <thead><tr><th>Season</th><th>Gilbert adjudicator</th><th>Sullivan adjudicator</th></tr></thead>
-        <tbody>
-          {% for season in seasons %}
-            <tr>
-              <td>{{ season }}</td>
-              {% for section in ("Gilbert", "Sullivan") %}
-                {% set entries = assignments.get((season, section), []) %}
-                <td>
-                  {% for slot in slots %}
-                    {% set entry = entries[slot - 1] if entries|length >= slot else None %}
-                    <div class="assignment-slot">
-                      <select name="{{ field(season, section, slot) }}">
-                        <option value="">— none —</option>
-                        {% for a in adjudicators %}
-                          <option value="{{ a['id'] }}" {% if entry and entry['adjudicator_id'] == a['id'] %}selected{% endif %}>
-                            {{ a['name'] }}
-                          </option>
-                        {% endfor %}
-                      </select>
-                      {% if slot > 1 or entry %}
-                        <input type="text" class="assignment-notes" name="{{ field(season, section, slot) }}|notes"
-                               value="{{ entry['notes'] if entry else '' }}"
-                               placeholder="{{ 'note, e.g. took over in Oct' if slot > 1 else 'optional note' }}">
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                </td>
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
+        <tbody>{{ season_rows(seasons_incomplete) }}</tbody>
       </table>
+
+      {% if seasons_complete %}
+        <details class="completed-seasons">
+          <summary>{{ seasons_complete|length }} season{{ '' if seasons_complete|length == 1 else 's' }} already fully assigned</summary>
+          <table class="data-table">
+            <thead><tr><th>Season</th><th>Gilbert adjudicator</th><th>Sullivan adjudicator</th></tr></thead>
+            <tbody>{{ season_rows(seasons_complete) }}</tbody>
+          </table>
+        </details>
+      {% endif %}
+
       <button type="submit">Save assignments</button>
     </form>
   {% else %}
