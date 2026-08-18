@@ -251,16 +251,25 @@ Same evening, after Darragh redeployed and started actually loading/using tonigh
   anywhere once you have the name from `docker ps`, unlike `docker compose exec` which needs to run
   from the directory holding `docker-compose.yml`) - matches an existing note in CLAUDE.md, just the
   first time it's actually come up live rather than being theoretical.
-- **Real formatting bug in the extracted review text, caught from a live screenshot**: `review_text`
-  had one line break per *printed column line* (PyMuPDF's block text puts a `\n` at every line-wrap,
-  not at paragraph breaks) - rendered as dozens of tiny choppy paragraphs both on the public show
-  page and in the moderation queue's Edit fields textarea. Fixed at the source
-  (`extract_historical_reviews.py` now joins wrapped lines with a space, not `\n` - there's no
-  reliable signal in this dataset for where a genuine paragraph break was, so a review reads as one
-  continuous piece, matching how it's actually laid out in the magazine). `load_historical_reviews.py`
-  can now also refresh an already-loaded *pending* review's text on a re-run (never touches an
-  approved one) so the fix reaches the 44 already-loaded-but-still-pending rows too, not just future
-  extractions - re-ran it locally and confirmed all 44 came back clean.
+- **Real formatting bug in the extracted review text, caught from a live screenshot, fixed in two
+  passes**: `review_text` had one line break per *printed column line* (PyMuPDF's block text puts a
+  `\n` at every line-wrap, not at paragraph breaks) - rendered as dozens of tiny choppy paragraphs
+  both on the public show page and in the moderation queue's Edit fields textarea.
+  - **First pass**: joined wrapped lines with a space instead of `\n` - a real improvement, but Darragh
+    correctly flagged the result as one giant undifferentiated block per review, still not right for
+    a 600+ word review.
+  - **Second pass**: real paragraph detection, using the PDF's own justified-text convention - a
+    paragraph's last line is never stretched to fill the column, so a line noticeably narrower than
+    its block's normal width marks a paragraph end. Calibrated against actual PDF line bounding boxes
+    (not guessed) on a real review. Width alone wasn't reliable on its own though - it produced
+    single-word "paragraphs" ("many" / "different" / "characters") where an inline image temporarily
+    narrowed a block's column - fixed by also requiring the short line to end a complete sentence
+    (real terminal punctuation), which only a genuine paragraph break can do. Swept all 47 pilot
+    reviews afterward: 46 came back as clean, well-formed paragraphs; the handful of short paragraphs
+    left are genuine one-line stylistic beats ("Elvis has left the Building!"), not artifacts.
+  `load_historical_reviews.py` can also refresh an already-loaded *pending* review's text on a re-run
+  (never touches an approved one) so each fix reached already-loaded rows too, not just future
+  extractions - re-ran it locally after both passes and confirmed the rows came back clean each time.
 - **Adjudicator season-assignment grid reworked** per Darragh's UX complaint (too tall, too much
   wasted space per row) - did the two changes he explicitly greenlit without a mockup this time
   ("just get ahead and do 1+3, i trust you"):
