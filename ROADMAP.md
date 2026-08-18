@@ -5,6 +5,32 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
+## Start here (updated 2026-08-18)
+
+**Deployed state**: last pushed commit is `ab19219` ("Support a real mid-season adjudicator
+change, fix the 09/10 grid gap") - **not yet redeployed**. Confirm with Darragh whether he's
+redeployed via Portainer before assuming any of Round 22's fixes are live. After redeploy, check
+`/admin/adjudicators` still shows every row Darragh already hand-entered - the migration is additive
+and tested, but worth a glance since he was actively entering data through the *old* grid mid-session.
+
+**Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
+(2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
+below.
+
+**Next build priorities, in order:**
+1. **Step 4 - historical review import** (Round 21/22 below has the full plan + two published
+   mockups: [admin grid + moderation queue](https://claude.ai/code/artifact/d206e4c8-c213-4370-900d-70df1c441db7),
+   [reviews page layout options](https://claude.ai/code/artifact/4381435c-782f-4d8a-bccc-a459c40ef8ba)) -
+   own session, pilot on one small season end-to-end before running the full 920-review archive
+   through. The extracted/verified data itself lives in a published report:
+   [Showtimes Archive Report](https://claude.ai/code/artifact/2a9a4602-f06a-4906-a0a7-276fee40ad4a).
+2. **Round 2 from the original site audit** - Stats page reframing (already scoped since 2026-08-05,
+   still not built, unrelated to the adjudicator/archive work).
+3. Everything else in the long-standing backlog is unchanged: adjudicator planning calendar,
+   remaining historical-production backfill (19 of 23 researched societies), edit history/versioning
+   for society self-edits, costume/prop rental listings, a staging/test environment, the formal
+   `LAUNCH.md` spec. See the "Parked" sections further down for detail on each.
+
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute
   volume path fix, `aims-backup` sidecar, HBS3 off-NAS backup, startup guard).
