@@ -9,14 +9,15 @@ phase changes.
 
 **Deployed state**: last confirmed-live commit is `e929cb5` (Round 22 mid-season adjudicators,
 Round 23 stats reframing, Round 24 Step 4 pilot) - deployed timestamp on `/suggestions` read
-"18 Aug 2026, 21:11" that evening. **Round 25 (review-text formatting fix + adjudicator grid
-rework, commits `4d7cd39`/`92f934d`) is pushed but not yet redeployed** - confirm with Darragh
-before assuming it's live. If the 47 pilot reviews were already loaded into production before this
-redeploy, re-run `load_historical_reviews.py` once more after redeploying - it'll refresh any
-still-pending review's text with the corrected (no-longer-choppy) version, and is safe to run
-repeatedly either way (`docker exec <container-name> python load_historical_reviews.py --db
-/data/aims.db` - use plain `docker exec`, not `docker compose exec`, unless already in the
-directory holding `docker-compose.yml`; get the container name from `docker ps`).
+"18 Aug 2026, 21:11" that evening. **Everything since then - Round 25 (review-text formatting +
+adjudicator grid rework) and Round 26 (extraction extended to 4 more seasons, commits `4d7cd39`
+through `dfaa8a0`) - is pushed but not yet redeployed.** Confirm with Darragh before assuming any
+of it is live. After redeploying, re-run `load_historical_reviews.py` regardless of whether the
+pilot reviews were already loaded - it both refreshes any still-pending review's text with the
+now-correctly-paragraphed version *and* loads the ~315 newly-extracted reviews from Round 26
+(`docker exec <container-name> python load_historical_reviews.py --db /data/aims.db` - use plain
+`docker exec`, not `docker compose exec`, unless already in the directory holding
+`docker-compose.yml`; get the container name from `docker ps`). Safe to run repeatedly either way.
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -294,6 +295,59 @@ Same evening, after Darragh redeployed and started actually loading/using tonigh
     duplicates), restored it, watched it pass.
 - Test suite grew 238 -> 241 (the season-string duplication bug, the completed-seasons split
   rendering correctly, and the mid-season `<details>` open/closed state).
+
+**Round 26 - extending the historical review archive past the pilot season (2026-08-18):**
+Darragh asked to load in the rest of the 920-review archive. Turned into real reconnaissance
+before any bulk loading, once it became clear the pilot's parser doesn't generalize cleanly -
+checkpointed with Darragh mid-way ("newest to oldest, stop when it breaks") rather than guessing
+at how far to push it.
+- **`extract_historical_reviews.py` now auto-discovers every issue from its own front cover**
+  (issue number + date) instead of a hand-maintained list - far more reliable than anything in the
+  ShowReviews section itself, which drifts a lot more across 14 years of layout changes. Dedupes
+  issues that exist twice under two different filenames (confirmed by matching page counts/file
+  size, not assumed) without wrongly treating AIMS's own occasional duplicate-printed issue number
+  (two real, different issues both say "Issue 64" in print - a genuine editorial slip, not a
+  parsing bug) as the same thing.
+- **Two real, high-impact bugs found while surveying the full archive, both fixed**:
+  - A literal "Reviews" label was getting misread as an adjudicator's own name in older issues,
+    where that word and "ShowReviews" render as one combined text block instead of two separate
+    ones.
+  - An adjudicator's sign-off doesn't always match the header banner's spelling of their name
+    across 14 years of hand-typed issues (e.g. "Ritchie Ryan" in the header vs "Richie Ryan" on
+    the actual sign-off line, in the same issue) - exact string matching silently dropped every
+    review signed with the variant spelling, sometimes an entire tier's worth in one issue. Fixed
+    with a close-but-not-exact match (safe here specifically because sign-off lines are short,
+    distinctive full names, not generic text a false match could plausibly collide with) - found
+    two more real repeated typos this way while auditing the result ("Gred Currid" for "Greg
+    Currid", appearing 64 times across real printed issues of that era), corrected both.
+  - A season with no adjudicator names in its own issue's header now falls back to whichever names
+    were found for other issues in the same season, by majority vote across the data itself
+    (not hand-typed) - covers the handful of issues where that specific layout gap exists.
+- **Found the real blocker while running this at scale**: older issues (confirmed as far back as
+  2010-11) use a different heading order entirely - `Show Title` (Title Case, not ALL-CAPS) then
+  `Society Name` then `Venue, City`, the reverse of the pilot's `Society Name` then `ALL-CAPS
+  TITLE` - so the current parser, which leans entirely on the ALL-CAPS line to find where a review
+  starts, finds nothing there. Not attempted this round - would need a second heading parser, not
+  a tweak to the first.
+- **Checkpointed with Darragh once this was clear** rather than guessing how far back to push -
+  chose "newest to oldest, stop when it breaks." Ran the (now-fixed) parser across the full
+  archive to see exactly where quality holds up: turned out to be genuinely uneven rather than a
+  single clean date cutoff (some individual issues in the 2012-2015 range yield only 1-2 reviews
+  even though the *format* nominally matches - a distinct, not-yet-diagnosed issue, separate from
+  the older title-first layout). **Only loaded what checked out at the pilot's own quality bar**:
+  seasons 16/17 (101 reviews), 17/18 (76), 18/19 (87), and the rest of 22/23 beyond the pilot's
+  original 4 issues (now 98 total for that season) - 353 reviews net, zero with a suspiciously
+  short body on a full scan. `historical_reviews_pilot.json` now holds this expanded set in place
+  of the original 47.
+- Loaded locally: `historical_reviews` now holds 362 rows total (1 approved, 1 rejected, 360
+  pending - 148 need a society matched, 212 will create a skeleton show on approval). Test suite
+  held at 241 (no new app-level logic this round, just extraction quality) - full suite re-run
+  clean after loading.
+- **Not done, real remaining scope for a future round**: seasons 09/10-15/16 and 19/20-21/22 (the
+  rest of the archive, ~200+ more reviews once the older-format parser exists) still need work -
+  the title-first heading format for the oldest years, and root-causing the uneven per-issue yields
+  in the 2012-2015 range specifically. Both are scoped findings, not vague TODOs - see the parser's
+  own docstring and this entry for what's already known about each.
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute
