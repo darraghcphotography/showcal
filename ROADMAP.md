@@ -7,17 +7,16 @@ phase changes.
 
 ## Start here (updated 2026-08-18)
 
-**Deployed state**: Darragh redeployed via Portainer the evening of 2026-08-18 - confirmed live
-(deployed timestamp on `/suggestions` reads "18 Aug 2026, 21:11"; `/admin/historical-reviews`
-resolves to the login page, not a 404). This covers everything through commit `e929cb5` - Round 22
-(mid-season adjudicators), Round 23 (stats reframing), and Round 24 (Step 4 pilot: schema,
-extraction/moderation queue, the stats double-count fix). **Still outstanding**: loading the 47
-pilot reviews into production - `load_historical_reviews.py` needs running once in the container
-(`docker compose exec aims-web python load_historical_reviews.py --db /data/aims.db` from the
-directory holding `docker-compose.yml`, or `docker exec aims-web python load_historical_reviews.py
---db /data/aims.db` from anywhere once you have the container name from `docker ps`) - it's a
-script, not something the app runs on its own on startup. Extraction and loading are two separate
-scripts on purpose (see Round 24 below) - only the loader needs to run in the container.
+**Deployed state**: last confirmed-live commit is `e929cb5` (Round 22 mid-season adjudicators,
+Round 23 stats reframing, Round 24 Step 4 pilot) - deployed timestamp on `/suggestions` read
+"18 Aug 2026, 21:11" that evening. **Round 25 (review-text formatting fix + adjudicator grid
+rework, commits `4d7cd39`/`92f934d`) is pushed but not yet redeployed** - confirm with Darragh
+before assuming it's live. If the 47 pilot reviews were already loaded into production before this
+redeploy, re-run `load_historical_reviews.py` once more after redeploying - it'll refresh any
+still-pending review's text with the corrected (no-longer-choppy) version, and is safe to run
+repeatedly either way (`docker exec <container-name> python load_historical_reviews.py --db
+/data/aims.db` - use plain `docker exec`, not `docker compose exec`, unless already in the
+directory holding `docker-compose.yml`; get the container name from `docker ps`).
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -242,6 +241,50 @@ rather than building the whole thing blind.
   verification, one rejected, one edited/matched, 44 still pending) via `extract_historical_reviews.py`;
   production needs the migration (automatic on next redeploy) *and* that script run manually
   afterward (it's a one-off loader, not something the app runs itself).
+
+**Round 25 - post-redeploy fixes: review formatting, adjudicator grid rework (2026-08-18):**
+Same evening, after Darragh redeployed and started actually loading/using tonight's features.
+- **Redeploy confirmed live** (`/suggestions` deployed timestamp read "18 Aug 2026, 21:11";
+  `/admin/historical-reviews` resolves to the login page, not a 404).
+- **`docker compose exec` failed with "no configuration file provided"** when Darragh tried to run
+  the loader from the NAS shell - pointed him at `docker exec <container-name>` instead (works from
+  anywhere once you have the name from `docker ps`, unlike `docker compose exec` which needs to run
+  from the directory holding `docker-compose.yml`) - matches an existing note in CLAUDE.md, just the
+  first time it's actually come up live rather than being theoretical.
+- **Real formatting bug in the extracted review text, caught from a live screenshot**: `review_text`
+  had one line break per *printed column line* (PyMuPDF's block text puts a `\n` at every line-wrap,
+  not at paragraph breaks) - rendered as dozens of tiny choppy paragraphs both on the public show
+  page and in the moderation queue's Edit fields textarea. Fixed at the source
+  (`extract_historical_reviews.py` now joins wrapped lines with a space, not `\n` - there's no
+  reliable signal in this dataset for where a genuine paragraph break was, so a review reads as one
+  continuous piece, matching how it's actually laid out in the magazine). `load_historical_reviews.py`
+  can now also refresh an already-loaded *pending* review's text on a re-run (never touches an
+  approved one) so the fix reaches the 44 already-loaded-but-still-pending rows too, not just future
+  extractions - re-ran it locally and confirmed all 44 came back clean.
+- **Adjudicator season-assignment grid reworked** per Darragh's UX complaint (too tall, too much
+  wasted space per row) - did the two changes he explicitly greenlit without a mockup this time
+  ("just get ahead and do 1+3, i trust you"):
+  1. The rarely-used second adjudicator slot (for a real mid-season change) now lives behind a
+     "+ Add a mid-season change" `<details>`, open automatically only when one's already recorded -
+     previously every season/tier cell always showed a second blank dropdown + notes field even
+     though the huge majority of seasons only ever have one adjudicator per tier.
+  2. Seasons with both tiers already fully assigned collapse into their own "N seasons already fully
+     assigned" disclosure below the main table - same collapse pattern as the suggestions board's
+     archived lane and the stats page's earlier-seasons split. Chosen over a simple date-based
+     old/new split since Darragh's actual task right now is bulk-entering *old* seasons (09/10-19/20)
+     - collapsing by completeness surfaces exactly the rows that still need attention regardless of
+     whether "still needs attention" happens to be an old or a recent season.
+  - **A real, previously-invisible bug found while building the completeness split, not assumed**:
+    `_adjudicator_grid_seasons()`'s 09/10 floor-padding compared two-digit season *strings* with
+    `<=`/`<` to decide whether padding was needed - unsafe across the 1999/2000 rollover ('76/77'
+    sorts *after* '09/10' as plain text despite being an earlier season). Once the real awards
+    archive reached back to 1977 (it already had, in production), this silently duplicated every
+    season from 09/10 through the current one in the grid - each one rendered as two separate table
+    rows. Fixed by checking simple list membership instead of string comparison. Verified the fix
+    actually does something: temporarily reverted it, watched the new test fail (116 seasons, 16
+    duplicates), restored it, watched it pass.
+- Test suite grew 238 -> 241 (the season-string duplication bug, the completed-seasons split
+  rendering correctly, and the mid-season `<details>` open/closed state).
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute
