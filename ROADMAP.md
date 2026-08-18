@@ -7,14 +7,17 @@ phase changes.
 
 ## Start here (updated 2026-08-18)
 
-**Deployed state**: last pushed commit is still `ab19219` - **nothing from this session or Round
-22 is deployed yet** (Darragh's at work, can't reach Portainer). Confirm with Darragh before
-assuming any of it is live. After redeploy: check `/admin/adjudicators` still shows every row
-Darragh already hand-entered (Round 22's migration is additive/tested, worth a glance since he was
-entering data through the *old* grid mid-session); and separately, `extract_historical_reviews.py`
-needs running manually in the container (`docker compose exec aims-web python
-extract_historical_reviews.py --db /data/aims.db`) to load the 47 pilot reviews - it's a script, not
-something the app runs on its own on startup.
+**Deployed state**: Darragh redeployed via Portainer the evening of 2026-08-18 - confirmed live
+(deployed timestamp on `/suggestions` reads "18 Aug 2026, 21:11"; `/admin/historical-reviews`
+resolves to the login page, not a 404). This covers everything through commit `e929cb5` - Round 22
+(mid-season adjudicators), Round 23 (stats reframing), and Round 24 (Step 4 pilot: schema,
+extraction/moderation queue, the stats double-count fix). **Still outstanding**: loading the 47
+pilot reviews into production - `load_historical_reviews.py` needs running once in the container
+(`docker compose exec aims-web python load_historical_reviews.py --db /data/aims.db` from the
+directory holding `docker-compose.yml`, or `docker exec aims-web python load_historical_reviews.py
+--db /data/aims.db` from anywhere once you have the container name from `docker ps`) - it's a
+script, not something the app runs on its own on startup. Extraction and loading are two separate
+scripts on purpose (see Round 24 below) - only the loader needs to run in the container.
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -55,7 +58,25 @@ tested; not deployed.** Full session detail below the fold ("Round 24"). Short v
    running the full 920-review archive through. The extracted/verified data itself lives in a published
    report: [Showtimes Archive Report](https://claude.ai/code/artifact/2a9a4602-f06a-4906-a0a7-276fee40ad4a).
 2. ~~Round 2 from the original site audit - Stats page reframing~~ **DONE (Round 23, 2026-08-18)** -
-   see below.
+   see below. **Superseded almost immediately** - see item 2a, flagged the same evening.
+2a. **Stats page needs a full rework, not another patch** - flagged by Darragh 2026-08-18, right
+   after Round 23 shipped the reframing above. His words: the Award Explorer doesn't update when
+   category/tier is changed, the whole page needs a refresh and re-planning with mockups, the
+   information presented is messy, the leaderboards are "unhealthy", and Signature show doesn't add
+   value. **Checked the Explorer bug directly against the live site before logging this**: the
+   backend genuinely does respond correctly to `award_category`/`award_tier` changing (compared two
+   real requests - Best Director correctly returns different names than Best Overall Show) - so
+   this isn't a dead query, the fault is somewhere in the page's own interactivity. Two real leads,
+   not confirmed yet: the Explorer's category/tier dropdowns sit in a *separate* `<form>` from the
+   region/era filter (`stats.html`), so switching category silently drops any region/era selection;
+   and/or a JS error elsewhere on the page could be stopping the `onchange="this.form.submit()"`
+   handlers from firing at all in some browsers. Ruled out the PWA service worker (`sw.js` only
+   caches `/static/` assets, HTML pages always hit the network) so it's not a stale-cache issue.
+   **Next session**: reproduce the actual failure mode first (which browser/device, does *any*
+   dropdown change work), then mockup-first per this repo's established pattern before touching
+   `stats.html`/`info.py` again - this needs real re-planning (what "unhealthy" leaderboards and
+   "messy" information mean in concrete terms, whether Signature show gets cut or reworked), not a
+   quick fix bolted onto the existing layout.
 3. Everything else in the long-standing backlog is unchanged: adjudicator planning calendar,
    remaining historical-production backfill (19 of 23 researched societies), edit history/versioning
    for society self-edits, costume/prop rental listings, a staging/test environment, the formal
