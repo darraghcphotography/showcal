@@ -18,18 +18,55 @@ and tested, but worth a glance since he was actively entering data through the *
 below.
 
 **Next build priorities, in order:**
-1. **Step 4 - historical review import** (Round 21/22 below has the full plan + two published
-   mockups: [admin grid + moderation queue](https://claude.ai/code/artifact/d206e4c8-c213-4370-900d-70df1c441db7),
-   [reviews page layout options](https://claude.ai/code/artifact/4381435c-782f-4d8a-bccc-a459c40ef8ba)) -
-   own session, pilot on one small season end-to-end before running the full 920-review archive
-   through. The extracted/verified data itself lives in a published report:
-   [Showtimes Archive Report](https://claude.ai/code/artifact/2a9a4602-f06a-4906-a0a7-276fee40ad4a).
+1. **Step 4 - historical review import** - fully scoped as of the "Step 4 scoping session" below
+   (2026-08-18): full review text public, shown on the show's own page; browse via adjudicator pages
+   (Option A) + a new `/reviews` search hub (Option B); moderation-queue mockup accepted as-is
+   ([admin grid + moderation queue](https://claude.ai/code/artifact/d206e4c8-c213-4370-900d-70df1c441db7)).
+   Ready for its own build session - pilot on one small season end-to-end (Claude picks which) before
+   running the full 920-review archive through. The extracted/verified data itself lives in a published
+   report: [Showtimes Archive Report](https://claude.ai/code/artifact/2a9a4602-f06a-4906-a0a7-276fee40ad4a).
 2. ~~Round 2 from the original site audit - Stats page reframing~~ **DONE (Round 23, 2026-08-18)** -
    see below.
 3. Everything else in the long-standing backlog is unchanged: adjudicator planning calendar,
    remaining historical-production backfill (19 of 23 researched societies), edit history/versioning
    for society self-edits, costume/prop rental listings, a staging/test environment, the formal
    `LAUNCH.md` spec. See the "Parked" sections further down for detail on each.
+
+**Step 4 scoping session - historical review import decisions (2026-08-18):** Planning only, no code -
+reviewed both published mockups (admin grid/moderation queue, reviews page layout options) and got
+Darragh's calls on the open questions before this becomes a real build session:
+- **Full review text will be public**, same as a real archive - Darragh's explicit call, made aware of
+  the copyright flag (the ShowTimes magazine states its own content is AIMS Ltd's copyright, and this
+  site already carries a "not an official AIMS website" disclaimer). Not revisited/hedged - going ahead
+  as full text, public.
+- **The review text itself renders on the show's own page** (`public.show_detail()`/`show_detail.html`),
+  not a separate `/reviews/<id>` page - folds in alongside the existing review-link/adjudication section
+  where a show already has *something* review-related shown. Needs its own design pass during the build
+  session (how it reads alongside the existing "Read the AIMS review" external-link pattern, which stays
+  for recent/23-24-onward shows that only ever have a link, not extracted full text).
+- **Browsing/discovery: Option A + Option B combined**, not the season-archive-style Option C.
+  - **Option A** - refine the existing (admin-only today) adjudicator concept into a real public
+    `/adjudicators/<id>` page grouped by season, with a tier toggle. (Public adjudicator pages already
+    exist as of Round 20 - this is a refinement, not new ground.)
+  - **Option B** - new `/reviews` hub: one searchable/filterable table (season, tier, adjudicator, free
+    text over show/society), linking out to both the show's own page (full text) and the adjudicator's
+    page.
+- **Step 3's mockup (season grid with a substitute slot) is already superseded** - Round 22 built the
+  real mid-season adjudicator grid. Only Step 4's moderation-queue mockup is still live guidance.
+- **Step 4's moderation-queue mockup accepted largely as-is** - same shape as the existing submission
+  queue (Approve & publish / Edit fields / Skip per review), with flags for "show/society need a check"
+  and "no matching show on record" surfaced inline rather than silently dropped. Nothing to change here
+  before building.
+- **Still open, deliberately deferred to the build session itself** (per Darragh's call): which season to
+  pilot end-to-end before running the full 920-review archive through - not pre-decided, Claude picks
+  based on what's cleanest to verify once actually in that session, same reasoning as Round 21's
+  feasibility check (started with the oldest, cleanest-text-layer issue rather than assuming).
+- **Not yet scoped, worth flagging before the build session starts**: the new table's shape (own table,
+  not `shows`/`historical_results` - review text plus a foreign-key-ish link to the matched show/society,
+  season, tier, adjudicator, source issue) and exactly how it coexists with the existing
+  `shows.review_status`/`review_url` fields (a link-only field for 23/24-onward shows that were never in
+  the PDF archive, vs. full extracted text for pre-24/25 shows) - needs a first pass at build time, not
+  guessed here.
 
 **Round 23 - Stats page reframing (2026-08-18):** Built directly (no mockup) since it reuses the
 site's existing GET-param filter-form convention (same pattern as the region filter), not new UI.
