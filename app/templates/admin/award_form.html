@@ -86,7 +86,7 @@
 
   {% if mode == 'edit' %}
     <form method="post" action="{{ url_for('admin.delete_award', award_id=award['id']) }}" class="inline-form"
-          onsubmit="return confirm('Delete this award record? This cannot be undone.');">
+          data-confirm="Delete this award record? This cannot be undone.">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="button-danger">Delete this record</button>
     </form>

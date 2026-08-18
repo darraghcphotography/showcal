@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Something's gone wrong - DC Show Tracker{% endblock %}
+{% block content %}
+  <div class="error-page">
+    <p class="stage-mark">500</p>
+    <h1>Technical difficulties backstage</h1>
+    <p>Something broke on our end, not yours - it's already been logged. Try again in a moment, or head back to somewhere safe.</p>
+    <div class="error-actions">
+      <a href="{{ url_for('public.index') }}">Home</a>
+      <a href="{{ url_for('public.societies_list') }}" class="secondary">Browse societies</a>
+    </div>
+  </div>
+{% endblock %}

@@ -144,6 +144,14 @@ body {
   padding: 0.15rem 0.55rem;
 }
 
+.site-search input {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  width: 9rem;
+}
+.site-search input:focus { width: 12rem; }
+
 .theme-toggle {
   background: none;
   border: 1px solid var(--border);

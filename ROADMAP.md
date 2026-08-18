@@ -786,6 +786,83 @@ find every review a given adjudicator wrote.
   per-adjudicator show list joining correctly on season+tier and excluding other seasons, 404 on an
   unknown id, delete blocked-while-assigned vs. removed-when-unassigned).
 
+## Full site audit + plan of attack (2026-08-17) - reviewed, nothing built yet
+Requested pass at Darragh's request: live site (darraghc.ie/showcal) + codebase, covering UX, security,
+redundant code, stability, feature ideas, and a prioritized order to act on them - published as its own
+document with mockups: https://claude.ai/code/artifact/65dd6ff0-b78a-4f39-bf00-cdd946f3bb10
+- **Real bug found**: every URL the app builds itself via `url_for(_external=True)` comes out `http://`
+  instead of `https://` - Cloudflare Tunnel forwards to the container over plain HTTP and nothing tells
+  Flask the real scheme (no `PREFERRED_URL_SCHEME`/`ProxyFix`). Confirmed live in `sitemap.xml`,
+  `robots.txt`'s `Sitemap:` line, `calendar.ics` event URLs, and show-page `og:image` tags. Real impact:
+  a shared show-page link (the traffic audit's own top usage pattern - individual society pages
+  outperform the directory) likely renders with no poster thumbnail in Slack/WhatsApp/iMessage previews,
+  since most platforms refuse a plain-http image. One existing workaround (`notify.link()`/`SITE_URL`)
+  covers a single admin-only call site, not the others. Not fixed yet - proposed as Round 1's headline
+  item, one-line fix (`PREFERRED_URL_SCHEME` under the existing `is_production` flag).
+- **Confirmed clean**: no SQL injection surface (every dynamic query is parameterized or builds from
+  static fragments; the one f-string touching a table name only ever receives a hardcoded literal), zero
+  `|safe`/`Markup()` usage, CSRF/hashing/cookie flags/rate-limiting/upload validation all correctly in
+  place, dependencies current, no dead code/TODOs.
+- **Smaller findings**: no CSP/Referrer-Policy/Permissions-Policy headers (CSP still blocked on 11 inline
+  `onsubmit` handlers across 9 templates); the "is this show upcoming" duplication flagged in the
+  2026-08-17 audit note is still unfixed; no custom 500 page; no plain `<meta name="description">`; Stats
+  still opens on its most lopsided all-time framing (scoped since 2026-08-05, never shipped); no sitewide
+  search despite two working FTS5 indexes already sitting unused for it.
+- **New feature ideas**: sitewide search (reuses existing FTS), a public Adjudicators directory (natural
+  follow-on to the round above), Event JSON-LD on show pages for Google rich results, bundled
+  custom-500 + extra headers.
+- **Proposed order**: (1) foundation fixes - URL scheme, 500 page, headers, dedupe the upcoming-check;
+  (2) Stats reframing; (3) sitewide search; (4) CSP hardening now that round 1 practiced the exact kind
+  of mechanical change it needs; (5) public Adjudicators page, contingent on Darragh actually filling in
+  season data first. Everything already in the backlog (adjudicator calendar, historical backfill, edit
+  history, costume/prop listings, staging env, LAUNCH.md) is unchanged, just re-surfaced in the doc.
+
+**Round 20 - executed rounds 1, 3, 4, 5 of the audit's plan (2026-08-17):** Darragh asked to skip round 2
+(Stats reframing) for now and build the rest. All four shipped in one session:
+- **Round 1 - foundation fixes**: the http-vs-https bug turned out to need more than the audit doc's
+  proposed one-liner - `PREFERRED_URL_SCHEME` only affects `url_for()` calls made *outside* a request
+  context, which none of these are, so it would have been a no-op. The real fix is Werkzeug's `ProxyFix`
+  (`app/__init__.py`, trusting exactly one hop's `X-Forwarded-Proto`, applied unconditionally since it's
+  a no-op with no such header present - i.e. harmless in local `flask run`/tests). Also shipped: a themed
+  custom 500 page (matching 404's voice), `Referrer-Policy`/`Permissions-Policy` headers, a plain
+  `<meta name="description">` (reusing the existing `og_description` block), and `app/shows.py`'s
+  `is_upcoming()` - de-duplicating `public.py` and `society.py`'s copies (left `info.py`'s version alone;
+  it's a SQL fragment computed across many rows for a stats query, not the same kind of duplication a
+  Python helper could actually fix).
+- **Round 3 - sitewide search**: new `/search` (`public.search()`), spanning `societies_fts` and every
+  show title (current `shows` + the older awards archive, same query shape as `titles_list()`), plus a
+  search box added to the header nav on every page. **Flagging two deviations from the mockup**: it's a
+  full results page you land on after submitting, not a live-typeahead dropdown - matches the site's
+  existing near-zero-JS convention (every other filter is a plain GET form) rather than adding
+  fetch-based live search; and results are grouped into two kinds (Societies / Shows) instead of the
+  mockup's three (Societies / Shows / Awards) - a title's own page (`/titles/<title>`) already surfaces
+  both its production history and its awards together, so a third "Award" result kind with its own link
+  target would have been redundant.
+- **Round 4 - CSP hardening**: all 11 inline `onsubmit="return confirm(...)"` handlers (9 templates) and
+  the one inline `onclick` (society page's copy-code button) replaced with `data-confirm="..."`/
+  `data-copy-target="..."` attributes plus one delegated listener in `base.html`. Shipped a real,
+  nonce-gated `Content-Security-Policy` - a fresh per-request nonce (`app/__init__.py`'s `before_request`,
+  exposed to templates via `csp_nonce`) on every `<script>` tag, `script-src 'self' 'nonce-...'` with no
+  `'unsafe-inline'` (the part that actually matters for XSS protection). `style-src` still allows
+  `'unsafe-inline'` - the site's handful of inline `style="..."` attributes (one with a dynamically
+  computed width, the venues page's progress bar) aren't nonce-able, and CSS-only injection is a much
+  smaller risk than script injection.
+- **Round 5 - public Adjudicators page**: new `/adjudicators` (directory, only adjudicators with at
+  least one real season/tier assignment) and `/adjudicators/<id>` (their published reviews only -
+  deliberately narrower than `/admin/adjudicators/<id>`'s cross-check view, which shows every show in
+  their assigned seasons regardless of review status). A published-review show page now credits
+  "reviewed by X", linking to their page, computed the same way as the admin tool - via the show's own
+  season+section matched against `adjudicator_assignments`, no per-show author field. Same
+  hidden-society exclusion as the homepage/Season Archive/calendar feed. Linked from the footer and the
+  mobile "More" page, and added to `sitemap.xml`.
+- Test suite grew 183 -> 214 (`tests/test_round1_foundation.py`, `tests/test_search.py`,
+  `tests/test_csp.py`, `tests/test_public_adjudicators.py`) - full local preview pass confirmed the CSP
+  nonce matches every `<script>` tag on a real page, zero inline handlers remain anywhere, and the
+  scheme fix actually flips to `https://` when `X-Forwarded-Proto` is present and stays `http://`
+  without it (so local dev is unaffected).
+- Not deployed - Darragh reviews and redeploys via Portainer when ready. Round 2 (Stats reframing)
+  remains open, not attempted this round.
+
 ## UX & feature audit (2026-08-05) - reviewed, nothing built yet
 Requested pass focused on four specific asks, published as its own document (not chat-only):
 https://claude.ai/code/artifact/20e94177-8676-4b83-8242-1d330b08dfde

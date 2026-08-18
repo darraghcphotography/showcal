@@ -61,6 +61,9 @@
       <dd>
         {% if show['review_status'] == 'Published' and show['review_url'] %}
           <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read the AIMS review</a>
+          {% if reviewed_by %}
+            <span class="meta">&middot; reviewed by <a href="{{ url_for('public.adjudicator_detail', adjudicator_id=reviewed_by['id']) }}">{{ reviewed_by['name'] }}</a></span>
+          {% endif %}
         {% else %}
           {{ show['review_status'] }}
         {% endif %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ adjudicator['name'] }} - DC Show Tracker{% endblock %}
+{% block og_description %}Reviews written by {{ adjudicator['name'] }} for AIMS member societies.{% endblock %}
+{% block content %}
+  <p class="meta"><a href="{{ url_for('public.adjudicators_list') }}">&larr; All adjudicators</a></p>
+  <h1>{{ adjudicator['name'] }}</h1>
+  {% if adjudicator['notes'] %}<p class="meta">{{ adjudicator['notes'] }}</p>{% endif %}
+
+  <p class="meta">
+    Judged
+    {% for s in seasons_judged %}{{ s['section'] }} {{ s['season'] }}{% if not loop.last %}, {% endif %}{% endfor %}
+  </p>
+
+  <h2>Reviews</h2>
+  {% if reviews %}
+    {% for r in reviews %}
+      <a class="queue-item" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
+        <span class="primary">{{ r['show'] }}</span>
+        <p class="meta">{{ r['society_name'] }} &middot; {{ r['section'] }} {{ r['season'] }}</p>
+      </a>
+    {% endfor %}
+  {% else %}
+    <p class="meta">No published reviews from {{ adjudicator['name'] }} yet.</p>
+  {% endif %}
+{% endblock %}

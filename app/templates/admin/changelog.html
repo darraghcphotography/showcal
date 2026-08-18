@@ -26,7 +26,7 @@
       </ul>
       <p class="meta">{{ e['created_at'] }}</p>
       <form method="post" action="{{ url_for('admin.delete_changelog_entry', entry_id=e['id']) }}" class="inline-form"
-            onsubmit="return confirm('Delete this changelog entry?');">
+            data-confirm="Delete this changelog entry?">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="button-danger">Delete</button>
       </form>

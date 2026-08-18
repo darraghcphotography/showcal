@@ -58,7 +58,7 @@
             <td>{{ a['season_count'] }}</td>
             <td>
               <form method="post" action="{{ url_for('admin.delete_adjudicator', adjudicator_id=a['id']) }}"
-                    onsubmit="return confirm('Delete {{ a['name'] }}?');">
+                    data-confirm="Delete {{ a['name'] }}?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit">Delete</button>
               </form>

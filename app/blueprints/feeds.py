@@ -173,6 +173,7 @@ def sitemap_xml():
     urls.append((url_for("public.societies_list", _external=True), today))
     urls.append((url_for("info.season_summary", _external=True), today))
     urls.append((url_for("info.stats", _external=True), today))
+    urls.append((url_for("public.adjudicators_list", _external=True), today))
 
     for row in db.execute("SELECT id FROM societies WHERE section != 'Inactive'").fetchall():
         urls.append((url_for("public.society_detail", society_id=row["id"], _external=True), today))

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Adjudicators - DC Show Tracker{% endblock %}
+{% block og_description %}Every AIMS adjudicator on record, and the reviews they've written.{% endblock %}
+{% block content %}
+  <h1>Adjudicators</h1>
+  <p class="meta">AIMS assigns one adjudicator per tier (Gilbert/Sullivan) per season - browse who covered which
+     season, and read their published reviews.</p>
+
+  {% if adjudicators %}
+    {% for a in adjudicators %}
+      <a class="queue-item" href="{{ url_for('public.adjudicator_detail', adjudicator_id=a['id']) }}">
+        <span class="primary">{{ a['name'] }}</span>
+        <p class="meta">{{ a['season_count'] }} season{{ '' if a['season_count'] == 1 else 's' }} judged
+          &middot; {{ review_counts.get(a['id'], 0) }} published review{{ '' if review_counts.get(a['id'], 0) == 1 else 's' }}</p>
+      </a>
+    {% endfor %}
+  {% else %}
+    <p>No adjudicators on record yet.</p>
+  {% endif %}
+{% endblock %}

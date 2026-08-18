@@ -42,7 +42,7 @@
 {% endblock %}
 
 {% block scripts %}
-  <script>
+  <script nonce="{{ csp_nonce }}">
     (function () {
       const csrfToken = document.getElementById("csrf-token").value;
       const total = {{ total }};

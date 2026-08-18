@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <script>
+  <script nonce="{{ csp_nonce }}">
     (function() {
       var t = localStorage.getItem('theme');
       if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
@@ -21,6 +21,7 @@
   <meta property="og:title" content="{{ self.title() }}">
   <meta property="og:url" content="{{ request.url }}">
   <meta property="og:description" content="{% block og_description %}Browse AIMS member societies' show history, upcoming productions, and the AIMS awards archive.{% endblock %}">
+  <meta name="description" content="{{ self.og_description() }}">
   {% block og_image %}{% endblock %}
 </head>
 {% set mobile_chrome = request.blueprint not in ('admin', 'society') %}
@@ -45,6 +46,9 @@
       <a href="{{ url_for('info.awards') }}">Awards</a>
       <a href="{{ url_for('info.stats') }}">Statistics</a>
       <a href="{{ url_for('info.season_summary') }}">Season Archive</a>
+      <form class="site-search" method="get" action="{{ url_for('public.search') }}" role="search">
+        <input type="search" name="q" placeholder="Search" aria-label="Search societies and shows" value="{{ request.args.get('q', '') if request.endpoint == 'public.search' else '' }}">
+      </form>
       {% if society_session %}
         <a href="{{ url_for('society.dashboard') }}">My society</a>
       {% else %}
@@ -87,6 +91,7 @@
       <a href="{{ url_for('public.about') }}">About</a> &middot;
       <a href="https://linktr.ee/darraghc" rel="noopener" target="_blank">Get in touch</a> &middot;
       <a href="{{ url_for('public.titles_list') }}">Shows A-Z</a> &middot;
+      <a href="{{ url_for('public.adjudicators_list') }}">Adjudicators</a> &middot;
       <a href="{{ url_for('public.suggest') }}">Suggest a feature</a> &middot;
       <a href="{{ url_for('public.suggestions_board') }}">Roadmap</a>
       {% if not current_user %}
@@ -119,7 +124,7 @@
       </a>
     </nav>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
       (function() {
         var hint = document.getElementById('iosInstallHint');
         var closeBtn = document.getElementById('iosInstallHintClose');
@@ -137,7 +142,7 @@
       })();
     </script>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('{{ url_for("feeds.service_worker") }}');
@@ -146,7 +151,26 @@
     </script>
   {% endif %}
 
-  <script>
+  <script nonce="{{ csp_nonce }}">
+    // Delegated so a single listener covers every form/button on the page,
+    // including ones rendered after this script runs - lets templates use
+    // data-confirm="..."/data-copy-target="..." instead of an inline
+    // onsubmit/onclick handler, which a Content-Security-Policy blocks.
+    document.addEventListener('submit', function(e) {
+      var msg = e.target.getAttribute && e.target.getAttribute('data-confirm');
+      if (msg && !confirm(msg)) e.preventDefault();
+    });
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest && e.target.closest('[data-copy-target]');
+      if (!btn) return;
+      var field = document.getElementById(btn.getAttribute('data-copy-target'));
+      if (!field) return;
+      navigator.clipboard.writeText(field.value);
+      btn.textContent = 'Copied!';
+    });
+  </script>
+
+  <script nonce="{{ csp_nonce }}">
     (function() {
       var btn = document.getElementById('theme-toggle');
       if (!btn) return;

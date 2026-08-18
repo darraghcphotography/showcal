@@ -9,6 +9,7 @@ from ..constants import SHOW_SECTIONS
 from ..db import get_db
 from ..rate_limit import limiter
 from ..season import season_range
+from ..shows import is_upcoming
 from ..similarity import find_close_title
 from ..uploads import save_poster
 
@@ -102,12 +103,7 @@ def _adjudication_reminder_url(show):
     happened yet and it's actually being adjudicated at all. Public-page
     version of this was removed (see public.show_detail()) since a random
     visitor has no reason to want this reminder on their own calendar."""
-    if (
-        not show["opening_date"]
-        or show["opening_date"] < date.today().isoformat()
-        or show["status"] == "Cancelled"
-        or show["review_status"] == "Not adjudicated"
-    ):
+    if not is_upcoming(show) or show["review_status"] == "Not adjudicated":
         return None
     opening = date.fromisoformat(show["opening_date"])
     reminder = opening - timedelta(weeks=8)

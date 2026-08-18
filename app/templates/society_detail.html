@@ -52,7 +52,7 @@
           <input type="text" id="society-code-message" readonly
                  value="Here's your login code: {{ society_code['code'] }} - enter it here: {{ society_login_url }}"
                  style="width: 100%; max-width: 32rem;">
-          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('society-code-message').value); this.textContent = 'Copied!';">Copy message</button>
+          <button type="button" data-copy-target="society-code-message">Copy message</button>
         </p>
       {% else %}
         <form method="post" action="{{ url_for('admin.generate_society_code', society_id=society['id']) }}" class="inline-form">

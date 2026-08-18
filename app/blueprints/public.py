@@ -11,6 +11,7 @@ from ..db import get_db
 from ..rate_limit import limiter
 from ..search import fts_match_ids
 from ..season import current_season
+from ..shows import is_upcoming as _is_upcoming
 
 bp = Blueprint("public", __name__)
 
@@ -106,6 +107,127 @@ def societies_list():
         selected_section=section,
         q=q,
         show_inactive=show_inactive,
+    )
+
+
+SEARCH_RESULT_LIMIT = 12
+
+
+@bp.route("/search")
+def search():
+    q = request.args.get("q", "").strip()
+    db = get_db()
+    societies = []
+    titles = []
+    if q:
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+        # FTS5 (typo/partial-word tolerant), falling back to a plain LIKE -
+        # same pattern as societies_list()'s own search box.
+        society_ids = fts_match_ids(db, "societies_fts", q)
+        if society_ids is not None:
+            if society_ids:
+                societies = db.execute(
+                    f"SELECT * FROM societies WHERE id IN ({','.join('?' * len(society_ids))}) "
+                    "AND section != 'Inactive' AND NOT hidden ORDER BY name LIMIT ?",
+                    (*society_ids, SEARCH_RESULT_LIMIT),
+                ).fetchall()
+        else:
+            societies = db.execute(
+                "SELECT * FROM societies WHERE name LIKE ? ESCAPE '\\' "
+                "AND section != 'Inactive' AND NOT hidden ORDER BY name LIMIT ?",
+                (f"%{escaped}%", SEARCH_RESULT_LIMIT),
+            ).fetchall()
+
+        # Every matching title from either the current shows table or the
+        # older awards archive, same shape as titles_list()'s own query -
+        # deliberately one "Shows" result kind rather than a separate "Award"
+        # one, since /titles/<title> already surfaces both a show's
+        # production history and its awards together.
+        titles = db.execute(
+            """
+            SELECT show, COUNT(*) AS n FROM (
+                SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved'
+                UNION ALL
+                SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
+            )
+            WHERE show LIKE ? ESCAPE '\\'
+            GROUP BY show ORDER BY show LIMIT ?
+            """,
+            (SHOWS_COVERAGE_START_YEAR, f"%{escaped}%", SEARCH_RESULT_LIMIT),
+        ).fetchall()
+
+    return render_template("search.html", q=q, societies=societies, titles=titles, limit=SEARCH_RESULT_LIMIT)
+
+
+@bp.route("/adjudicators")
+def adjudicators_list():
+    db = get_db()
+    # Only ever an adjudicator with at least one real season/tier assignment -
+    # one added in /admin/adjudicators but never assigned yet has nothing to
+    # show publicly (matches the 404 a direct /adjudicators/<id> link to one
+    # gets below).
+    adjudicators = db.execute(
+        """
+        SELECT adjudicators.id, adjudicators.name, adjudicators.notes, COUNT(*) AS season_count
+        FROM adjudicators
+        JOIN adjudicator_assignments ON adjudicator_assignments.adjudicator_id = adjudicators.id
+        GROUP BY adjudicators.id
+        ORDER BY adjudicators.name
+        """
+    ).fetchall()
+    review_counts = dict(db.execute(
+        """
+        SELECT adjudicator_assignments.adjudicator_id, COUNT(*) AS n
+        FROM adjudicator_assignments
+        JOIN shows ON shows.season = adjudicator_assignments.season
+                  AND shows.section = adjudicator_assignments.section
+        JOIN societies ON societies.id = shows.society_id
+        WHERE shows.review_status = 'Published' AND shows.review_url IS NOT NULL
+          AND shows.moderation_status = 'approved' AND NOT societies.hidden
+        GROUP BY adjudicator_assignments.adjudicator_id
+        """
+    ).fetchall())
+    return render_template("adjudicators_list.html", adjudicators=adjudicators, review_counts=review_counts)
+
+
+@bp.route("/adjudicators/<int:adjudicator_id>")
+def adjudicator_detail(adjudicator_id):
+    db = get_db()
+    adjudicator = db.execute("SELECT * FROM adjudicators WHERE id = ?", (adjudicator_id,)).fetchone()
+    if adjudicator is None:
+        abort(404)
+
+    seasons_judged = db.execute(
+        "SELECT season, section FROM adjudicator_assignments WHERE adjudicator_id = ? ORDER BY season DESC",
+        (adjudicator_id,),
+    ).fetchall()
+    if not seasons_judged:
+        abort(404)
+
+    # Only actual published reviews here (unlike /admin/adjudicators'
+    # cross-check view, which deliberately shows every show in their
+    # assigned seasons regardless of review status) - this page is "here's
+    # what X has written", not an admin verification tool. Same hidden-
+    # society exclusion as the homepage/Season Archive/calendar feed.
+    reviews = db.execute(
+        """
+        SELECT shows.id, shows.show, shows.season, shows.section, shows.opening_date, shows.review_url,
+               societies.name AS society_name
+        FROM shows
+        JOIN adjudicator_assignments ON adjudicator_assignments.season = shows.season
+                                     AND adjudicator_assignments.section = shows.section
+        JOIN societies ON societies.id = shows.society_id
+        WHERE adjudicator_assignments.adjudicator_id = ?
+          AND shows.review_status = 'Published' AND shows.review_url IS NOT NULL
+          AND shows.moderation_status = 'approved' AND NOT societies.hidden
+        ORDER BY shows.opening_date DESC
+        """,
+        (adjudicator_id,),
+    ).fetchall()
+
+    return render_template(
+        "adjudicator_detail.html", adjudicator=adjudicator, seasons_judged=seasons_judged, reviews=reviews,
     )
 
 
@@ -240,11 +362,7 @@ def show_detail(show_id):
 
     # Same "upcoming" definition as the homepage's Upcoming shows list -
     # only nudge for details on shows that haven't happened yet.
-    is_upcoming = (
-        show["status"] != "Cancelled"
-        and show["opening_date"] is not None
-        and show["opening_date"] >= date.today().isoformat()
-    )
+    is_upcoming = _is_upcoming(show)
 
     # The show-dates calendar link is redundant once a show has already
     # happened - gated on the same is_upcoming used for the ticket/poster
@@ -271,9 +389,25 @@ def show_detail(show_id):
         if show["review_status"] != "Not adjudicated":
             adjudication_cutoff = (opening - timedelta(weeks=6)).isoformat()
 
+    # AIMS assigns one adjudicator per tier per season, not per show - so a
+    # published review's likely author is whoever covered this show's own
+    # season+section, looked up via app.admin's adjudicator_assignments
+    # rather than a per-show author field (see /admin/adjudicators).
+    reviewed_by = None
+    if show["review_status"] == "Published" and show["review_url"] and show["section"]:
+        reviewed_by = db.execute(
+            """
+            SELECT adjudicators.id, adjudicators.name
+            FROM adjudicator_assignments
+            JOIN adjudicators ON adjudicators.id = adjudicator_assignments.adjudicator_id
+            WHERE adjudicator_assignments.season = ? AND adjudicator_assignments.section = ?
+            """,
+            (show["season"], show["section"]),
+        ).fetchone()
+
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
-        gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff,
+        gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
     )
 
 

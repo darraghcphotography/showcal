@@ -45,7 +45,7 @@
 
   {% if form %}
     <form method="post" action="{{ url_for('admin.clear_show_info', title=title) }}" class="inline-form"
-          onsubmit="return confirm('Clear all show info for this title?');">
+          data-confirm="Clear all show info for this title?">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="button-danger">Clear show info</button>
     </form>

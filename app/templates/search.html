@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Search - ' ~ q if q else 'Search' }} - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Search</h1>
+
+  <form method="get" class="filter-form">
+    <label>
+      Society or show
+      <input type="search" name="q" value="{{ q }}" placeholder="e.g. Wexford, Oliver!" autofocus>
+    </label>
+    <button type="submit">Search</button>
+  </form>
+
+  {% if q %}
+    <h2>Societies <span class="meta">({{ societies|length }}{{ '+' if societies|length == limit else '' }})</span></h2>
+    {% if societies %}
+      <table class="data-table">
+        <thead><tr><th>Society</th><th>Region</th><th>Section</th></tr></thead>
+        <tbody>
+          {% for s in societies %}
+            <tr>
+              <td><a href="{{ url_for('public.society_detail', society_id=s['id']) }}">{{ s['name'] }}</a></td>
+              <td>{{ s['region'] }}</td>
+              <td>{{ s['section'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="meta">No societies match "{{ q }}".</p>
+    {% endif %}
+
+    <h2>Shows <span class="meta">({{ titles|length }}{{ '+' if titles|length == limit else '' }})</span></h2>
+    {% if titles %}
+      <table class="data-table">
+        <thead><tr><th>Title</th><th>Times performed</th></tr></thead>
+        <tbody>
+          {% for t in titles %}
+            <tr>
+              <td><a href="{{ url_for('public.title_detail', title=t['show']) }}">{{ t['show'] }}</a></td>
+              <td>{{ t['n'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="meta">No shows match "{{ q }}".</p>
+    {% endif %}
+  {% else %}
+    <p class="meta">Search across every society and show on record.</p>
+  {% endif %}
+{% endblock %}

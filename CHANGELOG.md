@@ -57,3 +57,10 @@ Fixed some small helper text around the site that wasn't displaying correctly
 ---
 
 New admin tool: record which adjudicator covered Gilbert and Sullivan each season, and pull up every show they judged to help match reviews to their author
+
+---
+
+New: search box in the header - find any society or show from anywhere on the site
+New: an Adjudicators page - browse who judged each season and read their published reviews, credited on the show's own page too
+Fixed: shared show-page links (posters, calendar files) now use secure https:// links, so link previews on WhatsApp/Slack/iMessage show the poster image properly
+Behind the scenes: a proper error page if something breaks, tighter security headers, and a bit of cleanup - no visible change

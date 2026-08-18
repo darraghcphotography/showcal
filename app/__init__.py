@@ -1,8 +1,10 @@
 import os
+import secrets
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, g
 from flask_wtf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import db as db_module
 from .rate_limit import limiter
@@ -13,6 +15,16 @@ csrf = CSRFProtect()
 
 def create_app(test_config=None):
     app = Flask(__name__)
+
+    # Cloudflare Tunnel terminates TLS and forwards to the container over
+    # plain HTTP, so without this every url_for(..., _external=True) call
+    # (sitemap.xml, robots.txt, the .ics feed, og:image tags) built its URL
+    # as http:// - wrong scheme, and in practice a broken link-preview image
+    # on any platform that refuses to embed a plain-http image. Trusting
+    # exactly one hop's X-Forwarded-Proto (not -Host or -For) is the minimal
+    # fix - safe to apply unconditionally, since with no such header present
+    # (local `flask run`, or the test client) it's a no-op.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1)
 
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("SECRET_KEY", "dev-insecure-change-me"),
@@ -111,6 +123,15 @@ def create_app(test_config=None):
     from datetime import datetime as _datetime, timezone as _timezone
     deployed_at = _datetime.now(_timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
+    @app.before_request
+    def set_csp_nonce():
+        # A fresh per-request token, not a fixed one - a nonce that never
+        # changed would let an attacker who once got a script injected reuse
+        # that same nonce on every future request. Generated up front (not
+        # inside set_security_headers below) so inject_globals() can hand it
+        # to templates in time for their <script nonce="..."> tags.
+        g.csp_nonce = secrets.token_urlsafe(16)
+
     @app.context_processor
     def inject_globals():
         return {
@@ -118,6 +139,7 @@ def create_app(test_config=None):
             "society_session": auth.active_society_code(),
             "asset_version": asset_version,
             "deployed_at": deployed_at,
+            "csp_nonce": g.csp_nonce,
         }
 
     from flask import flash, redirect, request, url_for
@@ -132,6 +154,10 @@ def create_app(test_config=None):
     @app.errorhandler(404)
     def not_found(e):
         return render_template("404.html"), 404
+
+    @app.errorhandler(500)
+    def server_error(e):
+        return render_template("500.html"), 500
 
     from . import analytics
 
@@ -152,6 +178,32 @@ def create_app(test_config=None):
         # moderator into an invisible iframe over /admin.
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
+        # Sends the full referring URL to same-origin links/uploads, but only
+        # the bare origin (no path/query) cross-origin - a show/society page's
+        # URL isn't sensitive, but no reason to leak the full path to a
+        # third-party image host etc.
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        # No browser feature here needs geolocation/camera/mic/payment access.
+        response.headers.setdefault("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=()")
+        # script-src is nonce-gated (every <script> tag carries the same
+        # per-request g.csp_nonce set in set_csp_nonce() above) rather than
+        # 'unsafe-inline', so an injected <script> - the actual XSS risk -
+        # can't execute even if it slips past Jinja's autoescaping somehow.
+        # style-src still allows 'unsafe-inline' - the site's handful of
+        # inline style="..." attributes (some with a dynamically-computed
+        # width, e.g. the venues page's progress bar) aren't a nonce-able
+        # shape, and a CSS-only injection is a much smaller risk than script.
+        response.headers.setdefault("Content-Security-Policy", (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{g.csp_nonce}'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "object-src 'none'"
+        ))
         if is_production:
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return response

@@ -11,7 +11,7 @@
   <p class="meta">For a pair that's too different for the auto-suggestions above to catch (they only flag
      titles differing by at most one extra word) - e.g. "Nativity" vs "Nativity! The Musical".</p>
   <form method="post" action="{{ url_for('admin.merge_duplicate_titles') }}" class="stacked-form"
-        onsubmit="return confirm('Merge these two titles? This renames every occurrence across current shows and the awards archive, and cannot be undone.');">
+        data-confirm="Merge these two titles? This renames every occurrence across current shows and the awards archive, and cannot be undone.">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <datalist id="all-titles">
       {% for t in all_titles %}<option value="{{ t }}">{% endfor %}
@@ -38,7 +38,7 @@
       {% endif %}
     </p>
     <form method="post" action="{{ url_for('admin.bulk_duplicate_titles') }}"
-          onsubmit="return confirm('Apply every merge/dismiss decision selected below? Merges rename every occurrence across current shows and the awards archive, and cannot be undone.');">
+          data-confirm="Apply every merge/dismiss decision selected below? Merges rename every occurrence across current shows and the awards archive, and cannot be undone.">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       {% for a, b, score in candidates %}

@@ -45,7 +45,7 @@
   </p>
 
   <form method="post" action="{{ url_for('admin.delete_legacy_invite_codes') }}" class="inline-form"
-        onsubmit="return confirm('Delete every old AIMS-XXXXXX style code? Codes still attached to a show are left alone. This cannot be undone.');">
+        data-confirm="Delete every old AIMS-XXXXXX style code? Codes still attached to a show are left alone. This cannot be undone.">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="button-danger">Delete old AIMS- style codes</button>
   </form>
@@ -80,7 +80,7 @@
               <button type="submit">{{ 'Revoke' if c['is_active'] else 'Reactivate' }}</button>
             </form>
             <form method="post" action="{{ url_for('admin.delete_invite_code', code_id=c['id']) }}" class="inline-form"
-                  onsubmit="return confirm('Delete this code permanently? This cannot be undone.');">
+                  data-confirm="Delete this code permanently? This cannot be undone.">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="button-danger">Delete</button>
             </form>

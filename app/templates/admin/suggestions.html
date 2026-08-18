@@ -24,7 +24,7 @@
       <button type="submit">Save</button>
     </form>
     <form method="post" action="{{ url_for('admin.delete_suggestion', suggestion_id=s['id']) }}" class="inline-form"
-          onsubmit="return confirm('Delete this suggestion permanently? Useful for a duplicate/junk submission - this cannot be undone.');">
+          data-confirm="Delete this suggestion permanently? Useful for a duplicate/junk submission - this cannot be undone.">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="button-danger">Delete</button>
     </form>
