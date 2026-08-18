@@ -1,6 +1,10 @@
-"""Extract reviews from ShowTimes PDF issues (E:\\showtimes archive) and load
-them into historical_reviews as pending moderation-queue entries - see
-ROADMAP.md's "Step 4" sections for the full design background.
+"""Extract reviews from ShowTimes PDF issues (E:\\showtimes archive) into a
+JSON file - see ROADMAP.md's "Step 4" sections for the full design
+background. Deliberately does NOT touch any database: this needs PyMuPDF
+(not a tracked dependency - production never needs to read a PDF) and the
+PDF archive itself, neither of which exist inside the Docker container, so
+extraction always runs locally. Load the resulting JSON into a database
+(local dev or production) with load_historical_reviews.py instead.
 
 Parsing approach: PDF text is pulled as positioned blocks, not raw reading-
 order text - photo captions and page furniture (masthead, page numbers, the
@@ -10,18 +14,12 @@ in which case they're the review's sign-off). That sign-off line is what
 actually splits the page text into individual reviews, and identifies each
 review's tier (AIMS assigns one adjudicator per tier per season).
 
-Nothing here writes to shows/societies - every row lands in historical_reviews
-with moderation_status='pending' and is matched against the *existing*
-shows/societies data only to pre-fill a confident (exact-match) society_id/
-show_id, or set a flag for the moderator otherwise. See admin.py's
-/admin/historical-reviews queue for what happens after that.
-
 Usage:
-    py extract_historical_reviews.py [--db aims.db]
+    py extract_historical_reviews.py [--out historical_reviews_pilot.json]
 """
 import argparse
+import json
 import re
-import sqlite3
 import sys
 import unicodedata
 from pathlib import Path
@@ -188,71 +186,9 @@ def extract_issue(filename, source_issue):
     return reviews
 
 
-def get_or_create_adjudicator(db, name):
-    row = db.execute("SELECT id FROM adjudicators WHERE name = ?", (name,)).fetchone()
-    if row:
-        return row[0]
-    return db.execute("INSERT INTO adjudicators (name) VALUES (?)", (name,)).lastrowid
-
-
-def match_society(db, society_raw):
-    """Exact match only (see docs/data-model.md's title-matching convention -
-    this project deliberately never fuzzy-matches). Tries the raw name as
-    printed, then the part before a comma (many issues append a location,
-    e.g. 'Bravo Theatre Group, Loughrea', that isn't part of the society's
-    actual name on record)."""
-    for candidate in (society_raw, society_raw.split(",")[0].strip()):
-        row = db.execute("SELECT id FROM societies WHERE name = ?", (candidate,)).fetchone()
-        if row:
-            return row[0]
-    return None
-
-
-def match_show(db, society_id, season, show_raw):
-    row = db.execute(
-        "SELECT id FROM shows WHERE society_id = ? AND season = ? AND show = ? AND moderation_status = 'approved'",
-        (society_id, season, show_raw),
-    ).fetchone()
-    return row[0] if row else None
-
-
-def load_reviews(db, reviews):
-    inserted = skipped = 0
-    for r in reviews:
-        exists = db.execute(
-            "SELECT 1 FROM historical_reviews WHERE source_issue = ? AND society_raw = ? AND show_raw = ?",
-            (r["source_issue"], r["society_raw"], r["show_raw"]),
-        ).fetchone()
-        if exists:
-            skipped += 1
-            continue
-
-        adjudicator_id = get_or_create_adjudicator(db, r["adjudicator"])
-        society_id = match_society(db, r["society_raw"])
-        show_id = None
-        flag = "needs_check"
-        if society_id is not None:
-            show_id = match_show(db, society_id, r["season"], r["show_raw"])
-            flag = None if show_id is not None else "no_show_match"
-
-        db.execute(
-            """
-            INSERT INTO historical_reviews
-                (season, tier, show_raw, society_raw, adjudicator_id, review_text,
-                 source_issue, show_id, society_id, flag)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (r["season"], r["tier"], r["show_raw"], r["society_raw"], adjudicator_id, r["review_text"],
-             r["source_issue"], show_id, society_id, flag),
-        )
-        inserted += 1
-    db.commit()
-    return inserted, skipped
-
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", default=str(ROOT / "aims.db"))
+    parser.add_argument("--out", default=str(ROOT / "historical_reviews_pilot.json"))
     args = parser.parse_args()
 
     all_reviews = []
@@ -260,12 +196,8 @@ def main():
         all_reviews.extend(extract_issue(filename, source_issue))
     print(f"\n{len(all_reviews)} reviews extracted from {len(ISSUES)} issue(s)")
 
-    db = sqlite3.connect(args.db)
-    inserted, skipped = load_reviews(db, all_reviews)
-    matched = db.execute(
-        "SELECT COUNT(*) FROM historical_reviews WHERE flag IS NULL AND created_at >= datetime('now', '-1 minute')"
-    ).fetchone()[0]
-    print(f"Inserted {inserted}, skipped {skipped} already-loaded. {matched} of this run's inserts matched cleanly.")
+    Path(args.out).write_text(json.dumps(all_reviews, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Wrote {args.out} - load it into a database with load_historical_reviews.py.")
 
 
 if __name__ == "__main__":

@@ -40,10 +40,16 @@ docker compose exec aims-web python import_csv.py --db /data/aims.db --societies
 docker compose exec aims-web python seed_admin.py yourname --role admin --db /data/aims.db
 docker compose exec aims-web python import_awards.py --db /data/aims.db
 docker compose exec aims-web python export_awards.py --db /data/aims.db --csv "/data/AIMS_Awards - Results.csv"
+docker compose exec aims-web python load_historical_reviews.py --db /data/aims.db
 ```
 `export_awards.py` is `import_awards.py`'s inverse (same pattern as `export_csv.py`/`import_csv.py`)
 - run it after a correction made via `/admin/awards`, then pull the file back out (File Station/scp)
 to update the git-tracked copy, same as the CSV export workflow.
+`load_historical_reviews.py` is `extract_historical_reviews.py`'s other half - extraction needs
+PyMuPDF and the ShowTimes PDF archive (`E:\showtimes archive`), neither of which exist in the
+container, so extraction always runs locally (`py extract_historical_reviews.py`) into a git-tracked
+JSON file (`historical_reviews_pilot.json`); only loading that JSON into a database runs in the
+container, same default filename either side so no `--json` override is normally needed.
 Changelog entries (shown on the public `/suggestions` Roadmap page) publish themselves - write a
 new entry into `CHANGELOG.md` (one line per bullet, blocks separated by `---`) and it's live the
 moment that commit gets redeployed, no command needed (`app/changelog_sync.py`, runs once on every
