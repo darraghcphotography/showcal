@@ -68,6 +68,36 @@ Darragh's calls on the open questions before this becomes a real build session:
   the PDF archive, vs. full extracted text for pre-24/25 shows) - needs a first pass at build time, not
   guessed here.
 
+**Step 4 scoping, continued (2026-08-18) - copyright resolved, a real gap found and answered:**
+Published a [mockup](https://claude.ai/code/artifact/76dd6415-a1a8-4dcf-887f-26a69aea0909) of the show
+page/adjudicator page/reviews hub pieces above; two corrections came out of Darragh's reaction to it:
+- **Copyright isn't actually a concern** - Darragh is part of AIMS.ie and manages ShowTimes and the AIMS
+  website himself now. The earlier "worth Darragh's own explicit sign-off given the site's own disclaimer"
+  caution from Round 21 was write-once for third-party content; it doesn't apply here. The review credit
+  becomes a plain citation - "Originally published in AIMS ShowTimes Digital Edition, Issue X, Month Year" -
+  not a hedge.
+- **Real gap found while mocking up "the show's own page": most reviews have no page to live on.**
+  `show_detail()` only exists for real `shows` rows, and most of the 920 reviews are for productions no
+  society has backfilled. Darragh's own answer, pointing at a live example (`/shows/1170`, a society's own
+  self-backfilled 2011/12 show): **a moderator-approved review with no matching show creates a minimal
+  "skeleton" `shows` row** (show/society/season/tier only) so a real page exists - same page type a society
+  gets from backfilling their own history via their login, just moderator-triggered instead of self-service.
+- **A second, independent bug surfaced while working that out**: the society self-service "add a show" form
+  (`society.py`) already lets someone backfill *any* past season into `shows` with **no check against
+  `historical_results`** for an existing award/nomination record on that same production -
+  `SHOWS_COVERAGE_START_YEAR`'s entire job across every stats query is keeping `shows` and
+  `historical_results` from double-counting the same production, and this path already has a hole in that
+  assumption. Not yet confirmed whether it's actually bitten anyone in production (would need a live query
+  to check) - flagged, not fixed, out of scope for this scoping pass.
+- **Resolved**: a skeleton show gets a new `shows.source = 'historical'` (alongside today's
+  `'import'`/`'submission'`), and every stats/leaderboard query explicitly excludes it -
+  `historical_results` stays the one source of truth for counting pre-24/25 productions, unchanged from
+  today. The skeleton row's only job is giving the review a real page to live on, never a second countable
+  production.
+- **Still open, not decided**: what happens when a society later logs in and fills real detail into a show
+  that started as a skeleton - does it just become an ordinary `'submission'` row, or does something need to
+  track "review-verified, detail added later"?
+
 **Round 23 - Stats page reframing (2026-08-18):** Built directly (no mockup) since it reuses the
 site's existing GET-param filter-form convention (same pattern as the region filter), not new UI.
 - **Explorer headline reframed**: "Who's won the most?" -> "Explore any award category" - the
