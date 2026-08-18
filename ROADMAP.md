@@ -332,22 +332,42 @@ at how far to push it.
 - **Checkpointed with Darragh once this was clear** rather than guessing how far back to push -
   chose "newest to oldest, stop when it breaks." Ran the (now-fixed) parser across the full
   archive to see exactly where quality holds up: turned out to be genuinely uneven rather than a
-  single clean date cutoff (some individual issues in the 2012-2015 range yield only 1-2 reviews
-  even though the *format* nominally matches - a distinct, not-yet-diagnosed issue, separate from
-  the older title-first layout). **Only loaded what checked out at the pilot's own quality bar**:
-  seasons 16/17 (101 reviews), 17/18 (76), 18/19 (87), and the rest of 22/23 beyond the pilot's
-  original 4 issues (now 98 total for that season) - 353 reviews net, zero with a suspiciously
-  short body on a full scan. `historical_reviews_pilot.json` now holds this expanded set in place
-  of the original 47.
-- Loaded locally: `historical_reviews` now holds 362 rows total (1 approved, 1 rejected, 360
-  pending - 148 need a society matched, 212 will create a skeleton show on approval). Test suite
-  held at 241 (no new app-level logic this round, just extraction quality) - full suite re-run
-  clean after loading.
+  single clean date cutoff.
+- **Loaded 353 reviews (seasons 16/17-18/19 plus the rest of 22/23) on the strength of a
+  verification pass that turned out to be inadequate - caught by Darragh within minutes of looking
+  at the real queue, not by anything I checked first.** That pass only confirmed review length and
+  paragraph structure; it never validated that the extracted fields were actually plausible.
+  Two real bugs slipped through as a result:
+  - **~28 reviews had the show title and society name swapped** - the older title-first heading
+    format (found and deliberately excluded for 2010-11 earlier this same round) turned out to
+    also recur *within* nominally-modern-format issues (confirmed in Issue 121, May 2017) - not
+    confined to the oldest years the way the initial "stop when it breaks" check assumed.
+  - **At least one review had text from a completely unrelated article mixed into its body** (an
+    interview/bio snippet - "...so I will keep auditioning and working hard...", nothing to do
+    with the actual show) - a longer non-review block that the short-block caption filter doesn't
+    catch, absorbed during heading detection instead of being correctly discarded as furniture.
+  - **Reverted immediately** (`5caa220`) - `historical_reviews_pilot.json` back to the original
+    47-review pilot only, and the 315 newly-loaded rows deleted from the local queue. Nothing had
+    reached production or been approved, so no public damage, but real trust was overclaimed.
+  - **Lesson, not just a fact**: "zero anomalies on a structural scan" is not the same as "correct"
+    - a scan that only checks shape (length, paragraph count) can't catch wrong content in the
+    right shape. Any future re-attempt at seasons beyond the pilot needs field-plausibility checks
+    (does `society_raw` look like a society name, does the review text actually mention its own
+    show) and spot-checks against the real source PDF, not just structural checks, before being
+    called ready to load.
+- Also added (same round, not yet verified live): a bulk-approve action on the moderation queue for
+  reviews that already have a confident society match, so 200+ individually-clicked approvals
+  aren't the only way through a large batch - the 148-vs-212 split it was built against came from
+  the now-reverted data, so it needs re-checking against whatever a corrected re-extraction
+  produces. **A real 500 error surfaced testing this locally** (missing `g.csp_nonce` on the
+  redirect response) - not yet root-caused, flagged here rather than silently left for a future
+  session to rediscover.
 - **Not done, real remaining scope for a future round**: seasons 09/10-15/16 and 19/20-21/22 (the
-  rest of the archive, ~200+ more reviews once the older-format parser exists) still need work -
-  the title-first heading format for the oldest years, and root-causing the uneven per-issue yields
-  in the 2012-2015 range specifically. Both are scoped findings, not vague TODOs - see the parser's
-  own docstring and this entry for what's already known about each.
+  rest of the archive) still need work - the title-first heading format (now known to recur even in
+  "modern" issues, not just the oldest years), the long-block caption-contamination bug, and
+  root-causing the uneven per-issue yields in the 2012-2015 range. All three are scoped findings
+  with real examples attached, not vague TODOs - see this entry and the parser's own docstring.
+  **Any re-attempt needs field-level verification (not just structural) before loading anything.**
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute
