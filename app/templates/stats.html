@@ -53,6 +53,13 @@
         {% endfor %}
       </select>
     </label>
+    <label>
+      Timeframe
+      <select name="era" onchange="this.form.submit()">
+        <option value="recent" {% if era == 'recent' %}selected{% endif %}>Since 23/24</option>
+        <option value="all" {% if era == 'all' %}selected{% endif %}>All-time{% if historical_from %} (since {{ historical_from }}){% endif %}</option>
+      </select>
+    </label>
     {% if selected_region %}
       <a href="{{ url_for('info.stats') }}">Clear</a>
     {% endif %}
@@ -72,14 +79,15 @@
 
   <div class="explorer">
     <div class="explorer-eyebrow">Award Explorer</div>
-    <h2>Who's won the most?</h2>
+    <h2>Explore any award category</h2>
     <p class="explorer-sub">Pick any AIMS award category and a Gilbert/Sullivan tier - production-team
        and cast categories (Director, Musical Director, Choreography, Stage Management, Chorus
        Master/Mistress, and every on-stage award) are won by an individual, not a society. Uses the
-       region filter above too.</p>
+       region and timeframe filters above too.</p>
 
     <form method="get" class="explorer-controls">
       <input type="hidden" name="region" value="{{ selected_region }}">
+      <input type="hidden" name="era" value="{{ era }}">
       <div class="field">
         <label for="award_category">Award category</label>
         <select id="award_category" name="award_category" onchange="this.form.submit()">
@@ -174,43 +182,38 @@
     </details>
   {% endif %}
 
+  {% set era_label = 'since 23/24' if era == 'recent' else ('all time, since ' ~ historical_from if historical_from else 'all time') %}
   <h2>Leaderboards{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  <p class="meta">Showing {{ era_label }} - use the Timeframe filter above to switch.</p>
   <div class="lb-grid">
     <div class="lb-card">
       <h3>Most selected shows</h3>
-      <p class="lb-meta">By distinct societies, since the DC Database (23/24&ndash;current season)</p>
-      {{ rank_list(most_selected_recent_era) }}
+      <p class="lb-meta">By distinct societies, {{ era_label }}</p>
+      {{ rank_list(most_selected_display) }}
     </div>
-    {% if historical_productions %}
-      <div class="lb-card">
-        <h3>Most selected shows, all time</h3>
-        <p class="lb-meta">The same measure, extended back through the AIMS awards archive (since {{ historical_from }})</p>
-        {{ rank_list(most_selected) }}
-      </div>
-    {% endif %}
     <div class="lb-card">
       <h3>Most performed shows</h3>
-      <p class="lb-meta">All time{% if historical_productions %}, including the AIMS awards archive back to {{ historical_from }}{% endif %}</p>
+      <p class="lb-meta">{{ era_label|capitalize }}</p>
       {{ rank_list(most_performed) }}
     </div>
     <div class="lb-card">
       <h3>Most prolific societies</h3>
-      <p class="lb-meta">Total real productions ever staged, including the AIMS awards archive</p>
+      <p class="lb-meta">Total real productions staged, {{ era_label }}</p>
       {{ rank_list(most_prolific_society, linked=false) }}
     </div>
     <div class="lb-card">
       <h3>Most award wins</h3>
-      <p class="lb-meta">Every category win counted, across the whole archive</p>
+      <p class="lb-meta">Every category win counted, {{ era_label }}</p>
       {{ rank_list(most_award_wins, linked=false) }}
     </div>
     <div class="lb-card">
       <h3>Most nominated, never won</h3>
-      <p class="lb-meta">At least 3 nominations on record, zero wins</p>
+      <p class="lb-meta">At least 3 nominations on record, zero wins, {{ era_label }}</p>
       {{ rank_list(most_nominated_no_wins, linked=false) }}
     </div>
     <div class="lb-card">
       <h3>Win-rate leaderboard</h3>
-      <p class="lb-meta">Wins as a share of nominations (minimum 5 nominations)</p>
+      <p class="lb-meta">Wins as a share of nominations (minimum 5 nominations), {{ era_label }}</p>
       {{ rank_list_pct(win_rate_leaderboard) }}
     </div>
   </div>

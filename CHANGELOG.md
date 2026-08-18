@@ -1,3 +1,4 @@
+Stats page: leaderboards now default to "since 23/24" instead of all-time, with a Timeframe toggle to see the full historical picture
 Stats page: new interactive Award Explorer - pick any award category to see who's won it most
 Every leaderboard redesigned with ranked medal-style badges
 Awards page: pagination and cleaner display

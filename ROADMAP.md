@@ -24,12 +24,30 @@ below.
    own session, pilot on one small season end-to-end before running the full 920-review archive
    through. The extracted/verified data itself lives in a published report:
    [Showtimes Archive Report](https://claude.ai/code/artifact/2a9a4602-f06a-4906-a0a7-276fee40ad4a).
-2. **Round 2 from the original site audit** - Stats page reframing (already scoped since 2026-08-05,
-   still not built, unrelated to the adjudicator/archive work).
+2. ~~Round 2 from the original site audit - Stats page reframing~~ **DONE (Round 23, 2026-08-18)** -
+   see below.
 3. Everything else in the long-standing backlog is unchanged: adjudicator planning calendar,
    remaining historical-production backfill (19 of 23 researched societies), edit history/versioning
    for society self-edits, costume/prop rental listings, a staging/test environment, the formal
    `LAUNCH.md` spec. See the "Parked" sections further down for detail on each.
+
+**Round 23 - Stats page reframing (2026-08-18):** Built directly (no mockup) since it reuses the
+site's existing GET-param filter-form convention (same pattern as the region filter), not new UI.
+- **Explorer headline reframed**: "Who's won the most?" -> "Explore any award category" - the
+  leaderboard-picker mechanic itself already de-personalizes the "who's #1" framing per category;
+  the headline was the last piece still phrased as a leaderboard.
+- **New "Since 23/24" / "All-time" Timeframe toggle**, same GET-param/select pattern as the Region
+  filter, applied to the Award Explorer and all six Leaderboards cards (most selected, most
+  performed, most prolific societies, most award wins, most nominated-never-won, win-rate).
+  **Defaults to "Since 23/24"** - a real (smaller, closer) set of numbers rather than the full
+  58-years-of-Wexford-dominance picture, without hiding it: all-time is one click away and unchanged
+  in what it shows. Reused `SHOWS_COVERAGE_START_YEAR` (already the site's "recent era" boundary) as
+  the cutoff for every leaderboard query. Collapsed the old always-both "Most selected shows" /
+  "Most selected shows, all time" pair of cards into one card driven by the same toggle, consistent
+  with the other five.
+- Test suite grew 225 -> 229 (`tests/test_stats_and_season_filters.py`: headline reframed, leaderboards
+  default to recent-era, Explorer respects `era`, invalid `era` falls back to recent).
+- Not deployed yet, same as Rounds 21/22 - Darragh can't reach Portainer remotely right now.
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute

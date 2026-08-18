@@ -61,7 +61,7 @@ def test_season_page_hides_cancelled_shows_when_requested(client, db):
     assert "Still On" in body
 
 
-def _add_award(db, category_name, result, tier, society_name=None, nominee_name=None, year=2020):
+def _add_award(db, category_name, result, tier, society_name=None, nominee_name=None, year=2025):
     db.execute(
         "INSERT INTO historical_results (year, tier, category_name, result, society_name, nominee_name, source) "
         "VALUES (?, ?, ?, ?, ?, ?, 'manual')",
@@ -123,6 +123,40 @@ def test_award_leaderboard_merges_choreography_and_choreographer(client, db):
     body = client.get("/stats?award_category=Best+Choreography").get_data(as_text=True)
     assert "Old Name Award" in body
     assert '<span class="rank-n">2</span>' in body
+
+
+def test_stats_headline_reframed(client):
+    body = client.get("/stats").get_data(as_text=True)
+    assert "Who's won the most?" not in body
+    assert "Explore any award category" in body
+
+
+def test_leaderboards_default_to_recent_era(client, db):
+    _add_award(db, "Best Overall Show", "Winner", "Gilbert", society_name="Old Timer Society", year=1980)
+    db.commit()
+
+    recent = client.get("/stats").get_data(as_text=True)
+    assert "Since 23/24" in recent
+    assert "Old Timer Society" not in recent
+
+    all_time = client.get("/stats?era=all").get_data(as_text=True)
+    assert "Old Timer Society" in all_time
+
+
+def test_explorer_respects_era_filter(client, db):
+    _add_award(db, "Best Director", "Winner", "Gilbert", nominee_name="Old Adjudicator Pick", year=1980)
+    db.commit()
+
+    recent = client.get("/stats?award_category=Best+Director").get_data(as_text=True)
+    assert "Old Adjudicator Pick" not in recent
+
+    all_time = client.get("/stats?award_category=Best+Director&era=all").get_data(as_text=True)
+    assert "Old Adjudicator Pick" in all_time
+
+
+def test_invalid_era_falls_back_to_recent(client, db):
+    body = client.get("/stats?era=nonsense").get_data(as_text=True)
+    assert 'value="recent" selected' in body
 
 
 def test_award_leaderboard_invalid_category_falls_back_to_default(client, db):
