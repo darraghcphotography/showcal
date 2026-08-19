@@ -5,19 +5,25 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
-## Start here (updated 2026-08-18)
+## Start here (updated 2026-08-19)
 
 **Deployed state**: last confirmed-live commit is `e929cb5` (Round 22 mid-season adjudicators,
 Round 23 stats reframing, Round 24 Step 4 pilot) - deployed timestamp on `/suggestions` read
 "18 Aug 2026, 21:11" that evening. **Everything since then - Round 25 (review-text formatting +
-adjudicator grid rework) and Round 26 (extraction extended to 4 more seasons, commits `4d7cd39`
-through `dfaa8a0`) - is pushed but not yet redeployed.** Confirm with Darragh before assuming any
-of it is live. After redeploying, re-run `load_historical_reviews.py` regardless of whether the
-pilot reviews were already loaded - it both refreshes any still-pending review's text with the
-now-correctly-paragraphed version *and* loads the ~315 newly-extracted reviews from Round 26
+adjudicator grid rework), Round 26 (extraction extended and then reverted after real bugs surfaced),
+and Round 27 (full archive re-extracted and field-verified, see below) - is pushed but not yet
+redeployed.** Confirm with Darragh before assuming any of it is live. After redeploying, re-run
+`load_historical_reviews.py` regardless of whether reviews were already loaded - it both refreshes
+any still-pending review's text and loads whatever's new in `historical_reviews_pilot.json`
+(currently the Round 27 verified set, 864 reviews across the full archive)
 (`docker exec <container-name> python load_historical_reviews.py --db /data/aims.db` - use plain
 `docker exec`, not `docker compose exec`, unless already in the directory holding
 `docker-compose.yml`; get the container name from `docker ps`). Safe to run repeatedly either way.
+**None of these 864 reviews have been approved/published by a moderator yet** - they're sitting in
+the local `aims.db` queue (`/admin/historical-reviews`) for Darragh's own pass before deciding on
+the real production import. See Round 27 below for the full verification story - seven re-extraction
+passes, each catching a real bug the previous one missed, including one self-inflicted regression
+caught and fixed within the same session.
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -368,6 +374,67 @@ at how far to push it.
   root-causing the uneven per-issue yields in the 2012-2015 range. All three are scoped findings
   with real examples attached, not vague TODOs - see this entry and the parser's own docstring.
   **Any re-attempt needs field-level verification (not just structural) before loading anything.**
+
+**Round 27 - re-attempting the full archive with real field-level verification (2026-08-18/19):**
+Darragh's instruction going in: "rigorously check and validate the reviews... take as long as you
+need to do it meticulously" - explicitly not a rush job, and not treated as one. Re-extracted the
+full archive **seven times** (v7 through v13), each pass triggered by a real bug caught spot-
+checking the *previous* pass's output against the actual source PDF - not by trusting a structural
+scan, per Round 26's own lesson.
+- **v7 - the swallow bug**: when a society wasn't in `societies.csv` (a defunct/historical one),
+  the no-confident-match fallback heading parser had no real stopping condition and kept consuming
+  lines as "society name" until it hit an ALL-CAPS/large-font line - which, for ordinary body
+  prose, never comes. Ate up to 5 lines of the review's own opening sentences into `society_raw`
+  and lost them from the published text entirely (Issue 76 April 2012, "Fusion Theatre" - the
+  review's real opening line, "If I could time travel...", had vanished). Fixed to cap at the
+  society line plus one optional venue line, same as the confident-match path already does.
+- **v8/v9 - a non-review feature parsed as a fake review, then a self-inflicted regression fixing
+  it**: "Top Three Tunes" (a member's favourite-songs write-up) sits between the masthead and the
+  real ShowReviews banner in some issues and was getting swept into the body as if it were a
+  review (Issue 141 Summer 2019 - `society_raw` became the feature's own tagline, `show_raw`
+  became the member's name). Root cause traced two levels deep: the season/adjudicator-name lines
+  themselves were being missed too (falling back to majority-vote names) because the fixed
+  120pt-from-top cutoff didn't reach them either - fixed by matching header content (year-range,
+  "Gilbert/Sullivan Section") by *text* as well as position, and sorting the matched blocks into
+  real reading order (PDF block order doesn't reliably match visual position - confirmed
+  responsible for a wrong name/tier pairing on its own). Fixing *that* exposed a missing
+  `re.MULTILINE` silently breaking the content match on wrapped text. **Then a self-inflicted
+  regression**: the name-shape check written for this used an ASCII-only character class,
+  silently dropping every accented name ("Ciarán Mooney") and breaking sign-off matching across
+  several whole 2017-18 issues (-42 reviews) - caught only by diffing the new run's per-issue
+  counts against the prior one, not by the total looking wrong. Fixed with a Unicode-safe
+  `str.isupper()` check instead of an `[A-Z]` regex class.
+- **v10/v11 - the same contamination pattern recurring under different names**: "Top Three Tunes"
+  reappeared in a different issue *without* the slash that the first fix keyed on, and turned out
+  to sit in an inconsistent position relative to the real adjudicator name across issues (before
+  it in one, immediately after in another) - no single positional rule (oldest-first, most-recent-
+  first) works in every case. Landed on treating name-to-Section assignment as "most recently seen
+  name wins" (a stack, not a queue) as the general fix, which incidentally also explains a
+  previously-unexplained count jump (Issue 106 Summer 2015, 13 -> 23 reviews) - a *third* recurring
+  heading, "Regional Round-Up", was resolved by the same stack-based fix, confirmed against the
+  source PDF's own block layout rather than just trusted because the count looked plausible.
+- **v12 - a general fix tried and reverted**: attempted to replace one-off heading blacklists with
+  a general mechanism - cross-validate each parsed name against the season's own majority-vote
+  consensus (built from every other issue in the same season) and auto-correct on disagreement.
+  **This silently corrupted three previously-correct issues** (124-126) by importing a consensus
+  vote scoped to the wrong season - some issues' own in-body season detection doesn't agree with
+  which season they really belong to, and the vote isn't per-(tier-pair), so a name correct for
+  one tier can still get overwritten by data bleeding in from a different, wrongly-bucketed season.
+  A wrong correction that looks confident is worse than no correction - reverted in v13 in favour
+  of two direct, individually source-PDF-verified exclusions ("News" alongside "Top Three Tunes")
+  rather than a broader automatic mechanism.
+- **Final state (v13, 864 reviews)**: zero issues skipped, diffed clean against the last-known-good
+  baseline at every step (not just re-run and re-trusted), all 243 tests pass. Structural
+  verification (`empty society_raw`, `not-canonical society`, `venue-shaped show_raw`, `<300-char
+  review`) all at or near zero, with every non-zero category spot-checked against source PDFs
+  rather than accepted on the numbers alone - e.g. the "no title mentioned in body" category is
+  confirmed a false alarm of the check itself (pun-heavy reviews that never literally repeat the
+  show's title), not an extraction problem.
+- `historical_reviews_pilot.json` updated to the verified 864-review set and loaded into the
+  **local** `aims.db` only (836 inserted, 27 already-loaded from earlier testing, 1 refreshed) -
+  production untouched. Committed but not deployed; not yet approved/published by a moderator.
+  Ready for Darragh's own pass through `/admin/historical-reviews` before deciding on the real
+  production import.
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute

@@ -129,6 +129,49 @@ def test_skip_rejects_without_touching_shows(client, db):
     assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 0
 
 
+def test_bulk_approve_publishes_only_matched_no_show_match_reviews(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    login_as(client, admin_id)
+    matched_1 = seed_historical_review(db, society_id=society_id, show_raw="Show One", flag="no_show_match")
+    matched_2 = seed_historical_review(db, society_id=society_id, show_raw="Show Two", flag="no_show_match")
+    needs_check = seed_historical_review(db, society_id=None, show_raw="Show Three", flag="needs_check")
+
+    resp = client.post("/admin/historical-reviews/bulk-approve")
+    assert resp.status_code == 302
+
+    for review_id in (matched_1, matched_2):
+        review = db.execute("SELECT * FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
+        assert review["moderation_status"] == "approved"
+        assert review["show_id"] is not None
+    assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 2
+
+    still_pending = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (needs_check,)).fetchone()
+    assert still_pending["moderation_status"] == "pending"
+
+
+def test_bulk_approve_ignores_reviews_already_matched_to_an_existing_show(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, section, show, source) "
+        "VALUES (?, '22/23', 'Eastern', 'Sullivan', 'Already There', 'import')",
+        (society_id,),
+    )
+    db.commit()
+    existing_show_id = db.execute("SELECT id FROM shows").fetchone()["id"]
+    login_as(client, admin_id)
+    already_matched = seed_historical_review(
+        db, society_id=society_id, show_id=existing_show_id, show_raw="Already There", flag=None,
+    )
+
+    client.post("/admin/historical-reviews/bulk-approve")
+
+    review = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (already_matched,)).fetchone()
+    assert review["moderation_status"] == "pending"  # not flag='no_show_match', so bulk-approve skips it
+    assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 1  # no extra skeleton created
+
+
 def test_skeleton_show_does_not_double_count_against_the_awards_archive(client, db):
     """A skeleton show has no opening_date, so it's naturally excluded from
     most stats() leaderboards (they filter on 'has this happened by today').

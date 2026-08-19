@@ -1965,23 +1965,19 @@ def historical_reviews_queue():
         """
     ).fetchall()
     total_pending = len(reviews)
-    return render_template("admin/historical_reviews_queue.html", reviews=reviews, total_pending=total_pending)
+    bulk_approvable = [r for r in reviews if r["flag"] == "no_show_match" and r["society_id"] is not None]
+    return render_template(
+        "admin/historical_reviews_queue.html", reviews=reviews, total_pending=total_pending,
+        bulk_approvable_count=len(bulk_approvable),
+    )
 
 
-@bp.route("/historical-reviews/<int:review_id>/approve", methods=("POST",))
-@login_required
-def approve_historical_review(review_id):
-    db = get_db()
-    user = current_user()
-    review = db.execute(
-        "SELECT * FROM historical_reviews WHERE id = ? AND moderation_status = 'pending'", (review_id,)
-    ).fetchone()
-    if review is None:
-        abort(404)
-    if review["society_id"] is None:
-        flash("This review needs a society matched (use Edit fields) before it can be approved.", "error")
-        return redirect(url_for("admin.historical_reviews_queue"))
-
+def _approve_historical_review_row(db, review, username):
+    """Shared by the single-review and bulk approve routes. Assumes the
+    caller already checked review['society_id'] is set - the bulk route only
+    ever selects rows that guarantee this. Doesn't commit; the caller does,
+    once per request (a single commit for a whole bulk batch, not one per
+    row)."""
     show_id = review["show_id"]
     if show_id is None:
         # No existing shows/historical_results row for this production - a
@@ -2004,10 +2000,50 @@ def approve_historical_review(review_id):
         SET show_id = ?, moderation_status = 'approved', moderated_by = ?, moderated_at = ?
         WHERE id = ?
         """,
-        (show_id, user["username"], datetime.utcnow().isoformat(), review_id),
+        (show_id, username, datetime.utcnow().isoformat(), review["id"]),
     )
+
+
+@bp.route("/historical-reviews/<int:review_id>/approve", methods=("POST",))
+@login_required
+def approve_historical_review(review_id):
+    db = get_db()
+    user = current_user()
+    review = db.execute(
+        "SELECT * FROM historical_reviews WHERE id = ? AND moderation_status = 'pending'", (review_id,)
+    ).fetchone()
+    if review is None:
+        abort(404)
+    if review["society_id"] is None:
+        flash("This review needs a society matched (use Edit fields) before it can be approved.", "error")
+        return redirect(url_for("admin.historical_reviews_queue"))
+
+    _approve_historical_review_row(db, review, user["username"])
     db.commit()
     flash("Review approved and published.", "success")
+    return redirect(url_for("admin.historical_reviews_queue"))
+
+
+@bp.route("/historical-reviews/bulk-approve", methods=("POST",))
+@login_required
+def bulk_approve_historical_reviews():
+    """Approves every pending review that already has a confident society
+    match and no existing show to link to (flag='no_show_match') - the
+    society match is the only judgment call this queue exists to make, and
+    it's already settled for these, so there's nothing left for a moderator
+    to individually click through. A review still needing a society picked
+    (flag='needs_check') is never touched here - that one genuinely needs a
+    person."""
+    db = get_db()
+    user = current_user()
+    reviews = db.execute(
+        "SELECT * FROM historical_reviews WHERE moderation_status = 'pending' "
+        "AND flag = 'no_show_match' AND society_id IS NOT NULL"
+    ).fetchall()
+    for review in reviews:
+        _approve_historical_review_row(db, review, user["username"])
+    db.commit()
+    flash(f"{len(reviews)} review{'s' if len(reviews) != 1 else ''} approved and published.", "success")
     return redirect(url_for("admin.historical_reviews_queue"))
 
 

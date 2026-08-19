@@ -4,6 +4,20 @@
   <h1>Historical reviews to review</h1>
   <p>{{ total_pending }} review{{ '' if total_pending == 1 else 's' }} pending, from the AIMS ShowTimes archive.</p>
 
+  {% if bulk_approvable_count %}
+    <div class="site-notice">
+      <p>{{ bulk_approvable_count }} review{{ '' if bulk_approvable_count == 1 else 's' }} below already have a
+         society matched (tagged "no matching show on record") - the only judgment call this queue exists to
+         make is already settled for these, so they don't need individual clicks. Skim the list, then approve
+         them all at once if it looks right.</p>
+      <form method="post" action="{{ url_for('admin.bulk_approve_historical_reviews') }}" class="inline-form"
+            data-confirm="Approve and publish all {{ bulk_approvable_count }} matched reviews?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="button-primary">Approve all {{ bulk_approvable_count }} matched reviews</button>
+      </form>
+    </div>
+  {% endif %}
+
   {% for review in reviews %}
     <article class="queue-item">
       <h2>{{ review['show_raw'] }}
