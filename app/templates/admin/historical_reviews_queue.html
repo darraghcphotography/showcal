@@ -1,53 +1,114 @@
 {% extends "base.html" %}
 {% block title %}Historical reviews - DC Show Tracker{% endblock %}
+
+{% macro review_actions(review) %}
+  <form method="post" action="{{ url_for('admin.approve_historical_review', review_id=review['id']) }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="button-primary" {% if review['society_id'] is none %}disabled{% endif %}>Approve &amp; publish</button>
+  </form>
+  <a href="{{ url_for('admin.edit_historical_review', review_id=review['id']) }}">Edit fields</a>
+  <form method="post" action="{{ url_for('admin.reject_historical_review', review_id=review['id']) }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="button-danger">Skip</button>
+  </form>
+{% endmacro %}
+
+{% macro review_meta(review) %}
+  <p class="meta">
+    {{ review['matched_society_name'] or review['society_raw'] }} &middot;
+    {{ review['season'] }} &middot; {{ review['tier'] or 'unknown' }} &middot;
+    {{ review['adjudicator_name'] or '—' }} &middot; {{ review['source_issue'] }}
+  </p>
+  <p class="preview">{{ review['review_text'][:220] }}&hellip;</p>
+{% endmacro %}
+
 {% block content %}
   <h1>Historical reviews to review</h1>
-  <p>{{ total_pending }} review{{ '' if total_pending == 1 else 's' }} pending, from the AIMS ShowTimes archive.</p>
+  <p>{{ total_pending }} review{{ '' if total_pending == 1 else 's' }} pending, from the AIMS ShowTimes archive,
+     grouped by what's actually needed to resolve each one.</p>
 
   {% if bulk_approvable_count %}
     <div class="site-notice">
-      <p>{{ bulk_approvable_count }} review{{ '' if bulk_approvable_count == 1 else 's' }} below already have a
-         society matched (tagged "no matching show on record") - the only judgment call this queue exists to
-         make is already settled for these, so they don't need individual clicks. Skim the list, then approve
-         them all at once if it looks right.</p>
+      <p>{{ bulk_approvable_count }} review{{ '' if bulk_approvable_count == 1 else 's' }} in "Ready to approve"
+         below have nothing left to decide - either no existing record to line up with, or already matched to a
+         real show. Skim the list, then approve them all at once if it looks right.</p>
       <form method="post" action="{{ url_for('admin.bulk_approve_historical_reviews') }}" class="inline-form"
-            data-confirm="Approve and publish all {{ bulk_approvable_count }} matched reviews?">
+            data-confirm="Approve and publish all {{ bulk_approvable_count }} ready reviews?">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="button-primary">Approve all {{ bulk_approvable_count }} matched reviews</button>
+        <button type="submit" class="button-primary">Approve all {{ bulk_approvable_count }} ready reviews</button>
       </form>
     </div>
   {% endif %}
 
-  {% for review in reviews %}
-    <article class="queue-item">
-      <h2>{{ review['show_raw'] }}
-        {% if review['flag'] == 'no_show_match' %}
-          <span class="tag tag-warning">no matching show on record</span>
-        {% elif review['flag'] == 'needs_check' %}
-          <span class="tag tag-warning">show/society need a check</span>
-        {% else %}
-          <span class="tag tag-active">show matched: {{ review['matched_society_name'] }}</span>
-        {% endif %}
-      </h2>
-      <p class="meta">
-        {{ review['matched_society_name'] or review['society_raw'] }} &middot;
-        {{ review['season'] }} &middot; {{ review['tier'] or 'unknown' }} &middot;
-        {{ review['adjudicator_name'] or '—' }} &middot; {{ review['source_issue'] }}
-      </p>
-      <p class="preview">{{ review['review_text'][:220] }}&hellip;</p>
-      <div class="actions">
-        <form method="post" action="{{ url_for('admin.approve_historical_review', review_id=review['id']) }}" class="inline-form">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="button-primary" {% if review['society_id'] is none %}disabled{% endif %}>Approve &amp; publish</button>
-        </form>
-        <a href="{{ url_for('admin.edit_historical_review', review_id=review['id']) }}">Edit fields</a>
-        <form method="post" action="{{ url_for('admin.reject_historical_review', review_id=review['id']) }}" class="inline-form">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="button-danger">Skip</button>
-        </form>
-      </div>
-    </article>
-  {% else %}
+  {% if grouped['needs_society'] %}
+    <h2>Needs a society matched ({{ grouped['needs_society']|length }})</h2>
+    <p class="meta">No society could be matched at all - pick one with Edit fields before this can go anywhere.</p>
+    {% for review in grouped['needs_society'] %}
+      <article class="queue-item">
+        <h3>{{ review['show_raw'] }} <span class="tag tag-warning">no society matched</span></h3>
+        {{ review_meta(review) }}
+        <div class="actions">{{ review_actions(review) }}</div>
+      </article>
+    {% endfor %}
+  {% endif %}
+
+  {% if grouped['conflict'] %}
+    <h2>Same show, two reviews ({{ grouped['conflict']|length }})</h2>
+    <p class="meta">Each of these shares a society/season/show with another review still in this queue - usually
+       the same production extracted twice from two different issues. Look at both before approving either, so
+       the better transcription is the one that gets published.</p>
+    {% for review in grouped['conflict'] %}
+      <article class="queue-item">
+        <h3>{{ review['show_raw'] }} <span class="tag tag-warning">shares a show with another pending review</span></h3>
+        {{ review_meta(review) }}
+        <div class="actions">{{ review_actions(review) }}</div>
+      </article>
+    {% endfor %}
+  {% endif %}
+
+  {% if grouped['history_match'] %}
+    <h2>Likely has award history - needs a title check ({{ grouped['history_match']|length }})</h2>
+    <p class="meta">No existing show to link to (expected before 23/24), but the older AIMS awards archive
+       already has a plausible record for this same production, printed under a slightly different title.
+       Approving as-is would create a new entry that doesn't line up with that record - accept the suggested
+       title first if it's the same show, or edit fields by hand if it isn't.</p>
+    {% for review in grouped['history_match'] %}
+      <article class="queue-item">
+        <h3>{{ review['show_raw'] }} <span class="tag tag-warning">check against awards archive</span></h3>
+        {{ review_meta(review) }}
+        <p class="meta">Awards archive has:
+          {% for title, score in review['history_candidates'] %}
+            <form method="post" action="{{ url_for('admin.apply_historical_review_title_match', review_id=review['id']) }}"
+                  class="inline-form" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="title" value="{{ title }}">
+              <button type="submit" class="button-primary">Use "{{ title }}" ({{ (score * 100)|round|int }}% match)</button>
+            </form>
+          {% endfor %}
+        </p>
+        <div class="actions">{{ review_actions(review) }}</div>
+      </article>
+    {% endfor %}
+  {% endif %}
+
+  {% if grouped['ready'] %}
+    <h2>Ready to approve ({{ grouped['ready']|length }})</h2>
+    {% for review in grouped['ready'] %}
+      <article class="queue-item">
+        <h3>{{ review['show_raw'] }}
+          {% if review['flag'] == 'no_show_match' %}
+            <span class="tag tag-warning">no matching show on record</span>
+          {% else %}
+            <span class="tag tag-active">show matched: {{ review['matched_society_name'] }}</span>
+          {% endif %}
+        </h3>
+        {{ review_meta(review) }}
+        <div class="actions">{{ review_actions(review) }}</div>
+      </article>
+    {% endfor %}
+  {% endif %}
+
+  {% if not total_pending %}
     <p>Nothing waiting for review.</p>
-  {% endfor %}
+  {% endif %}
 {% endblock %}

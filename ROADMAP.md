@@ -7,23 +7,21 @@ phase changes.
 
 ## Start here (updated 2026-08-19)
 
-**Deployed state**: last confirmed-live commit is `e929cb5` (Round 22 mid-season adjudicators,
-Round 23 stats reframing, Round 24 Step 4 pilot) - deployed timestamp on `/suggestions` read
-"18 Aug 2026, 21:11" that evening. **Everything since then - Round 25 (review-text formatting +
-adjudicator grid rework), Round 26 (extraction extended and then reverted after real bugs surfaced),
-and Round 27 (full archive re-extracted and field-verified, see below) - is pushed but not yet
-redeployed.** Confirm with Darragh before assuming any of it is live. After redeploying, re-run
-`load_historical_reviews.py` regardless of whether reviews were already loaded - it both refreshes
-any still-pending review's text and loads whatever's new in `historical_reviews_pilot.json`
-(currently the Round 27 verified set, 864 reviews across the full archive)
+**Deployed state**: Round 27 (864-review verified extraction) was pulled and deployed on
+2026-08-19 (confirmed via `/suggestions`' deployed timestamp), and Darragh started moderating the
+real queue live on production - which surfaced Round 28's findings (a bulk-approve 500, two more
+extraction bugs, and a structural gap where show-matching never checked the older
+`historical_results` awards archive - see Round 28 below for the full story). **Round 28's fixes
+are committed but not yet redeployed** - confirm with Darragh before assuming any of it is live.
+After redeploying: re-run `load_historical_reviews.py` regardless of whether reviews were already
+loaded (refreshes any still-pending review's text, including 121 reviews whose venue line was
+bleeding into the review body before Round 28's fix)
 (`docker exec <container-name> python load_historical_reviews.py --db /data/aims.db` - use plain
 `docker exec`, not `docker compose exec`, unless already in the directory holding
-`docker-compose.yml`; get the container name from `docker ps`). Safe to run repeatedly either way.
-**None of these 864 reviews have been approved/published by a moderator yet** - they're sitting in
-the local `aims.db` queue (`/admin/historical-reviews`) for Darragh's own pass before deciding on
-the real production import. See Round 27 below for the full verification story - seven re-extraction
-passes, each catching a real bug the previous one missed, including one self-inflicted regression
-caught and fixed within the same session.
+`docker-compose.yml`; get the container name from `docker ps`). Then check
+`/admin/historical-shows/title-check` - a retroactive audit found 35 of the skeleton shows already
+approved on production have a real title mismatch against the awards archive (case/punctuation-only
+differences don't need fixing, those already resolve correctly) worth a moderator's one-click fix.
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -435,6 +433,74 @@ scan, per Round 26's own lesson.
   production untouched. Committed but not deployed; not yet approved/published by a moderator.
   Ready for Darragh's own pass through `/admin/historical-reviews` before deciding on the real
   production import.
+
+**Round 28 - live moderation, two more real extraction bugs, and matching against the older
+awards archive (2026-08-19):** Round 27's set got pulled and deployed; Darragh started actually
+working through the real queue on the live site, which is exactly what surfaced the next layer of
+real problems - a "meticulous audit" only ever finds what it thinks to check for, and a live
+moderator using the tool for real found things it hadn't.
+
+- **Production 500 on bulk-approve, root-caused and fixed**: 9 real productions in the archive got
+  extracted twice from two different source issues (a near-identical reprint of the same review) -
+  approving the second one collided with `ux_shows_natural_key` when it tried to create a second
+  skeleton show for the same (society, season, show). Every row in the batch shared one
+  uncommitted transaction, so the single collision took the whole 800+ row approval down with it.
+  Confirmed via a scratch copy of the real dataset that nothing had actually been written (the
+  crash happened before the batch's own `commit()`). Fixed with a per-row `SAVEPOINT`.
+- **Two more real extraction bugs, found from screenshots of the live queue, not a re-run of the
+  archive-wide audit**:
+  - A venue line right after the title in the common `Society / TITLE / Venue / body` heading
+    order was falling straight into the review's own text as its leading sentence - one whole
+    parse_heading branch had no venue-skip step at all, unlike its sibling branch just above it
+    (confirmed - Marian Choral Society's Titanic review opened with "St Jarlath's Hall, Tuam").
+  - A society name written as a dotted acronym ("S.O.N.G.") matched the same ALL-CAPS title regex
+    used to detect real show titles (the regex allows periods, needed for real titles like "Mr.
+    Carter, The Musical") and got picked as the title itself, ahead of the real one right after it.
+    Fixed with a narrow exclusion for that specific shape rather than loosening the regex generally.
+  - Re-extracted as v14 (864 reviews, same count as v13 - these were field-correctness fixes, not
+    review-count changes), diffed clean against v13, reloaded into `aims.db` (121 reviews refreshed
+    with the corrected venue-free text).
+- **A much bigger structural gap, surfaced by Darragh asking "why hasn't this matched" about a
+  production that visibly already existed on the site under a different title**: show-matching
+  only ever checked the `shows` table, which has zero coverage before 23/24 (`SHOWS_COVERAGE_
+  START_YEAR`) - so it *always* missed that the same production is very often already in the much
+  older `historical_results` awards archive (back to ~2005), just worded slightly differently than
+  the review's own heading ("Titanic" vs the awards archive's "Titanic The Musical" - confirmed the
+  same 2011 Marian Choral Society production). Quantified before fixing anything: at least 323 of
+  802 pending reviews (40%, likely more - that's only the *exact*-title-match count) already exist
+  in `historical_results` under a real record. Approving as-is didn't break anything visible (the
+  `/titles` page already excludes skeleton shows from its count, so no double-counting), but it
+  orphaned the review onto a standalone page disconnected from the production's real award history
+  - a real loss of discoverability, not a crash.
+  - Confirmed the season->year mapping empirically rather than guessing (`historical_results.year`
+    is the AIMS awards CSV's own column, unrelated to any season-string arithmetic elsewhere in the
+    codebase) - `'10/11' -> 2011` (the *second* calendar year) scored 323 hits; the other plausible
+    convention scored 0. Shared as `season.historical_results_year()`.
+  - Reused the site's own existing duplicate-title scorer (`app.dedupe.find_candidates`, built for
+    the admin "possible duplicate societies/shows" tool) for the fuzzy side of this instead of
+    writing a second implementation - it already strips generic suffixes like "the musical" before
+    scoring, so "Titanic" vs "Titanic The Musical" comes back a perfect 1.0 for free.
+  - `/admin/historical-reviews` now groups the queue by *why* each review is stuck (needs a
+    society matched / shares a show with another pending review / likely has award history under a
+    different title / ready to approve) instead of one flat list - directly requested ("need to
+    make it easy for the admin to resolve and approve these... instead of just one long list").
+    Bulk-approve now only touches the "ready" category (also now correctly includes reviews already
+    matched to a real `shows` row, which it used to skip entirely - a small existing gap this
+    surfaced along the way). A one-click "use this title" action lets a moderator accept the
+    suggested awards-archive title without a full Edit-fields round trip.
+  - `public.show_detail()` now actually displays matching award history on a show's own page -
+    matched at display time by (society, year, exact-normalized title), since `historical_results`
+    predates this whole system and has no foreign key to `shows`. Deliberately exact-normalized
+    matching only on this public page, not fuzzy - a genuine title mismatch is exactly what the
+    admin queue's history_match step exists to catch before a review is ever approved.
+  - **Retroactively audited the 784 skeleton shows already live from Round 27's approvals**: 141
+    had a title not byte-identical to a plausible awards-archive record, but most of those (106)
+    were pure case/punctuation differences ("Made In Dagenham" vs "Made in Dagenham") already
+    tolerated by the new display-time lookup - only 35 were a real wording gap needing an actual
+    fix. Built `/admin/historical-shows/title-check` as a permanent tool (not a one-off script) for
+    this, since the same gap can recur any time a review gets approved with a title that doesn't
+    quite match the archive.
+- All 251 tests pass (16 new/updated this round). Committed; not yet redeployed.
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute

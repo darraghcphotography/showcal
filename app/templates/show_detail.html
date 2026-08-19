@@ -93,4 +93,24 @@
       {% endif %}
     </div>
   {% endif %}
+
+  {% if award_history %}
+    <h2>Awards &amp; nominations (AIMS awards archive)</h2>
+    <table class="data-table table-wide">
+      <thead><tr><th>Section</th><th>Category</th><th>Result</th><th>Nominee</th></tr></thead>
+      <tbody>
+        {% for row in award_history %}
+          <tr>
+            <td>{{ row['tier'] or '—' }}</td>
+            <td>{{ row['category_name'] or '—' }}</td>
+            <td>{{ row['result'] or '—' }}</td>
+            <td>{{ row['nominee_name'] or '—' }}{% if row['role'] %} ({{ row['role'] }}){% endif %}</td>
+          </tr>
+          {% if row['reason'] %}
+            <tr class="row-note"><td colspan="4"><em>{{ row['reason'] }}</em></td></tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 {% endblock %}

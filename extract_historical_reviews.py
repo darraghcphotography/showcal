@@ -124,6 +124,14 @@ SHORT_BLOCK_MAX_LINES = 2
 # clears this with room to spare either way.
 LARGE_TITLE_FONT_SIZE = 12
 TITLE_LINE_RE = re.compile(r"^[A-Z0-9][A-Z0-9 '&!,.\-]{1,60}$")
+# A dotted initialism ('S.O.N.G.', 'S.O.N.G') is a society's own short form,
+# not a title - TITLE_LINE_RE's character class allows periods (needed for
+# real titles like 'MR. CARTER, THE MUSICAL') so an acronym like this
+# otherwise matches it too, and gets picked as the title itself ahead of
+# the real one right after it - confirmed against the source PDF (Issue 70
+# Summer 2011, 'S.O.N.G.' / 'CHESS' / 'Tain Theatre, Dundalk' - extracted as
+# show_raw='S.O.N.G. Chess', society_raw='Tain Theatre, Dundalk').
+ACRONYM_RE = re.compile(r"^([A-Z]\.){2,}$")
 MAX_SOCIETY_LINES = 4
 # A line narrower than this fraction of its block's widest (fully justified)
 # line is treated as the ragged final line of a paragraph, not mid-wrap -
@@ -452,7 +460,11 @@ def looks_like_title(text, is_headline):
     """A line is title-shaped if it's in ALL CAPS (the modern convention) or
     set in a visibly larger font than body/caption text (the 2010-11
     convention, where the title keeps normal capitalization - 'Spring
-    Awakening', not 'SPRING AWAKENING' - so ALL-CAPS alone would miss it)."""
+    Awakening', not 'SPRING AWAKENING' - so ALL-CAPS alone would miss it).
+    A bare dotted initialism never counts, even in a large font - it's a
+    society's own short form (see ACRONYM_RE), not a real title."""
+    if ACRONYM_RE.match(text):
+        return False
     return bool(TITLE_LINE_RE.match(text)) or is_headline
 
 
@@ -515,6 +527,17 @@ def parse_heading(segment, known_societies=()):
                 while idx < len(lines) and TITLE_LINE_RE.match(lines[idx][0]):
                     title_lines.append(lines[idx][0])
                     idx += 1
+            # A venue line right after the title (Society / TITLE / Venue,
+            # City / body) - the title-first branch above already skips this
+            # same shape when the venue sits right after the society instead
+            # (Title / Society / Venue); this branch had no equivalent check
+            # at all, so the venue line was falling straight into
+            # review_text as its own leading sentence - confirmed against
+            # the source PDF (Marian Choral Society / TITANIC / "St
+            # Jarlath's Hall, Tuam" / body - the venue was the review's
+            # printed opening words in the queue).
+            if idx < len(lines) and looks_like_venue(line_texts[idx]):
+                idx += 1
     else:
         # Last resort: no known society matched at all - scan for the first
         # title-shaped line the old-fashioned way (some historical/defunct
@@ -557,6 +580,14 @@ def parse_heading(segment, known_societies=()):
             idx += 1
             if idx < len(lines) and looks_like_venue(lines[idx][0]):
                 idx += 1  # a venue line right after the society - skip it too
+        # society_lines non-empty here means the loop above already found a
+        # real Society/TITLE pair (the ACRONYM_RE fix to looks_like_title
+        # made this reachable for society names shaped like 'S.O.N.G.',
+        # which previously matched as if they were the title themselves) -
+        # same venue-after-title shape as the confident-match branch above,
+        # so it gets the same skip.
+        elif society_lines and idx < len(lines) and looks_like_venue(line_texts[idx]):
+            idx += 1
 
     if idx >= len(lines):
         return None

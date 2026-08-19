@@ -63,6 +63,11 @@
         <td>{{ historical_reviews_pending_count }}</td>
         <td><a href="{{ url_for('admin.historical_reviews_queue') }}">Historical reviews</a></td>
       </tr>
+      <tr>
+        <td>Skeleton shows whose title doesn't line up with the awards archive</td>
+        <td>{{ mismatched_skeleton_shows_count }}</td>
+        <td><a href="{{ url_for('admin.historical_shows_title_check') }}">Check titles</a></td>
+      </tr>
     </tbody>
   </table>
 

@@ -6,6 +6,18 @@ def next_season(season):
     return f"{(start + 1) % 100:02d}/{(end + 1) % 100:02d}"
 
 
+def historical_results_year(season):
+    """historical_results.year is the AIMS awards CSV's own "Year" column,
+    not derived from season anywhere else in this codebase - confirmed
+    empirically (323 exact (society, year, show) hits against a full pass
+    over the historical-review queue using this convention, 0 hits using
+    the other plausible one) that it's the *second* calendar year of the
+    season string ('10/11' -> 2011, matching when that season's awards
+    ceremony/the ShowTimes issue reporting on it actually happened), not
+    the first."""
+    return 2000 + int(season[:2]) + 1
+
+
 def current_season(db):
     """The season presently being produced: the most recent season with a
     real (non-placeholder) show already on record. Falls back to a guess

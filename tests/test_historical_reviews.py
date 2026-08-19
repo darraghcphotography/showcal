@@ -20,6 +20,15 @@ def seed_adjudicator(db, name="Peter Kennedy"):
     return db.execute("SELECT id FROM adjudicators WHERE name = ?", (name,)).fetchone()["id"]
 
 
+def seed_award(db, society_id, year, show):
+    db.execute(
+        "INSERT INTO historical_results (year, tier, category_name, result, show, society_id, source) "
+        "VALUES (?, 'Sullivan', 'Best Overall Show', 'Winner', ?, ?, 'manual')",
+        (year, show, society_id),
+    )
+    db.commit()
+
+
 def seed_historical_review(
     db, season="22/23", tier="Sullivan", show_raw="The Addams Family", society_raw="Tullyvin Musical Society",
     adjudicator_id=None, review_text="A fine production.", source_issue="Issue 160, December 2022",
@@ -49,13 +58,25 @@ def test_queue_requires_login(client):
 
 def test_queue_lists_pending_reviews(client, db):
     admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
     login_as(client, admin_id)
-    seed_historical_review(db, show_raw="Oliver!")
+    seed_historical_review(db, society_id=society_id, show_raw="Oliver!", flag="no_show_match")
 
     resp = client.get("/admin/historical-reviews")
     assert resp.status_code == 200
     assert b"Oliver!" in resp.data
     assert b"no matching show on record" in resp.data
+
+
+def test_queue_groups_a_review_with_no_society_matched(client, db):
+    admin_id = seed_user(db)
+    login_as(client, admin_id)
+    seed_historical_review(db, society_id=None, show_raw="Carousel", flag="needs_check")
+
+    resp = client.get("/admin/historical-reviews")
+    assert resp.status_code == 200
+    assert b"Needs a society matched" in resp.data
+    assert b"Carousel" in resp.data
 
 
 def test_approve_with_no_existing_show_creates_skeleton(client, db):
@@ -152,14 +173,16 @@ def test_bulk_approve_publishes_only_matched_no_show_match_reviews(client, db):
     assert still_pending["moderation_status"] == "pending"
 
 
-def test_bulk_approve_leaves_a_natural_key_conflict_pending_instead_of_500ing(client, db):
+def test_bulk_approve_leaves_natural_key_conflicts_pending_for_a_moderator_to_pick(client, db):
     """Two reviews of the same (society, season, show) - a real production
     extracted twice from two different source issues, confirmed in the full
     archive (e.g. a show reviewed in both a February and a March issue) -
-    collide on ux_shows_natural_key when the second one tries to create its
-    own skeleton show. That used to take the whole batch down with it since
-    every row shared one uncommitted transaction; now only the conflicting
-    row is left pending, and everything else still goes through."""
+    would collide on ux_shows_natural_key if both tried to create their own
+    skeleton show. categorize_pending_reviews catches this up front (see
+    the 'conflict' category) and keeps *both* out of bulk-approve, rather
+    than non-deterministically approving whichever one the batch happens to
+    process first and leaving the other to fail - a moderator needs to
+    actually look at both and decide which is the better transcription."""
     admin_id = seed_user(db)
     society_id = seed_society(db, name="Tullyvin Musical Society")
     login_as(client, admin_id)
@@ -173,16 +196,74 @@ def test_bulk_approve_leaves_a_natural_key_conflict_pending_instead_of_500ing(cl
     resp = client.post("/admin/historical-reviews/bulk-approve")
     assert resp.status_code == 302
 
-    for review_id in (first, clean):
-        review = db.execute("SELECT * FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
-        assert review["moderation_status"] == "approved"
+    clean_review = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (clean,)).fetchone()
+    assert clean_review["moderation_status"] == "approved"
 
-    still_pending = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (conflicting,)).fetchone()
-    assert still_pending["moderation_status"] == "pending"
-    assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 2  # no duplicate skeleton show
+    for review_id in (first, conflicting):
+        review = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
+        assert review["moderation_status"] == "pending"
+    assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 1  # only "Show Two"'s skeleton
 
 
-def test_bulk_approve_ignores_reviews_already_matched_to_an_existing_show(client, db):
+def test_queue_flags_a_likely_historical_results_match(client, db):
+    """No existing shows row (expected before 23/24), but the awards
+    archive already has this same production under a slightly different
+    title ('Titanic' vs 'Titanic The Musical', the real case that surfaced
+    this - both the same 2011 production, just worded differently between
+    the ShowTimes review heading and the AIMS awards CSV). Should land in
+    history_match, not bulk-approvable as-is."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    seed_award(db, society_id, 2011, "Titanic The Musical")
+    login_as(client, admin_id)
+    seed_historical_review(
+        db, society_id=society_id, season="10/11", show_raw="Titanic", flag="no_show_match",
+    )
+
+    resp = client.get("/admin/historical-reviews")
+    assert resp.status_code == 200
+    assert b"Likely has award history" in resp.data
+    assert b"Titanic The Musical" in resp.data
+
+    bulk_resp = client.post("/admin/historical-reviews/bulk-approve")
+    assert bulk_resp.status_code == 302
+    review = db.execute("SELECT moderation_status FROM historical_reviews WHERE show_raw = 'Titanic'").fetchone()
+    assert review["moderation_status"] == "pending"  # not blindly approved with the wrong title
+
+
+def test_apply_title_match_corrects_show_raw_and_becomes_ready(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    seed_award(db, society_id, 2011, "Titanic The Musical")
+    login_as(client, admin_id)
+    review_id = seed_historical_review(
+        db, society_id=society_id, season="10/11", show_raw="Titanic", flag="no_show_match",
+    )
+
+    resp = client.post(
+        f"/admin/historical-reviews/{review_id}/apply-title-match", data={"title": "Titanic The Musical"},
+    )
+    assert resp.status_code == 302
+
+    review = db.execute("SELECT show_raw, flag FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
+    assert review["show_raw"] == "Titanic The Musical"
+    assert review["flag"] == "no_show_match"  # still no *shows* row, but now the right title
+
+    # now the corrected title matches the awards archive exactly, so it's
+    # no longer a history_match needing a title check - safe to bulk-approve
+    bulk_resp = client.post("/admin/historical-reviews/bulk-approve")
+    assert bulk_resp.status_code == 302
+    approved = db.execute("SELECT moderation_status, show_id FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
+    assert approved["moderation_status"] == "approved"
+    show = db.execute("SELECT show FROM shows WHERE id = ?", (approved["show_id"],)).fetchone()
+    assert show["show"] == "Titanic The Musical"
+
+
+def test_bulk_approve_includes_reviews_already_matched_to_an_existing_show(client, db):
+    """A review already linked to a real shows row (flag=None) is the most
+    confident case there is - categorize_pending_reviews puts it in 'ready'
+    alongside the no-existing-show ones, so bulk-approve covers it too
+    instead of leaving it stuck needing an individual click."""
     admin_id = seed_user(db)
     society_id = seed_society(db, name="Tullyvin Musical Society")
     db.execute(
@@ -199,8 +280,9 @@ def test_bulk_approve_ignores_reviews_already_matched_to_an_existing_show(client
 
     client.post("/admin/historical-reviews/bulk-approve")
 
-    review = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (already_matched,)).fetchone()
-    assert review["moderation_status"] == "pending"  # not flag='no_show_match', so bulk-approve skips it
+    review = db.execute("SELECT moderation_status, show_id FROM historical_reviews WHERE id = ?", (already_matched,)).fetchone()
+    assert review["moderation_status"] == "approved"
+    assert review["show_id"] == existing_show_id
     assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 1  # no extra skeleton created
 
 
@@ -230,6 +312,37 @@ def test_skeleton_show_does_not_double_count_against_the_awards_archive(client, 
     row_match = re.search(r"<tr>\s*<td>.*?Double Count Test.*?</td>\s*<td>(\d+)</td>", body, re.S)
     assert row_match is not None
     assert row_match.group(1) == "1"
+
+
+def test_skeleton_show_page_displays_matching_award_history(client, db):
+    """A skeleton show has no foreign key to historical_results (that table
+    predates this whole review/shows system) - public.show_detail matches
+    them at display time instead, by (society, year, exact-normalized
+    title). Confirms a review approved with the *correct*, awards-archive-
+    aligned title (season -> year via historical_results_year: '10/11' ->
+    2011) actually surfaces that history on its own page - the whole point
+    of the history_match/apply-title-match flow in admin.py."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Marian Choral Society, Tuam")
+    login_as(client, admin_id)
+    db.execute(
+        "INSERT INTO historical_results (year, tier, category_name, result, show, society_id, source) "
+        "VALUES (2011, 'Sullivan', 'Best Overall Show', 'Winner', 'Titanic The Musical', ?, 'manual')",
+        (society_id,),
+    )
+    db.commit()
+    review_id = seed_historical_review(
+        db, society_id=society_id, season="10/11", tier="Sullivan",
+        show_raw="Titanic The Musical", flag="no_show_match",
+    )
+    client.post(f"/admin/historical-reviews/{review_id}/approve")
+    show_id = db.execute("SELECT show_id FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()["show_id"]
+
+    resp = client.get(f"/shows/{show_id}")
+    body = resp.get_data(as_text=True)
+    assert "Awards &amp; nominations" in body
+    assert "Best Overall Show" in body
+    assert "Winner" in body
 
 
 def test_edit_fields_matches_a_society_and_recomputes_flag(client, db):
@@ -273,3 +386,79 @@ def test_approved_review_renders_on_the_shows_own_page(client, db):
     assert b"Reviewed by" in resp.data
     assert b"Peter Kennedy" in resp.data
     assert b"Issue 160, December 2022" in resp.data
+
+
+def seed_skeleton_show(db, society_id, season, show, tier="Sullivan"):
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, section, show, source, moderation_status) "
+        "VALUES (?, ?, 'Eastern', ?, ?, 'historical', 'approved')",
+        (society_id, season, tier, show),
+    )
+    db.commit()
+    return db.execute("SELECT id FROM shows WHERE show = ?", (show,)).fetchone()["id"]
+
+
+def test_title_check_flags_a_real_wording_gap_but_not_a_case_difference(client, db):
+    """Retroactive audit for skeleton shows approved before this check
+    existed (find_mismatched_skeleton_shows). A pure case/punctuation
+    difference is already tolerated by show_detail's own award-history
+    lookup (normalize_title), so shouldn't need a manual fix; a real
+    wording gap ('And His' vs 'and the') isn't tolerated by that and
+    should show up here."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    login_as(client, admin_id)
+    seed_award(db, society_id, 2011, "Joseph and the Amazing Technicolor Dreamcoat")
+    seed_award(db, society_id, 2015, "Rock of Ages")
+    case_only = seed_skeleton_show(db, society_id, "14/15", "Rock Of Ages")
+    real_gap = seed_skeleton_show(db, society_id, "10/11", "Joseph And His Amazing Technicolor Dreamcoat")
+
+    resp = client.get("/admin/historical-shows/title-check")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "Joseph And His Amazing Technicolor Dreamcoat" in body
+    assert "Rock Of Ages" not in body  # case-only difference, not flagged
+
+    show = db.execute("SELECT show FROM shows WHERE id = ?", (case_only,)).fetchone()
+    assert show["show"] == "Rock Of Ages"  # untouched either way
+
+
+def test_apply_show_title_match_corrects_a_skeleton_shows_title(client, db):
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    login_as(client, admin_id)
+    seed_award(db, society_id, 2011, "Joseph and the Amazing Technicolor Dreamcoat")
+    show_id = seed_skeleton_show(db, society_id, "10/11", "Joseph And His Amazing Technicolor Dreamcoat")
+
+    resp = client.post(
+        f"/admin/historical-shows/{show_id}/apply-title-match",
+        data={"title": "Joseph and the Amazing Technicolor Dreamcoat"},
+    )
+    assert resp.status_code == 302
+
+    show = db.execute("SELECT show FROM shows WHERE id = ?", (show_id,)).fetchone()
+    assert show["show"] == "Joseph and the Amazing Technicolor Dreamcoat"
+
+    detail_resp = client.get(f"/shows/{show_id}")
+    assert b"Awards &amp; nominations" in detail_resp.data
+
+
+def test_apply_show_title_match_refuses_a_non_skeleton_show(client, db):
+    """A real imported show's title is authoritative on its own - this
+    action only ever touches source='historical' rows."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    login_as(client, admin_id)
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, section, show, source) "
+        "VALUES (?, '23/24', 'Eastern', 'Sullivan', 'Real Show', 'import')",
+        (society_id,),
+    )
+    db.commit()
+    show_id = db.execute("SELECT id FROM shows WHERE show = 'Real Show'").fetchone()["id"]
+
+    resp = client.post(f"/admin/historical-shows/{show_id}/apply-title-match", data={"title": "Something Else"})
+    assert resp.status_code == 404
+
+    show = db.execute("SELECT show FROM shows WHERE id = ?", (show_id,)).fetchone()
+    assert show["show"] == "Real Show"

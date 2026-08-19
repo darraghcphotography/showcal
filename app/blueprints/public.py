@@ -10,8 +10,9 @@ from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SU
 from ..db import get_db
 from ..rate_limit import limiter
 from ..search import fts_match_ids
-from ..season import current_season
+from ..season import current_season, historical_results_year
 from ..shows import is_upcoming as _is_upcoming
+from ..similarity import normalize_title
 
 bp = Blueprint("public", __name__)
 
@@ -427,10 +428,37 @@ def show_detail(show_id):
         (show_id,),
     ).fetchone()
 
+    # Pre-2024 award/nomination history for this exact production, from the
+    # older AIMS awards archive (historical_results) - a separate table with
+    # no foreign key to shows (it predates this site), so matched here by
+    # (society, year, title) rather than joined directly. year is
+    # historical_results' own year column, not season - see
+    # historical_results_year. Exact-normalized match only (case/punctuation,
+    # same as normalize_title everywhere else) - deliberately not fuzzy on a
+    # public page; a genuine title mismatch belongs in the admin queue's own
+    # history_match review step (see admin.categorize_pending_reviews),
+    # which is exactly what that step exists to catch before a show ever
+    # gets this far.
+    award_history = []
+    if show["show"] and show["season"]:
+        target_norm = normalize_title(show["show"])
+        candidate_rows = db.execute(
+            """
+            SELECT show, tier, category_name, result, nominee_name, role, reason
+            FROM historical_results
+            WHERE society_id = ? AND year = ? AND show IS NOT NULL
+            """,
+            (show["society_id"], historical_results_year(show["season"])),
+        ).fetchall()
+        award_history = [
+            r for r in candidate_rows
+            if normalize_title(r["show"]) == target_norm and (r["category_name"] is not None or r["result"] is not None)
+        ]
+
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
         gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
-        historical_review=historical_review,
+        historical_review=historical_review, award_history=award_history,
     )
 
 

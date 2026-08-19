@@ -16,8 +16,8 @@ from ..db import get_db
 from ..dedupe import find_candidates
 from ..invite_words import ADJECTIVES, NOUNS
 from ..rate_limit import limiter
-from ..season import current_season, next_season, season_range
-from ..similarity import find_close_title
+from ..season import current_season, historical_results_year, next_season, season_range
+from ..similarity import find_close_title, normalize_title
 from ..uploads import save_poster
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -197,6 +197,7 @@ def dashboard():
     historical_reviews_pending_count = db.execute(
         "SELECT COUNT(*) FROM historical_reviews WHERE moderation_status = 'pending'"
     ).fetchone()[0]
+    mismatched_skeleton_shows_count = len(find_mismatched_skeleton_shows(db))
 
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
@@ -231,6 +232,7 @@ def dashboard():
         missing_venue_count=missing_venue_count,
         duplicate_historical_count=duplicate_historical_count,
         orphaned_titles_count=orphaned_titles_count,
+        mismatched_skeleton_shows_count=mismatched_skeleton_shows_count,
         awards_pending_season=awards_pending_season,
         historical_reviews_pending_count=historical_reviews_pending_count,
     )
@@ -1948,10 +1950,32 @@ def delete_adjudicator(adjudicator_id):
     return redirect(url_for("admin.adjudicators"))
 
 
-@bp.route("/historical-reviews")
-@login_required
-def historical_reviews_queue():
-    db = get_db()
+def categorize_pending_reviews(db):
+    """Groups every pending review by *why* it's stuck, instead of one flat
+    list a moderator has to read every row of to find the ones actually
+    worth their attention:
+      - needs_society: no society matched at all - needs Edit fields.
+      - conflict: shares a (society, season, show) natural key with another
+        still-pending review (a production extracted twice from two
+        different source issues - confirmed, 9 real cases in the archive) -
+        approving one links it to a fresh skeleton show; approving the
+        other should link to that same show instead of erroring (see
+        _approve_historical_review_row), but the two need to actually be
+        looked at together first, since one might be a better transcription
+        of the same review than the other.
+      - history_match: no *existing* shows row (there rarely is one before
+        23/24 - see SHOWS_COVERAGE_START_YEAR), but a plausible match in
+        the older historical_results awards archive - approving as-is would
+        create a skeleton show whose title doesn't line up with that
+        record, orphaning the review from the production's real award
+        history instead of enriching it. Needs a quick title confirm
+        first (see apply_historical_results_match below), not blocked
+        from ever approving, just from *bulk*-approving blind.
+      - ready: everything else - either no plausible existing record at
+        all (a brand new skeleton is exactly right), or already matched to
+        a real shows row directly. Safe to bulk-approve.
+    Returns {category: [review dict, ...]}, each dict carrying the row's
+    own columns plus (for history_match) a 'history_candidates' list."""
     reviews = db.execute(
         """
         SELECT historical_reviews.*, adjudicators.name AS adjudicator_name,
@@ -1964,11 +1988,46 @@ def historical_reviews_queue():
         ORDER BY historical_reviews.season, historical_reviews.tier, historical_reviews.society_raw
         """
     ).fetchall()
-    total_pending = len(reviews)
-    bulk_approvable = [r for r in reviews if r["flag"] == "no_show_match" and r["society_id"] is not None]
+
+    natural_key_counts = {}
+    for r in reviews:
+        if r["society_id"] is not None:
+            key = (r["society_id"], r["season"], r["show_raw"])
+            natural_key_counts[key] = natural_key_counts.get(key, 0) + 1
+
+    grouped = {"needs_society": [], "conflict": [], "history_match": [], "ready": []}
+    for r in reviews:
+        entry = dict(r)
+        if r["society_id"] is None:
+            grouped["needs_society"].append(entry)
+            continue
+        key = (r["society_id"], r["season"], r["show_raw"])
+        if natural_key_counts[key] > 1:
+            grouped["conflict"].append(entry)
+            continue
+        if r["show_id"] is None:
+            candidates = [
+                (title, score) for title, score in
+                find_historical_results_candidates(db, r["society_id"], r["season"], r["show_raw"])
+                if title != r["show_raw"] and score >= HISTORICAL_RESULTS_MATCH_THRESHOLD
+            ]
+            if candidates:
+                entry["history_candidates"] = candidates
+                grouped["history_match"].append(entry)
+                continue
+        grouped["ready"].append(entry)
+    return grouped
+
+
+@bp.route("/historical-reviews")
+@login_required
+def historical_reviews_queue():
+    db = get_db()
+    grouped = categorize_pending_reviews(db)
+    total_pending = sum(len(v) for v in grouped.values())
     return render_template(
-        "admin/historical_reviews_queue.html", reviews=reviews, total_pending=total_pending,
-        bulk_approvable_count=len(bulk_approvable),
+        "admin/historical_reviews_queue.html", grouped=grouped, total_pending=total_pending,
+        bulk_approvable_count=len(grouped["ready"]),
     )
 
 
@@ -1980,19 +2039,34 @@ def _approve_historical_review_row(db, review, username):
     row)."""
     show_id = review["show_id"]
     if show_id is None:
-        # No existing shows/historical_results row for this production - a
-        # minimal "skeleton" row (source='historical') gives the review a
-        # real page to live on, same idea as a society backfilling their own
-        # history, just moderator-triggered. Deliberately excluded from every
-        # stats/leaderboard query (see schema.sql) so it can't double-count.
-        society = db.execute("SELECT region FROM societies WHERE id = ?", (review["society_id"],)).fetchone()
-        show_id = db.execute(
-            """
-            INSERT INTO shows (society_id, season, region, section, show, source, moderation_status)
-            VALUES (?, ?, ?, ?, ?, 'historical', 'approved')
-            """,
-            (review["society_id"], review["season"], society["region"], review["tier"], review["show_raw"]),
-        ).lastrowid
+        # Two reviews of the same real production (society, season, show)
+        # sometimes got extracted twice from two different source issues (a
+        # near-identical reprint - confirmed, 9 real cases in the archive) -
+        # approving the second one should link it to the skeleton the first
+        # one already created, not try to create a second, colliding row.
+        # Checked by the same natural key the unique index enforces, so this
+        # always finds it if it exists.
+        existing = db.execute(
+            "SELECT id FROM shows WHERE society_id = ? AND season = ? AND show = ?",
+            (review["society_id"], review["season"], review["show_raw"]),
+        ).fetchone()
+        if existing is not None:
+            show_id = existing["id"]
+        else:
+            # No existing shows/historical_results row for this production -
+            # a minimal "skeleton" row (source='historical') gives the
+            # review a real page to live on, same idea as a society
+            # backfilling their own history, just moderator-triggered.
+            # Deliberately excluded from every stats/leaderboard query (see
+            # schema.sql) so it can't double-count.
+            society = db.execute("SELECT region FROM societies WHERE id = ?", (review["society_id"],)).fetchone()
+            show_id = db.execute(
+                """
+                INSERT INTO shows (society_id, season, region, section, show, source, moderation_status)
+                VALUES (?, ?, ?, ?, ?, 'historical', 'approved')
+                """,
+                (review["society_id"], review["season"], society["region"], review["tier"], review["show_raw"]),
+            ).lastrowid
 
     db.execute(
         """
@@ -2027,32 +2101,25 @@ def approve_historical_review(review_id):
 @bp.route("/historical-reviews/bulk-approve", methods=("POST",))
 @login_required
 def bulk_approve_historical_reviews():
-    """Approves every pending review that already has a confident society
-    match and no existing show to link to (flag='no_show_match') - the
-    society match is the only judgment call this queue exists to make, and
-    it's already settled for these, so there's nothing left for a moderator
-    to individually click through. A review still needing a society picked
-    (flag='needs_check') is never touched here - that one genuinely needs a
-    person."""
+    """Approves every review in the 'ready' category (see
+    categorize_pending_reviews) - a confident society match, and either no
+    plausible existing record at all or an already-exact show match, so
+    there's genuinely nothing left for a moderator to individually decide.
+    Reviews needing a society picked, sharing a natural key with another
+    pending review, or matching the older awards archive under a different
+    title are never touched here - each of those needs an actual look."""
     db = get_db()
     user = current_user()
-    reviews = db.execute(
-        "SELECT * FROM historical_reviews WHERE moderation_status = 'pending' "
-        "AND flag = 'no_show_match' AND society_id IS NOT NULL"
-    ).fetchall()
+    reviews = categorize_pending_reviews(db)["ready"]
     approved = 0
     conflicts = 0
     for review in reviews:
-        # Two reviews can legitimately share a (society, season, show) triple
-        # - the same production got extracted twice from two different
-        # source issues (a near-duplicate reprint, confirmed in testing -
-        # 13 real cases across the archive) - and the second one then
-        # collides with ux_shows_natural_key when this tries to create its
-        # own skeleton show. A single such collision used to 500 the whole
-        # batch, since every row shared one uncommitted transaction - a
-        # per-row SAVEPOINT means one conflicting review is left pending
-        # for a moderator to look at by hand, instead of blocking the other
-        # 800-odd reviews that have nothing wrong with them.
+        # categorize_pending_reviews already excludes reviews sharing a
+        # natural key with another *pending* one, so a collision here would
+        # only happen from something outside this batch (a genuine race, or
+        # a show approved through a different path since the page loaded) -
+        # rare, but the per-row SAVEPOINT still means one such collision
+        # leaves that single review pending instead of 500ing the batch.
         db.execute("SAVEPOINT bulk_approve_row")
         try:
             _approve_historical_review_row(db, review, user["username"])
@@ -2070,6 +2137,37 @@ def bulk_approve_historical_reviews():
             "review and needs a moderator to pick which one is right."
         )
     flash(message, "success")
+    return redirect(url_for("admin.historical_reviews_queue"))
+
+
+@bp.route("/historical-reviews/<int:review_id>/apply-title-match", methods=("POST",))
+@login_required
+def apply_historical_review_title_match(review_id):
+    """One-click accept for a history_match suggestion (see
+    categorize_pending_reviews) - corrects show_raw to the awards archive's
+    own title for the same production, so the skeleton show this creates on
+    approval lines up with that existing record instead of forking a
+    second, differently-titled entry for it. Doesn't approve on its own -
+    same separation as Edit fields, where fixing the data and publishing
+    it are two distinct steps."""
+    db = get_db()
+    review = db.execute(
+        "SELECT * FROM historical_reviews WHERE id = ? AND moderation_status = 'pending'", (review_id,)
+    ).fetchone()
+    if review is None:
+        abort(404)
+    title = request.form.get("title", "").strip()
+    if not title:
+        abort(400)
+
+    show_id = match_show_for_edit(db, review["society_id"], review["season"], title)
+    flag = None if show_id is not None else ("no_show_match" if review["society_id"] is not None else "needs_check")
+    db.execute(
+        "UPDATE historical_reviews SET show_raw = ?, show_id = ?, flag = ? WHERE id = ?",
+        (title, show_id, flag, review_id),
+    )
+    db.commit()
+    flash(f'Title corrected to "{title}" - ready to approve.', "success")
     return redirect(url_for("admin.historical_reviews_queue"))
 
 
@@ -2152,6 +2250,115 @@ def edit_historical_review(review_id):
 
 def _all_societies(db):
     return db.execute("SELECT id, name FROM societies ORDER BY name").fetchall()
+
+
+HISTORICAL_RESULTS_MATCH_THRESHOLD = 0.85
+
+
+def find_historical_results_candidates(db, society_id, season, show_raw):
+    """Reviews before 23/24 can never match an existing `shows` row (see
+    SHOWS_COVERAGE_START_YEAR) - but the production itself very often
+    already exists in the older, pre-existing `historical_results` awards
+    archive (back to ~2005), just under a slightly different title than
+    the one printed in the ShowTimes review heading ('Titanic' vs the
+    awards archive's 'Titanic The Musical', confirmed - both are the same
+    2011 Marian Choral Society production). Reuses the site's own existing
+    duplicate-title scorer (app.dedupe.find_candidates, built for the
+    admin "possible duplicate societies/shows" tool) rather than writing a
+    second fuzzy-matching implementation - it already strips exactly this
+    kind of generic suffix ('the musical', 'jr.', ...) before scoring, so
+    'Titanic' vs 'Titanic The Musical' comes back a perfect 1.0 for free.
+    Returns [(title, score), ...] sorted highest-first, scores in [0, 1] -
+    an empty list means no plausible history exists at all, not that
+    matching failed."""
+    if society_id is None:
+        return []
+    year = historical_results_year(season)
+    rows = db.execute(
+        "SELECT DISTINCT show FROM historical_results WHERE society_id = ? AND year = ? AND show IS NOT NULL",
+        (society_id, year),
+    ).fetchall()
+    candidate_titles = [r["show"] for r in rows]
+    if not candidate_titles:
+        return []
+    pairs = find_candidates([show_raw] + candidate_titles, dismissed=set())
+    best_by_title = {}
+    for a, b, score in pairs:
+        if show_raw not in (a, b):
+            continue
+        other = b if a == show_raw else a
+        best_by_title[other] = max(best_by_title.get(other, 0), score)
+    return sorted(best_by_title.items(), key=lambda kv: -kv[1])
+
+
+def find_mismatched_skeleton_shows(db):
+    """Skeleton shows (source='historical', created by approving a
+    historical review - see _approve_historical_review_row) whose own
+    title doesn't line up with a plausible existing historical_results
+    record for the same production. public.show_detail's own award-history
+    lookup already tolerates a pure case/punctuation difference
+    (normalize_title, e.g. 'Made In Dagenham' vs 'Made in Dagenham' - the
+    review's own show_raw.title()-casing versus the awards CSV's original
+    casing) - this only flags a *real* wording gap that normalize_title
+    can't paper over ('Jekyll And Hyde' vs 'Jekyll & Hyde' isn't one;
+    'Joseph And His...' vs 'Joseph and the...' is), which actually needs
+    the title corrected before that award history will surface. A one-off
+    retroactive audit (there was no such check when the first review-
+    extraction batch was approved) - see apply_show_title_match for the
+    fix, and categorize_pending_reviews' own history_match category for
+    the same check applied going forward, before a review is ever
+    approved."""
+    skeletons = db.execute(
+        "SELECT id, society_id, season, show FROM shows WHERE source = 'historical'"
+    ).fetchall()
+    mismatches = []
+    for s in skeletons:
+        candidates = find_historical_results_candidates(db, s["society_id"], s["season"], s["show"])
+        strong = [
+            (title, score) for title, score in candidates
+            if score >= HISTORICAL_RESULTS_MATCH_THRESHOLD and normalize_title(title) != normalize_title(s["show"])
+        ]
+        if strong:
+            entry = dict(s)
+            entry["suggested_title"], entry["match_score"] = strong[0]
+            mismatches.append(entry)
+    return mismatches
+
+
+@bp.route("/historical-shows/title-check")
+@login_required
+def historical_shows_title_check():
+    db = get_db()
+    mismatches = find_mismatched_skeleton_shows(db)
+    society_names = {
+        r["id"]: r["name"] for r in db.execute("SELECT id, name FROM societies")
+    }
+    for m in mismatches:
+        m["society_name"] = society_names.get(m["society_id"])
+    return render_template("admin/historical_shows_title_check.html", mismatches=mismatches)
+
+
+@bp.route("/historical-shows/<int:show_id>/apply-title-match", methods=("POST",))
+@login_required
+def apply_show_title_match(show_id):
+    """One-click accept for a find_mismatched_skeleton_shows suggestion -
+    corrects an already-approved skeleton show's own title to the awards
+    archive's title for the same production, so public.show_detail's
+    (society, year, title) lookup finds it. Only ever touches
+    source='historical' rows - a real imported show's title is
+    authoritative on its own, never something to silently rewrite from a
+    fuzzy suggestion."""
+    db = get_db()
+    show = db.execute("SELECT id FROM shows WHERE id = ? AND source = 'historical'", (show_id,)).fetchone()
+    if show is None:
+        abort(404)
+    title = request.form.get("title", "").strip()
+    if not title:
+        abort(400)
+    db.execute("UPDATE shows SET show = ? WHERE id = ?", (title, show_id))
+    db.commit()
+    flash(f'Show title corrected to "{title}".', "success")
+    return redirect(url_for("admin.historical_shows_title_check"))
 
 
 def match_show_for_edit(db, society_id, season, show_raw):

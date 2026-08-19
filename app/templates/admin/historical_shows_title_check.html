@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Historical show title check - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Skeleton show titles vs the awards archive</h1>
+  <p>{{ mismatches|length }} skeleton show{{ '' if mismatches|length == 1 else 's' }} (created by approving a
+     historical review) whose title doesn't line up with a plausible matching record in the older AIMS awards
+     archive - a pure case/punctuation difference (e.g. "Made In Dagenham" vs "Made in Dagenham") is already
+     tolerated when showing award history on the show's own page, so those aren't listed here; these are real
+     wording differences that need the title corrected before that history will actually surface.</p>
+
+  {% for m in mismatches %}
+    <article class="queue-item">
+      <h3>{{ m['show'] }}</h3>
+      <p class="meta">{{ m['society_name'] }} &middot; {{ m['season'] }}</p>
+      <div class="actions">
+        <form method="post" action="{{ url_for('admin.apply_show_title_match', show_id=m['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="title" value="{{ m['suggested_title'] }}">
+          <button type="submit" class="button-primary">Use "{{ m['suggested_title'] }}" ({{ (m['match_score'] * 100)|round|int }}% match)</button>
+        </form>
+        <a href="{{ url_for('admin.edit_show', show_id=m['id']) }}">Edit show</a>
+      </div>
+    </article>
+  {% else %}
+    <p>No mismatches found.</p>
+  {% endfor %}
+{% endblock %}
