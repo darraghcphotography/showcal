@@ -15,6 +15,16 @@ def unlock_society(client, code_id):
         sess["society_code_id"] = code_id
 
 
+def test_suggestions_banner_appears_near_the_top(client):
+    """19 Aug 2026 feedback: the "please suggest it" prompt used to be the
+    very last thing on the page, below Upcoming Shows and Recently
+    Shipped - easy to miss. Moved up next to the existing top banner."""
+    body = client.get("/").get_data(as_text=True)
+    suggest_pos = body.index("Please suggest it")
+    heading_pos = body.index("<h1>DC Show Tracker</h1>")
+    assert suggest_pos < heading_pos
+
+
 def test_societies_page_lists_and_filters_societies(client, db):
     seed_society(db, id=1, name="Eastern Soc", region="Eastern")
     seed_society(db, id=2, name="Western Soc", region="Western")

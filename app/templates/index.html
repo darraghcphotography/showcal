@@ -54,6 +54,11 @@
        you can manage your own society's page directly.</p>
   </div>
 
+  <div class="site-notice">
+    <p>Anything you think might be a good addition? <a href="{{ url_for('public.suggest') }}">Please suggest it</a>
+       - I'm open to ideas!</p>
+  </div>
+
   <h1>DC Show Tracker</h1>
   <p>Show history, upcoming productions, and the AIMS awards archive for every AIMS member society.</p>
 
@@ -116,11 +121,6 @@
     {% endfor %}
     <p class="meta"><a href="{{ url_for('public.suggestions_board') }}">Full roadmap &rarr;</a></p>
   {% endif %}
-
-  <div class="site-notice">
-    <p>Anything you think might be a good addition? <a href="{{ url_for('public.suggest') }}">Please suggest it</a>
-       - I'm open to ideas!</p>
-  </div>
 
   <p><a href="{{ url_for('public.societies_list') }}" class="edit-callout">Browse all societies &rarr;</a></p>
 {% endblock %}
