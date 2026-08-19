@@ -79,6 +79,34 @@ def test_queue_groups_a_review_with_no_society_matched(client, db):
     assert b"Carousel" in resp.data
 
 
+def test_queue_suggests_a_fuzzy_society_match(client, db):
+    """A real spelling/punctuation variant of an existing society name
+    ("Harold's Cross Tallaght Musical Society" vs "Harolds Cross Tallaght
+    Musical Society" - a missing apostrophe, the real case that prompted
+    this) should be suggested, not just left as an unmatched dead end."""
+    admin_id = seed_user(db)
+    seed_society(db, name="Harold's Cross Tallaght Musical Society")
+    login_as(client, admin_id)
+    review_id = seed_historical_review(
+        db, society_id=None, society_raw="Harolds Cross Tallaght Musical Society",
+        show_raw="Sister Act", flag="needs_check",
+    )
+
+    resp = client.get("/admin/historical-reviews")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert 'Use "Harold&#39;s Cross Tallaght Musical Society"' in body or "Harold's Cross Tallaght Musical Society" in body
+
+    apply_resp = client.post(
+        f"/admin/historical-reviews/{review_id}/apply-society-match",
+        data={"name": "Harold's Cross Tallaght Musical Society"},
+    )
+    assert apply_resp.status_code == 302
+    review = db.execute("SELECT society_id, flag FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
+    assert review["society_id"] is not None
+    assert review["flag"] == "no_show_match"
+
+
 def test_approve_with_no_existing_show_creates_skeleton(client, db):
     admin_id = seed_user(db)
     society_id = seed_society(db, name="Tullyvin Musical Society")

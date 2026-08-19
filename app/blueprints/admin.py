@@ -1999,6 +1999,10 @@ def categorize_pending_reviews(db):
     for r in reviews:
         entry = dict(r)
         if r["society_id"] is None:
+            entry["society_candidates"] = [
+                (name, score) for name, score in find_society_candidates(db, r["society_raw"])
+                if score >= SOCIETY_MATCH_THRESHOLD
+            ]
             grouped["needs_society"].append(entry)
             continue
         key = (r["society_id"], r["season"], r["show_raw"])
@@ -2171,6 +2175,41 @@ def apply_historical_review_title_match(review_id):
     return redirect(url_for("admin.historical_reviews_queue"))
 
 
+@bp.route("/historical-reviews/<int:review_id>/apply-society-match", methods=("POST",))
+@login_required
+def apply_historical_review_society_match(review_id):
+    """One-click accept for a needs_society suggestion (see
+    categorize_pending_reviews/find_society_candidates) - matches a review
+    whose printed society name has a real spelling/punctuation variant
+    against the current record ("Harold's Cross Tallaght Musical Society"
+    vs "Harolds Cross Tallaght Musical Society", the case that prompted
+    this - a missing apostrophe) without a moderator having to type the
+    correct name in by hand via Edit fields. Doesn't approve on its own,
+    same separation as the title-match equivalent."""
+    db = get_db()
+    review = db.execute(
+        "SELECT * FROM historical_reviews WHERE id = ? AND moderation_status = 'pending'", (review_id,)
+    ).fetchone()
+    if review is None:
+        abort(404)
+    name = request.form.get("name", "").strip()
+    if not name:
+        abort(400)
+    society = db.execute("SELECT id FROM societies WHERE name = ?", (name,)).fetchone()
+    if society is None:
+        abort(400)
+
+    show_id = match_show_for_edit(db, society["id"], review["season"], review["show_raw"])
+    flag = None if show_id is not None else "no_show_match"
+    db.execute(
+        "UPDATE historical_reviews SET society_id = ?, show_id = ?, flag = ? WHERE id = ?",
+        (society["id"], show_id, flag, review_id),
+    )
+    db.commit()
+    flash(f'Society matched to "{name}" - ready to approve.', "success")
+    return redirect(url_for("admin.historical_reviews_queue"))
+
+
 @bp.route("/historical-reviews/<int:review_id>/reject", methods=("POST",))
 @login_required
 def reject_historical_review(review_id):
@@ -2253,6 +2292,32 @@ def _all_societies(db):
 
 
 HISTORICAL_RESULTS_MATCH_THRESHOLD = 0.85
+SOCIETY_MATCH_THRESHOLD = 0.85
+
+
+def find_society_candidates(db, society_raw):
+    """Fuzzy society-name suggestions for a review whose society_raw didn't
+    exactly match anything (flag='needs_check') - real name variants are
+    common across 14 years of hand-typed magazine text ("Harold's Cross
+    Tallaght Musical Society" vs "Harolds Cross Tallaght Musical Society",
+    confirmed - just a missing apostrophe, scores 0.99). Reuses the same
+    scorer as find_historical_results_candidates (app.dedupe.find_candidates,
+    the admin dashboard's own duplicate-society/-show tool) rather than a
+    third fuzzy-matching implementation. Returns [(name, score), ...]
+    sorted highest-first - a moderator still picks, this only suggests."""
+    if not society_raw:
+        return []
+    names = [r["name"] for r in db.execute("SELECT name FROM societies").fetchall()]
+    if not names:
+        return []
+    pairs = find_candidates([society_raw] + names, dismissed=set())
+    best_by_name = {}
+    for a, b, score in pairs:
+        if society_raw not in (a, b):
+            continue
+        other = b if a == society_raw else a
+        best_by_name[other] = max(best_by_name.get(other, 0), score)
+    return sorted(best_by_name.items(), key=lambda kv: -kv[1])
 
 
 def find_historical_results_candidates(db, society_id, season, show_raw):

@@ -42,11 +42,24 @@
 
   {% if grouped['needs_society'] %}
     <h2>Needs a society matched ({{ grouped['needs_society']|length }})</h2>
-    <p class="meta">No society could be matched at all - pick one with Edit fields before this can go anywhere.</p>
+    <p class="meta">No society could be matched at all - pick one with Edit fields, or accept a suggested
+       spelling/punctuation variant below if it's the right one.</p>
     {% for review in grouped['needs_society'] %}
       <article class="queue-item">
         <h3>{{ review['show_raw'] }} <span class="tag tag-warning">no society matched</span></h3>
         {{ review_meta(review) }}
+        {% if review['society_candidates'] %}
+          <p class="meta">Did you mean:
+            {% for name, score in review['society_candidates'] %}
+              <form method="post" action="{{ url_for('admin.apply_historical_review_society_match', review_id=review['id']) }}"
+                    class="inline-form" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="name" value="{{ name }}">
+                <button type="submit" class="button-primary">Use "{{ name }}" ({{ (score * 100)|round|int }}% match)</button>
+              </form>
+            {% endfor %}
+          </p>
+        {% endif %}
         <div class="actions">{{ review_actions(review) }}</div>
       </article>
     {% endfor %}

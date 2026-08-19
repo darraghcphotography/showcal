@@ -7,32 +7,14 @@ phase changes.
 
 ## Start here (updated 2026-08-19)
 
-**Deployed state**: Round 27 (864-review verified extraction) and Round 28 (bulk-approve 500 fix,
-two extraction bugs, matching against the older `historical_results` awards archive) are both
-**live and confirmed deployed** (`/suggestions` read "19 Aug 2026, 12:16" after the Round 28 push;
-`load_historical_reviews.py` was re-run against production - 1 inserted, 849 already loaded, 14
-refreshed with corrected text, matching the full 864-review set). Darragh started actively
-moderating the real queue live on production, which is exactly what surfaced Round 28's bugs in the
-first place, then hit **one more real bug** using `/admin/historical-shows/title-check`: accepting
-a suggested title for a skeleton show 500'd when that title already belonged to a *different*,
-independently-existing show (a member submission entered separately from the review pipeline - see
-"Round 28.1" note at the end of the Round 28 entry below for the full story and the fix). **That
-fix (commit `0565a66`) is pushed but not yet redeployed** - the one specific stuck row
-(Thurles Musical Society, "Ragtime" 17/18) was already fixed directly on production via SQL so
-Darragh isn't blocked, but the *tool itself* will 500 again on any of the other ~34 remaining
-title-check entries that hit the same collision pattern until this gets redeployed.
-
-**A systemic gap worth investigating next session, not just this one bug**: the reason this
-collision could happen at all is that review-approval (`match_show_for_edit`, used both when a
-review gets approved and when a moderator edits one) only ever checks for an **exact** `show_raw`
-match against `shows` - it has no fuzzy/near-title matching against *existing shows rows*, only
-against the older `historical_results` archive (Round 28's `find_historical_results_candidates`).
-That means the same failure mode (a review creates its own skeleton instead of linking to an
-already-existing, differently-worded show) can still happen going forward for any of the ~700
-reviews still pending, not just the one already found. Worth extending the "ready" category's own
-check in `categorize_pending_reviews` to also run `find_historical_results_candidates`-style fuzzy
-matching against `shows` itself (not just `historical_results`) before calling a review safe to
-bulk-approve - see "Suggestions for future scope" below for the fuller shape of this.
+**Deployed state**: Rounds 27, 28, and 28.1 are all live and confirmed deployed (checked the actual
+running container's code directly, not just a deploy timestamp - a timestamp alone only proves a
+restart happened, not which commit). **Round 29 is committed and pushed but not yet redeployed** -
+a drop-cap parsing bug and a wrapped-society-name bug (both fixed and shipped), a fuzzy society-name
+suggestion feature for the moderation queue (directly requested by Darragh, shipped), and two real
+findings that were investigated but deliberately NOT acted on this session (a wrong-society fuzzy-
+matching bug with an unsafe fix, and ~112 stale orphaned review rows needing a more rigorous cleanup
+method than what was tried) - see Round 29 below and "Next steps" for the full detail on both.
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -531,49 +513,134 @@ working through `/admin/historical-shows/title-check` for real and hit a 500 cli
   main finding, just against `shows` instead of `historical_results` - `match_show_for_edit` never
   fuzzy-matches against *either* archive, only exact-matches against `shows`. Not yet generalized -
   see "Suggestions for future scope" below.
-- 20 tests pass (1 new this round: the merge-not-rename case). Committed (`0565a66`); pushed but
-  **not yet redeployed** as of this note.
+- 20 tests pass (1 new this round: the merge-not-rename case). Committed (`0565a66`) and confirmed
+  deployed (checked the actual running container's code, not just the deploy timestamp - the
+  timestamp alone only proves a restart happened, not which commit).
+
+**Round 29 - three more real extraction bugs from Darragh's own screenshots, plus fuzzy society
+suggestions (2026-08-19):** Not a re-run of the archive-wide audit - each bug here was found because
+Darragh was looking at the real queue and flagged something that looked wrong.
+- **A decorative drop-cap fabricating a fake review**: PyMuPDF gives a large-font drop-cap its own
+  text run, separate from the rest of the word it starts - Issue 107 October 2015's season-opening
+  "As the new show season begins we welcome two new adjudicators..." editorial had its lone 'A'
+  read as a real title, and the adjudicators' own names appearing in that same intro's bio
+  paragraphs then looked exactly like their sign-offs, fabricating a fake review from editorial text
+  no adjudicator wrote. Fixed (a single character never counts as title-shaped, even large-font) -
+  this issue genuinely has 0 recoverable reviews though; the bios' own name-as-heading structure
+  breaks the sign-off boundary detection for the real reviews too, a deeper limitation not attempted
+  this round (see below).
+- **A wrapped society name eating the real title**: 'North East Music & Dramatic Society,' /
+  'Castleblayney' (the town, wrapped onto its own line) had 'Castleblayney' picked as the show title
+  outright, silently dropping the real title '9 TO 5'. Fixed - a trailing comma on the matched
+  society span's own last line now signals a continuation to skip, not a title.
+- **A confirmed but NOT fixed bug**: two cases (Malahide Musical Society misattributed to the
+  unrelated Baldoyle Musical Society; Leixlip Musical Society misattributed to the unrelated Boyle
+  Musical Society) where whole-string character-ratio scoring let a same-shaped but wrong society
+  coincidentally outscore the real one. A first-word-must-also-match gate fixed both confirmed
+  cases cleanly, but combined with a compensating threshold change it also cost real reviews
+  elsewhere in the archive for reasons not root-caused in the time available (e.g. Issue 90's
+  Ratoath Musical Society - an exact, unambiguous name match with nothing that should have been
+  affected) - reverted rather than ship something not fully understood. **The underlying bug is
+  real and confirmed; the fix attempt is not yet safe.** See "Next steps" below before re-attempting.
+- **Fuzzy society-name suggestions, directly requested** ("surely there can be suggested society
+  matching? ie Harold's Cross vs Harolds Cross?"): reused the same `app.dedupe.find_candidates`
+  scorer a third time (after historical_results titles and skeleton show titles) rather than a new
+  implementation. `/admin/historical-reviews`'s "needs a society matched" category now shows
+  one-click suggestions when a real spelling/punctuation variant scores high enough (confirmed -
+  "Harold's Cross Tallaght Musical Society" vs the printed "Harolds Cross Tallaght Musical Society"
+  scores 0.99).
+- **A verification lesson worth remembering**: while assessing whether ~112 old "orphaned" pending
+  review rows (superseded by corrected re-extractions, never approved, safe to delete) were
+  actually safe to clean up, a crude "same show title appears elsewhere in the issue" heuristic
+  wrongly flagged 2-3 of a 19-row sample as "superseded" when they were actually genuine, distinct
+  reviews (the Malahide case above was found exactly this way). **No cleanup was executed** - the
+  finding is real (roughly 112 stale pending rows exist, cross-referenced against the verified
+  extraction by exact key match) but needs a properly rigorous verification pass, not a pattern-
+  matched spot-check, before anyone deletes anything. 23 further rows are already-approved and must
+  never be touched regardless (approved rows intentionally freeze their text, per load_reviews.py's
+  own design).
+- 863 reviews (down 1 from Round 28's 864 - the one fake Issue 107 entry removed, nothing else
+  changed in count; the reverted society-matching attempt made no difference to the shipped
+  version). 253 tests pass. Reloaded into local `aims.db` (4 inserted, 857 already-loaded,
+  2 refreshed). Committed and pushed.
 
 ## Next steps / open questions for a future session
 
-**Immediate (blocking further title-check use)**: redeploy commit `0565a66` so
-`/admin/historical-shows/title-check` stops 500ing on any of the remaining ~34 entries that hit the
-same real-show-already-exists collision as the Thurles/Ragtime case. Nothing else is blocked -
-`/admin/historical-reviews` itself (the main queue) doesn't have this bug, only the retroactive
-skeleton-title-check tool does.
+**Not blocking anything right now** - Rounds 27, 28, 28.1, and 29 are all shipped and deployed (or
+committed and ready for the next redeploy, for Round 29's fixes specifically). Nothing in this list
+needs to happen before Darragh can keep using the tool.
 
-**Worth investigating - the systemic version of the Ragtime bug**: `match_show_for_edit` (used at
-both review-approval and review-edit time) only ever does an *exact* string match against `shows`.
-Round 28 added fuzzy matching against `historical_results` for the moderation queue's own
+**Real bug, not yet safely fixed - wrong-society misattribution**: `find_society_span`'s whole-
+string character-ratio scoring can let a same-shaped but *unrelated* society (sharing a generic
+suffix like "Musical Society") coincidentally outscore the real match, when the real match has
+extra words the printed heading omits. Two confirmed real cases (Issue 120: "Malahide Musical
+Society" as printed wrongly matched "Baldoyle Musical Society" over the real "Malahide Musical &
+Dramatic Society"; Issue 70: "Leixlip Musical Society" wrongly matched "Boyle Musical Society"
+over "Leixlip Musical & Variety Group"). A first-word-must-also-match gate fixed both cleanly in
+isolation, but shipping it (even combined with a compensating threshold change to recover
+marginal real matches like Leixlip's own 0.74 whole-string score) cost real reviews elsewhere in
+the archive - confirmed via a full re-extraction diff, not assumed - for reasons not root-caused
+before running out of session time. **Before re-attempting**: isolate exactly why Issue 90's
+Ratoath Musical Society review (an exact, unambiguous canonical-name match with no competing
+candidate at all) failed under the first-word gate alone, even at the original 0.80 threshold - that
+result shouldn't be possible if the gate genuinely never rejects a match the old code would have
+accepted, so either the gate has a real bug beyond what this session found, or something else in
+that specific issue's PDF (it has visible font-encoding corruption in places) is confusing the
+fix. Don't just re-ship the same first-word-gate code without understanding this first.
+
+**Real finding, explicitly not acted on - stale orphaned review rows**: cross-referencing
+production's `historical_reviews` table against the current verified extraction by exact
+`(source_issue, society_raw, show_raw)` key found ~112 pending rows that don't match anything in
+the current dataset - almost certainly leftovers from early, since-corrected extraction rounds
+that `load_reviews()`'s text-based dedup key didn't recognize as "the same review, now fixed" (a
+structural limitation of that dedup key worth knowing about even outside this specific cleanup -
+any future extraction correction will keep doing this). **Before deleting any of them**: a crude
+"does this show title appear elsewhere in the same issue" heuristic wrongly flagged 2-3 of a
+19-row spot-check sample as safe to delete when they were genuinely distinct, un-superseded
+reviews (the Malahide case above was found exactly this way) - a real false-positive rate too high
+to act on without a properly rigorous check first (e.g. reusing whatever ends up fixing the
+wrong-society-matching bug above, once it's actually trustworthy). 23 further rows are already-
+*approved* and must never be touched regardless of any cleanup method, since approved rows
+intentionally freeze their text by design.
+
+**Worth investigating - the systemic version of the Ragtime/title-check bug**: `match_show_for_edit`
+(used at both review-approval and review-edit time) only ever does an *exact* string match against
+`shows`. Round 28 added fuzzy matching against `historical_results` for the moderation queue's own
 categorization (`find_historical_results_candidates`), but never extended the same idea to `shows`
 itself - so a review can still create a redundant skeleton instead of linking to an already-existing,
-differently-titled show (submission or import), for any of the ~700 reviews still pending. Concretely
+differently-titled show (submission or import), for any of the reviews still pending. Concretely
 worth trying next session: run `find_historical_results_candidates`-shaped fuzzy matching against
 `shows` too (not just `historical_results`) as part of `categorize_pending_reviews`'s "ready" bucket,
 so a review with a plausible-but-not-exact existing show gets routed into a "needs a title/show check"
-category *before* approval, rather than only being caught after the fact by a title-check audit (which
-only exists for already-approved skeletons, not shows created any other way).
+category *before* approval, rather than only being caught after the fact by a title-check audit.
 
-**Deferred ideas, not started, lower priority than the above**:
+**Deferred ideas, lower priority than the above**:
 - Fuzzy-matching show *titles* to warn on likely duplicates more broadly, not just within this
-  review-import pipeline - Darragh's own earlier "a show match would be great too" ask. The
-  Round 28/28.1 work is really a specific instance of this same idea (title variants of the same
-  real production); `app.dedupe.find_candidates` already exists and is reused now, so extending its
-  use beyond the historical-review flow (e.g. flagging likely-duplicate `shows` rows generally, the
-  way the admin dashboard already flags likely-duplicate societies) is a natural next step, not a
-  new mechanism.
+  review-import pipeline - Darragh's own earlier "a show match would be great too" ask. `app.dedupe.
+  find_candidates` is now reused three times (historical_results titles, skeleton show titles,
+  society names) - extending its use beyond the historical-review flow (e.g. flagging likely-
+  duplicate `shows` rows generally, the way the admin dashboard already flags likely-duplicate
+  societies) is a natural next step, not a new mechanism.
 - Extracting Director/Musical Director/Choreographer names from review text - explicitly flagged by
   Darragh early on as "food for thought for later," not urgent.
-- A worthwhile cleanup, not urgent: `find_historical_results_candidates`, `match_show_for_edit`, and
-  `find_mismatched_skeleton_shows` are three separate, not-quite-unified matching code paths that
-  grew one at a time this session as each new problem surfaced. Once the current backlog (queue +
-  title-check) is actually cleared, consider whether these should collapse into one shared matching
-  utility rather than three similar-but-distinct ones - not urgent while there's still real,
-  unprocessed queue data to work through.
-- Continue working through the main `/admin/historical-reviews` queue itself (the "needs society
-  matched" / "same show, two reviews" / "likely has award history" categories, ~90 reviews as of
-  the last count) - the bulk-approvable "ready" bucket was already cleared during this session, but
-  those three categories all genuinely need a person to look at each one.
+- A worthwhile cleanup, not urgent: `find_historical_results_candidates`, `find_society_candidates`,
+  `match_show_for_edit`, and `find_mismatched_skeleton_shows` are four separate, not-quite-unified
+  matching code paths that grew one at a time as each new problem surfaced. Once the current
+  backlog (queue + title-check + the two open items above) is actually resolved, consider whether
+  these should collapse into one shared matching utility - not urgent while there's still real work.
+- Continue working through the main `/admin/historical-reviews` queue itself (needs-society /
+  conflict / history-match categories) - the bulk-approvable "ready" bucket was already cleared
+  earlier this session, but those three categories all genuinely need a person to look at each one.
+  The needs-society category should now be faster to work through with Round 29's fuzzy-suggestion
+  buttons.
+- Issue 107 October 2015 (and likely any other issue where a new adjudicator pairing's season-
+  opening welcome article runs adjudicator bios with their own name as a heading line) genuinely
+  has 0 recoverable reviews with the current segment-boundary logic - the bios' own name headings
+  get mistaken for sign-offs, same failure shape as the already-fixed "Top Three Tunes"/"News"/
+  "Regional Round-Up" furniture headings but harder to fix generically since a real adjudicator
+  name legitimately CAN appear as a heading-shaped line in this one specific context. Not attempted
+  this round; likely rare enough (once per adjudicator-pair change) not to be worth much further
+  investment unless it turns out to recur often.
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute

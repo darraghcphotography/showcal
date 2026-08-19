@@ -403,6 +403,22 @@ def page_body_lines(page, known_names, header_cutoff_y, known_societies=()):
 SOCIETY_MATCH_THRESHOLD = 0.80
 SOCIETY_SEARCH_LOOKBACK = 8
 SOCIETY_SEARCH_MAX_SPAN = 3
+# Tried adding a "first word must itself fuzzy-match" gate here, to stop a
+# whole-string character ratio letting two *unrelated* town names sharing a
+# common suffix ("X Musical Society") coincidentally outscore the real
+# match (confirmed real cases - Issue 120 April 2017's 'Malahide Musical
+# Society' matched 'Baldoyle Musical Society' at 0.83 over the real
+# 'Malahide Musical & Dramatic Society' at 0.81; Issue 70's 'Leixlip
+# Musical Society' matched 'Boyle Musical Society' the same way). Reverted:
+# it also cost real reviews elsewhere in the archive that should have been
+# unaffected (confirmed, e.g. Issue 90 November 2013's Ratoath Musical
+# Society review, an exact-name match with no ambiguity at all) - not yet
+# root-caused before running out of session time to investigate safely,
+# and at least one involved source PDF has garbled/corrupted font encoding
+# in places, muddying the investigation further. The Malahide/Leixlip bug
+# is real and confirmed, just not yet safely fixed - see ROADMAP.md rather
+# than re-attempting this exact approach without first understanding why
+# it broke Ratoath.
 
 
 def find_society_span(line_texts, known_societies):
@@ -462,8 +478,17 @@ def looks_like_title(text, is_headline):
     convention, where the title keeps normal capitalization - 'Spring
     Awakening', not 'SPRING AWAKENING' - so ALL-CAPS alone would miss it).
     A bare dotted initialism never counts, even in a large font - it's a
-    society's own short form (see ACRONYM_RE), not a real title."""
-    if ACRONYM_RE.match(text):
+    society's own short form (see ACRONYM_RE), not a real title. Neither
+    does a single character, even in a large font - PyMuPDF gives a
+    decorative drop-cap (a season-opening editorial's oversized first
+    letter, its own text run at well above body size) its own line, which
+    otherwise reads exactly like a real large-font title (confirmed, Issue
+    107 October 2015 - a lone 'A' opening 'As the new show season
+    begins...' got picked up as a fake review title, and the real
+    adjudicator names appearing in that same intro's own bio paragraphs
+    then looked exactly like their sign-offs, fabricating a fake review
+    from editorial text no adjudicator wrote)."""
+    if ACRONYM_RE.match(text) or len(text) < 2:
         return False
     return bool(TITLE_LINE_RE.match(text)) or is_headline
 
@@ -515,6 +540,25 @@ def parse_heading(segment, known_societies=()):
             # society's own short-form, not the title - skip it before
             # treating the next line as the title instead.
             if re.fullmatch(r"\(.+\)", line_texts[end]) and end + 1 < len(lines):
+                end += 1
+            # The society's own printed name can wrap onto a second line
+            # too - a trailing comma on the matched span's own last line
+            # ('North East Music & Dramatic Society,' / 'Castleblayney')
+            # signals a continuation (usually the society's town/city)
+            # follows, not the title - the span search itself won't have
+            # matched across it (adding a location line only dilutes the
+            # match score against the canonical name, so the 1-line match
+            # already wins), so nothing upstream already accounts for it.
+            # Confirmed against the source PDF (Issue 160/November '22 -
+            # 'Castleblayney' was extracted as the show's own title, real
+            # title 'THE ADDAMS FAMILY'-style all-caps '9 TO 5' silently
+            # dropped) - only skip when the continuation doesn't itself
+            # look title-shaped, so a genuine same-line title isn't eaten.
+            if (
+                line_texts[end - 1].endswith(",")
+                and not looks_like_title(line_texts[end], lines[end][2])
+                and end + 1 < len(lines)
+            ):
                 end += 1
             title_lines = [line_texts[end]]
             idx = end + 1
