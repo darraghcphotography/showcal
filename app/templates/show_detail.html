@@ -33,7 +33,7 @@
   <dl class="detail-list">
     <dt>Dates</dt>
     <dd>
-      {% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}
+      {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ 'Not on record' if season_ended else 'TBA' }}{% endif %}
       {% if gcal_show_url %}
         <br><a href="{{ gcal_show_url }}" rel="noopener" target="_blank">📅 Add show to Google Calendar</a>
       {% endif %}

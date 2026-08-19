@@ -605,8 +605,20 @@ def season_summary():
         else:
             season_range_label = f"{start.strftime('%b %Y')} – {end.strftime('%b %Y')}"
 
+    # A whole season of "Not yet" is a column of identical non-information -
+    # the common case on the current season, where nothing has been adjudicated
+    # yet. Computed per table since a current season's finished half can have
+    # reviews while its upcoming half never does.
+    def _has_review(rows_):
+        return any(
+            (r["review_status"] == "Published" and r["review_url"])
+            or r["review_status"] == "Not adjudicated"
+            for r in rows_
+        )
+
     return render_template(
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
+        upcoming_has_review=_has_review(upcoming), finished_has_review=_has_review(finished),
         is_current=(season == current), is_past_season=(season < current), is_future_season=(season > current),
         season_range_label=season_range_label,
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,

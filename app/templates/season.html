@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{ season }} season - DC Show Tracker{% endblock %}
 
-{% macro show_rows(shows) %}
+{#- `past` picks the wording for a blank date: a season that has already run
+    can only be missing the date from the record, it isn't still "to be
+    announced". `with_review` drops the Review column entirely when nothing in
+    that table has one - see season_summary(), which computes it. -#}
+{% macro show_rows(shows, past=False, with_review=True) %}
   {% for show in shows %}
     <tr>
       <td>{{ show['region'] }}</td>
@@ -11,23 +15,25 @@
         {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
       </td>
       <td>{{ show['section'] or '—' }}</td>
-      <td>{{ show['opening_date']|irish_date or 'TBA' }}</td>
-      <td>
-        {% if show['review_status'] == 'Published' and show['review_url'] %}
-          <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
-        {% elif show['review_status'] == 'Not adjudicated' %}
-          Not adjudicated
-        {% else %}
-          Not yet
-        {% endif %}
-      </td>
+      <td>{{ show['opening_date']|date_range(show['closing_date']) or ('Not on record' if past else 'TBA') }}</td>
+      {% if with_review %}
+        <td>
+          {% if show['review_status'] == 'Published' and show['review_url'] %}
+            <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
+          {% elif show['review_status'] == 'Not adjudicated' %}
+            Not adjudicated
+          {% else %}
+            Not yet
+          {% endif %}
+        </td>
+      {% endif %}
     </tr>
   {% else %}
-    <tr><td colspan="6">None.</td></tr>
+    <tr><td colspan="{{ 6 if with_review else 5 }}">None.</td></tr>
   {% endfor %}
 {% endmacro %}
 
-{% macro show_cards(shows) %}
+{% macro show_cards(shows, past=False, with_review=True) %}
   {% for show in shows %}
     <div class="queue-item">
       <div class="primary">
@@ -38,16 +44,18 @@
         <span><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></span>
         <span>&middot; {{ show['region'] }}</span>
         <span>&middot; {{ show['section'] or '—' }}</span>
-        <span>&middot; {{ show['opening_date']|irish_date or 'TBA' }}</span>
-        <span>&middot;
-          {% if show['review_status'] == 'Published' and show['review_url'] %}
-            <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
-          {% elif show['review_status'] == 'Not adjudicated' %}
-            Not adjudicated
-          {% else %}
-            Not yet
-          {% endif %}
-        </span>
+        <span>&middot; {{ show['opening_date']|date_range(show['closing_date']) or ('Not on record' if past else 'TBA') }}</span>
+        {% if with_review %}
+          <span>&middot;
+            {% if show['review_status'] == 'Published' and show['review_url'] %}
+              <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
+            {% elif show['review_status'] == 'Not adjudicated' %}
+              Not adjudicated
+            {% else %}
+              Not yet
+            {% endif %}
+          </span>
+        {% endif %}
       </div>
     </div>
   {% else %}
@@ -114,30 +122,30 @@
     <h2>Past productions</h2>
     <table class="data-table table-wide">
       <thead>
-        <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opened</th><th>Review</th></tr>
+        <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Dates</th>{% if finished_has_review %}<th>Review</th>{% endif %}</tr>
       </thead>
-      <tbody>{{ show_rows(finished) }}{% if upcoming %}{{ show_rows(upcoming) }}{% endif %}</tbody>
+      <tbody>{{ show_rows(finished, true, finished_has_review) }}{% if upcoming %}{{ show_rows(upcoming, true, finished_has_review) }}{% endif %}</tbody>
     </table>
-    <div class="table-cards">{{ show_cards(finished) }}{% if upcoming %}{{ show_cards(upcoming) }}{% endif %}</div>
+    <div class="table-cards">{{ show_cards(finished, true, finished_has_review) }}{% if upcoming %}{{ show_cards(upcoming, true, finished_has_review) }}{% endif %}</div>
   {% else %}
     <h2>{{ 'Future Season / Early Announcements' if is_future_season else 'Upcoming productions' }}</h2>
     <table class="data-table table-wide">
       <thead>
-        <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opens</th><th>Review</th></tr>
+        <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Dates</th>{% if upcoming_has_review %}<th>Review</th>{% endif %}</tr>
       </thead>
-      <tbody>{{ show_rows(upcoming) }}</tbody>
+      <tbody>{{ show_rows(upcoming, false, upcoming_has_review) }}</tbody>
     </table>
-    <div class="table-cards">{{ show_cards(upcoming) }}</div>
+    <div class="table-cards">{{ show_cards(upcoming, false, upcoming_has_review) }}</div>
 
     {% if finished %}
       <h2>Past productions</h2>
       <table class="data-table table-wide">
         <thead>
-          <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Opened</th><th>Review</th></tr>
+          <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Dates</th>{% if finished_has_review %}<th>Review</th>{% endif %}</tr>
         </thead>
-        <tbody>{{ show_rows(finished) }}</tbody>
+        <tbody>{{ show_rows(finished, true, finished_has_review) }}</tbody>
       </table>
-      <div class="table-cards">{{ show_cards(finished) }}</div>
+      <div class="table-cards">{{ show_cards(finished, true, finished_has_review) }}</div>
     {% endif %}
   {% endif %}
 {% endblock %}

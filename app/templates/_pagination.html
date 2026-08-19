@@ -1,0 +1,30 @@
+{#- Shared pager for the long list pages (/awards, /titles, /societies).
+    `endpoint` is the route to link back to; every current query arg is carried
+    through so paging never silently drops the active filters. -#}
+{% macro pager(endpoint, page, total_pages) %}
+  {% if total_pages > 1 %}
+    <nav class="pagination">
+      {% if page > 1 %}
+        <a href="{{ url_for(endpoint, **dict(request.args, page=1)) }}">&laquo; First</a>
+        <a href="{{ url_for(endpoint, **dict(request.args, page=page - 1)) }}">&lsaquo; Previous</a>
+      {% endif %}
+      <span class="meta">Page {{ page }} of {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ url_for(endpoint, **dict(request.args, page=page + 1)) }}">Next &rsaquo;</a>
+        <a href="{{ url_for(endpoint, **dict(request.args, page=total_pages)) }}">Last &raquo;</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endmacro %}
+
+{#- Per-page control, for placing inside an existing filter form. -#}
+{% macro per_page_field(per_page, page_sizes) %}
+  <label>
+    Per page
+    <select name="per_page">
+      {% for size in page_sizes %}
+        <option value="{{ size }}" {% if size == per_page %}selected{% endif %}>{{ size }}</option>
+      {% endfor %}
+    </select>
+  </label>
+{% endmacro %}

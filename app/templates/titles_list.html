@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% import "_pagination.html" as pg %}
 {% block title %}All shows - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>All shows</h1>
-  <p>{{ shows|length }} distinct titles performed on the AIMS circuit. The "More info" link goes to a
+  <p>{{ total }} distinct titles performed on the AIMS circuit{% if total_pages > 1 %} - showing page
+     {{ page }} of {{ total_pages }}{% endif %}. The "More info" link goes to a
      Wikipedia search{% if current_user %} unless a moderator has confirmed the exact page{% endif %} -
      it's a best guess, not a verified match.</p>
 
@@ -20,6 +22,7 @@
         <option value="stale" {% if sort == 'stale' %}selected{% endif %}>Longest since performed</option>
       </select>
     </label>
+    {{ pg.per_page_field(per_page, page_sizes) }}
     <button type="submit">Apply</button>
     {% if q %}<a href="{{ url_for('public.titles_list', sort=sort) }}">Clear search</a>{% endif %}
   </form>
@@ -69,4 +72,6 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {{ pg.pager('public.titles_list', page, total_pages) }}
 {% endblock %}

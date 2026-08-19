@@ -10,7 +10,7 @@ from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SU
 from ..db import get_db
 from ..rate_limit import limiter
 from ..search import fts_match_ids
-from ..season import current_season, historical_results_year
+from ..season import current_season, historical_results_year, season_has_ended
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
 
@@ -18,6 +18,24 @@ bp = Blueprint("public", __name__)
 
 UPCOMING_LIMIT = 6
 CHANGELOG_TEASER_LIMIT = 3
+
+# Same sizes and ?page=/?per_page= convention the awards archive already uses,
+# so a habit learned on one long list transfers to the others.
+LIST_PAGE_SIZES = [50, 100, 250]
+
+
+def paginate_args(total):
+    """Read ?page/?per_page for a list of `total` rows and clamp both into
+    range, returning (per_page, page, total_pages). Clamping rather than
+    404ing keeps a stale bookmark or an edited URL harmless - it lands on the
+    last real page instead of an error."""
+    per_page = request.args.get("per_page", type=int, default=LIST_PAGE_SIZES[0])
+    if per_page not in LIST_PAGE_SIZES:
+        per_page = LIST_PAGE_SIZES[0]
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = request.args.get("page", type=int, default=1)
+    page = max(1, min(page, total_pages))
+    return per_page, page, total_pages
 
 
 @bp.route("/")
@@ -99,6 +117,10 @@ def societies_list():
 
     societies = db.execute(query, params).fetchall()
 
+    total = len(societies)
+    per_page, page, total_pages = paginate_args(total)
+    societies = societies[(page - 1) * per_page:page * per_page]
+
     return render_template(
         "societies_list.html",
         societies=societies,
@@ -108,6 +130,11 @@ def societies_list():
         selected_section=section,
         q=q,
         show_inactive=show_inactive,
+        page=page,
+        total_pages=total_pages,
+        total=total,
+        per_page=per_page,
+        page_sizes=LIST_PAGE_SIZES,
     )
 
 
@@ -559,6 +586,7 @@ def show_detail(show_id):
         "show_detail.html", show=show, is_upcoming=is_upcoming,
         gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
         historical_review=historical_review, award_history=award_history,
+        season_ended=season_has_ended(db, show["season"]),
     )
 
 
@@ -630,7 +658,18 @@ def titles_list():
     if sort == "stale":
         shows.sort(key=lambda s: (s["last_year"] is None, s["last_year"] or 0))
 
-    return render_template("titles_list.html", shows=shows, q=q, sort=sort)
+    # Paged in Python rather than SQL: the "stale" sort above can only be
+    # applied after last_performed is joined in, so the full list has to be
+    # built either way. Same page-size/param convention as /awards.
+    total = len(shows)
+    per_page, page, total_pages = paginate_args(total)
+    shows = shows[(page - 1) * per_page:page * per_page]
+
+    return render_template(
+        "titles_list.html", shows=shows, q=q, sort=sort,
+        page=page, total_pages=total_pages, total=total,
+        per_page=per_page, page_sizes=LIST_PAGE_SIZES,
+    )
 
 
 @bp.route("/titles/<path:title>")

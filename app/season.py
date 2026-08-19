@@ -18,6 +18,30 @@ def historical_results_year(season):
     return 2000 + int(season[:2]) + 1
 
 
+def season_start_year(season):
+    """Real four-digit start year for a 'yy/yy' season string, so seasons can
+    be compared across the 1999/2000 rollover. Plain string comparison is
+    unsafe once the archive reaches back past 2000 - '76/77' sorts *after*
+    '09/10' as text despite being 33 years earlier, which is exactly the bug
+    that silently duplicated every season in the adjudicator grid (Round 25).
+    The pivot suits this dataset's real range (the awards archive starts 1977,
+    shows run to 2027) and stays correct until 2050."""
+    yy = int(season[:2])
+    return (1900 + yy) if yy >= 50 else (2000 + yy)
+
+
+def season_has_ended(db, season):
+    """True if this season finished before the one currently being produced -
+    i.e. anything still blank about it is missing from the record, not yet to
+    be announced. Drives 'Not on record' vs 'TBA' wording."""
+    if not season:
+        return False
+    try:
+        return season_start_year(season) < season_start_year(current_season(db))
+    except (ValueError, IndexError):
+        return False
+
+
 def current_season(db):
     """The season presently being produced: the most recent season with a
     real (non-placeholder) show already on record. Falls back to a guess
