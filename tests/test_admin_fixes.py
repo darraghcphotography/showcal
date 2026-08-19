@@ -254,3 +254,49 @@ def test_roadmap_shows_full_datetime_for_shipped_entries(client, db):
     db.commit()
     body = client.get("/suggestions").get_data(as_text=True)
     assert "05 Aug 2026, 15:30" in body
+
+
+def test_merge_moves_a_showtimes_review_off_the_row_it_deletes(client, db):
+    """Real production 500: merging two titles where one society has both in
+    the same season deletes the redundant shows row - but once the ShowTimes
+    import existed, a historical_reviews row could reference that show
+    (historical_reviews.show_id), so the DELETE hit a FOREIGN KEY constraint
+    and took the whole bulk merge down. The review has to move onto the
+    surviving row, not be orphaned or block the merge."""
+    from conftest import seed_society
+
+    society_id = seed_society(db)
+    db.execute(
+        "INSERT INTO shows (id, society_id, season, region, show, moderation_status, source) "
+        "VALUES (900, ?, '24/25', 'Eastern', 'Nativity', 'approved', 'import')",
+        (society_id,),
+    )
+    db.execute(
+        "INSERT INTO shows (id, society_id, season, region, show, moderation_status, source) "
+        "VALUES (901, ?, '24/25', 'Eastern', 'Nativity! The Musical', 'approved', 'historical')",
+        (society_id,),
+    )
+    db.execute(
+        """
+        INSERT INTO historical_reviews
+            (id, season, tier, show_raw, society_raw, review_text, source_issue,
+             show_id, society_id, moderation_status)
+        VALUES (700, '24/25', 'Sullivan', 'Nativity! The Musical', 'Test Society',
+                'A fine production.', 'Issue 1, January 2025', 901, ?, 'approved')
+        """,
+        (society_id,),
+    )
+    db.commit()
+    admin_id = seed_user(db, username="mod", role="moderator")
+    login_as(client, admin_id)
+
+    resp = client.post(
+        "/admin/duplicate-titles/merge",
+        data={"canonical": "Nativity", "other": "Nativity! The Musical"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+
+    review = db.execute("SELECT show_id FROM historical_reviews WHERE id = 700").fetchone()
+    assert review["show_id"] == 900  # moved onto the surviving row, not orphaned
+    assert db.execute("SELECT COUNT(*) AS n FROM shows WHERE id = 901").fetchone()["n"] == 0

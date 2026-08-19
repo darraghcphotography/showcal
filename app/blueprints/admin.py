@@ -1370,10 +1370,21 @@ def _merge_titles(db, canonical, other):
     rows = db.execute("SELECT id, society_id, season FROM shows WHERE show = ?", (other,)).fetchall()
     for row in rows:
         collision = db.execute(
-            "SELECT 1 FROM shows WHERE society_id = ? AND season = ? AND show = ?",
+            "SELECT id FROM shows WHERE society_id = ? AND season = ? AND show = ?",
             (row["society_id"], row["season"], canonical),
         ).fetchone()
         if collision:
+            # A ShowTimes review can be attached to the row about to be
+            # deleted (historical_reviews.show_id references shows.id), so
+            # deleting it outright raises a FOREIGN KEY constraint failure -
+            # confirmed, this 500'd the bulk merge against real data once
+            # the review import had created skeleton shows. Move the review
+            # onto the surviving row first: it's the same production either
+            # way, which is the whole premise of merging these two titles.
+            db.execute(
+                "UPDATE historical_reviews SET show_id = ? WHERE show_id = ?",
+                (collision["id"], row["id"]),
+            )
             db.execute("DELETE FROM shows WHERE id = ?", (row["id"],))
         else:
             db.execute("UPDATE shows SET show = ? WHERE id = ?", (canonical, row["id"]))
