@@ -1,3 +1,8 @@
+Adjudicator pages now count the whole ShowTimes archive - an adjudicator's page listed only the reviews AIMS links out to, so most read "0 published reviews" while holding hundreds
+Each adjudicator's page now lists their ShowTimes reviews too, linking straight to the production's own page where the full text is
+
+---
+
 Season Archive: show dates now read "2-5 Sep 2026" instead of 02-09-2026, matching the rest of the site
 Season Archive: a past season with no date on record now says so, rather than "TBA" as if it were still to be announced
 Season Archive: the Review column is hidden on seasons nothing has been adjudicated for yet, instead of a full column of "Not yet"
