@@ -56,21 +56,41 @@
       Venue
       <input type="text" name="venue" value="{{ show['venue'] or '' }}">
     </label>
+    {% if suggestions.get('venue') %}
+      <p class="meta suggestion-hint">Suggested: {{ suggestions['venue'] }}
+        <button type="button" class="use-suggestion button-primary" data-field="venue" data-value="{{ suggestions['venue'] }}">Use this</button>
+      </p>
+    {% endif %}
 
     <label>
       Director
       <input type="text" name="director" value="{{ show['director'] or '' }}">
     </label>
+    {% if suggestions.get('director') %}
+      <p class="meta suggestion-hint">Suggested from the ShowTimes review: {{ suggestions['director'] }}
+        <button type="button" class="use-suggestion button-primary" data-field="director" data-value="{{ suggestions['director'] }}">Use this</button>
+      </p>
+    {% endif %}
 
     <label>
       Musical Director
       <input type="text" name="musical_director" value="{{ show['musical_director'] or '' }}">
     </label>
+    {% if suggestions.get('musical_director') %}
+      <p class="meta suggestion-hint">Suggested from the ShowTimes review: {{ suggestions['musical_director'] }}
+        <button type="button" class="use-suggestion button-primary" data-field="musical_director" data-value="{{ suggestions['musical_director'] }}">Use this</button>
+      </p>
+    {% endif %}
 
     <label>
       Choreographer
       <input type="text" name="choreographer" value="{{ show['choreographer'] or '' }}">
     </label>
+    {% if suggestions.get('choreographer') %}
+      <p class="meta suggestion-hint">Suggested from the ShowTimes review: {{ suggestions['choreographer'] }}
+        <button type="button" class="use-suggestion button-primary" data-field="choreographer" data-value="{{ suggestions['choreographer'] }}">Use this</button>
+      </p>
+    {% endif %}
 
     <label>
       Ticket link
@@ -121,4 +141,17 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="button-danger">Delete this show</button>
   </form>
+{% endblock %}
+
+{% block scripts %}
+  {% if suggestions %}
+    <script nonce="{{ csp_nonce }}">
+      document.querySelectorAll(".use-suggestion").forEach((button) => {
+        button.addEventListener("click", () => {
+          const input = document.querySelector(`[name="${button.dataset.field}"]`);
+          if (input) input.value = button.dataset.value;
+        });
+      });
+    </script>
+  {% endif %}
 {% endblock %}

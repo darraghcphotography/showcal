@@ -15,6 +15,7 @@ from ..constants import (
 from ..db import get_db
 from ..dedupe import find_candidates
 from ..invite_words import ADJECTIVES, NOUNS
+from ..production_credits import suggest_credits, suggest_venue
 from ..rate_limit import limiter
 from ..season import current_season, historical_results_year, next_season, season_range
 from ..similarity import find_close_title, normalize_title
@@ -485,13 +486,50 @@ def new_show(society_id):
     )
 
 
+def _show_field_suggestions(db, show):
+    """Best-effort suggestions for this show's blank production-team/venue
+    fields, pulled from its linked ShowTimes review and the society's own
+    known default venue (see app/production_credits.py). Only computed for
+    fields that are actually blank, and only ever shown to a moderator to
+    accept, edit, or ignore on the edit-show form - never written
+    automatically. Returns {field: suggested_value}, only for fields with
+    an actual suggestion."""
+    suggestions = {}
+    review = db.execute(
+        "SELECT review_text FROM historical_reviews WHERE show_id = ? AND moderation_status = 'approved' LIMIT 1",
+        (show["id"],),
+    ).fetchone()
+    review_text = review["review_text"] if review else None
+
+    if review_text:
+        credits = suggest_credits(review_text)
+        for field in ("director", "musical_director", "choreographer"):
+            if credits[field] and not show[field]:
+                suggestions[field] = credits[field]
+
+    if not show["venue"]:
+        if show["society_default_venue"]:
+            suggestions["venue"] = show["society_default_venue"]
+        elif review_text:
+            known_venues = [
+                r["venue"] for r in db.execute(
+                    "SELECT DISTINCT venue FROM shows WHERE venue IS NOT NULL AND venue != ''"
+                ).fetchall()
+            ]
+            venue = suggest_venue(review_text, known_venues)
+            if venue:
+                suggestions["venue"] = venue
+
+    return suggestions
+
+
 @bp.route("/shows/<int:show_id>/edit", methods=("GET", "POST"))
 @login_required
 def edit_show(show_id):
     db = get_db()
     show = db.execute(
         """
-        SELECT shows.*, societies.name AS society_name
+        SELECT shows.*, societies.name AS society_name, societies.default_venue AS society_default_venue
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.id = ?
         """,
@@ -499,6 +537,8 @@ def edit_show(show_id):
     ).fetchone()
     if show is None:
         abort(404)
+
+    suggestions = _show_field_suggestions(db, show)
 
     if request.method == "POST":
         errors = []
@@ -552,7 +592,8 @@ def edit_show(show_id):
             for e in errors:
                 flash(e, "error")
             return render_template("admin/edit_show.html", show=show, regions=REGIONS,
-                                    sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES)
+                                    sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES,
+                                    suggestions=suggestions)
 
         db.execute(
             """
@@ -577,7 +618,8 @@ def edit_show(show_id):
         return redirect(url_for("admin.shows_list"))
 
     return render_template("admin/edit_show.html", show=show, regions=REGIONS,
-                            sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES)
+                            sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES,
+                            suggestions=suggestions)
 
 
 @bp.route("/shows/<int:show_id>/delete", methods=("POST",))

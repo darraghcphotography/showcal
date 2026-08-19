@@ -269,7 +269,12 @@ def society_detail(society_id):
 
     shows = db.execute(
         """
-        SELECT * FROM shows
+        SELECT shows.*,
+               EXISTS(
+                   SELECT 1 FROM historical_reviews
+                   WHERE historical_reviews.show_id = shows.id AND historical_reviews.moderation_status = 'approved'
+               ) AS has_historical_review
+        FROM shows
         WHERE society_id = ? AND moderation_status = 'approved'
         ORDER BY season DESC, show
         """,

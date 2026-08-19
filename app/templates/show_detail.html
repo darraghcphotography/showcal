@@ -56,7 +56,7 @@
     <dt>Choreographer</dt>
     <dd>{{ show['choreographer'] or '—' }}</dd>
 
-    {% if not (is_upcoming and show['review_status'] == 'None') %}
+    {% if not (is_upcoming and show['review_status'] == 'None' and not historical_review) %}
       <dt>Review</dt>
       <dd>
         {% if show['review_status'] == 'Published' and show['review_url'] %}
@@ -64,6 +64,8 @@
           {% if reviewed_by %}
             <span class="meta">&middot; reviewed by <a href="{{ url_for('public.adjudicator_detail', adjudicator_id=reviewed_by['id']) }}">{{ reviewed_by['name'] }}</a></span>
           {% endif %}
+        {% elif historical_review %}
+          <a href="#showtimes-review">Read the ShowTimes review below</a>
         {% else %}
           {{ show['review_status'] }}
         {% endif %}
@@ -77,7 +79,7 @@
   </dl>
 
   {% if historical_review %}
-    <h2>Review</h2>
+    <h2 id="showtimes-review">ShowTimes review</h2>
     <div class="review-block">
       <div class="review-head">
         {% if historical_review['adjudicator_name'] %}
