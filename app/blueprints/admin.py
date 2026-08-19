@@ -3,10 +3,11 @@ import re
 import secrets
 import sqlite3
 from datetime import date, datetime, timedelta
-from difflib import SequenceMatcher
 
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
+
+import society_names
 
 from ..auth import current_user, login_required
 from ..constants import (
@@ -621,6 +622,110 @@ def edit_show(show_id):
     return render_template("admin/edit_show.html", show=show, regions=REGIONS,
                             sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES,
                             suggestions=suggestions)
+
+
+def _credit_backfill_proposals(db):
+    """Every approved historical show with a linked review, a blank
+    production-team/venue field, and something extractable to put in it.
+    Read-only - building this changes nothing. Only ever proposes for fields
+    that are actually blank, so a value a moderator (or the CSV import)
+    already set is never contradicted."""
+    rows = db.execute(
+        """
+        SELECT shows.id AS show_id, shows.show, shows.season, shows.venue,
+               shows.director, shows.musical_director, shows.choreographer,
+               societies.name AS society_name, societies.default_venue,
+               historical_reviews.review_text
+        FROM shows
+        JOIN societies ON societies.id = shows.society_id
+        JOIN historical_reviews ON historical_reviews.show_id = shows.id
+                               AND historical_reviews.moderation_status = 'approved'
+        WHERE shows.moderation_status = 'approved'
+          AND (shows.venue IS NULL OR shows.director IS NULL
+               OR shows.musical_director IS NULL OR shows.choreographer IS NULL)
+        ORDER BY shows.season DESC, societies.name
+        """
+    ).fetchall()
+    if not rows:
+        return []
+    known_venues = [
+        r["venue"] for r in db.execute(
+            "SELECT DISTINCT venue FROM shows WHERE venue IS NOT NULL AND venue != ''"
+        ).fetchall()
+    ]
+
+    proposals = []
+    for row in rows:
+        credits = suggest_credits(row["review_text"])
+        fields = {
+            field: credits[field]
+            for field in ("director", "musical_director", "choreographer")
+            if credits[field] and not row[field]
+        }
+        if not row["venue"]:
+            venue = row["default_venue"] or suggest_venue(row["review_text"], known_venues)
+            if venue:
+                fields["venue"] = venue
+        if fields:
+            proposals.append({
+                "show_id": row["show_id"],
+                "show": row["show"],
+                "season": row["season"],
+                "society_name": row["society_name"],
+                "fields": fields,
+            })
+    return proposals
+
+
+@bp.route("/backfill-credits")
+@login_required
+def backfill_credits():
+    db = get_db()
+    proposals = _credit_backfill_proposals(db)
+    field_counts = {}
+    for p in proposals:
+        for field in p["fields"]:
+            field_counts[field] = field_counts.get(field, 0) + 1
+    return render_template(
+        "admin/backfill_credits.html", proposals=proposals, field_counts=field_counts,
+        total_values=sum(len(p["fields"]) for p in proposals),
+    )
+
+
+@bp.route("/backfill-credits/apply", methods=("POST",))
+@login_required
+def apply_backfill_credits():
+    """Writes the selected proposals. Recomputed here rather than trusting
+    values posted back from the form, so what gets written is always what
+    the server itself derived from the review text - the form only chooses
+    *which* shows to apply. Still only ever fills a field that is blank at
+    the moment of writing."""
+    db = get_db()
+    selected = {int(v) for v in request.form.getlist("show_id") if v.isdigit()}
+    if not selected:
+        flash("Nothing selected - no changes made.", "error")
+        return redirect(url_for("admin.backfill_credits"))
+
+    applied_shows = 0
+    applied_values = 0
+    for proposal in _credit_backfill_proposals(db):
+        if proposal["show_id"] not in selected:
+            continue
+        assignments = ", ".join(f"{field} = ?" for field in proposal["fields"])
+        values = list(proposal["fields"].values())
+        db.execute(
+            f"UPDATE shows SET {assignments}, updated_at = ? WHERE id = ?",
+            (*values, datetime.utcnow().isoformat(), proposal["show_id"]),
+        )
+        applied_shows += 1
+        applied_values += len(proposal["fields"])
+    db.commit()
+    flash(
+        f"Filled {applied_values} field{'' if applied_values == 1 else 's'} "
+        f"across {applied_shows} show{'' if applied_shows == 1 else 's'}.",
+        "success",
+    )
+    return redirect(url_for("admin.backfill_credits"))
 
 
 @bp.route("/shows/<int:show_id>/delete", methods=("POST",))
@@ -2418,66 +2523,12 @@ HISTORICAL_RESULTS_MATCH_THRESHOLD = 0.85
 # its own real record, "St Patrick's Hall MS, Strabane" 0.81.
 SOCIETY_MATCH_THRESHOLD = 0.70
 
-# Words that appear in a large share of society names and so carry no
-# identifying information - what's left after stripping them is the part
-# that actually says *which* society this is (usually the town).
-_SOCIETY_ORG_WORDS_RE = re.compile(
-    r"\b(musical|music|dramatic|drama|choral|operatic|opera|light|theatre|theater|society"
-    r"|societies|group|company|productions|production|players|ltd|and|the|soc|mus)\b",
-    re.I,
-)
-# A candidate whose distinctive part matches this poorly is a different
-# society that merely shares a generic suffix, however high its whole-string
-# score. Calibrated against 14 real confirmed pairs from the archive: every
-# genuine variant scores >= 0.95 ("Clane Musical Society"/"Clane Musical &
-# Dramatic Society" = 1.00, "Dun Laoghaire Mus. & Dram. Society"/"Dun
-# Laoghaire Musical & Dramatic Society" = 0.95, "9 Arches ... Claregalway"/
-# "9 Arch Musical Society" = 0.95 via the containment rule), while every
-# confirmed wrong match lands at or below 0.80 ("St Mel's"/"St Michael's
-# Theatre" = 0.80, "Castlebar"/"Castlerea" = 0.78, "Clane"/"Carnew" = 0.73,
-# "St Mary's ... Navan"/"St Mary's ... Clonmel" = 0.69).
-SOCIETY_DISTINCTIVE_THRESHOLD = 0.85
-
-
-def _society_distinctive_part(name):
-    """The identifying part of a society name - what's left once the generic
-    organisational words and any parenthesised aside are removed. A trailing
-    town after a comma is deliberately KEPT: it's usually the only thing
-    telling two same-named societies apart ("St Mary's Musical Society,
-    Navan" vs "St Mary's Choral Society, Clonmel" both reduce to "st mary s"
-    without it, and would then score as a perfect match for each other)."""
-    s = name.lower()
-    s = re.sub(r"\(.*?\)", " ", s)
-    s = _SOCIETY_ORG_WORDS_RE.sub(" ", s)
-    s = re.sub(r"[^a-z0-9 ]", " ", s)
-    return " ".join(s.split())
-
-
-def _society_distinctive_score(raw, candidate):
-    """How well two society names agree on the part that actually
-    identifies them (see _society_distinctive_part). A whole-string
-    character ratio can't do this on its own - "Clane Musical Society" and
-    "Carnew Musical Society" share 15 of 21 characters purely through
-    " musical society", which is enough to outrank the real match. When one
-    distinctive part's words are wholly contained in the other's, that's a
-    genuine variant with an extra qualifier ("9 Arch" vs "9 Arch
-    Claregalway"), not a different society, so it scores as a strong match
-    rather than being penalised for the extra word."""
-    a, b = _society_distinctive_part(raw), _society_distinctive_part(candidate)
-    if not a or not b:
-        return 0.0
-    wa, wb = a.split(), b.split()
-    smaller, larger = (wa, wb) if len(wa) <= len(wb) else (wb, wa)
-    # Word-form variants count as the same word ("9 Arch" vs "9 Arches"),
-    # so an otherwise-identical name with an extra town qualifier still
-    # reads as containment rather than as a different society.
-    contained = all(
-        any(SequenceMatcher(None, x, y).ratio() >= 0.8 for y in larger)
-        for x in smaller
-    )
-    if contained:
-        return max(SequenceMatcher(None, a, b).ratio(), 0.95)
-    return SequenceMatcher(None, a, b).ratio()
+# Whether two society spellings name the same society - shared with
+# extract_historical_reviews.py, which needs the identical judgement on the
+# other side of the pipeline (see society_names.py for why a whole-string
+# ratio can't do this).
+SOCIETY_DISTINCTIVE_THRESHOLD = society_names.DISTINCTIVE_THRESHOLD
+_society_distinctive_score = society_names.distinctive_score
 
 
 def find_society_candidates_batch(db, society_raws):

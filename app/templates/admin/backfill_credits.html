@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Backfill production credits - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Backfill production credits</h1>
+  <p class="meta">Director, musical director, choreographer and venue read out of each show's own
+     ShowTimes review text, for historical shows where those fields are still blank. An existing value
+     is never overwritten - only blank fields are filled, and you can edit any show afterwards as normal.</p>
+
+  {% if not proposals %}
+    <p>Nothing to backfill - every historical show with a review already has these fields filled.</p>
+  {% else %}
+    <div class="site-notice">
+      <p>{{ total_values }} value{{ '' if total_values == 1 else 's' }} available across
+         {{ proposals|length }} show{{ '' if proposals|length == 1 else 's' }}:
+         {% for field, n in field_counts|dictsort %}{{ n }} {{ field.replace('_', ' ') }}{{ '' if loop.last else ' · ' }}{% endfor %}.
+         Everything is ticked by default - untick anything you'd rather check by hand first.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('admin.apply_backfill_credits') }}"
+          data-confirm="Fill in the ticked fields? Existing values are left untouched.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p><button type="submit" class="button-primary">Apply ticked</button></p>
+      <table class="data-table table-wide">
+        <thead>
+          <tr><th></th><th>Show</th><th>Society</th><th>Season</th><th>Will fill</th></tr>
+        </thead>
+        <tbody>
+          {% for p in proposals %}
+            <tr>
+              <td><input type="checkbox" name="show_id" value="{{ p['show_id'] }}" checked></td>
+              <td><a href="{{ url_for('admin.edit_show', show_id=p['show_id']) }}">{{ p['show'] or 'TBA' }}</a></td>
+              <td>{{ p['society_name'] }}</td>
+              <td>{{ p['season'] }}</td>
+              <td>
+                <span class="meta-chips">
+                  {% for field, value in p['fields']|dictsort %}
+                    <span>{{ field.replace('_', ' ') }}: <strong>{{ value }}</strong>{{ '' if loop.last else ' · ' }}</span>
+                  {% endfor %}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p><button type="submit" class="button-primary">Apply ticked</button></p>
+    </form>
+  {% endif %}
+{% endblock %}
