@@ -14,10 +14,18 @@
   <h2>Reviews</h2>
   {% if reviews %}
     {% for r in reviews %}
-      <a class="queue-item" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
-        <span class="primary">{{ r['show'] }}</span>
-        <p class="meta">{{ r['society_name'] }} &middot; {{ r['section'] }} {{ r['season'] }}</p>
-      </a>
+      {% if r['source'] == 'full_text' %}
+        {# The extracted ShowTimes review lives on the show's own page here, not on aims.ie. #}
+        <a class="queue-item" href="{{ url_for('public.show_detail', show_id=r['id']) }}">
+          <span class="primary">{{ r['show'] }}</span>
+          <p class="meta">{{ r['society_name'] }} &middot; {{ r['section'] }} {{ r['season'] }} &middot; Full review</p>
+        </a>
+      {% else %}
+        <a class="queue-item" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
+          <span class="primary">{{ r['show'] }}</span>
+          <p class="meta">{{ r['society_name'] }} &middot; {{ r['section'] }} {{ r['season'] }} &middot; Read on aims.ie</p>
+        </a>
+      {% endif %}
     {% endfor %}
   {% else %}
     <p class="meta">No published reviews from {{ adjudicator['name'] }} yet.</p>

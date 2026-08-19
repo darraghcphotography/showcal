@@ -118,6 +118,92 @@ def test_show_page_no_credit_without_assignment(client, db):
     assert "reviewed by" not in body.lower()
 
 
+def seed_showtimes_review(db, adjudicator_id, society_id, show="Annie", season="12/13", tier="Gilbert"):
+    """An approved ShowTimes archive review on its skeleton show - the shape
+    every pre-23/24 review has (see ROADMAP's Step 4 / Round 24)."""
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, section, show, source, moderation_status) "
+        "VALUES (?, ?, 'Eastern', ?, ?, 'historical', 'approved')",
+        (society_id, season, tier, show),
+    )
+    show_id = db.execute("SELECT id FROM shows WHERE show = ?", (show,)).fetchone()["id"]
+    db.execute(
+        "INSERT INTO historical_reviews "
+        "(season, tier, show_raw, society_raw, adjudicator_id, review_text, source_issue, "
+        " show_id, society_id, moderation_status) "
+        "VALUES (?, ?, ?, 'Test Society', ?, 'A fine production.', 'Issue 82, December 2012', "
+        "        ?, ?, 'approved')",
+        (season, tier, show, adjudicator_id, show_id, society_id),
+    )
+    db.commit()
+    return show_id
+
+
+def test_list_counts_showtimes_reviews_not_just_aims_links(client, db):
+    """The whole extracted ShowTimes archive used to be uncounted here, so an
+    adjudicator with 100+ reviews in it read "0 published reviews"."""
+    society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    assign(db, "12/13", "Gilbert", jane_id)
+    seed_showtimes_review(db, jane_id, society_id)
+
+    body = client.get("/adjudicators").get_data(as_text=True)
+    assert "1 published review" in body
+    assert "0 published review" not in body
+
+
+def test_list_sums_both_review_sources(client, db):
+    society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    assign(db, "12/13", "Gilbert", jane_id)
+    assign(db, "23/24", "Gilbert", jane_id)
+    seed_showtimes_review(db, jane_id, society_id)
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, section, show, review_status, review_url) "
+        "VALUES (?, '23/24', 'Eastern', 'Gilbert', 'Oliver!', 'Published', 'https://example.com/review')",
+        (society_id,),
+    )
+    db.commit()
+
+    body = client.get("/adjudicators").get_data(as_text=True)
+    assert "2 published reviews" in body
+
+
+def test_list_excludes_showtimes_review_on_hidden_society(client, db):
+    society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
+    db.execute("UPDATE societies SET hidden = 1 WHERE id = ?", (society_id,))
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    assign(db, "12/13", "Gilbert", jane_id)
+    seed_showtimes_review(db, jane_id, society_id)
+
+    body = client.get("/adjudicators").get_data(as_text=True)
+    assert "0 published reviews" in body
+
+
+def test_detail_lists_showtimes_reviews_linking_to_the_show_page(client, db):
+    society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    assign(db, "12/13", "Gilbert", jane_id)
+    show_id = seed_showtimes_review(db, jane_id, society_id)
+
+    body = client.get(f"/adjudicators/{jane_id}").get_data(as_text=True)
+    assert "Annie" in body
+    assert f'href="/shows/{show_id}"' in body
+    assert "Full review" in body
+
+
+def test_detail_credits_reviews_the_assignment_table_does_not_cover(client, db):
+    """16/17 in production has reviews signed on a tier nobody is assigned to.
+    Grouping on the review's own season/tier keeps those visible."""
+    society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    assign(db, "17/18", "Gilbert", jane_id)
+    seed_showtimes_review(db, jane_id, society_id, show="Carousel", season="16/17", tier="Sullivan")
+
+    body = client.get(f"/adjudicators/{jane_id}").get_data(as_text=True)
+    assert "Carousel" in body
+
+
 def test_adjudicators_link_present_in_footer_and_more_page(client):
     footer = client.get("/").get_data(as_text=True)
     assert 'href="/adjudicators"' in footer

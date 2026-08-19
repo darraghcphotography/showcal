@@ -5,30 +5,67 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
-## NEXT SESSION: mockups first, starting with the adjudicators pages
+## Round 34 - adjudicator pages: design agreed, counts fixed (2026-08-19)
 
-**Darragh's instruction, end of the 2026-08-19 session: "plan some mockups for pages in the next
-session, starting with adjudicators - we need a cleaner UI throughout."** So the next session is a
-**design/planning session, not a build session.** Mockup-first is this repo's established pattern
-(see the working agreements) and it's what he's explicitly asking for here.
+**Round 33 confirmed deployed** first thing (checked the container's own files: `season.html` has
+"Not on record", `_pagination.html` exists) - so main is fully live as of `0e59514`.
 
-**Start with `/adjudicators` and `/adjudicators/<id>` - design them together, they're two halves of
-one browsing path.** What's wrong with the list page today, confirmed from the live site this
-session: fifteen-plus large cards, one per adjudicator, flat alphabetical, and the majority read
-"N seasons judged - 0 published reviews". The four people who actually have reviews (Pat McElwain 78,
-Therese Maher 76, Caroline Daly Jones 55, Peter Kennedy 51) are buried among them with no visual
-distinction. Enormous vertical space for very little information.
+**The design session found a bug that changed the brief.** The plan said `/adjudicators` reads badly
+because most adjudicators have nothing to show. They do have something to show - the page wasn't
+counting it. **Both adjudicator queries counted only `shows.review_url` reviews (AIMS's link-out
+workflow, 23/24 onward) and never joined `historical_reviews` at all**, so the entire 826-review
+ShowTimes archive was invisible on both pages. Tony McCleane-Fay read "0 published reviews" holding
+115; Peter Kennedy read 51 holding 197. **Once counted properly exactly one adjudicator has zero** -
+Justin Parkes, and only because 26/27 has barely started. The layout problem was real; the emptiness
+never was.
 
-Darragh's own proposed shape (from the older backlog item further down, still current):
-- Current-season adjudicators in a **grid at the top**, linking to their current-season reviews.
-- An option to browse a current adjudicator's **past seasons** too.
-- Past/no-longer-active adjudicators get a **simpler treatment** - just a link through to their bio
-  and season history on the existing detail page.
-- **Needs a real definition of "current"** before mockups can be built - `current_season()` already
-  exists; an adjudicator with an assignment for the current season vs everyone else is the obvious
-  rule, but confirm it with him rather than assuming.
-- The detail page also still needs its season-grouping refinement ("Option A" from the Step 4
-  scoping session) - that's the other half of this same design.
+**Shipped this round (Darragh's call - fix the counts ahead of the redesign, since it's independent
+of which layout wins):**
+- `adjudicators_list()` and `adjudicator_detail()` now UNION both review sources. **Verified against
+  production first that they can't overlap** - 0 shows carry both a `review_url` and an approved
+  historical review, every approved review has a `show_id` and an adjudicator, all linked shows are
+  approved - so summing is safe rather than double-counting. 5 reviews sit on hidden societies and
+  are excluded on both sides, matching the site-wide convention.
+- The detail page lists ShowTimes reviews too, linking to **the show's own page** (where the full
+  text lives) rather than out to aims.ie, with a "Full review" / "Read on aims.ie" tag. Its list is
+  **sorted in Python via `season_start_year`**, not by season string in SQL - the Round 25 rollover
+  trap.
+- Grouping is on the **review's own season/tier**, not the assignment table, which is what keeps the
+  16/17 anomaly below visible instead of silently dropping 17 reviews.
+- Tests 273 -> 278 (`tests/test_public_adjudicators.py`). Confirmed the four new ones fail with the
+  fix reverted (`git stash`), per this repo's habit. The fifth (hidden-society) passes either way by
+  design - it guards the new query from leaking, it doesn't prove the fix.
+
+**Production data correction applied directly (not in git, won't reappear from a redeploy):**
+`Pat McEMealwain` (`adjudicators.id = 19`) was an OCR garble of Pat McElwain holding reviews 513/514
+(*Annie*, Oyster Lane; *The Music Man*, Pioneer), both 12/13 Gilbert - the exact season and tier the
+real Pat McElwain is assigned to. Same class as the "Gred Currid" typo fixed in Round 26. **He had no
+assignment row, which is why he was invisible on the public list and never surfaced.** Reviews moved
+to id 1 (32 -> 34 approved), id 19 deleted, behind an assertion that the row was exactly what had
+been measured.
+
+**Still open from this round - needs Darragh's eye, not code:** **16/17 has reviews signed on tiers
+nobody is assigned to.** Assignments say Peter Kennedy/Gilbert and Greg Currid/Sullivan; the reviews
+say Kennedy also signed 12 Sullivan ones and Ciarán Mooney 5 Gilbert ones. Reads like a real
+mid-season change (the admin grid already supports one) rather than a parsing fault, but wants
+checking against the printed issues before anything is recorded.
+
+**DECIDED, mockups published, NOT yet built:**
+https://claude.ai/code/artifact/7a9bd478-f194-4edd-ab13-c3b9fa738500
+- **`/adjudicators` = Option A plus Option B's coverage bar as a column** (Darragh's call). Hero
+  `.explorer` card with the current season's two adjudicators in a two-up grid, then a
+  `.data-table` roster: Name | Seasons covered (span bar scaled 09/10->26/27) | Reviews. Stays
+  alphabetical - once the counts are honest nobody needs rescuing from burial, and the bar carries
+  the chronology. Reuses `.explorer` and `.data-table` (which already collapses to cards below
+  600px); the only new pieces are the adjudicator card and the span bar.
+- **"Current" = `current_season()` as-is** (Darragh's call), which returns 26/27 today. Justin Parkes
+  therefore shows with nothing to click yet - handled with wording ("reviews appear as the season
+  runs"), not hidden.
+- **`/adjudicators/<id>`** = the Step 4 scoping session's "Option A", finally specced: a stat strip
+  (reviews / seasons / active span / tiers) replacing the run-on "Judged Gilbert 15/16, ..." line,
+  then `<details>` season groups with the two most recent open, both review sources merged into one
+  tagged list.
+- **Next session builds steps 3 and 4** - templates and queries only, no schema change, no migration.
 
 **Then the rest of the "cleaner UI throughout" work.** Other pages the audit flagged as wanting a
 design pass rather than a bug fix, in rough priority order: **`/stats`** (Darragh has called it
@@ -36,6 +73,10 @@ design pass rather than a bug fix, in rough priority order: **`/stats`** (Darrag
 fixes the *data* problem but not the layout), **`/admin/duplicate-titles`** (he asked for mockups
 specifically, it's one long list), and the **`/search` results page** (see the search findings
 below - the ordering problem is a layout decision as much as a ranking one).
+
+**Useful context that keeps proving itself**: build mockups from the site's real CSS tokens in
+`app/static/style.css` (`--accent`, `--bg`, `--muted`, `--warning`...) rather than a fresh palette,
+so they preview accurately in Darragh's actual dark theme. Third session running where this paid off.
 
 **Useful context for whoever picks this up**: the site's real CSS tokens are in
 `app/static/style.css` (`--accent`, `--bg`, `--muted`, `--warning`...). Building mockups from those
@@ -73,15 +114,15 @@ page made her invisible**.
 
 ## Start here (updated 2026-08-19, end of the UX-audit session)
 
-**Deployed vs committed, right now:**
-- `f609083` Round 32 admin dashboard restructure - **deployed and verified** (checked the running
-  container's own files, not just a restart timestamp).
-- `4e80afb` Round 33 public list-page fixes - **pushed, NOT yet deployed.** Darragh was about to pull
-  and redeploy when the session ended. **No migration and no management script needed for it** -
-  templates and query logic only, unusually for this repo. First job next session: confirm it's
-  actually live (`docker exec aims-web grep -c "Not on record" /app/app/templates/season.html`
-  should be non-zero) rather than assuming.
-- `a913b3c` ROADMAP decision record - no runtime effect.
+**Deployed vs committed, right now (updated Round 34):**
+- Everything through `0e59514` is **deployed and verified**, Round 33 included - confirmed at the
+  start of Round 34 by checking the running container's own files, not a restart timestamp.
+- **Round 34's count fix is committed but NOT yet deployed** - templates and queries only, no
+  migration and no management script. Confirm it went live with
+  `docker exec aims-web grep -c "historical_reviews" /app/app/blueprints/public.py` (expect a jump
+  from the pre-Round-34 count) rather than assuming.
+- Round 34's **data correction is already live** (applied straight to the production db) and is
+  independent of the redeploy.
 
 **The one thing that is easy to lose**: the `extract_historical_reviews.py` society-matching fix is
 on the **`extractor-society-gate` branch (`edd445e`)**, not main's working tree. `git status` on main
@@ -369,8 +410,10 @@ these are the obvious next build, in rough size order:*
 4. **Junk skeleton show titles** - some shows are titled `based`, `in`, `Trinity's`, `Sweet`,
    `Whisper it quietly but this is one` etc. from early extraction runs, and they inherit credits on
    the backfill page. Needs its own cleanup pass.
-5. **Adjudicators page redesign** - see item 4 in the older list below; Darragh wants this "tonight"
-   as a mockup/plan job.
+5. ~~**Adjudicators page redesign**~~ - **superseded by Round 34 at the top of this file.** Design is
+   agreed and published, the count bug underneath it is fixed and the duplicate adjudicator merged;
+   what remains is building the two templates. Item 4 in the older list below is now history - read
+   Round 34 instead, it supersedes the open questions there (including the definition of "current").
 
 **Note on the wall-of-text reviews** (asked about twice, so worth recording): ~12% of the archive
 renders as one unbroken block. This is **faithful to the source, not an extraction fault** - checked

@@ -10,7 +10,7 @@ from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SU
 from ..db import get_db
 from ..rate_limit import limiter
 from ..search import fts_match_ids
-from ..season import current_season, historical_results_year, season_has_ended
+from ..season import current_season, historical_results_year, season_has_ended, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
 
@@ -299,16 +299,38 @@ def adjudicators_list():
         ORDER BY adjudicators.name
         """
     ).fetchall()
+    # An adjudicator's reviews reach the site by two unrelated routes, and both
+    # have to be counted or the page lies: AIMS's own link-out workflow
+    # (shows.review_url, which only exists from 23/24 onward) and the extracted
+    # ShowTimes archive (historical_reviews, everything before that). Counting
+    # only the first is what made 13 of 17 adjudicators read "0 published
+    # reviews" while the archive held 800+ of theirs. The two can't overlap -
+    # a historical review's skeleton show never carries a review_url - so
+    # summing them is safe rather than double-counting.
     review_counts = dict(db.execute(
         """
-        SELECT adjudicator_assignments.adjudicator_id, COUNT(*) AS n
-        FROM adjudicator_assignments
-        JOIN shows ON shows.season = adjudicator_assignments.season
-                  AND shows.section = adjudicator_assignments.section
-        JOIN societies ON societies.id = shows.society_id
-        WHERE shows.review_status = 'Published' AND shows.review_url IS NOT NULL
-          AND shows.moderation_status = 'approved' AND NOT societies.hidden
-        GROUP BY adjudicator_assignments.adjudicator_id
+        SELECT adjudicator_id, SUM(n) AS n FROM (
+            SELECT adjudicator_assignments.adjudicator_id AS adjudicator_id, COUNT(*) AS n
+            FROM adjudicator_assignments
+            JOIN shows ON shows.season = adjudicator_assignments.season
+                      AND shows.section = adjudicator_assignments.section
+            JOIN societies ON societies.id = shows.society_id
+            WHERE shows.review_status = 'Published' AND shows.review_url IS NOT NULL
+              AND shows.moderation_status = 'approved' AND NOT societies.hidden
+            GROUP BY adjudicator_assignments.adjudicator_id
+
+            UNION ALL
+
+            SELECT historical_reviews.adjudicator_id AS adjudicator_id, COUNT(*) AS n
+            FROM historical_reviews
+            JOIN shows ON shows.id = historical_reviews.show_id
+            JOIN societies ON societies.id = shows.society_id
+            WHERE historical_reviews.moderation_status = 'approved'
+              AND historical_reviews.adjudicator_id IS NOT NULL
+              AND shows.moderation_status = 'approved' AND NOT societies.hidden
+            GROUP BY historical_reviews.adjudicator_id
+        )
+        GROUP BY adjudicator_id
         """
     ).fetchall())
     return render_template("adjudicators_list.html", adjudicators=adjudicators, review_counts=review_counts)
@@ -333,10 +355,17 @@ def adjudicator_detail(adjudicator_id):
     # assigned seasons regardless of review status) - this page is "here's
     # what X has written", not an admin verification tool. Same hidden-
     # society exclusion as the homepage/Season Archive/calendar feed.
+    #
+    # Both review routes, same as adjudicators_list() above: AIMS's own
+    # link-out ('link', opens aims.ie) and the extracted ShowTimes archive
+    # ('full_text', which lives on the show's own page here). A reader wants
+    # this person's reviews - which of the two a given one happens to be is
+    # our plumbing, so they merge into one list and carry a source tag rather
+    # than being split into two sections.
     reviews = db.execute(
         """
-        SELECT shows.id, shows.show, shows.season, shows.section, shows.opening_date, shows.review_url,
-               societies.name AS society_name
+        SELECT shows.id, shows.show, shows.season, shows.section,
+               shows.review_url, societies.name AS society_name, 'link' AS source
         FROM shows
         JOIN adjudicator_assignments ON adjudicator_assignments.season = shows.season
                                      AND adjudicator_assignments.section = shows.section
@@ -344,10 +373,25 @@ def adjudicator_detail(adjudicator_id):
         WHERE adjudicator_assignments.adjudicator_id = ?
           AND shows.review_status = 'Published' AND shows.review_url IS NOT NULL
           AND shows.moderation_status = 'approved' AND NOT societies.hidden
-        ORDER BY shows.opening_date DESC
+
+        UNION ALL
+
+        SELECT shows.id, shows.show, historical_reviews.season, historical_reviews.tier AS section,
+               NULL AS review_url, societies.name AS society_name, 'full_text' AS source
+        FROM historical_reviews
+        JOIN shows ON shows.id = historical_reviews.show_id
+        JOIN societies ON societies.id = shows.society_id
+        WHERE historical_reviews.adjudicator_id = ?
+          AND historical_reviews.moderation_status = 'approved'
+          AND shows.moderation_status = 'approved' AND NOT societies.hidden
         """,
-        (adjudicator_id,),
+        (adjudicator_id, adjudicator_id),
     ).fetchall()
+    # Sorted here rather than in SQL: season is a 'yy/yy' string, and ordering
+    # those as text is unsafe across the 1999/2000 rollover (the Round 25 bug).
+    reviews = sorted(
+        reviews, key=lambda r: (-season_start_year(r["season"]), (r["show"] or "").lower())
+    )
 
     return render_template(
         "adjudicator_detail.html", adjudicator=adjudicator, seasons_judged=seasons_judged, reviews=reviews,
