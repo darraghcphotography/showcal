@@ -842,3 +842,98 @@ a.queue-item {
   color: inherit;
 }
 a.queue-item:hover { border-color: var(--accent); }
+
+/* Adjudicators page: the current season's Gilbert/Sullivan pair as two hero
+   cards (reads as "who's judging right now", the thing most visitors
+   actually want), everyone else below in a plain roster - see Round 34's
+   design session. auto-fit rather than a fixed two-column split, since a
+   mid-season change can put more than two names in the current season. */
+.adj-now {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.25rem;
+}
+.adj-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 0.9rem 1rem;
+  box-shadow: var(--shadow);
+}
+.adj-card:hover { border-color: var(--accent); }
+.adj-card .name { display: block; font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-top: 0.4rem; }
+.adj-card .sub { color: var(--muted); font-size: 0.84rem; margin: 0.25rem 0 0; }
+
+/* A neutral tier badge (Gilbert/Sullivan) - reuses .tag's pill shape but
+   without a semantic colour, since the tier itself isn't a status. */
+.tag-tier {
+  background: var(--row-alt);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  margin-left: 0;
+}
+
+.data-table th.num, .data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Roster table: how many years an adjudicator covered, scaled against the
+   whole archive's span (computed in adjudicators_list()) so a two-season
+   stint and a ten-season one read as different lengths on the same axis. */
+.cover-cell { display: flex; align-items: center; gap: 0.55rem; }
+.span-track {
+  position: relative;
+  flex: 1;
+  min-width: 60px;
+  height: 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+}
+.span-fill { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--accent); opacity: 0.75; }
+.span-label { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Adjudicator detail page: reviews grouped by season inside the same
+   details.queue-item collapse the historical-reviews queue already uses -
+   the two most recent seasons open, the rest closed (see adjudicator_
+   detail() - a busy adjudicator can have 100+ reviews across a dozen
+   seasons). review-n reuses .lane-count's push-right-in-a-flex-summary
+   trick. Grouped on the review's OWN season/tier rather than the
+   assignment table, so more than one tier pill can legitimately appear. */
+.review-n {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.review-list { display: flex; flex-direction: column; }
+.review-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+}
+.review-row:last-child { border-bottom: none; }
+.review-row:hover .show { text-decoration: underline; }
+.review-row .show { font-weight: 600; color: var(--accent); }
+.review-row .soc { color: var(--muted); font-size: 0.86rem; }
+.review-row .src {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.05rem 0.4rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.review-row .src-full { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, timedelta
 from urllib.parse import quote_plus
 
@@ -283,22 +284,34 @@ def search():
     )
 
 
+def _ordinal(n):
+    """'First' for 1 (matches how a person would actually describe their
+    debut season - not '1st'), plain 'Nth' suffixes above that."""
+    if n == 1:
+        return "First"
+    suffix = "th" if 11 <= n % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 @bp.route("/adjudicators")
 def adjudicators_list():
     db = get_db()
+    current = current_season(db)
+
     # Only ever an adjudicator with at least one real season/tier assignment -
     # one added in /admin/adjudicators but never assigned yet has nothing to
     # show publicly (matches the 404 a direct /adjudicators/<id> link to one
-    # gets below).
-    adjudicators = db.execute(
-        """
-        SELECT adjudicators.id, adjudicators.name, adjudicators.notes, COUNT(*) AS season_count
-        FROM adjudicators
-        JOIN adjudicator_assignments ON adjudicator_assignments.adjudicator_id = adjudicators.id
-        GROUP BY adjudicators.id
-        ORDER BY adjudicators.name
-        """
-    ).fetchall()
+    # gets below). Fetched as raw rows rather than aggregated in SQL: season
+    # is a 'yy/yy' string, and MIN/MAX/ORDER BY on it as text is unsafe across
+    # the 1999/2000 rollover (the Round 25 bug) - min/max/sort all happen in
+    # Python via season_start_year instead.
+    seasons_by_adjudicator = defaultdict(list)
+    for row in db.execute("SELECT adjudicator_id, season, section FROM adjudicator_assignments"):
+        seasons_by_adjudicator[row["adjudicator_id"]].append(row)
+
+    if not seasons_by_adjudicator:
+        return render_template("adjudicators_list.html", current_card=[], roster=[])
+
     # An adjudicator's reviews reach the site by two unrelated routes, and both
     # have to be counted or the page lies: AIMS's own link-out workflow
     # (shows.review_url, which only exists from 23/24 onward) and the extracted
@@ -333,7 +346,61 @@ def adjudicators_list():
         GROUP BY adjudicator_id
         """
     ).fetchall())
-    return render_template("adjudicators_list.html", adjudicators=adjudicators, review_counts=review_counts)
+
+    names = dict(db.execute(
+        "SELECT id, name FROM adjudicators WHERE id IN ({})".format(
+            ",".join("?" * len(seasons_by_adjudicator))
+        ),
+        tuple(seasons_by_adjudicator),
+    ).fetchall())
+
+    # The coverage bar on the roster table is scaled against the whole
+    # archive's span, not each adjudicator's own - a two-season stint and a
+    # ten-season one need to look like different lengths, not both fill the
+    # bar edge to edge.
+    all_start_years = [
+        season_start_year(row["season"]) for rows in seasons_by_adjudicator.values() for row in rows
+    ]
+    archive_start = min(all_start_years)
+    archive_end = max(all_start_years) + 1  # a season's own coverage runs one year past its start
+    archive_span = archive_end - archive_start
+
+    current_card, roster = [], []
+    for adjudicator_id, rows in seasons_by_adjudicator.items():
+        distinct_seasons = sorted({row["season"] for row in rows}, key=season_start_year)
+        season_count = len(distinct_seasons)
+        reviews = review_counts.get(adjudicator_id, 0)
+        current_rows = [row for row in rows if row["season"] == current]
+
+        if current_rows:
+            for row in current_rows:
+                current_card.append({
+                    "id": adjudicator_id,
+                    "name": names[adjudicator_id],
+                    "tier": row["section"],
+                    "ordinal": _ordinal(season_count),
+                    "reviews": reviews,
+                })
+            continue
+
+        start_year = season_start_year(distinct_seasons[0])
+        end_year = season_start_year(distinct_seasons[-1]) + 1
+        roster.append({
+            "id": adjudicator_id,
+            "name": names[adjudicator_id],
+            "season_count": season_count,
+            "span_label": distinct_seasons[0] if season_count == 1 else f"{distinct_seasons[0]}–{distinct_seasons[-1]}",
+            "span_left": round((start_year - archive_start) / archive_span * 100, 1),
+            "span_right": round((archive_end - end_year) / archive_span * 100, 1),
+            "reviews": reviews,
+        })
+
+    current_card.sort(key=lambda e: e["tier"])
+    roster.sort(key=lambda e: e["name"])
+
+    return render_template(
+        "adjudicators_list.html", current_season=current, current_card=current_card, roster=roster,
+    )
 
 
 @bp.route("/adjudicators/<int:adjudicator_id>")
@@ -343,12 +410,23 @@ def adjudicator_detail(adjudicator_id):
     if adjudicator is None:
         abort(404)
 
-    seasons_judged = db.execute(
-        "SELECT season, section FROM adjudicator_assignments WHERE adjudicator_id = ? ORDER BY season DESC",
+    assignment_rows = db.execute(
+        "SELECT season, section FROM adjudicator_assignments WHERE adjudicator_id = ?",
         (adjudicator_id,),
     ).fetchall()
-    if not seasons_judged:
+    if not assignment_rows:
         abort(404)
+
+    # season is a 'yy/yy' string - sorted/min/max'd here via season_start_year
+    # rather than in SQL, since plain string ordering is unsafe across the
+    # 1999/2000 rollover (the Round 25 bug).
+    distinct_seasons = sorted({row["season"] for row in assignment_rows}, key=season_start_year)
+    tiers_judged = sorted({row["section"] for row in assignment_rows})
+    stats = {
+        "season_count": len(distinct_seasons),
+        "span": distinct_seasons[0] if len(distinct_seasons) == 1 else f"{distinct_seasons[0]}–{distinct_seasons[-1]}",
+        "tiers": "Both" if len(tiers_judged) > 1 else tiers_judged[0],
+    }
 
     # Only actual published reviews here (unlike /admin/adjudicators'
     # cross-check view, which deliberately shows every show in their
@@ -387,14 +465,32 @@ def adjudicator_detail(adjudicator_id):
         """,
         (adjudicator_id, adjudicator_id),
     ).fetchall()
-    # Sorted here rather than in SQL: season is a 'yy/yy' string, and ordering
-    # those as text is unsafe across the 1999/2000 rollover (the Round 25 bug).
     reviews = sorted(
         reviews, key=lambda r: (-season_start_year(r["season"]), (r["show"] or "").lower())
     )
+    stats["review_count"] = len(reviews)
+
+    # Grouped on the review's own season/tier, not the assignment table -
+    # keeps a review visible even when it lands on a tier the assignment
+    # table doesn't record for that season (the 16/17 case Round 34 found:
+    # a stale printed masthead had briefly misfiled 28 reviews a season
+    # early, before being corrected against the actual PDFs).
+    season_groups = []
+    groups_by_season = {}
+    for r in reviews:
+        group = groups_by_season.get(r["season"])
+        if group is None:
+            group = {"season": r["season"], "tiers": [], "reviews": []}
+            groups_by_season[r["season"]] = group
+            season_groups.append(group)
+        if r["section"] not in group["tiers"]:
+            group["tiers"].append(r["section"])
+        group["reviews"].append(r)
+    for group in season_groups:
+        group["tiers"].sort()
 
     return render_template(
-        "adjudicator_detail.html", adjudicator=adjudicator, seasons_judged=seasons_judged, reviews=reviews,
+        "adjudicator_detail.html", adjudicator=adjudicator, stats=stats, season_groups=season_groups,
     )
 
 

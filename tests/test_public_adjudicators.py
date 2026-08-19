@@ -4,6 +4,8 @@ review show page - see app/blueprints/public.py's adjudicators_list()/
 adjudicator_detail()/show_detail()."""
 from conftest import seed_society
 
+from app.season import current_season
+
 
 def seed_adjudicator(db, name="Jane Smith", notes=None):
     db.execute("INSERT INTO adjudicators (name, notes) VALUES (?, ?)", (name, notes))
@@ -28,6 +30,22 @@ def test_adjudicators_list_excludes_unassigned(client, db):
     body = client.get("/adjudicators").get_data(as_text=True)
     assert "Assigned Jane" in body
     assert "Unassigned Jack" not in body
+
+
+def test_current_season_adjudicator_gets_the_hero_card_not_the_roster(client, db):
+    this_season = current_season(db)
+    current_id = seed_adjudicator(db, name="Current Cara")
+    assign(db, this_season, "Gilbert", current_id)
+    past_id = seed_adjudicator(db, name="Past Pete")
+    assign(db, "12/13", "Sullivan", past_id)
+
+    body = client.get("/adjudicators").get_data(as_text=True)
+    hero, _, rest = body.partition("Previous adjudicators")
+    assert "Current Cara" in hero
+    assert "First season" in hero  # her only assignment, worded for a debut
+    assert "Past Pete" not in hero
+    assert "Past Pete" in rest
+    assert "Current Cara" not in rest
 
 
 def test_adjudicator_detail_404_for_unknown_id(client):
@@ -141,15 +159,17 @@ def seed_showtimes_review(db, adjudicator_id, society_id, show="Annie", season="
 
 def test_list_counts_showtimes_reviews_not_just_aims_links(client, db):
     """The whole extracted ShowTimes archive used to be uncounted here, so an
-    adjudicator with 100+ reviews in it read "0 published reviews"."""
+    adjudicator with 100+ reviews in it read "0 published reviews". 12/13 is
+    not the fixture's current season, so Jane lands in the roster table."""
     society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
     jane_id = seed_adjudicator(db, name="Jane Smith")
     assign(db, "12/13", "Gilbert", jane_id)
     seed_showtimes_review(db, jane_id, society_id)
 
     body = client.get("/adjudicators").get_data(as_text=True)
-    assert "1 published review" in body
-    assert "0 published review" not in body
+    assert "Jane Smith" in body
+    assert '<td class="num">1</td>' in body
+    assert '<td class="num">0</td>' not in body
 
 
 def test_list_sums_both_review_sources(client, db):
@@ -166,7 +186,8 @@ def test_list_sums_both_review_sources(client, db):
     db.commit()
 
     body = client.get("/adjudicators").get_data(as_text=True)
-    assert "2 published reviews" in body
+    assert '<td class="num">2</td>' in body
+    assert "12/13–23/24" in body  # the coverage-span label, both her seasons
 
 
 def test_list_excludes_showtimes_review_on_hidden_society(client, db):
@@ -177,7 +198,8 @@ def test_list_excludes_showtimes_review_on_hidden_society(client, db):
     seed_showtimes_review(db, jane_id, society_id)
 
     body = client.get("/adjudicators").get_data(as_text=True)
-    assert "0 published reviews" in body
+    assert "Jane Smith" in body
+    assert '<td class="num">0</td>' in body
 
 
 def test_detail_lists_showtimes_reviews_linking_to_the_show_page(client, db):

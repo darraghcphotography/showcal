@@ -3,18 +3,61 @@
 {% block og_description %}Every AIMS adjudicator on record, and the reviews they've written.{% endblock %}
 {% block content %}
   <h1>Adjudicators</h1>
-  <p class="meta">AIMS assigns one adjudicator per tier (Gilbert/Sullivan) per season - browse who covered which
-     season, and read their published reviews.</p>
+  <p class="meta">AIMS assigns one adjudicator per tier - Gilbert and Sullivan - for each season. Browse who
+     covered which year, and read what they wrote.</p>
 
-  {% if adjudicators %}
-    {% for a in adjudicators %}
-      <a class="queue-item" href="{{ url_for('public.adjudicator_detail', adjudicator_id=a['id']) }}">
-        <span class="primary">{{ a['name'] }}</span>
-        <p class="meta">{{ a['season_count'] }} season{{ '' if a['season_count'] == 1 else 's' }} judged
-          &middot; {{ review_counts.get(a['id'], 0) }} published review{{ '' if review_counts.get(a['id'], 0) == 1 else 's' }}</p>
-      </a>
-    {% endfor %}
-  {% else %}
+  {% if current_card %}
+    <div class="explorer">
+      <div class="explorer-eyebrow">Judging this season &middot; {{ current_season }}</div>
+      <div class="adj-now">
+        {% for a in current_card %}
+          <a class="adj-card" href="{{ url_for('public.adjudicator_detail', adjudicator_id=a['id']) }}">
+            <span class="tag tag-tier">{{ a['tier'] }}</span>
+            <span class="name">{{ a['name'] }}</span>
+            {% if a['reviews'] %}
+              <p class="sub">{{ a['ordinal'] }} season judging &middot; {{ a['reviews'] }} review{{ '' if a['reviews'] == 1 else 's' }} on record</p>
+            {% else %}
+              <p class="sub">{{ a['ordinal'] }} season &middot; reviews appear as the season runs</p>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if roster %}
+    <h2>Previous adjudicators</h2>
+    <table class="data-table table-wide">
+      <thead>
+        <tr><th>Name</th><th>Seasons covered</th><th class="num">Reviews</th></tr>
+      </thead>
+      <tbody>
+        {% for a in roster %}
+          <tr>
+            <td><a href="{{ url_for('public.adjudicator_detail', adjudicator_id=a['id']) }}">{{ a['name'] }}</a></td>
+            <td>
+              <span class="cover-cell">
+                <span class="span-track"><span class="span-fill" style="left:{{ a['span_left'] }}%;right:{{ a['span_right'] }}%"></span></span>
+                <span class="span-label">{{ a['span_label'] }}</span>
+              </span>
+            </td>
+            <td class="num">{{ a['reviews'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="table-cards">
+      {% for a in roster %}
+        <a class="queue-item" href="{{ url_for('public.adjudicator_detail', adjudicator_id=a['id']) }}">
+          <span class="primary">{{ a['name'] }}</span>
+          <p class="meta">{{ a['span_label'] }} &middot; {{ a['reviews'] }} review{{ '' if a['reviews'] == 1 else 's' }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not current_card and not roster %}
     <p>No adjudicators on record yet.</p>
   {% endif %}
 {% endblock %}

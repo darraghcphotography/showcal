@@ -6,26 +6,41 @@
   <h1>{{ adjudicator['name'] }}</h1>
   {% if adjudicator['notes'] %}<p class="meta">{{ adjudicator['notes'] }}</p>{% endif %}
 
-  <p class="meta">
-    Judged
-    {% for s in seasons_judged %}{{ s['section'] }} {{ s['season'] }}{% if not loop.last %}, {% endif %}{% endfor %}
-  </p>
+  <div class="stat-tiles">
+    <div class="stat-tile"><span class="stat-value">{{ stats['review_count'] }}</span><span class="stat-label">Review{{ '' if stats['review_count'] == 1 else 's' }}</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ stats['season_count'] }}</span><span class="stat-label">Season{{ '' if stats['season_count'] == 1 else 's' }} judged</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ stats['span'] }}</span><span class="stat-label">Active</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ stats['tiers'] }}</span><span class="stat-label">Tier{{ '' if stats['tiers'] != 'Both' else 's' }} covered</span></div>
+  </div>
 
-  <h2>Reviews</h2>
-  {% if reviews %}
-    {% for r in reviews %}
-      {% if r['source'] == 'full_text' %}
-        {# The extracted ShowTimes review lives on the show's own page here, not on aims.ie. #}
-        <a class="queue-item" href="{{ url_for('public.show_detail', show_id=r['id']) }}">
-          <span class="primary">{{ r['show'] }}</span>
-          <p class="meta">{{ r['society_name'] }} &middot; {{ r['section'] }} {{ r['season'] }} &middot; Full review</p>
-        </a>
-      {% else %}
-        <a class="queue-item" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
-          <span class="primary">{{ r['show'] }}</span>
-          <p class="meta">{{ r['society_name'] }} &middot; {{ r['section'] }} {{ r['season'] }} &middot; Read on aims.ie</p>
-        </a>
-      {% endif %}
+  <h2>Reviews by season</h2>
+  {% if season_groups %}
+    {% for group in season_groups %}
+      <details class="queue-item"{% if loop.index0 < 2 %} open{% endif %}>
+        <summary>
+          {{ group['season'] }}
+          {% for tier in group['tiers'] %}<span class="tag tag-tier">{{ tier }}</span>{% endfor %}
+          <span class="review-n">{{ group['reviews']|length }} review{{ '' if group['reviews']|length == 1 else 's' }}</span>
+        </summary>
+        <div class="queue-item-body review-list">
+          {% for r in group['reviews'] %}
+            {% if r['source'] == 'full_text' %}
+              {# The extracted ShowTimes review lives on the show's own page here, not on aims.ie. #}
+              <a class="review-row" href="{{ url_for('public.show_detail', show_id=r['id']) }}">
+                <span class="show">{{ r['show'] }}</span>
+                <span class="soc">{{ r['society_name'] }}</span>
+                <span class="src src-full">Full review</span>
+              </a>
+            {% else %}
+              <a class="review-row" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
+                <span class="show">{{ r['show'] }}</span>
+                <span class="soc">{{ r['society_name'] }}</span>
+                <span class="src">Read on aims.ie</span>
+              </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </details>
     {% endfor %}
   {% else %}
     <p class="meta">No published reviews from {{ adjudicator['name'] }} yet.</p>
