@@ -2040,10 +2040,36 @@ def bulk_approve_historical_reviews():
         "SELECT * FROM historical_reviews WHERE moderation_status = 'pending' "
         "AND flag = 'no_show_match' AND society_id IS NOT NULL"
     ).fetchall()
+    approved = 0
+    conflicts = 0
     for review in reviews:
-        _approve_historical_review_row(db, review, user["username"])
+        # Two reviews can legitimately share a (society, season, show) triple
+        # - the same production got extracted twice from two different
+        # source issues (a near-duplicate reprint, confirmed in testing -
+        # 13 real cases across the archive) - and the second one then
+        # collides with ux_shows_natural_key when this tries to create its
+        # own skeleton show. A single such collision used to 500 the whole
+        # batch, since every row shared one uncommitted transaction - a
+        # per-row SAVEPOINT means one conflicting review is left pending
+        # for a moderator to look at by hand, instead of blocking the other
+        # 800-odd reviews that have nothing wrong with them.
+        db.execute("SAVEPOINT bulk_approve_row")
+        try:
+            _approve_historical_review_row(db, review, user["username"])
+        except sqlite3.IntegrityError:
+            db.execute("ROLLBACK TO SAVEPOINT bulk_approve_row")
+            conflicts += 1
+        else:
+            db.execute("RELEASE SAVEPOINT bulk_approve_row")
+            approved += 1
     db.commit()
-    flash(f"{len(reviews)} review{'s' if len(reviews) != 1 else ''} approved and published.", "success")
+    message = f"{approved} review{'s' if approved != 1 else ''} approved and published."
+    if conflicts:
+        message += (
+            f" {conflicts} left pending - each already shares a show with another approved "
+            "review and needs a moderator to pick which one is right."
+        )
+    flash(message, "success")
     return redirect(url_for("admin.historical_reviews_queue"))
 
 

@@ -35,8 +35,10 @@ def seed_historical_review(
         (season, tier, show_raw, society_raw, adjudicator_id, review_text, source_issue, show_id, society_id, flag),
     )
     db.commit()
-    return db.execute("SELECT id FROM historical_reviews WHERE show_raw = ? AND society_raw = ?",
-                       (show_raw, society_raw)).fetchone()["id"]
+    return db.execute(
+        "SELECT id FROM historical_reviews WHERE show_raw = ? AND society_raw = ? AND source_issue = ?",
+        (show_raw, society_raw, source_issue),
+    ).fetchone()["id"]
 
 
 def test_queue_requires_login(client):
@@ -148,6 +150,36 @@ def test_bulk_approve_publishes_only_matched_no_show_match_reviews(client, db):
 
     still_pending = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (needs_check,)).fetchone()
     assert still_pending["moderation_status"] == "pending"
+
+
+def test_bulk_approve_leaves_a_natural_key_conflict_pending_instead_of_500ing(client, db):
+    """Two reviews of the same (society, season, show) - a real production
+    extracted twice from two different source issues, confirmed in the full
+    archive (e.g. a show reviewed in both a February and a March issue) -
+    collide on ux_shows_natural_key when the second one tries to create its
+    own skeleton show. That used to take the whole batch down with it since
+    every row shared one uncommitted transaction; now only the conflicting
+    row is left pending, and everything else still goes through."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    login_as(client, admin_id)
+    first = seed_historical_review(db, society_id=society_id, show_raw="Titanic", flag="no_show_match")
+    conflicting = seed_historical_review(
+        db, society_id=society_id, show_raw="Titanic", flag="no_show_match",
+        source_issue="Issue 66, March 2011",
+    )
+    clean = seed_historical_review(db, society_id=society_id, show_raw="Show Two", flag="no_show_match")
+
+    resp = client.post("/admin/historical-reviews/bulk-approve")
+    assert resp.status_code == 302
+
+    for review_id in (first, clean):
+        review = db.execute("SELECT * FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
+        assert review["moderation_status"] == "approved"
+
+    still_pending = db.execute("SELECT moderation_status FROM historical_reviews WHERE id = ?", (conflicting,)).fetchone()
+    assert still_pending["moderation_status"] == "pending"
+    assert db.execute("SELECT COUNT(*) FROM shows").fetchone()[0] == 2  # no duplicate skeleton show
 
 
 def test_bulk_approve_ignores_reviews_already_matched_to_an_existing_show(client, db):
