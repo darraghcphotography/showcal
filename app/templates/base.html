@@ -168,6 +168,27 @@
       navigator.clipboard.writeText(field.value);
       btn.textContent = 'Copied!';
     });
+    // Same reasoning as above, for a <select> that used to carry an inline
+    // change handler - a filter dropdown that should auto-submit its form
+    // (data-auto-submit), or a category picker that shows/hides a paired
+    // "type your own" field (data-toggle-target + data-toggle-value). Both
+    // patterns were silently broken by the CSP above until this was added -
+    // see the "Feedback review" writeup, 19 Aug 2026.
+    document.addEventListener('change', function(e) {
+      var el = e.target;
+      if (!el.matches) return;
+      if (el.matches('[data-auto-submit]')) {
+        el.form.submit();
+        return;
+      }
+      var toggleId = el.getAttribute('data-toggle-target');
+      if (toggleId) {
+        var target = document.getElementById(toggleId);
+        if (target) {
+          target.style.display = (el.value === el.getAttribute('data-toggle-value')) ? 'inline-block' : 'none';
+        }
+      }
+    });
   </script>
 
   <script nonce="{{ csp_nonce }}">

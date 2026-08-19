@@ -46,7 +46,7 @@
     <input type="hidden" name="award_tier" value="{{ selected_award_tier }}">
     <label>
       Region
-      <select name="region" onchange="this.form.submit()">
+      <select name="region" data-auto-submit>
         <option value="">All regions</option>
         {% for r in regions %}
           <option value="{{ r }}" {% if r == selected_region %}selected{% endif %}>{{ r }}</option>
@@ -55,7 +55,7 @@
     </label>
     <label>
       Timeframe
-      <select name="era" onchange="this.form.submit()">
+      <select name="era" data-auto-submit>
         <option value="recent" {% if era == 'recent' %}selected{% endif %}>Since 23/24</option>
         <option value="all" {% if era == 'all' %}selected{% endif %}>All-time{% if historical_from %} (since {{ historical_from }}){% endif %}</option>
       </select>
@@ -90,7 +90,7 @@
       <input type="hidden" name="era" value="{{ era }}">
       <div class="field">
         <label for="award_category">Award category</label>
-        <select id="award_category" name="award_category" onchange="this.form.submit()">
+        <select id="award_category" name="award_category" data-auto-submit>
           {% for group_name in ['Show', 'Production team', 'Cast'] %}
             <optgroup label="{{ group_name }}">
               {% for c in award_categories if c.group == group_name %}
@@ -102,7 +102,7 @@
       </div>
       <div class="field">
         <label for="award_tier">Tier</label>
-        <select id="award_tier" name="award_tier" onchange="this.form.submit()">
+        <select id="award_tier" name="award_tier" data-auto-submit>
           <option value="">All</option>
           <option value="Gilbert" {% if selected_award_tier == 'Gilbert' %}selected{% endif %}>Gilbert</option>
           <option value="Sullivan" {% if selected_award_tier == 'Sullivan' %}selected{% endif %}>Sullivan</option>

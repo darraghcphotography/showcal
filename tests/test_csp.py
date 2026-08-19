@@ -36,12 +36,38 @@ def test_nonce_changes_between_requests(client):
 
 
 def test_no_inline_event_handlers_remain(client, db):
+    """onchange was missing from this check for weeks - five auto-submit
+    filter dropdowns (index.html, stats.html) and two admin category
+    toggles carried onchange="..." the whole time, silently inert under the
+    CSP above, and this test would have caught it on day one if it checked
+    for it. See the "Feedback review" writeup, 19 Aug 2026."""
     admin_id = seed_user(db, role="admin")
     login_as(client, admin_id)
-    for path in ("/admin/venues", "/admin/invite-codes", "/admin/changelog", "/"):
+    for path in ("/admin/venues", "/admin/invite-codes", "/admin/changelog", "/", "/stats",
+                 "/admin/awards/new", "/admin/awards/bulk"):
         body = client.get(path).get_data(as_text=True)
         assert "onsubmit=" not in body
         assert "onclick=" not in body
+        assert "onchange=" not in body
+
+
+def test_filter_dropdowns_use_data_auto_submit(client):
+    body = client.get("/").get_data(as_text=True)
+    assert '<select name="upcoming_region" data-auto-submit>' in body
+
+    body = client.get("/stats").get_data(as_text=True)
+    assert 'name="region" data-auto-submit' in body
+    assert 'name="era" data-auto-submit' in body
+    assert 'id="award_category" name="award_category" data-auto-submit' in body
+    assert 'id="award_tier" name="award_tier" data-auto-submit' in body
+
+
+def test_award_category_select_uses_data_toggle_attributes(client, db):
+    admin_id = seed_user(db, role="admin")
+    login_as(client, admin_id)
+    for path in ("/admin/awards/new", "/admin/awards/bulk"):
+        body = client.get(path).get_data(as_text=True)
+        assert 'data-toggle-target="category-other" data-toggle-value="__other__"' in body
 
 
 def test_delete_form_carries_data_confirm_attribute(client, db):

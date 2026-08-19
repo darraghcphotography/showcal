@@ -71,7 +71,7 @@
   <form method="get" class="filter-form">
     <label>
       Region
-      <select name="upcoming_region" onchange="this.form.submit()">
+      <select name="upcoming_region" data-auto-submit>
         <option value="">All regions</option>
         {% for r in regions %}
           <option value="{{ r }}" {% if r == upcoming_region %}selected{% endif %}>{{ r }}</option>

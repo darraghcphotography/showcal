@@ -23,7 +23,7 @@
 
     <label>
       Category
-      <select name="category" onchange="document.getElementById('category-other').style.display = this.value === '__other__' ? 'inline-block' : 'none';">
+      <select name="category" data-toggle-target="category-other" data-toggle-value="__other__">
         <option value="">—</option>
         {% for c in categories %}
           <option value="{{ c }}" {% if c == (form.get('category') or form.get('category_name')) %}selected{% endif %}>{{ c }}</option>
