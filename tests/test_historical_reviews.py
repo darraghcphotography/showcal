@@ -526,3 +526,70 @@ def test_apply_show_title_match_refuses_a_non_skeleton_show(client, db):
 
     show = db.execute("SELECT show FROM shows WHERE id = ?", (show_id,)).fetchone()
     assert show["show"] == "Real Show"
+
+
+def test_society_suggestions_rank_the_real_variant_above_a_generic_suffix_match():
+    """The safety property the bulk society match depends on: a society
+    sharing only a generic suffix must never outrank - or even survive
+    alongside - the genuine name variant. A whole-string character ratio
+    gets this backwards on real archive data ("Clane Musical Society" scores
+    0.93 against the unrelated "Carnew Musical Society" but only 0.79
+    against its own "Clane Musical & Dramatic Society"), which is tolerable
+    when a moderator eyeballs one review at a time and actively dangerous
+    once one click applies a match to every review sharing that name."""
+    from app.blueprints.admin import _society_distinctive_score, SOCIETY_DISTINCTIVE_THRESHOLD
+
+    real_variants = [
+        ("Clane Musical Society", "Clane Musical & Dramatic Society"),
+        ("Newcastle West Musical Society", "Newcastlewest Musical Society"),
+        ("9 Arches Musical Society, Claregalway", "9 Arch Musical Society"),
+        ("Dun Laoghaire Mus. & Dram. Society", "Dun Laoghaire Musical & Dramatic Society"),
+        ("St Patrick's Hall MS, Strabane", "St. Patrick's Hall Musical Society, Strabane"),
+        ("St Mary's Musical Society, Navan", "St. Marys Musical Society, Navan"),
+    ]
+    different_societies = [
+        ("Clane Musical Society", "Carnew Musical Society"),
+        ("Corofin Musical Society", "Coolmine Musical Society"),
+        ("Maynooth University Musical Society", "Galway University Musical Society"),
+        ("Castlebar Musical & Dramatic Society", "Castlerea Musical Society"),
+        ("St Mel's Musical Society", "St. Michael's Theatre Musical Society"),
+        # Same saint, different town - the town after the comma is the only
+        # thing telling these apart, so it must not be stripped.
+        ("St Mary's Musical Society, Navan", "St. Mary's Choral Society, Clonmel"),
+    ]
+
+    for raw, real in real_variants:
+        assert _society_distinctive_score(raw, real) >= SOCIETY_DISTINCTIVE_THRESHOLD, (raw, real)
+    for raw, other in different_societies:
+        assert _society_distinctive_score(raw, other) < SOCIETY_DISTINCTIVE_THRESHOLD, (raw, other)
+
+
+def test_bulk_society_match_applies_to_every_review_with_that_printed_name(client, db):
+    """One match, every pending review printed with the same society_raw -
+    the whole point of the bulk action. Reviews printed with a different
+    name, and reviews already matched, are left alone."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Fusion Theatre Company")
+    login_as(client, admin_id)
+    for season in ("15/16", "16/17", "17/18"):
+        seed_historical_review(db, society_raw="Fusion Theatre", season=season, show_raw=f"Show {season}")
+    seed_historical_review(db, society_raw="Some Other Society", season="18/19")
+
+    resp = client.post(
+        "/admin/historical-reviews/bulk-apply-society-match",
+        data={"society_raw": "Fusion Theatre", "name": "Fusion Theatre Company"},
+    )
+    assert resp.status_code == 302
+
+    matched = db.execute(
+        "SELECT COUNT(*) AS n FROM historical_reviews WHERE society_id = ?", (society_id,)
+    ).fetchone()["n"]
+    assert matched == 3
+    untouched = db.execute(
+        "SELECT society_id FROM historical_reviews WHERE society_raw = 'Some Other Society'"
+    ).fetchone()
+    assert untouched["society_id"] is None
+    # Bulk matching sets the society only - it never approves.
+    assert db.execute(
+        "SELECT COUNT(*) AS n FROM historical_reviews WHERE moderation_status = 'approved'"
+    ).fetchone()["n"] == 0

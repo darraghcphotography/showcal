@@ -7,14 +7,33 @@ phase changes.
 
 ## Start here (updated 2026-08-19)
 
-**Deployed state**: Rounds 27, 28, and 28.1 are all live and confirmed deployed (checked the actual
-running container's code directly, not just a deploy timestamp - a timestamp alone only proves a
-restart happened, not which commit). **Round 29 is committed and pushed but not yet redeployed** -
-a drop-cap parsing bug and a wrapped-society-name bug (both fixed and shipped), a fuzzy society-name
-suggestion feature for the moderation queue (directly requested by Darragh, shipped), and two real
-findings that were investigated but deliberately NOT acted on this session (a wrong-society fuzzy-
-matching bug with an unsafe fix, and ~112 stale orphaned review rows needing a more rigorous cleanup
-method than what was tried) - see Round 29 below and "Next steps" for the full detail on both.
+**Deployed state (updated 2026-08-19)**: Rounds 27, 28, 28.1, and 29 are all live and confirmed
+deployed (checked the actual running container's code directly, not just a deploy timestamp - a
+timestamp alone only proves a restart happened, not which commit). Round 29 itself: a drop-cap
+parsing bug and a wrapped-society-name bug (both fixed and shipped), a fuzzy society-name suggestion
+feature for the moderation queue (directly requested by Darragh, shipped), and two real findings
+investigated but deliberately NOT acted on (a wrong-society fuzzy-matching bug with an unsafe fix,
+and ~112 stale orphaned review rows needing a more rigorous cleanup method than what was tried) -
+see Round 29 below for the full detail on both.
+
+**Round 29 shipped a real production incident** the same day: the new per-review fuzzy society
+matching redid a full O(n²) society-vs-society comparison from scratch on every one of 175 pending
+reviews on every load of the moderation queue (~2.8M `SequenceMatcher` calls, ~178s measured) -
+hung waitress's workers and 524'd in production, with the container getting OOM/crash-restarted
+under the load. Fixed same session by batching the comparison into one call (~4s, 45x) - see
+`find_society_candidates_batch` in `app/blueprints/admin.py`. Confirmed deployed and stable.
+
+**Round 30 (2026-08-19, same day)**: three more real-usage fixes, all confirmed deployed -
+(1) the historical reviews queue collapsed into `<details>`/`<summary>` at both the per-row and
+per-section level (886 pending reviews as always-expanded cards made the queue an enormous scroll;
+measured ~16,500px default page height before, ~7,900px after, with the two largest/least-urgent
+sections - "Ready to approve" and "Likely has award history" - tucked behind a closed-by-default
+"Show all N" toggle); (2) society/show pages now link to a show's own ShowTimes review instead of
+showing "None" in the Review column, for shows where `review_status` (AIMS's own official review
+workflow) is unset but a historical review is linked - no schema change; (3) `app/production_
+credits.py` suggests a historical show's blank venue/director/musical_director/choreographer fields
+from its linked review's own prose (tested against all 815 approved reviews first - real but
+partial coverage, shown as an edit-show "Use this" suggestion, never auto-applied).
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -78,6 +97,25 @@ tested; not deployed.** Full session detail below the fold ("Round 24"). Short v
    remaining historical-production backfill (19 of 23 researched societies), edit history/versioning
    for society self-edits, costume/prop rental listings, a staging/test environment, the formal
    `LAUNCH.md` spec. See the "Parked" sections further down for detail on each.
+4. **Public `/adjudicators` list page needs a redesign - flagged by Darragh 2026-08-19, plan/mockup
+   first, not code yet ("might be a job for tonight").** Today `adjudicators_list()`/
+   `adjudicators_list.html` is one flat alphabetical list mixing every adjudicator who's ever had a
+   season/tier assignment - current and decades-past alike - which is exactly the "one long page,
+   poor UX" he's pointing at. His proposed shape:
+   - **Current-season adjudicators in a grid at the top**, linking to their current-season reviews.
+   - **An option to browse a current adjudicator's past seasons** too - by region/show/society was
+     his rough idea, not a firm spec.
+   - **Past (no-longer-active) adjudicators** get a simpler treatment - just a link through to their
+     bio + season history, i.e. the existing `adjudicator_detail()`/`adjudicator_detail.html` page
+     (`/adjudicators/<id>`), which already exists (Round 20) and already needs its own season-grouping
+     refinement per "Option A" above - these two items should almost certainly be designed together,
+     not separately, since the list page's "past adjudicator" link and the detail page's own season
+     grouping are two halves of the same browsing path.
+   - Needs a real definition of "current" (current_season() already exists and is used elsewhere -
+     an adjudicator with an assignment for the current season, vs everyone else) before mockups can
+     be built.
+   - Mockup-first per this repo's established pattern (see item 2a above) - present options, get
+     Darragh's call, then build.
 
 **Step 4 scoping session - historical review import decisions (2026-08-18):** Planning only, no code -
 reviewed both published mockups (admin grid/moderation queue, reviews page layout options) and got

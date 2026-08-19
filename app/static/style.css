@@ -371,7 +371,15 @@ details table { margin-top: 0.5rem; }
 .review-block { margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.15rem; background: var(--row-alt); }
 .review-block .review-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
 .review-block .source { font-family: monospace; font-size: 0.75rem; color: var(--muted); }
-.review-block p { font-size: 0.92rem; margin: 0 0 0.6rem; }
+/* Some ShowTimes reviews were printed as one continuous justified column
+   with no paragraph breaks at all (confirmed against the source PDFs - the
+   originals genuinely have no ragged paragraph-final lines, uniform 9.5pt
+   leading throughout, so there's nothing to recover rather than anything
+   lost in extraction). ~12% of the archive reads as a single long block.
+   Nothing is invented to break those up - the text stays exactly as
+   published - but a constrained measure and looser leading make a long
+   unbroken block far easier to actually read on screen. */
+.review-block p { font-size: 0.92rem; margin: 0 0 0.6rem; line-height: 1.75; max-width: 68ch; }
 .review-block p:last-of-type { margin-bottom: 0; }
 .review-credit { font-size: 0.82rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 0.6rem; margin-top: 0.8rem; }
 

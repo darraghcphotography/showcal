@@ -3,6 +3,7 @@ import re
 import secrets
 import sqlite3
 from datetime import date, datetime, timedelta
+from difflib import SequenceMatcher
 
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
@@ -2046,7 +2047,8 @@ def categorize_pending_reviews(db):
         entry = dict(r)
         if r["society_id"] is None:
             entry["society_candidates"] = [
-                (name, score) for name, score in society_candidates_by_raw.get(r["society_raw"], [])
+                (name, score, section)
+                for name, score, section in society_candidates_by_raw.get(r["society_raw"], [])
                 if score >= SOCIETY_MATCH_THRESHOLD
             ]
             grouped["needs_society"].append(entry)
@@ -2069,15 +2071,44 @@ def categorize_pending_reviews(db):
     return grouped
 
 
+def group_needs_society(reviews):
+    """Collapses the needs_society pile into one entry per distinct
+    society_raw, so a printed name that appears across several reviews
+    ('Fusion Theatre' turns up 8 times) is matched once for the whole group
+    instead of review-by-review. Matching one at a time was the single most
+    tedious part of working this queue - roughly a third of the pile shares
+    its society_raw with at least one other review.
+
+    Returns [{society_raw, count, review_ids, candidates}, ...], largest
+    group first (most tedium saved per click), then alphabetically. Groups
+    with no suggestion at all are still listed - they're exactly the ones
+    needing a hand-typed name, and hiding them would hide real work."""
+    groups = {}
+    for r in reviews:
+        raw = r["society_raw"] or ""
+        g = groups.setdefault(raw, {
+            "society_raw": raw,
+            "count": 0,
+            "review_ids": [],
+            "candidates": r.get("society_candidates") or [],
+        })
+        g["count"] += 1
+        g["review_ids"].append(r["id"])
+    return sorted(groups.values(), key=lambda g: (-g["count"], g["society_raw"].lower()))
+
+
 @bp.route("/historical-reviews")
 @login_required
 def historical_reviews_queue():
     db = get_db()
     grouped = categorize_pending_reviews(db)
     total_pending = sum(len(v) for v in grouped.values())
+    society_groups = group_needs_society(grouped["needs_society"])
     return render_template(
         "admin/historical_reviews_queue.html", grouped=grouped, total_pending=total_pending,
         bulk_approvable_count=len(grouped["ready"]),
+        society_groups=society_groups,
+        multi_society_groups=[g for g in society_groups if g["count"] > 1],
     )
 
 
@@ -2256,6 +2287,46 @@ def apply_historical_review_society_match(review_id):
     return redirect(url_for("admin.historical_reviews_queue"))
 
 
+@bp.route("/historical-reviews/bulk-apply-society-match", methods=("POST",))
+@login_required
+def bulk_apply_historical_review_society_match():
+    """Applies one society match to every pending review sharing the same
+    printed society_raw (see group_needs_society) - the same per-review work
+    apply_historical_review_society_match does, just not once per review.
+    Matched on society_raw rather than a list of ids so it can't silently
+    act on a review that changed category since the page was rendered; each
+    row still gets its own show match looked up, since that depends on the
+    review's own season/show_raw, not on the society alone. Sets the society
+    only - nothing is approved here, same separation as everywhere else in
+    this queue."""
+    db = get_db()
+    society_raw = request.form.get("society_raw", "").strip()
+    name = request.form.get("name", "").strip()
+    if not society_raw or not name:
+        abort(400)
+    society = db.execute("SELECT id FROM societies WHERE name = ?", (name,)).fetchone()
+    if society is None:
+        abort(400)
+
+    reviews = db.execute(
+        """
+        SELECT * FROM historical_reviews
+        WHERE moderation_status = 'pending' AND society_id IS NULL AND society_raw = ?
+        """,
+        (society_raw,),
+    ).fetchall()
+    for review in reviews:
+        show_id = match_show_for_edit(db, society["id"], review["season"], review["show_raw"])
+        db.execute(
+            "UPDATE historical_reviews SET society_id = ?, show_id = ?, flag = ? WHERE id = ?",
+            (society["id"], show_id, None if show_id is not None else "no_show_match", review["id"]),
+        )
+    db.commit()
+    n = len(reviews)
+    flash(f'Matched {n} review{"" if n == 1 else "s"} to "{name}" - ready to approve.', "success")
+    return redirect(url_for("admin.historical_reviews_queue"))
+
+
 @bp.route("/historical-reviews/<int:review_id>/reject", methods=("POST",))
 @login_required
 def reject_historical_review(review_id):
@@ -2338,7 +2409,75 @@ def _all_societies(db):
 
 
 HISTORICAL_RESULTS_MATCH_THRESHOLD = 0.85
-SOCIETY_MATCH_THRESHOLD = 0.85
+# Deliberately lower than it looks: quality is enforced by
+# SOCIETY_DISTINCTIVE_THRESHOLD below, which is the check that actually
+# distinguishes a real name variant from a different society. This is only a
+# floor against absurd whole-string matches. It used to be 0.85, which threw
+# away a large class of genuine matches, since this archive abbreviates
+# constantly - "Dun Laoghaire Mus. & Dram. Society" scores just 0.84 against
+# its own real record, "St Patrick's Hall MS, Strabane" 0.81.
+SOCIETY_MATCH_THRESHOLD = 0.70
+
+# Words that appear in a large share of society names and so carry no
+# identifying information - what's left after stripping them is the part
+# that actually says *which* society this is (usually the town).
+_SOCIETY_ORG_WORDS_RE = re.compile(
+    r"\b(musical|music|dramatic|drama|choral|operatic|opera|light|theatre|theater|society"
+    r"|societies|group|company|productions|production|players|ltd|and|the|soc|mus)\b",
+    re.I,
+)
+# A candidate whose distinctive part matches this poorly is a different
+# society that merely shares a generic suffix, however high its whole-string
+# score. Calibrated against 14 real confirmed pairs from the archive: every
+# genuine variant scores >= 0.95 ("Clane Musical Society"/"Clane Musical &
+# Dramatic Society" = 1.00, "Dun Laoghaire Mus. & Dram. Society"/"Dun
+# Laoghaire Musical & Dramatic Society" = 0.95, "9 Arches ... Claregalway"/
+# "9 Arch Musical Society" = 0.95 via the containment rule), while every
+# confirmed wrong match lands at or below 0.80 ("St Mel's"/"St Michael's
+# Theatre" = 0.80, "Castlebar"/"Castlerea" = 0.78, "Clane"/"Carnew" = 0.73,
+# "St Mary's ... Navan"/"St Mary's ... Clonmel" = 0.69).
+SOCIETY_DISTINCTIVE_THRESHOLD = 0.85
+
+
+def _society_distinctive_part(name):
+    """The identifying part of a society name - what's left once the generic
+    organisational words and any parenthesised aside are removed. A trailing
+    town after a comma is deliberately KEPT: it's usually the only thing
+    telling two same-named societies apart ("St Mary's Musical Society,
+    Navan" vs "St Mary's Choral Society, Clonmel" both reduce to "st mary s"
+    without it, and would then score as a perfect match for each other)."""
+    s = name.lower()
+    s = re.sub(r"\(.*?\)", " ", s)
+    s = _SOCIETY_ORG_WORDS_RE.sub(" ", s)
+    s = re.sub(r"[^a-z0-9 ]", " ", s)
+    return " ".join(s.split())
+
+
+def _society_distinctive_score(raw, candidate):
+    """How well two society names agree on the part that actually
+    identifies them (see _society_distinctive_part). A whole-string
+    character ratio can't do this on its own - "Clane Musical Society" and
+    "Carnew Musical Society" share 15 of 21 characters purely through
+    " musical society", which is enough to outrank the real match. When one
+    distinctive part's words are wholly contained in the other's, that's a
+    genuine variant with an extra qualifier ("9 Arch" vs "9 Arch
+    Claregalway"), not a different society, so it scores as a strong match
+    rather than being penalised for the extra word."""
+    a, b = _society_distinctive_part(raw), _society_distinctive_part(candidate)
+    if not a or not b:
+        return 0.0
+    wa, wb = a.split(), b.split()
+    smaller, larger = (wa, wb) if len(wa) <= len(wb) else (wb, wa)
+    # Word-form variants count as the same word ("9 Arch" vs "9 Arches"),
+    # so an otherwise-identical name with an extra town qualifier still
+    # reads as containment rather than as a different society.
+    contained = all(
+        any(SequenceMatcher(None, x, y).ratio() >= 0.8 for y in larger)
+        for x in smaller
+    )
+    if contained:
+        return max(SequenceMatcher(None, a, b).ratio(), 0.95)
+    return SequenceMatcher(None, a, b).ratio()
 
 
 def find_society_candidates_batch(db, society_raws):
@@ -2362,12 +2501,18 @@ def find_society_candidates_batch(db, society_raws):
     killed and restarted (the cause of the 524 right after this shipped).
     Batching still does the society-vs-society comparisons, but only once.
 
-    Returns {society_raw: [(name, score), ...]}, each list sorted
-    highest-first - a moderator still picks, this only suggests."""
+    Returns {society_raw: [(name, score, section), ...]}, each list sorted
+    highest-first - a moderator still picks, this only suggests. section is
+    the society's own societies.section, carried through so the queue can
+    flag a suggestion that's an 'Inactive' (defunct/not currently competing)
+    society - a real and useful distinction when matching decade-old reviews,
+    where the right answer often *is* a society that no longer competes."""
     raws = sorted({r for r in society_raws if r})
     if not raws:
         return {}
-    names = [r["name"] for r in db.execute("SELECT name FROM societies").fetchall()]
+    society_rows = db.execute("SELECT name, section FROM societies").fetchall()
+    names = [r["name"] for r in society_rows]
+    section_by_name = {r["name"]: r["section"] for r in society_rows}
     if not names:
         return {}
     raw_set = set(raws)
@@ -2378,10 +2523,24 @@ def find_society_candidates_batch(db, society_raws):
             best_by_raw[a][b] = max(best_by_raw[a].get(b, 0), score)
         elif b in raw_set and a not in raw_set:
             best_by_raw[b][a] = max(best_by_raw[b].get(a, 0), score)
-    return {
-        raw: sorted(candidates.items(), key=lambda kv: -kv[1])
-        for raw, candidates in best_by_raw.items()
-    }
+    # Re-rank on the distinctive (town/identity) part rather than the raw
+    # whole-string score, and drop candidates that only look close because
+    # they share a generic suffix - see _society_distinctive_score. This
+    # matters much more here than it did when these were only ever eyeballed
+    # one review at a time: a single bulk action applies one match to every
+    # review sharing that printed name, so a plausible-looking wrong
+    # suggestion at the top of the list is worth several bad rows, not one.
+    ranked = {}
+    for raw, candidates in best_by_raw.items():
+        scored = []
+        for name, score in candidates.items():
+            distinctive = _society_distinctive_score(raw, name)
+            if distinctive < SOCIETY_DISTINCTIVE_THRESHOLD:
+                continue
+            scored.append((distinctive, score, name))
+        scored.sort(key=lambda t: (-t[0], -t[1]))
+        ranked[raw] = [(name, score, section_by_name.get(name)) for _, score, name in scored]
+    return ranked
 
 
 def find_historical_results_candidates(db, society_id, season, show_raw):

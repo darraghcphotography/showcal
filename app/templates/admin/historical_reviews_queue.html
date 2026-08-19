@@ -54,6 +54,48 @@
     <h2>Needs a society matched ({{ grouped['needs_society']|length }})</h2>
     <p class="meta">No society could be matched at all - pick one with Edit fields, or accept a suggested
        spelling/punctuation variant below if it's the right one.</p>
+
+    {% if society_groups %}
+      <div class="site-notice">
+        <p>These {{ grouped['needs_society']|length }} reviews use {{ society_groups|length }} distinct printed
+           society name{{ '' if society_groups|length == 1 else 's' }}{% if multi_society_groups %} - and
+           {{ multi_society_groups|length }} of those cover more than one review each{% endif %}. Matching a name
+           here applies it to every pending review printed with that same name at once, instead of one review at a
+           time. Nothing is approved by this - each review still gets approved as normal below.</p>
+      </div>
+      <table class="data-table table-wide">
+        <thead>
+          <tr><th>Printed society name</th><th>Reviews</th><th>Suggested match</th></tr>
+        </thead>
+        <tbody>
+          {% for group in society_groups %}
+            <tr>
+              <td>{{ group['society_raw'] or '(blank)' }}</td>
+              <td>{{ group['count'] }}</td>
+              <td>
+                {% if group['candidates'] %}
+                  {% for name, score, section in group['candidates'][:3] %}
+                    <form method="post" action="{{ url_for('admin.bulk_apply_historical_review_society_match') }}"
+                          class="inline-form" style="display:inline"
+                          {% if group['count'] > 1 %}data-confirm="Match all {{ group['count'] }} reviews printed as &quot;{{ group['society_raw'] }}&quot; to &quot;{{ name }}&quot;?"{% endif %}>
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="society_raw" value="{{ group['society_raw'] }}">
+                      <input type="hidden" name="name" value="{{ name }}">
+                      <button type="submit" class="button-primary">Use "{{ name }}"
+                        ({{ (score * 100)|round|int }}%){% if group['count'] > 1 %} &times;{{ group['count'] }}{% endif %}</button>
+                    </form>
+                    {% if section == 'Inactive' %}<span class="tag tag-past">defunct / inactive</span>{% endif %}
+                  {% endfor %}
+                {% else %}
+                  <span class="meta">No close match - use Edit fields on the review below.</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
     <details open>
       <summary>Show all {{ grouped['needs_society']|length }}</summary>
       {% for review in grouped['needs_society'] %}
@@ -63,13 +105,14 @@
             {{ review_meta(review) }}
             {% if review['society_candidates'] %}
               <p class="meta">Did you mean:
-                {% for name, score in review['society_candidates'] %}
+                {% for name, score, section in review['society_candidates'] %}
                   <form method="post" action="{{ url_for('admin.apply_historical_review_society_match', review_id=review['id']) }}"
                         class="inline-form" style="display:inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="name" value="{{ name }}">
                     <button type="submit" class="button-primary">Use "{{ name }}" ({{ (score * 100)|round|int }}% match)</button>
                   </form>
+                  {% if section == 'Inactive' %}<span class="tag tag-past">defunct / inactive</span>{% endif %}
                 {% endfor %}
               </p>
             {% endif %}
