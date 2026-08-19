@@ -22,6 +22,16 @@
   <p class="preview">{{ review['review_text'][:220] }}&hellip;</p>
 {% endmacro %}
 
+{% macro queue_summary(review, tag_class, tag_text) %}
+  <span class="primary">{{ review['show_raw'] }}</span>
+  <span class="tag {{ tag_class }}">{{ tag_text }}</span>
+  <span class="meta-chips">
+    <span>{{ review['matched_society_name'] or review['society_raw'] }}</span>
+    <span>&middot; {{ review['season'] }}</span>
+    <span>&middot; {{ review['tier'] or 'unknown' }}</span>
+  </span>
+{% endmacro %}
+
 {% block content %}
   <h1>Historical reviews to review</h1>
   <p>{{ total_pending }} review{{ '' if total_pending == 1 else 's' }} pending, from the AIMS ShowTimes archive,
@@ -45,23 +55,25 @@
     <p class="meta">No society could be matched at all - pick one with Edit fields, or accept a suggested
        spelling/punctuation variant below if it's the right one.</p>
     {% for review in grouped['needs_society'] %}
-      <article class="queue-item">
-        <h3>{{ review['show_raw'] }} <span class="tag tag-warning">no society matched</span></h3>
-        {{ review_meta(review) }}
-        {% if review['society_candidates'] %}
-          <p class="meta">Did you mean:
-            {% for name, score in review['society_candidates'] %}
-              <form method="post" action="{{ url_for('admin.apply_historical_review_society_match', review_id=review['id']) }}"
-                    class="inline-form" style="display:inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="name" value="{{ name }}">
-                <button type="submit" class="button-primary">Use "{{ name }}" ({{ (score * 100)|round|int }}% match)</button>
-              </form>
-            {% endfor %}
-          </p>
-        {% endif %}
-        <div class="actions">{{ review_actions(review) }}</div>
-      </article>
+      <details class="queue-item">
+        <summary>{{ queue_summary(review, 'tag-warning', 'no society matched') }}</summary>
+        <div class="queue-item-body">
+          {{ review_meta(review) }}
+          {% if review['society_candidates'] %}
+            <p class="meta">Did you mean:
+              {% for name, score in review['society_candidates'] %}
+                <form method="post" action="{{ url_for('admin.apply_historical_review_society_match', review_id=review['id']) }}"
+                      class="inline-form" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="name" value="{{ name }}">
+                  <button type="submit" class="button-primary">Use "{{ name }}" ({{ (score * 100)|round|int }}% match)</button>
+                </form>
+              {% endfor %}
+            </p>
+          {% endif %}
+          <div class="actions">{{ review_actions(review) }}</div>
+        </div>
+      </details>
     {% endfor %}
   {% endif %}
 
@@ -71,11 +83,13 @@
        the same production extracted twice from two different issues. Look at both before approving either, so
        the better transcription is the one that gets published.</p>
     {% for review in grouped['conflict'] %}
-      <article class="queue-item">
-        <h3>{{ review['show_raw'] }} <span class="tag tag-warning">shares a show with another pending review</span></h3>
-        {{ review_meta(review) }}
-        <div class="actions">{{ review_actions(review) }}</div>
-      </article>
+      <details class="queue-item">
+        <summary>{{ queue_summary(review, 'tag-warning', 'shares a show with another pending review') }}</summary>
+        <div class="queue-item-body">
+          {{ review_meta(review) }}
+          <div class="actions">{{ review_actions(review) }}</div>
+        </div>
+      </details>
     {% endfor %}
   {% endif %}
 
@@ -86,38 +100,42 @@
        Approving as-is would create a new entry that doesn't line up with that record - accept the suggested
        title first if it's the same show, or edit fields by hand if it isn't.</p>
     {% for review in grouped['history_match'] %}
-      <article class="queue-item">
-        <h3>{{ review['show_raw'] }} <span class="tag tag-warning">check against awards archive</span></h3>
-        {{ review_meta(review) }}
-        <p class="meta">Awards archive has:
-          {% for title, score in review['history_candidates'] %}
-            <form method="post" action="{{ url_for('admin.apply_historical_review_title_match', review_id=review['id']) }}"
-                  class="inline-form" style="display:inline">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="title" value="{{ title }}">
-              <button type="submit" class="button-primary">Use "{{ title }}" ({{ (score * 100)|round|int }}% match)</button>
-            </form>
-          {% endfor %}
-        </p>
-        <div class="actions">{{ review_actions(review) }}</div>
-      </article>
+      <details class="queue-item">
+        <summary>{{ queue_summary(review, 'tag-warning', 'check against awards archive') }}</summary>
+        <div class="queue-item-body">
+          {{ review_meta(review) }}
+          <p class="meta">Awards archive has:
+            {% for title, score in review['history_candidates'] %}
+              <form method="post" action="{{ url_for('admin.apply_historical_review_title_match', review_id=review['id']) }}"
+                    class="inline-form" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="title" value="{{ title }}">
+                <button type="submit" class="button-primary">Use "{{ title }}" ({{ (score * 100)|round|int }}% match)</button>
+              </form>
+            {% endfor %}
+          </p>
+          <div class="actions">{{ review_actions(review) }}</div>
+        </div>
+      </details>
     {% endfor %}
   {% endif %}
 
   {% if grouped['ready'] %}
     <h2>Ready to approve ({{ grouped['ready']|length }})</h2>
     {% for review in grouped['ready'] %}
-      <article class="queue-item">
-        <h3>{{ review['show_raw'] }}
+      <details class="queue-item">
+        <summary>
           {% if review['flag'] == 'no_show_match' %}
-            <span class="tag tag-warning">no matching show on record</span>
+            {{ queue_summary(review, 'tag-warning', 'no matching show on record') }}
           {% else %}
-            <span class="tag tag-active">show matched: {{ review['matched_society_name'] }}</span>
+            {{ queue_summary(review, 'tag-active', 'show matched: ' ~ review['matched_society_name']) }}
           {% endif %}
-        </h3>
-        {{ review_meta(review) }}
-        <div class="actions">{{ review_actions(review) }}</div>
-      </article>
+        </summary>
+        <div class="queue-item-body">
+          {{ review_meta(review) }}
+          <div class="actions">{{ review_actions(review) }}</div>
+        </div>
+      </details>
     {% endfor %}
   {% endif %}
 
