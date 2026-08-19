@@ -54,27 +54,30 @@
     <h2>Needs a society matched ({{ grouped['needs_society']|length }})</h2>
     <p class="meta">No society could be matched at all - pick one with Edit fields, or accept a suggested
        spelling/punctuation variant below if it's the right one.</p>
-    {% for review in grouped['needs_society'] %}
-      <details class="queue-item">
-        <summary>{{ queue_summary(review, 'tag-warning', 'no society matched') }}</summary>
-        <div class="queue-item-body">
-          {{ review_meta(review) }}
-          {% if review['society_candidates'] %}
-            <p class="meta">Did you mean:
-              {% for name, score in review['society_candidates'] %}
-                <form method="post" action="{{ url_for('admin.apply_historical_review_society_match', review_id=review['id']) }}"
-                      class="inline-form" style="display:inline">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="hidden" name="name" value="{{ name }}">
-                  <button type="submit" class="button-primary">Use "{{ name }}" ({{ (score * 100)|round|int }}% match)</button>
-                </form>
-              {% endfor %}
-            </p>
-          {% endif %}
-          <div class="actions">{{ review_actions(review) }}</div>
-        </div>
-      </details>
-    {% endfor %}
+    <details open>
+      <summary>Show all {{ grouped['needs_society']|length }}</summary>
+      {% for review in grouped['needs_society'] %}
+        <details class="queue-item">
+          <summary>{{ queue_summary(review, 'tag-warning', 'no society matched') }}</summary>
+          <div class="queue-item-body">
+            {{ review_meta(review) }}
+            {% if review['society_candidates'] %}
+              <p class="meta">Did you mean:
+                {% for name, score in review['society_candidates'] %}
+                  <form method="post" action="{{ url_for('admin.apply_historical_review_society_match', review_id=review['id']) }}"
+                        class="inline-form" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="name" value="{{ name }}">
+                    <button type="submit" class="button-primary">Use "{{ name }}" ({{ (score * 100)|round|int }}% match)</button>
+                  </form>
+                {% endfor %}
+              </p>
+            {% endif %}
+            <div class="actions">{{ review_actions(review) }}</div>
+          </div>
+        </details>
+      {% endfor %}
+    </details>
   {% endif %}
 
   {% if grouped['conflict'] %}
@@ -82,15 +85,18 @@
     <p class="meta">Each of these shares a society/season/show with another review still in this queue - usually
        the same production extracted twice from two different issues. Look at both before approving either, so
        the better transcription is the one that gets published.</p>
-    {% for review in grouped['conflict'] %}
-      <details class="queue-item">
-        <summary>{{ queue_summary(review, 'tag-warning', 'shares a show with another pending review') }}</summary>
-        <div class="queue-item-body">
-          {{ review_meta(review) }}
-          <div class="actions">{{ review_actions(review) }}</div>
-        </div>
-      </details>
-    {% endfor %}
+    <details open>
+      <summary>Show all {{ grouped['conflict']|length }}</summary>
+      {% for review in grouped['conflict'] %}
+        <details class="queue-item">
+          <summary>{{ queue_summary(review, 'tag-warning', 'shares a show with another pending review') }}</summary>
+          <div class="queue-item-body">
+            {{ review_meta(review) }}
+            <div class="actions">{{ review_actions(review) }}</div>
+          </div>
+        </details>
+      {% endfor %}
+    </details>
   {% endif %}
 
   {% if grouped['history_match'] %}
@@ -99,44 +105,52 @@
        already has a plausible record for this same production, printed under a slightly different title.
        Approving as-is would create a new entry that doesn't line up with that record - accept the suggested
        title first if it's the same show, or edit fields by hand if it isn't.</p>
-    {% for review in grouped['history_match'] %}
-      <details class="queue-item">
-        <summary>{{ queue_summary(review, 'tag-warning', 'check against awards archive') }}</summary>
-        <div class="queue-item-body">
-          {{ review_meta(review) }}
-          <p class="meta">Awards archive has:
-            {% for title, score in review['history_candidates'] %}
-              <form method="post" action="{{ url_for('admin.apply_historical_review_title_match', review_id=review['id']) }}"
-                    class="inline-form" style="display:inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="title" value="{{ title }}">
-                <button type="submit" class="button-primary">Use "{{ title }}" ({{ (score * 100)|round|int }}% match)</button>
-              </form>
-            {% endfor %}
-          </p>
-          <div class="actions">{{ review_actions(review) }}</div>
-        </div>
-      </details>
-    {% endfor %}
+    <details>
+      <summary>Show all {{ grouped['history_match']|length }}</summary>
+      {% for review in grouped['history_match'] %}
+        <details class="queue-item">
+          <summary>{{ queue_summary(review, 'tag-warning', 'check against awards archive') }}</summary>
+          <div class="queue-item-body">
+            {{ review_meta(review) }}
+            <p class="meta">Awards archive has:
+              {% for title, score in review['history_candidates'] %}
+                <form method="post" action="{{ url_for('admin.apply_historical_review_title_match', review_id=review['id']) }}"
+                      class="inline-form" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="title" value="{{ title }}">
+                  <button type="submit" class="button-primary">Use "{{ title }}" ({{ (score * 100)|round|int }}% match)</button>
+                </form>
+              {% endfor %}
+            </p>
+            <div class="actions">{{ review_actions(review) }}</div>
+          </div>
+        </details>
+      {% endfor %}
+    </details>
   {% endif %}
 
   {% if grouped['ready'] %}
     <h2>Ready to approve ({{ grouped['ready']|length }})</h2>
-    {% for review in grouped['ready'] %}
-      <details class="queue-item">
-        <summary>
-          {% if review['flag'] == 'no_show_match' %}
-            {{ queue_summary(review, 'tag-warning', 'no matching show on record') }}
-          {% else %}
-            {{ queue_summary(review, 'tag-active', 'show matched: ' ~ review['matched_society_name']) }}
-          {% endif %}
-        </summary>
-        <div class="queue-item-body">
-          {{ review_meta(review) }}
-          <div class="actions">{{ review_actions(review) }}</div>
-        </div>
-      </details>
-    {% endfor %}
+    <details>
+      <summary>Show all {{ grouped['ready']|length }} individually - nothing here needs a decision, the bulk-approve
+         button above already covers this whole section; open this only to check one before bulk-approving, or to
+         Skip/Edit a specific one instead.</summary>
+      {% for review in grouped['ready'] %}
+        <details class="queue-item">
+          <summary>
+            {% if review['flag'] == 'no_show_match' %}
+              {{ queue_summary(review, 'tag-warning', 'no matching show on record') }}
+            {% else %}
+              {{ queue_summary(review, 'tag-active', 'show matched: ' ~ review['matched_society_name']) }}
+            {% endif %}
+          </summary>
+          <div class="queue-item-body">
+            {{ review_meta(review) }}
+            <div class="actions">{{ review_actions(review) }}</div>
+          </div>
+        </details>
+      {% endfor %}
+    </details>
   {% endif %}
 
   {% if not total_pending %}
