@@ -591,6 +591,17 @@ def edit_show(show_id):
         abort(404)
 
     suggestions = _show_field_suggestions(db, show)
+    existing_review = db.execute(
+        """
+        SELECT historical_reviews.*, adjudicators.name AS adjudicator_name
+        FROM historical_reviews
+        LEFT JOIN adjudicators ON adjudicators.id = historical_reviews.adjudicator_id
+        WHERE historical_reviews.show_id = ? AND historical_reviews.moderation_status = 'approved'
+        ORDER BY historical_reviews.id ASC LIMIT 1
+        """,
+        (show_id,),
+    ).fetchone()
+    adjudicators = db.execute("SELECT id, name FROM adjudicators ORDER BY name").fetchall()
 
     if request.method == "POST":
         errors = []
@@ -645,7 +656,8 @@ def edit_show(show_id):
                 flash(e, "error")
             return render_template("admin/edit_show.html", show=show, regions=REGIONS,
                                     sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES,
-                                    suggestions=suggestions)
+                                    suggestions=suggestions, existing_review=existing_review,
+                                    adjudicators=adjudicators)
 
         db.execute(
             """
@@ -671,7 +683,8 @@ def edit_show(show_id):
 
     return render_template("admin/edit_show.html", show=show, regions=REGIONS,
                             sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES,
-                            suggestions=suggestions)
+                            suggestions=suggestions, existing_review=existing_review,
+                            adjudicators=adjudicators)
 
 
 def _credit_backfill_proposals(db):
@@ -789,6 +802,85 @@ def delete_show(show_id):
     db.commit()
     flash("Show deleted.", "success")
     return redirect(url_for("admin.shows_list"))
+
+
+@bp.route("/shows/<int:show_id>/add-review", methods=("POST",))
+@login_required
+def add_show_review(show_id):
+    """A moderator pasting in a review nobody could pull from the ShowTimes
+    PDF archive or an aims.ie link - same shape as a real historical_reviews
+    row (adjudicator credit, citation, moderation trail), so it renders
+    through the exact same show-page component, just tagged source='manual'
+    so the citation reads correctly (see show_detail.html). Written straight
+    to moderation_status='approved': this only reaches a moderator's own
+    Edit Show screen, which is already the human review step every other
+    entry point (the ShowTimes queue, a public submission) exists to reach."""
+    db = get_db()
+    show = db.execute(
+        "SELECT shows.*, societies.name AS society_name, societies.id AS society_id "
+        "FROM shows JOIN societies ON societies.id = shows.society_id WHERE shows.id = ?",
+        (show_id,),
+    ).fetchone()
+    if show is None:
+        abort(404)
+
+    review_text = request.form.get("review_text", "").strip()
+    adjudicator_id = request.form.get("adjudicator_id") or None
+    source_issue = request.form.get("source_issue", "").strip() or None
+
+    if not review_text:
+        flash("Review text can't be blank.", "error")
+        return redirect(url_for("admin.edit_show", show_id=show_id))
+    if not show["show"]:
+        flash("Add a title for this show before attaching a review.", "error")
+        return redirect(url_for("admin.edit_show", show_id=show_id))
+    # A show can only ever have one approved review at once in practice -
+    # nothing at the schema level stops a second, but show_detail() only
+    # ever renders one (see its own ORDER BY id ASC LIMIT 1, added the same
+    # session this route was, after a batch re-extraction left ten shows
+    # silently carrying two). Refusing here rather than silently creating
+    # exactly that state again.
+    already = db.execute(
+        "SELECT 1 FROM historical_reviews WHERE show_id = ? AND moderation_status = 'approved'",
+        (show_id,),
+    ).fetchone()
+    if already:
+        flash("This show already has a review attached - remove it first if you need to replace it.", "error")
+        return redirect(url_for("admin.edit_show", show_id=show_id))
+
+    db.execute(
+        """
+        INSERT INTO historical_reviews
+            (season, tier, show_raw, society_raw, adjudicator_id, review_text, source_issue,
+             show_id, society_id, moderation_status, moderated_by, moderated_at, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, 'manual')
+        """,
+        (
+            show["season"], show["section"], show["show"], show["society_name"], adjudicator_id,
+            review_text, source_issue, show_id, show["society_id"],
+            current_user()["username"], datetime.utcnow().isoformat(),
+        ),
+    )
+    db.commit()
+    flash("Review added.", "success")
+    return redirect(url_for("admin.edit_show", show_id=show_id))
+
+
+@bp.route("/shows/<int:show_id>/remove-review", methods=("POST",))
+@login_required
+def remove_show_review(show_id):
+    """Only ever removes a manually-added review (source='manual') - a
+    ShowTimes-extracted one belongs to the archive and has its own
+    moderation-queue history; pulling it back off a show isn't something
+    this button is for."""
+    db = get_db()
+    db.execute(
+        "DELETE FROM historical_reviews WHERE show_id = ? AND moderation_status = 'approved' AND source = 'manual'",
+        (show_id,),
+    )
+    db.commit()
+    flash("Review removed.", "success")
+    return redirect(url_for("admin.edit_show", show_id=show_id))
 
 
 @bp.route("/invite-codes")

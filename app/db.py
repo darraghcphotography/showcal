@@ -60,6 +60,11 @@ COLUMN_MIGRATIONS = [
     ("show_info", "premiere_year", "ALTER TABLE show_info ADD COLUMN premiere_year INTEGER"),
     ("show_info", "premiere_place", "ALTER TABLE show_info ADD COLUMN premiere_place TEXT"),
     ("feature_suggestions", "admin_note", "ALTER TABLE feature_suggestions ADD COLUMN admin_note TEXT"),
+    (
+        "historical_reviews", "source",
+        "ALTER TABLE historical_reviews ADD COLUMN source TEXT NOT NULL DEFAULT 'showtimes' "
+        "CHECK (source IN ('showtimes', 'manual'))",
+    ),
 ]
 
 

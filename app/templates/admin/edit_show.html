@@ -131,10 +131,56 @@
         Review URL <span class="hint">(setting this flips the status to Published)</span>
         <input type="url" name="review_url" value="{{ show['review_url'] or '' }}">
       </label>
+
+      {% if existing_review %}
+        <p class="hint">
+          This show already has a full review attached
+          {% if existing_review['source'] == 'manual' %}(added manually){% else %}(from the ShowTimes archive){% endif %}.
+        </p>
+      {% elif show['show'] %}
+        <p class="hint">Or add the full text directly, the same way a ShowTimes archive review appears on this page:</p>
+        <label>
+          Adjudicator
+          <select form="add-review-form" name="adjudicator_id">
+            <option value="">&mdash;</option>
+            {% for a in adjudicators %}
+              <option value="{{ a['id'] }}">{{ a['name'] }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Source / citation <span class="hint">(optional, e.g. "AIMS ShowTimes, Issue 168")</span>
+          <input form="add-review-form" type="text" name="source_issue">
+        </label>
+        <label>
+          Review text
+          <textarea form="add-review-form" name="review_text" rows="8"></textarea>
+        </label>
+        <button type="submit" form="add-review-form">Add review</button>
+      {% else %}
+        <p class="hint">Add a title above and save before attaching a review.</p>
+      {% endif %}
     </fieldset>
 
     <button type="submit">Save</button>
   </form>
+
+  {% if existing_review and existing_review['source'] == 'manual' %}
+    <form method="post" action="{{ url_for('admin.remove_show_review', show_id=show['id']) }}" class="inline-form"
+          data-confirm="Remove this manually-added review? This cannot be undone.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="button-danger">Remove review</button>
+    </form>
+  {% elif not existing_review and show['show'] %}
+    {# Fields live inside the main form's Review fieldset above (via the
+       form="add-review-form" attribute) so they read as part of that
+       section - this tag only carries the action/csrf for that separate
+       submission, matching the "one form per real action" convention the
+       delete-show form below already uses. #}
+    <form method="post" action="{{ url_for('admin.add_show_review', show_id=show['id']) }}" id="add-review-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+  {% endif %}
 
   <form method="post" action="{{ url_for('admin.delete_show', show_id=show['id']) }}" class="inline-form"
         data-confirm="Delete this show entirely? This cannot be undone - use &quot;Cancelled&quot; above instead if the show is still real but didn't go ahead.">

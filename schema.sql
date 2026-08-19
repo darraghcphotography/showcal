@@ -374,7 +374,14 @@ CREATE TABLE IF NOT EXISTS historical_reviews (
                         )),
     moderated_by    TEXT,
     moderated_at    TEXT,
-    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+
+    -- 'showtimes' = extracted from the PDF archive (source_issue/source_file
+    -- are a real magazine citation); 'manual' = typed in directly by a
+    -- moderator via Edit Show, for a review that exists but was never in
+    -- the archive - show_detail.html cites these differently (no "Originally
+    -- published in AIMS ShowTimes..." line, since that would be false).
+    source          TEXT NOT NULL DEFAULT 'showtimes' CHECK (source IN ('showtimes', 'manual'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_historical_reviews_show_id ON historical_reviews(show_id);

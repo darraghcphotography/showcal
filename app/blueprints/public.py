@@ -696,7 +696,7 @@ def show_detail(show_id):
     # ever recurs.
     historical_review = db.execute(
         """
-        SELECT historical_reviews.review_text, historical_reviews.source_issue,
+        SELECT historical_reviews.review_text, historical_reviews.source_issue, historical_reviews.source,
                adjudicators.id AS adjudicator_id, adjudicators.name AS adjudicator_name
         FROM historical_reviews
         LEFT JOIN adjudicators ON adjudicators.id = historical_reviews.adjudicator_id
