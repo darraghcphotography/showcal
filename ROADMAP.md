@@ -44,11 +44,39 @@ assignment row, which is why he was invisible on the public list and never surfa
 to id 1 (32 -> 34 approved), id 19 deleted, behind an assertion that the row was exactly what had
 been measured.
 
-**Still open from this round - needs Darragh's eye, not code:** **16/17 has reviews signed on tiers
-nobody is assigned to.** Assignments say Peter Kennedy/Gilbert and Greg Currid/Sullivan; the reviews
-say Kennedy also signed 12 Sullivan ones and Ciarán Mooney 5 Gilbert ones. Reads like a real
-mid-season change (the admin grid already supports one) rather than a parsing fault, but wants
-checking against the printed issues before anything is recorded.
+**RESOLVED same session - the 16/17 anomaly was a stale printed banner, NOT a mid-season change.**
+(First call was "reads like a mid-season change" - wrong, and corrected once the PDFs were actually
+read. Worth remembering: the assignment table and the review rows disagreeing is not by itself
+evidence of a mid-season change.)
+- **What the PDFs print**: Issues 116-123 all carry `2016-2017 | Gred Currid | Sullivan Section |
+  Peter Kennedy | Gilbert Section` - so 16/17's line-up is unambiguous, and Darragh independently
+  confirmed it. But **Issues 124, 125 and 126 (Oct/Nov/Dec 2017) print the banner `2016-2017` while
+  listing Peter Kennedy/Sullivan and Ciarán Mooney/Gilbert** - the 17/18 pair, exactly what Issue 127
+  (Feb 2018) prints under `2017-2018`. ShowTimes ran a stale year-range for three issues after the
+  adjudicators had already changed over.
+- **`extract_historical_reviews.py` trusts the printed banner over the cover date** (`extract_issue`:
+  `season = parse_header(...) or season_hint`, where `season_hint` is the cover-derived one from
+  `parse_cover`). Normally right; here it filed a season early.
+- **Swept all 101 issues for the same disagreement**: 10 issues print a year-range contradicting their
+  cover date, and **most are benign - the October issue legitimately carries the previous season**
+  (Issues 89, 98, 115, 133, 142 all do, with the previous season's adjudicators named, consistently).
+  Darragh's explanation: ShowTimes went to print a few weeks after the reviews were written, so the
+  lag is natural. **The real outliers are Issues 125 and 126** - November/December carrying a stale
+  banner, where every other year November starts the new season cleanly.
+- **Correction applied to production (data, not git - won't reappear from a redeploy)**: 28 reviews
+  moved 16/17 -> 17/18 (17 approved + 11 still pending), **and their 17 skeleton shows moved with
+  them** - a review whose show stays on the old season shows the wrong season on its own public page
+  (the Round 31 UCC/UCD lesson). Guarded by an assertion that every row was signed by the 17/18 pair.
+  **Validation: "approved reviews whose (adjudicator, season, tier) has no assignment row" went from
+  3 groups to none** - every approved review in the archive now matches a real assignment.
+- **Safe from a loader re-run**: `load_historical_reviews.py` dedupes on
+  `(source_issue, society_raw, show_raw)`, not season, so it still finds these rows and only ever
+  refreshes *pending* review text. Checked, not assumed.
+- **STILL OPEN - the extractor itself is unfixed.** A fresh extraction into a fresh database would
+  reintroduce this. The fix shape: when the banner's own named adjudicators belong to a different
+  season than the banner's year-range, trust the cover date (or at minimum flag the issue for a
+  moderator). Related to, but separate from, the `find_society_span` fix parked on the
+  `extractor-society-gate` branch - see OPEN item 1.
 
 **DECIDED, mockups published, NOT yet built:**
 https://claude.ai/code/artifact/7a9bd478-f194-4edd-ab13-c3b9fa738500
