@@ -49,6 +49,9 @@
     </thead>
     <tbody>
       {% for s in societies %}
+        {% if s['section'] == 'Non-AIMS' and (loop.first or societies[loop.index0 - 1]['section'] != 'Non-AIMS') %}
+          <tr class="row-note"><td colspan="3">Non-AIMS societies - not members, kept here for completeness where they've featured in the awards or review archive.</td></tr>
+        {% endif %}
         <tr>
           <td><a href="{{ url_for('public.society_detail', society_id=s['id']) }}">{{ s['name'] }}</a></td>
           <td>{{ s['region'] }}</td>

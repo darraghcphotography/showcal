@@ -114,7 +114,11 @@ def societies_list():
             query += " AND name LIKE ? ESCAPE '\\'"
             escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             params.append(f"%{escaped}%")
-    query += " ORDER BY name"
+    # Non-AIMS societies sort last within whatever filters are active, rather
+    # than being scattered alphabetically among real members - they're kept
+    # for completeness (a past award/review credits them), not because
+    # they're peers of an AIMS member society.
+    query += " ORDER BY (section = 'Non-AIMS'), name"
 
     societies = db.execute(query, params).fetchall()
 

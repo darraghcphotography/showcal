@@ -155,6 +155,54 @@ def test_out_of_range_page_clamps_instead_of_erroring(client, db):
     assert "Show 0" in client.get("/titles?page=999").get_data(as_text=True)
 
 
+def test_season_page_surfaces_unannounced_slots_for_the_current_season(client, db):
+    """A society can reserve a slot before announcing a title - shows.show
+    is NULL until they do. The season page used to filter those rows out
+    entirely (WHERE shows.show IS NOT NULL), so they never had anywhere to
+    appear at all."""
+    seed_society(db, id=1, name="Announced Society")
+    seed_society(db, id=2, name="Kilcock Musical & Dramatic Society", region="Eastern")
+    seed_show(db, society_id=1, season="25/26", show="Test Show", opening_date="2025-09-01")  # sets current season
+    seed_show(db, society_id=2, season="25/26", show=None, opening_date=None, region="Eastern")
+
+    html = client.get("/season?season=25/26").get_data(as_text=True)
+    assert "Unannounced" in html
+    assert "Kilcock Musical &amp; Dramatic Society" in html
+
+
+def test_unannounced_section_absent_for_a_past_season(client, db):
+    """An unfilled slot in a past season is just a gap in the record, not
+    'unannounced' - the section is scoped to the current season only."""
+    seed_society(db, id=1, name="Announced Society")
+    seed_society(db, id=2, name="Old Society")
+    seed_show(db, society_id=1, season="25/26", show="Test Show", opening_date="2025-09-01")
+    seed_show(db, society_id=2, season="22/23", show=None, opening_date=None)
+
+    html = client.get("/season?season=22/23").get_data(as_text=True)
+    assert "Unannounced" not in html
+
+
+def test_non_aims_societies_sort_last_with_a_heading(client, db):
+    """Non-AIMS societies used to sort alphabetically among real members -
+    an 'Achill Musical & Dramatic Society' (Non-AIMS) landed above most of
+    the real AIMS roster purely on its name. They should sort after every
+    AIMS member instead, under their own heading."""
+    seed_society(db, id=1, name="Zebra Musical Society", region="Eastern", section="Gilbert")
+    seed_society(db, id=2, name="Achill Musical & Dramatic Society", region="Western", section="Non-AIMS")
+
+    html = client.get("/societies?per_page=50").get_data(as_text=True)
+    zebra_pos = html.index("Zebra Musical Society")
+    achill_pos = html.index("Achill Musical")
+    heading_pos = html.index("Non-AIMS societies")
+    assert zebra_pos < heading_pos < achill_pos
+
+
+def test_no_non_aims_heading_when_none_present(client, db):
+    seed_society(db, id=1, name="Zebra Musical Society", section="Gilbert")
+    html = client.get("/societies?per_page=50").get_data(as_text=True)
+    assert "Non-AIMS societies" not in html
+
+
 def test_pagination_keeps_the_active_filters(client, db):
     for i in range(60):
         seed_society(db, id=i + 1, name=f"Society {i:03d}", region="Western")

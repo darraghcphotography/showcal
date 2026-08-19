@@ -589,6 +589,31 @@ def season_summary():
     upcoming = [r for r in rows if not r["is_past"]]
     finished = [r for r in rows if r["is_past"]]
 
+    # A society can reserve a slot for the season before announcing a title -
+    # shows.show is NULL until they do (same "slotted, TBA" placeholder
+    # society_detail() already knows about). The query above excludes them
+    # entirely (shows.show IS NOT NULL), so they've never had anywhere to
+    # show up on this page - only worth surfacing for the current season,
+    # since an unfilled slot in a past season is just a gap in the record,
+    # not something "unannounced".
+    unannounced = []
+    if season == current:
+        unannounced_query = """
+            SELECT shows.id, societies.id AS society_id, societies.name AS society_name, shows.region
+            FROM shows JOIN societies ON societies.id = shows.society_id
+            WHERE shows.season = ? AND shows.moderation_status = 'approved' AND shows.show IS NULL
+              AND NOT societies.hidden
+        """
+        unannounced_params = [season]
+        if region in REGIONS:
+            unannounced_query += " AND shows.region = ?"
+            unannounced_params.append(region)
+        if tier in SHOW_SECTIONS:
+            unannounced_query += " AND shows.section = ?"
+            unannounced_params.append(tier)
+        unannounced_query += " ORDER BY societies.name"
+        unannounced = db.execute(unannounced_query, unannounced_params).fetchall()
+
     span = db.execute(
         "SELECT MIN(shows.opening_date), MAX(shows.opening_date) FROM shows "
         "JOIN societies ON societies.id = shows.society_id "
@@ -618,6 +643,7 @@ def season_summary():
 
     return render_template(
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
+        unannounced=unannounced,
         upcoming_has_review=_has_review(upcoming), finished_has_review=_has_review(finished),
         is_current=(season == current), is_past_season=(season < current), is_future_season=(season > current),
         season_range_label=season_range_label,

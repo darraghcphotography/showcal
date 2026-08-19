@@ -147,5 +147,29 @@
       </table>
       <div class="table-cards">{{ show_cards(finished, true, finished_has_review) }}</div>
     {% endif %}
+
+    {% if unannounced %}
+      <h2>Unannounced <span class="meta" style="font-weight:400">({{ unannounced|length }})</span></h2>
+      <p class="meta">These societies have a slot reserved for this season but haven't announced a title yet.</p>
+      <table class="data-table table-wide">
+        <thead><tr><th>Society</th><th>Region</th></tr></thead>
+        <tbody>
+          {% for s in unannounced %}
+            <tr>
+              <td><a href="{{ url_for('public.society_detail', society_id=s['society_id']) }}">{{ s['society_name'] }}</a></td>
+              <td>{{ s['region'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="table-cards">
+        {% for s in unannounced %}
+          <a class="queue-item" href="{{ url_for('public.society_detail', society_id=s['society_id']) }}">
+            <span class="primary">{{ s['society_name'] }}</span>
+            <p class="meta">{{ s['region'] }}</p>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
   {% endif %}
 {% endblock %}
