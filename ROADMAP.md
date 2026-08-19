@@ -5,6 +5,117 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
+## Round 35 - dcfeedback.docx: analysis, then a full build session (2026-08-19/20)
+
+Darragh brought a Word doc of ten observations from real use (screenshots included) and asked for a
+full software-expert pass: analyse, find gaps/oversights, propose mockups, "consolidate clean data",
+then said "happy for you to build" once the plan looked right. Every item was checked against the
+live code and production database before writing anything down - two turned out to share one root
+cause, and chasing that surfaced a data problem three times the size of anything in the original list.
+Full written analysis (with mockups for the four feature asks) published before building:
+https://claude.ai/code/artifact/ae039ca4-b3b5-4915-88b5-1918b6cd9c96
+
+**The headline finding - every auto-refreshing filter dropdown site-wide was dead.** Six
+`onchange="this.form.submit()"` controls (homepage region filter, all four Statistics filters, two
+admin award-category "Other" toggles) had been silently blocked since `dd8f5ce` added a nonce-gated
+CSP - a nonce permits `<script>` tags, never inline event-handler attributes. This is what two
+separate feedback reports turned out to be, **and almost certainly the real cause of the Award
+Explorer bug from 18 Aug that was investigated and left unresolved** (two unconfirmed theories were
+on the table; neither was it - the dropdown just never fired). Fixed by extending the delegated-
+listener pattern already built for `data-confirm`/`data-copy-target` (this repo's own existing answer
+to the same CSP constraint) with `data-auto-submit` and `data-toggle-target`/`data-toggle-value`,
+rather than inventing a second mechanism. `test_no_inline_event_handlers_remain` had only ever checked
+`onsubmit=`/`onclick=` - widened to `onchange=` too, which is the exact gap that let this ship
+unnoticed for weeks.
+
+**All ten items, built or explicitly deferred - commits `148edfa`..`39f7276`:**
+1. **Six broken filter dropdowns, fixed** (`148edfa`) - see above.
+2. **111→then 112 duplicate ShowTimes reviews, cleaned up (data only, on production).** Darragh's
+   "Peter Pan is there three times" caught the tip of a real, quantified problem: 110 groups of
+   byte-identical review text (221 rows, 111 excess), every duplicate pair tracing to Round 26's batch
+   re-extraction of seasons 16/17-18/19 + rest of 22/23 - the loader's dedupe key
+   (`source_issue`+`society_raw`+`show_raw`) didn't match between runs because `society_raw` came out
+   spelled slightly differently the second time (a trailing ", Dublin"/", Galway" present once, absent
+   the other). **First draft of the cleanup script got its own keep/drop heuristic wrong on the very
+   first dry-run output** - sorted on society-name length before moderation status, which would have
+   deleted an approved review linked to a live public show page in favour of a pending, unlinked stub.
+   Caught by reading the dry run before writing anything, not assumed correct - fixed the priority
+   order (approved > pending > rejected, real show-link, *then* fuller name as a tie-break only) and
+   added an orphan-risk guard (refuse to auto-resolve if a drop would leave any show without its
+   review). 104 groups applied automatically; a further 8 near-duplicates (>97% similar, not
+   byte-identical - a stray punctuation mark) found by a second, bucketed sweep and applied the same
+   way, confirmed against which row `show_detail()` was actually rendering so no live page's content
+   changed. **`show_detail()`'s own review lookup had no `ORDER BY`** - ten shows were carrying two
+   approved reviews apiece with which one rendered down to SQLite's incidental scan order; added
+   `ORDER BY id ASC LIMIT 1` (`f9dc9df`), verified it doesn't flip what's currently live on any of them.
+   **Six groups (now three, after the near-dup pass) deliberately NOT auto-resolved** - two different
+   situations, both flagged for Darragh rather than guessed:
+   - **Three groups where both copies are already approved on two SEPARATE show pages** (e.g. "9 To 5"
+     / Coolmine Musical Society exists as both show 1188 and show 1960) - deleting either orphans a
+     real public page. Needs a real decision (probably a show-page merge, same shape as
+     `/admin/duplicate-titles`), not a script.
+   - **Three groups where the two reviews disagree on TIER and differ ~2x in length** (Sister Act/
+     Kilkenny, The Merry Widow/Gorey, Little Shop Of Horrors/Carnew) - NOT a spelling-variant
+     duplicate. Two genuinely different reviews got matched to one skeleton show, likely because the
+     approval-time show-matching step doesn't check tier. This is a distinct, more serious bug from
+     the spelling-duplicate class above - needs investigation, probably needs separating into two
+     skeleton shows. Not attempted this round.
+3. **Three garbled ShowTimes titles fixed**, each confirmed by reading the review's own text before
+   writing anything (not guessed): review 976/show 1940 `'Castleblayney'` (a town, not a show) →
+   `'9 To 5'` (named explicitly in the review's own opening line); review 898/show 1871
+   `'production of Calendar Girls the Musical'` → stripped the stray prefix → `'Calendar Girls the
+   Musical'`; review 936/show 1904 `"Trinity's"` → `'Sweet Charity'` (the society, "Muse Productions",
+   was already correct and real - only the title was a fragment, likely leaked from an adjacent
+   review's heading; confirmed via unmistakable Bob Fosse references and director/MD credits already
+   on the skeleton show matching the review's own credits word for word). Swept for the same two
+   patterns archive-wide first - confirmed these were the only instances of each, not systemic.
+4. **`/societies` groups Non-AIMS societies into their own section at the bottom** (`56e91c4`) rather
+   than scattering them alphabetically among real members - same query, same pagination, just
+   `ORDER BY (section = 'Non-AIMS'), name` plus an inline `row-note` heading.
+5. **`/season` gets an "Unannounced" section for the current season** (`56e91c4`) - turned out to be
+   more than a layout ask: a "slotted, TBA" placeholder show (`shows.show IS NULL`) was being filtered
+   out of the query entirely, so those rows had nowhere to appear at all. Scoped to the current season
+   only - a past season's unfilled slot is a gap in the record, not "unannounced".
+6. **Edit Show can hold a full review directly** (`ebb5954`) - writes into the same
+   `historical_reviews` table the ShowTimes import uses (new `source` column, `'showtimes'` vs
+   `'manual'`, same CHECK-constrained pattern `historical_results.source` already uses), so a
+   manually-added review renders through the identical show-page component and citation stays honest
+   (no false "Originally published in AIMS ShowTimes..." line). Written straight to `'approved'` -
+   reaching this screen at all is already the human review step. Refuses a second review on a show
+   that already has one (guards against recreating the exact bug fixed in item 2), with a Remove
+   button scoped to `source='manual'` only.
+7. **Adjudicators can have a bio and a photo, editable after creation** (`f89421e`) - `notes` already
+   rendered publicly if present but nothing ever let a moderator set it after the one-time "add
+   adjudicator" form; photo is a new column reusing `save_poster()`, the same mechanism a show poster
+   and society logo already use.
+8. **Suggestions banner moved from literally the last thing on the homepage to the top** (`39f7276`) -
+   it already existed, just below Upcoming Shows and Recently Shipped; relocated next to the existing
+   top banner, no new copy invented.
+9. **Statistics - deliberately deferred, not patched.** Five separate comments in the feedback doc
+   (`"I just don't understand"`, `"I don't see value here"`, `"Signature show? Pointless"`, two
+   variants of "does this factor in ShowTimes") all point at the same root cause: the page mixes three
+   data sources (`shows`, `historical_results`, `historical_reviews`) with three different counting
+   rules and never says which one a given number is using. Recommendation on record: give it its own
+   mockup session like the adjudicator pages got, not another patch - see the artifact above for the
+   source-vs-coverage table this needs to work from.
+10. **Verification discipline held throughout** - every piece checked against a real running server
+    (not just the pytest client, which disables CSRF): a throwaway admin login, real multipart file
+    uploads (the adjudicator photo), the full add/refuse-duplicate/remove review cycle, all exercised
+    end to end and cleaned up afterward. Test suite 279 → 297. The one thing NOT independently verified
+    in a real browser: that the CSP fix's `addEventListener('change', ...)` actually fires on a real
+    user click - no Selenium/Playwright/CDP tooling available in this environment, and headless Edge's
+    console logging didn't surface anything either way. Confidence rests on the mechanism being
+    structurally identical to the already-proven `data-confirm`/`data-copy-target` pattern in the same
+    script tag, not on an interactive browser test - flagged honestly rather than claiming a checkmark
+    that isn't real.
+
+**Not yet deployed** - `148edfa`..`39f7276` are pushed to `main`, none redeployed yet. The
+`historical_reviews.source` and `adjudicators.photo_filename` migrations are additive
+(`COLUMN_MIGRATIONS`, both nullable/defaulted) and will apply automatically on next redeploy, same as
+every other migration in this repo - no manual script needed. The duplicate-review cleanup and the
+three title fixes are **data corrections already live on production** (applied via SSH this session,
+independent of the code deploy).
+
 ## Round 34 - adjudicator pages: design agreed, counts fixed (2026-08-19)
 
 **Round 33 confirmed deployed** first thing (checked the container's own files: `season.html` has

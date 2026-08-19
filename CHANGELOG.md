@@ -1,3 +1,14 @@
+Every filter dropdown that's supposed to refresh the page on its own now actually works - the homepage region filter and all four Statistics filters had been silently broken for weeks
+The Societies page now groups Non-AIMS societies into their own section at the bottom, instead of mixing them alphabetically among real AIMS members
+Season Archive now has an "Unannounced" section for the current season, listing societies who've reserved a slot but haven't announced a title yet
+Edit Show can now hold a full review directly, for a production whose review was never in the ShowTimes archive or linked from aims.ie
+Adjudicators can now have a bio and a photo, editable from admin and shown on their public page
+The "suggest a feature" prompt has moved from the very bottom of the homepage to the top
+Cleaned up 112 duplicate rows in the ShowTimes review archive, left over from a batch re-extraction - some reviews were showing up two or three times over
+Fixed three garbled show titles in the ShowTimes archive, including one where a society's town name had ended up as the show's title
+
+---
+
 Adjudicator pages now count the whole ShowTimes archive - an adjudicator's page listed only the reviews AIMS links out to, so most read "0 published reviews" while holding hundreds
 Each adjudicator's page now lists their ShowTimes reviews too, linking straight to the production's own page where the full text is
 The Adjudicators page has been redesigned: this season's adjudicators now get a card of their own up top, with everyone else in a compact list showing the years they covered
