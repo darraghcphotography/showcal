@@ -35,6 +35,80 @@ credits.py` suggests a historical show's blank venue/director/musical_director/c
 from its linked review's own prose (tested against all 815 approved reviews first - real but
 partial coverage, shown as an edit-show "Use this" suggestion, never auto-applied).
 
+**Round 31 (2026-08-19, same day - all confirmed deployed, container code checked directly):**
+- **Bulk society matching** in the reviews queue (`group_needs_society` + `/admin/historical-reviews/
+  bulk-apply-society-match`): one match applied to every pending review sharing a printed
+  `society_raw`. On live data 172 reviews across 133 distinct names, 22 covering several reviews each.
+- **Suggestion ranking rewritten** - `society_names.py` (new, root-level, shared by the app and
+  `extract_historical_reviews.py`, which can't import each other). Ranks on the *distinctive* part of
+  a name rather than a whole-string ratio. This is the wrong-society bug ROADMAP had been carrying:
+  "Clane Musical Society" scored 0.93 against unrelated "Carnew Musical Society" but only 0.79
+  against its own "Clane Musical & Dramatic Society". Calibrated against 22 confirmed pairs, all
+  classify correctly, pinned by a test. Let the whole-string floor drop 0.85 -> 0.70, which
+  surfaced genuine matches the old cutoff hid entirely (this archive abbreviates constantly).
+- **Defunct/inactive flag** on suggestions (`societies.section = 'Inactive'`).
+- **`/admin/backfill-credits`** - bulk-apply production credits read from review prose. Patterns
+  rewritten to match real phrasing ("musical director X" lowercase, "Choreography by X", "Directors X
+  and Y", "Under the Direction of X"): coverage went director 29%->63%, MD 16%->52%, choreographer
+  12%->49%, 84% of reviews yielding at least one. 1635 values across 725 shows on live data. Verified
+  no credit matches its own review's adjudicator (0 of 826) before wiring it up.
+- **Search now covers review full text and award nominees** (new `historical_reviews_fts`, plus
+  nominee-name matching on the existing awards index). This is the only index over prose rather than
+  names - a director/performer/venue exists in no column anywhere. Approved + non-hidden only, pinned
+  by a test.
+- **Fixed a live 500 on `/admin/duplicate-titles/bulk`** - `_merge_titles` deletes a redundant `shows`
+  row, but the ShowTimes import since added `historical_reviews.show_id -> shows(id)`, so deleting a
+  skeleton show with a review attached hit a FOREIGN KEY constraint and took the whole bulk save
+  down. The review now moves onto the surviving row first.
+
+**Production data corrections applied directly (2026-08-19, via SSH against the container's db -
+these are data, not code, so they are NOT in git and will not reappear from a redeploy):**
+- 26 reviews had `show_raw`/`society_raw` swapped (society name stored as the title, real title left
+  as the first words of `review_text`); corrected, titles recovered from the review text.
+- id 79 "Belfast Music & Dramatic Society Footloose" split into title + society.
+- 3 duplicate/garbled rows rejected (854, 358, 149) - each already correctly present elsewhere.
+- Review 734's doubled drop-cap ("TThe Wexford...") fixed - only instance in the archive.
+- **7 Cork reviews were mis-filed on UCD Musical Society** by the near-identical-name bug: 538/599/696
+  -> UCC Musical Theatre Society, 979 -> UCD (it was on UCC, the mirror of the same bug), and
+  631/685/837 -> a newly created **CIT Musical Society** (id 10000, South-West, section='Inactive' -
+  CIT became MTU in 2021). Society ids >= 10000 are the manual range so a societies.csv re-import
+  can't collide (matches `admin.new_society()`). Their skeleton shows moved too, or they'd have
+  stayed on UCD's public page. UCD went 36 -> 29 shows.
+
+**OPEN - next session should pick these up:**
+1. **`extract_historical_reviews.py` still has the root bug** that caused the UCC/UCD mis-filing:
+   `find_society_span` picks by whole-string ratio, so "UCC Musical Society" matches "UCD Musical
+   Society" (0.95, one character apart) over the correct "UCC Musical Theatre Society", and it
+   returns the *canonical* name, overwriting what was actually printed. A fix is written but
+   **NOT committed** (working tree only, `extract_historical_reviews.py`): gate candidates through
+   `society_names.is_same_society`, and when nothing passes but a society-shaped span is clearly
+   there, return the span with no canonical name so the printed text survives and the review lands in
+   the queue for a human. Measured over the whole archive: **863 -> 863 reviews, lost 2 / gained 2,
+   77 societies corrected** (a naive gate without the position-preserving fallback lost 32 reviews -
+   don't ship that version). **Still to do: eyeball those 77 changes before committing** - an earlier
+   run of the same measurement showed a few suspicious values from the capitalization fallback
+   ('Gilbert Section', 'Kells Musical & Dramatic Society 76'). The measurement script is
+   scratchpad-only; re-create it by diffing extraction output against `historical_reviews_pilot.json`.
+2. **Audit the other near-identical society pairs** (Darragh approved this): Baldoyle/Boyle,
+   Ballinasloe/Ballinrobe, Banbridge/Newbridge, Achill/Kill, Kilcock/Kill, Newcastle Glees/
+   Newcastlewest - ~87 reviews between them, same bug class as UCC/UCD. Check each against the
+   printed heading in the source PDF, not the stored `society_raw` (which the extractor overwrites).
+3. **`/admin/duplicate-titles` UX redesign** - Darragh asked for mockups, not code. Current page is
+   one long list; he wants a better layout. Mockup-first, per the established pattern.
+4. **Junk skeleton show titles** - some shows are titled `based`, `in`, `Trinity's`, `Sweet`,
+   `Whisper it quietly but this is one` etc. from early extraction runs, and they inherit credits on
+   the backfill page. Needs its own cleanup pass.
+5. **Adjudicators page redesign** - see item 4 in the older list below; Darragh wants this "tonight"
+   as a mockup/plan job.
+
+**Note on the wall-of-text reviews** (asked about twice, so worth recording): ~12% of the archive
+renders as one unbroken block. This is **faithful to the source, not an extraction fault** - checked
+the PDFs directly (Issue 79 p11-13, Issue 109 p10): those reviews have no ragged paragraph-final
+lines, no indentation, and perfectly uniform 9.5pt leading, so there is no paragraph structure to
+recover. On the same Issue 109 page one column breaks into paragraphs and the next doesn't. Nothing
+was invented to break them up; only the typography was improved (`.review-block p` line-height +
+`max-width: 68ch`). Don't re-investigate this as a bug.
+
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
 below.
