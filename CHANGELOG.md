@@ -1,5 +1,7 @@
 Adjudicator pages now count the whole ShowTimes archive - an adjudicator's page listed only the reviews AIMS links out to, so most read "0 published reviews" while holding hundreds
 Each adjudicator's page now lists their ShowTimes reviews too, linking straight to the production's own page where the full text is
+The Adjudicators page has been redesigned: this season's adjudicators now get a card of their own up top, with everyone else in a compact list showing the years they covered
+Each adjudicator's own page now groups their reviews by season, with a summary of how many reviews, seasons and years they've covered
 
 ---
 

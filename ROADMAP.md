@@ -93,7 +93,15 @@ https://claude.ai/code/artifact/7a9bd478-f194-4edd-ab13-c3b9fa738500
   (reviews / seasons / active span / tiers) replacing the run-on "Judged Gilbert 15/16, ..." line,
   then `<details>` season groups with the two most recent open, both review sources merged into one
   tagged list.
-- **Next session builds steps 3 and 4** - templates and queries only, no schema change, no migration.
+- **Steps 3 and 4 built and pushed same session** (`be91791`) - both templates rebuilt exactly as
+  agreed: the `.explorer` hero card + roster table with coverage bar on `/adjudicators`, the stat
+  strip + `<details>` season groups on `/adjudicators/<id>`. Both routes' season/adjudicator
+  aggregation now happens in Python via `season_start_year` rather than SQL string ordering, closing
+  off the same bug class this file has now hit twice (Round 25's grid duplication, this round's
+  16/17 misfile) rather than reintroducing it in new code. Test suite 278 -> 279. Verified in a real
+  browser against seeded local data (not committed - test data only), dark and light tokens, the
+  mobile `table-cards` fallback, and the season-group collapse all checked. **Committed, NOT yet
+  deployed** - templates/queries/CSS only, no migration.
 
 **Then the rest of the "cleaner UI throughout" work.** Other pages the audit flagged as wanting a
 design pass rather than a bug fix, in rough priority order: **`/stats`** (Darragh has called it
@@ -142,15 +150,18 @@ page made her invisible**.
 
 ## Start here (updated 2026-08-19, end of the UX-audit session)
 
-**Deployed vs committed, right now (updated Round 34):**
-- Everything through `0e59514` is **deployed and verified**, Round 33 included - confirmed at the
-  start of Round 34 by checking the running container's own files, not a restart timestamp.
-- **Round 34's count fix is committed but NOT yet deployed** - templates and queries only, no
-  migration and no management script. Confirm it went live with
-  `docker exec aims-web grep -c "historical_reviews" /app/app/blueprints/public.py` (expect a jump
-  from the pre-Round-34 count) rather than assuming.
-- Round 34's **data correction is already live** (applied straight to the production db) and is
-  independent of the redeploy.
+**Deployed vs committed, right now (updated Round 34, mid-session):**
+- Through `0e59514`, everything is **deployed and verified**, Round 33 included.
+- `1d55ff4`/`e24479e` (the count fix) **were confirmed deployed and redeployed mid-session** -
+  Darragh redeployed and the live page's per-adjudicator counts were checked directly against the
+  before/after table above (Tony McCleane-Fay 0 -> 115, Peter Kennedy 51 -> 196, etc.) before the
+  16/17 investigation started.
+- `fe873ba` (the 16/17 data correction) is **already live** - applied straight to the production db,
+  independent of any redeploy.
+- `be91791` (the template rebuild, steps 3-4) is **committed and pushed, NOT yet deployed**. Next
+  session (or whenever Darragh next redeploys): confirm with
+  `docker exec aims-web grep -c "adj-now" /app/app/static/style.css` (expect non-zero) and eyeball
+  the live page - it should show the hero card + roster table, not the old flat card stack.
 
 **The one thing that is easy to lose**: the `extract_historical_reviews.py` society-matching fix is
 on the **`extractor-society-gate` branch (`edd445e`)**, not main's working tree. `git status` on main
