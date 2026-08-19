@@ -5,7 +5,67 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
-## Start here (updated 2026-08-19)
+## Start here (updated 2026-08-19, end of the UX-audit session)
+
+**Deployed vs committed, right now:**
+- `f609083` Round 32 admin dashboard restructure - **deployed and verified** (checked the running
+  container's own files, not just a restart timestamp).
+- `4e80afb` Round 33 public list-page fixes - **pushed, NOT yet deployed.** Darragh was about to pull
+  and redeploy when the session ended. **No migration and no management script needed for it** -
+  templates and query logic only, unusually for this repo. First job next session: confirm it's
+  actually live (`docker exec aims-web grep -c "Not on record" /app/app/templates/season.html`
+  should be non-zero) rather than assuming.
+- `a913b3c` ROADMAP decision record - no runtime effect.
+
+**The one thing that is easy to lose**: the `extract_historical_reviews.py` society-matching fix is
+on the **`extractor-society-gate` branch (`edd445e`)**, not main's working tree. `git status` on main
+is clean and gives no hint it exists. See OPEN item 1.
+
+**Round 33 - public list-page fixes (2026-08-19), all from the UX audit below:**
+- `/season` rendered dates as `dd-mm-yyyy` while the homepage used the compact `2-5 Sep 2026` range;
+  both now use the existing `date_range` filter.
+- "TBA" was shown for shows whose season already ended (the date is missing from the record, not
+  unannounced). Past seasons now say **"Not on record"**, driven by a new `season_has_ended()` in
+  `app/season.py`. **That helper is century-aware on purpose** - plain season-string comparison is
+  unsafe across the 1999/2000 rollover ('76/77' sorts *after* '09/10' as text), which is exactly the
+  bug that silently duplicated every row of the adjudicator grid in Round 25. Pinned by a test.
+- The Review column was a full column of "Not yet" on any unadjudicated season - now collapses when
+  no row in that table has a review, computed **per table** so a current season's finished half keeps
+  it while its upcoming half drops it.
+- `/titles` (287 rows) and `/societies` (125) rendered every row in one response while `/awards`
+  already paged; both now page on the same `?page`/`?per_page` convention, and the pager markup moved
+  into a shared `app/templates/_pagination.html` macro that `/awards` now uses too (three copies -> one).
+- Tests 259 -> 273 (`tests/test_list_pagination_and_dates.py`). Verified the review-column test
+  actually catches the regression by reverting the fix and watching it fail, per this repo's habit.
+
+**Round 33 finding - the credit backfill did NOT need re-running.** The audit claimed approved
+historical shows were missing credits their own review text names. **That was read off the local db,
+where the reviews are still pending - a real mistake worth remembering: local `aims.db` is not
+production, and the audit habit of verifying against prod over SSH is what caught it.** Dry-ran
+`_credit_backfill_proposals` against production: **0 proposals**, i.e. already fully applied in
+Round 31. Real production state across the 826 approved historical shows with an approved review:
+director 529 filled / 297 blank, MD 443/383, choreographer 415/411, venue 300/526.
+**The remaining blanks are extractor coverage, not un-run work** - confirmed on the audit's own
+example (Tullyvin's The Addams Family, show 1176: MD "John Roe" and choreographer "Julianne
+McNamara" *are* filled; only director is blank because the review phrases it "Such a director is
+Paul Norton" / "Paul Norton not only directed", matching no existing pattern). Extending those
+patterns is a real follow-up with its own verification burden (Round 31 had to prove no credit
+matched its own review's adjudicator first) - not attempted.
+
+**Architecture question Darragh asked, answered but NOT acted on - "can `shows` and
+`historical_results` be one source of truth now?"** Short answer given: yes to one source of truth,
+no to merging the two tables. They answer different questions - `shows` is one row per *staging*,
+`historical_results` is one row per *award record* (a show that won five awards is five rows; a show
+that won nothing isn't there at all). Merging either makes every production count wrong or discards
+the award detail. The real fix is **a `productions` table both sides point at** - one row per real
+staging at any year, with `shows` detail, award records and historical reviews hanging off it; the
+23/24 boundary then disappears from every query because "how many productions" is one table.
+**Deliberately not scoped further** - it's the same shape of problem as the parked people table
+(both are "this entity has no identity, so we join on strings and split on dates") and Claude offered
+to write up cost/benefit/breakage so Darragh can judge the two together. **Awaiting his call; don't
+start the migration without it.**
+
+## Previous "Start here" (2026-08-19)
 
 **Deployed state (updated 2026-08-19)**: Rounds 27, 28, 28.1, and 29 are all live and confirmed
 deployed (checked the actual running container's code directly, not just a deploy timestamp - a
@@ -181,14 +241,51 @@ visual weight as a real queue.
   `app/templates/admin/dashboard.html`.
 
 **OPEN - next session should pick these up:**
+
+*Decided by Darragh in the UX-audit session, specced, not built. Each is small and independent -
+these are the obvious next build, in rough size order:*
+- **A. The 6 literal-`'None'` award rows** - production ids 12408, 13466, 13519, 13699, 13966, 14006
+  (`reason='None'`; 13519 also `role`/`nominee_name='None'`). They render as an italic note reading
+  "None" under an award on the public `/awards` page. Fix the data *and* widen `awards.html`'s
+  sentinel guard, which today only defends `role != 'NULL'`, to cover `'None'`/`'NULL'` across all
+  three fields so a future import can't silently reintroduce it. Smallest job here.
+- **B. Remove the "Since 23/24" timeframe toggle** - Darragh's call, the archive has the depth now.
+  **Delete the UI control and the `era` param only; KEEP `SHOWS_COVERAGE_START_YEAR`** (~20
+  references - it's the split that stops a production being counted once from `shows` and again from
+  `historical_results`; removing it inflates essentially every number on the site). This is what
+  fixes the degenerate leaderboards: Best Choreography since 23/24 shows six people tied at 1, where
+  all-time gives a real ranking (Siobhan McQuillan / Mary McDonagh / Barbara Meany at 3).
+- **C. Navigation labels + promote `/titles`** - one name per destination: `/` = **Upcoming shows**,
+  `/season` = **Seasons**, `/stats` = **Statistics**. And lift `/titles` ("Shows A-Z", 287 titles)
+  out of the footer into the main nav - today it's absent from the header, the mobile bar and
+  `/more`. Cheapest high-value change on the list.
+- **D. Award category lineage** (biggest of the four) - three categories were renamed at the
+  2025->2026 boundary and the archive treats old and new as unrelated, so a 48-year history reads as
+  a one-year-old award. Darragh's decisions: **merge** `Best Chorus` -> `Best Choral Singing` and
+  `Adjudicator's Special Award` -> `Spirit of AIMS` (same award, renamed); **do NOT merge**
+  `Best Choreography` -> `Best Moment of Theatre` (the award's meaning changed - cross-link
+  "formerly..."/"continues as..." but count separately). `Best Choreographer` (2019-2026) is a
+  **separate, still-running person award - not a duplicate**, do not touch it. Implement as a
+  query/display-time alias map, **not** a data rewrite, so `historical_results` stays faithful to
+  what AIMS actually published each year. Source:
+  https://www.aims.ie/post/news-aims-adjudication-review-changes-in-place-the-2025-26-season
+
 0. **Admin dashboard "wall of rows" follow-up** (Round 32, above) - give `fix_dates` the same inline-
    autosave pattern `venues.html` already has (cheapest, worst offender), then look at whether
    review-link fixing can get something similar or needs its own shape.
+0b. **Credit-extractor pattern coverage** (new, Round 33) - ~300-400 blanks per credit field remain
+   on approved historical shows because the review prose phrases the credit unusually ("Such a
+   director is X", "X not only directed"). Extending `app/production_credits.py`'s patterns needs the
+   same verification Round 31 did (prove no credit matches its own review's adjudicator) before
+   being wired into the bulk apply.
 1. **`extract_historical_reviews.py` still has the root bug** that caused the UCC/UCD mis-filing:
    `find_society_span` picks by whole-string ratio, so "UCC Musical Society" matches "UCD Musical
    Society" (0.95, one character apart) over the correct "UCC Musical Theatre Society", and it
-   returns the *canonical* name, overwriting what was actually printed. A fix is written but
-   **NOT committed** (working tree only, `extract_historical_reviews.py`): gate candidates through
+   returns the *canonical* name, overwriting what was actually printed. A fix is written and
+   **committed to the `extractor-society-gate` branch (`edd445e`), NOT merged to main** - it is *not*
+   in main's working tree, so `git status` on main looks clean and the work is easy to think lost
+   (checked 2026-08-19: `git branch -v` and `git reflog` both find it). To pick it up:
+   `git checkout extractor-society-gate`. The fix gates candidates through
    `society_names.is_same_society`, and when nothing passes but a society-shaped span is clearly
    there, return the span with no canonical name so the printed text survives and the review lands in
    the queue for a human. Measured over the whole archive: **863 -> 863 reviews, lost 2 / gained 2,
