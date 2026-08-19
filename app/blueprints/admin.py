@@ -1995,12 +1995,16 @@ def categorize_pending_reviews(db):
             key = (r["society_id"], r["season"], r["show_raw"])
             natural_key_counts[key] = natural_key_counts.get(key, 0) + 1
 
+    society_candidates_by_raw = find_society_candidates_batch(
+        db, (r["society_raw"] for r in reviews if r["society_id"] is None)
+    )
+
     grouped = {"needs_society": [], "conflict": [], "history_match": [], "ready": []}
     for r in reviews:
         entry = dict(r)
         if r["society_id"] is None:
             entry["society_candidates"] = [
-                (name, score) for name, score in find_society_candidates(db, r["society_raw"])
+                (name, score) for name, score in society_candidates_by_raw.get(r["society_raw"], [])
                 if score >= SOCIETY_MATCH_THRESHOLD
             ]
             grouped["needs_society"].append(entry)
@@ -2179,7 +2183,7 @@ def apply_historical_review_title_match(review_id):
 @login_required
 def apply_historical_review_society_match(review_id):
     """One-click accept for a needs_society suggestion (see
-    categorize_pending_reviews/find_society_candidates) - matches a review
+    categorize_pending_reviews/find_society_candidates_batch) - matches a review
     whose printed society name has a real spelling/punctuation variant
     against the current record ("Harold's Cross Tallaght Musical Society"
     vs "Harolds Cross Tallaght Musical Society", the case that prompted
@@ -2295,29 +2299,47 @@ HISTORICAL_RESULTS_MATCH_THRESHOLD = 0.85
 SOCIETY_MATCH_THRESHOLD = 0.85
 
 
-def find_society_candidates(db, society_raw):
-    """Fuzzy society-name suggestions for a review whose society_raw didn't
-    exactly match anything (flag='needs_check') - real name variants are
-    common across 14 years of hand-typed magazine text ("Harold's Cross
+def find_society_candidates_batch(db, society_raws):
+    """Fuzzy society-name suggestions for every review whose society_raw
+    didn't exactly match anything (flag='needs_check') - real name variants
+    are common across 14 years of hand-typed magazine text ("Harold's Cross
     Tallaght Musical Society" vs "Harolds Cross Tallaght Musical Society",
     confirmed - just a missing apostrophe, scores 0.99). Reuses the same
     scorer as find_historical_results_candidates (app.dedupe.find_candidates,
     the admin dashboard's own duplicate-society/-show tool) rather than a
-    third fuzzy-matching implementation. Returns [(name, score), ...]
-    sorted highest-first - a moderator still picks, this only suggests."""
-    if not society_raw:
-        return []
+    third fuzzy-matching implementation.
+
+    Takes every raw name at once and scores them against the society list in
+    a single find_candidates call, rather than one call per raw name - the
+    per-review version of this (one find_candidates([society_raw] + names)
+    call per review) redid the full O(names^2) society-vs-society comparison
+    from scratch on every single pending review, which with 175 pending
+    reviews and 179 societies meant ~2.8M SequenceMatcher calls on every
+    load of the moderation queue - slow enough to time out the page and, in
+    production, hang waitress's worker threads until the container was
+    killed and restarted (the cause of the 524 right after this shipped).
+    Batching still does the society-vs-society comparisons, but only once.
+
+    Returns {society_raw: [(name, score), ...]}, each list sorted
+    highest-first - a moderator still picks, this only suggests."""
+    raws = sorted({r for r in society_raws if r})
+    if not raws:
+        return {}
     names = [r["name"] for r in db.execute("SELECT name FROM societies").fetchall()]
     if not names:
-        return []
-    pairs = find_candidates([society_raw] + names, dismissed=set())
-    best_by_name = {}
+        return {}
+    raw_set = set(raws)
+    pairs = find_candidates(raws + names, dismissed=set())
+    best_by_raw = {raw: {} for raw in raws}
     for a, b, score in pairs:
-        if society_raw not in (a, b):
-            continue
-        other = b if a == society_raw else a
-        best_by_name[other] = max(best_by_name.get(other, 0), score)
-    return sorted(best_by_name.items(), key=lambda kv: -kv[1])
+        if a in raw_set and b not in raw_set:
+            best_by_raw[a][b] = max(best_by_raw[a].get(b, 0), score)
+        elif b in raw_set and a not in raw_set:
+            best_by_raw[b][a] = max(best_by_raw[b].get(a, 0), score)
+    return {
+        raw: sorted(candidates.items(), key=lambda kv: -kv[1])
+        for raw, candidates in best_by_raw.items()
+    }
 
 
 def find_historical_results_candidates(db, society_id, season, show_raw):
