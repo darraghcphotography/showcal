@@ -1,3 +1,25 @@
+Season Archive: show dates now read "2-5 Sep 2026" instead of 02-09-2026, matching the rest of the site
+Season Archive: a past season with no date on record now says so, rather than "TBA" as if it were still to be announced
+Season Archive: the Review column is hidden on seasons nothing has been adjudicated for yet, instead of a full column of "Not yet"
+All Shows and Societies pages now page through their results, with a per-page control, the same way the Awards page already did
+
+---
+
+The ShowTimes review archive is live: 826 full reviews from 97 back issues of AIMS ShowTimes, covering the 09/10 through 22/23 seasons
+Each review appears on that production's own page, in full, with its original ShowTimes citation
+Every review credits the adjudicator who wrote it, linked to their page - 15 adjudicators are now represented
+Productions that exist only in the review archive now have a page of their own, so every review has somewhere to live
+Show pages now display that production's award history from the AIMS awards archive alongside its review
+Society and show pages link straight to a production's ShowTimes review instead of showing "None"
+
+---
+
+Search now covers the full text of every published ShowTimes review - find a director, a performer, a venue or any phrase that appears nowhere else on the site
+Search now matches award nominees by name, so you can look up a person as well as a show or society
+Show pages: venue and production-team credits are now read out of the review text itself where they were never recorded separately
+
+---
+
 Stats page: leaderboards now default to "since 23/24" instead of all-time, with a Timeframe toggle to see the full historical picture
 Stats page: new interactive Award Explorer - pick any award category to see who's won it most
 Every leaderboard redesigned with ranked medal-style badges

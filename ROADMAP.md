@@ -5,6 +5,72 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
+## NEXT SESSION: mockups first, starting with the adjudicators pages
+
+**Darragh's instruction, end of the 2026-08-19 session: "plan some mockups for pages in the next
+session, starting with adjudicators - we need a cleaner UI throughout."** So the next session is a
+**design/planning session, not a build session.** Mockup-first is this repo's established pattern
+(see the working agreements) and it's what he's explicitly asking for here.
+
+**Start with `/adjudicators` and `/adjudicators/<id>` - design them together, they're two halves of
+one browsing path.** What's wrong with the list page today, confirmed from the live site this
+session: fifteen-plus large cards, one per adjudicator, flat alphabetical, and the majority read
+"N seasons judged - 0 published reviews". The four people who actually have reviews (Pat McElwain 78,
+Therese Maher 76, Caroline Daly Jones 55, Peter Kennedy 51) are buried among them with no visual
+distinction. Enormous vertical space for very little information.
+
+Darragh's own proposed shape (from the older backlog item further down, still current):
+- Current-season adjudicators in a **grid at the top**, linking to their current-season reviews.
+- An option to browse a current adjudicator's **past seasons** too.
+- Past/no-longer-active adjudicators get a **simpler treatment** - just a link through to their bio
+  and season history on the existing detail page.
+- **Needs a real definition of "current"** before mockups can be built - `current_season()` already
+  exists; an adjudicator with an assignment for the current season vs everyone else is the obvious
+  rule, but confirm it with him rather than assuming.
+- The detail page also still needs its season-grouping refinement ("Option A" from the Step 4
+  scoping session) - that's the other half of this same design.
+
+**Then the rest of the "cleaner UI throughout" work.** Other pages the audit flagged as wanting a
+design pass rather than a bug fix, in rough priority order: **`/stats`** (Darragh has called it
+"messy" and the leaderboards "unhealthy" - note item B below removes the timeframe toggle, which
+fixes the *data* problem but not the layout), **`/admin/duplicate-titles`** (he asked for mockups
+specifically, it's one long list), and the **`/search` results page** (see the search findings
+below - the ordering problem is a layout decision as much as a ranking one).
+
+**Useful context for whoever picks this up**: the site's real CSS tokens are in
+`app/static/style.css` (`--accent`, `--bg`, `--muted`, `--warning`...). Building mockups from those
+tokens rather than a fresh palette means they preview accurately in Darragh's actual dark theme -
+that worked well for the admin dashboard mockups this session and is worth repeating.
+
+## Search flaws - diagnosed 2026-08-19, NOT fixed
+
+Darragh searched `'april kelly'` (a real two-time award winner) and got four irrelevant review
+matches. Investigated properly rather than assumed; the headline is **search did find her, but the
+page made her invisible**.
+- **Her two wins are in the data and the search returns them correctly** (2023 Best Actress In A
+  Supporting Role, Blanche Barrow, Bonnie & Clyde, Quayplayers; 2024 Best Actress, Mimi, Rent, North
+  Wexford). They render under "Award nominees", which is the **last section on the page**, below
+  Societies, Shows and the noise Reviews. An exact hit on a person's full name is the highest-
+  confidence result the site can produce and it's rendered dead last. **This is the main fix, and
+  it's a layout/ordering decision - fold it into the search-page mockup above.**
+- **No phrase search exists.** `app/search.py` splits on whitespace and ANDs prefix terms, so
+  `april kelly` means "contains april AND kelly anywhere". Verified the noise: review 323 has "April"
+  at character 97 (the *month* - "at the end of April this year") and "Kelly" at 3,265 (*Jonathan*
+  Kelly). A correct AND match, a useless result.
+- **The snippet shows the wrong place**, which is why a correct match looked broken -
+  `_review_snippet` centres on the *earliest* matching term, so Darragh saw the April-the-month
+  sentence with no "Kelly" anywhere in it. Should centre on where the terms cluster, and highlight
+  them.
+- **Typed quotes silently break the Shows results only** - confirmed live: `Oliver` returns 1 show,
+  `'Oliver'` returns 0. The Shows/Titles search uses `LIKE %...%` on the raw string so the quotes
+  become literal characters; the FTS-backed sections strip them. Small, unambiguous bug.
+- **No relevance ranking** - reviews come back ordered by season, so a review with the terms adjacent
+  ranks below a newer one with them scattered. Wants bm25.
+- **A content, not code, note**: the one review that actually names her (id 321, Bonnie And Clyde,
+  22/23) is **pending**, so correctly excluded from public search. Approving it would surface it.
+  172 reviews are still in the queue. Considered surfacing "N more matches in unapproved reviews" for
+  logged-in moderators - **not built, needs Darragh's view** on exposing queue state on a public page.
+
 ## Start here (updated 2026-08-19, end of the UX-audit session)
 
 **Deployed vs committed, right now:**
