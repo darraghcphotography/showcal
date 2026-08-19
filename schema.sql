@@ -419,3 +419,27 @@ CREATE TRIGGER IF NOT EXISTS historical_results_fts_au AFTER UPDATE ON historica
     INSERT INTO historical_results_fts(rowid, society_name, show, nominee_name, reason)
     VALUES (new.id, new.society_name, new.show, new.nominee_name, new.reason);
 END;
+
+-- Reviews from the ShowTimes archive. review_text is the whole review, so
+-- this is the one index that searches prose rather than names - it's what
+-- makes "who directed X", a cast member's name, or a venue findable at all,
+-- since none of that exists as a column anywhere. Same external-content
+-- pattern as the two above: the index holds only tokenized text, the row
+-- itself stays in historical_reviews.
+CREATE VIRTUAL TABLE IF NOT EXISTS historical_reviews_fts USING fts5(
+    show_raw, society_raw, review_text, content='historical_reviews', content_rowid='id'
+);
+CREATE TRIGGER IF NOT EXISTS historical_reviews_fts_ai AFTER INSERT ON historical_reviews BEGIN
+    INSERT INTO historical_reviews_fts(rowid, show_raw, society_raw, review_text)
+    VALUES (new.id, new.show_raw, new.society_raw, new.review_text);
+END;
+CREATE TRIGGER IF NOT EXISTS historical_reviews_fts_ad AFTER DELETE ON historical_reviews BEGIN
+    INSERT INTO historical_reviews_fts(historical_reviews_fts, rowid, show_raw, society_raw, review_text)
+    VALUES ('delete', old.id, old.show_raw, old.society_raw, old.review_text);
+END;
+CREATE TRIGGER IF NOT EXISTS historical_reviews_fts_au AFTER UPDATE ON historical_reviews BEGIN
+    INSERT INTO historical_reviews_fts(historical_reviews_fts, rowid, show_raw, society_raw, review_text)
+    VALUES ('delete', old.id, old.show_raw, old.society_raw, old.review_text);
+    INSERT INTO historical_reviews_fts(rowid, show_raw, society_raw, review_text)
+    VALUES (new.id, new.show_raw, new.society_raw, new.review_text);
+END;

@@ -5,8 +5,8 @@
 
   <form method="get" class="filter-form">
     <label>
-      Society or show
-      <input type="search" name="q" value="{{ q }}" placeholder="e.g. Wexford, Oliver!" autofocus>
+      Society, show, review or nominee
+      <input type="search" name="q" value="{{ q }}" placeholder="e.g. Wexford, Oliver!, a director's name" autofocus>
     </label>
     <button type="submit">Search</button>
   </form>
@@ -46,7 +46,48 @@
     {% else %}
       <p class="meta">No shows match "{{ q }}".</p>
     {% endif %}
+
+    <h2>Reviews <span class="meta">({{ reviews|length }}{{ '+' if reviews|length == limit else '' }})</span></h2>
+    {% if reviews %}
+      <p class="meta">Matches inside the full text of ShowTimes reviews - a director, a performer, a venue,
+         or any phrase that appears nowhere else on the site.</p>
+      {% for r in reviews %}
+        <div class="queue-item">
+          <div class="primary">
+            <a href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">{{ r['show_raw'] }}</a>
+          </div>
+          <div class="meta-chips">
+            <span>{{ r['society_name'] }}</span>
+            <span>&middot; {{ r['season'] }}</span>
+          </div>
+          <p class="preview">{{ r['snippet'] }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="meta">No review text matches "{{ q }}".</p>
+    {% endif %}
+
+    <h2>Award nominees <span class="meta">({{ awards|length }}{{ '+' if awards|length == limit else '' }})</span></h2>
+    {% if awards %}
+      <table class="data-table table-wide">
+        <thead><tr><th>Nominee</th><th>Award</th><th>Result</th><th>Show</th><th>Society</th><th>Year</th></tr></thead>
+        <tbody>
+          {% for a in awards %}
+            <tr>
+              <td>{{ a['nominee_name'] }}{% if a['role'] %} <span class="meta">({{ a['role'] }})</span>{% endif %}</td>
+              <td>{{ a['category_name'] or '—' }}</td>
+              <td>{% if a['result'] == 'Winner' %}<span class="tag tag-gold">Winner</span>{% else %}{{ a['result'] or '—' }}{% endif %}</td>
+              <td>{% if a['show'] %}<a href="{{ url_for('public.title_detail', title=a['show']) }}">{{ a['show'] }}</a>{% else %}—{% endif %}</td>
+              <td>{% if a['society_id'] %}<a href="{{ url_for('public.society_detail', society_id=a['society_id']) }}">{{ a['society_name'] }}</a>{% else %}{{ a['society_name'] or '—' }}{% endif %}</td>
+              <td>{{ a['year'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="meta">No award nominee matches "{{ q }}".</p>
+    {% endif %}
   {% else %}
-    <p class="meta">Search across every society and show on record.</p>
+    <p class="meta">Search across every society, show, ShowTimes review, and award nominee on record.</p>
   {% endif %}
 {% endblock %}

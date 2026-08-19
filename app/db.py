@@ -202,7 +202,7 @@ def _migrate_shows_source_check(db):
 # unbuilt index in testing (it always read the real societies/historical_
 # results row count). Rebuilding unconditionally is simple, always correct,
 # and cheap at this data's scale (low thousands of rows, once per app start).
-FTS_TABLES = ["societies_fts", "historical_results_fts"]
+FTS_TABLES = ["societies_fts", "historical_results_fts", "historical_reviews_fts"]
 
 
 def _backfill_fts_indexes(db):

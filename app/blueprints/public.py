@@ -112,6 +112,27 @@ def societies_list():
 
 
 SEARCH_RESULT_LIMIT = 12
+SEARCH_SNIPPET_CONTEXT = 90
+
+
+def _review_snippet(review_text, q):
+    """A window of the review around the first search term that appears in
+    it. Without this a review result is just a show title, giving no clue
+    why it matched - the whole point of searching review prose is that the
+    match is a name or a phrase that exists nowhere else on the site."""
+    if not review_text:
+        return ""
+    lowered = review_text.lower()
+    position = -1
+    for term in q.lower().split():
+        found = lowered.find(term)
+        if found != -1 and (position == -1 or found < position):
+            position = found
+    if position == -1:
+        return review_text[:SEARCH_SNIPPET_CONTEXT * 2].strip() + "…"
+    start = max(0, position - SEARCH_SNIPPET_CONTEXT)
+    end = min(len(review_text), position + SEARCH_SNIPPET_CONTEXT)
+    return ("…" if start else "") + review_text[start:end].strip() + ("…" if end < len(review_text) else "")
 
 
 @bp.route("/search")
@@ -120,6 +141,8 @@ def search():
     db = get_db()
     societies = []
     titles = []
+    reviews = []
+    awards = []
     if q:
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
@@ -158,7 +181,79 @@ def search():
             (SHOWS_COVERAGE_START_YEAR, f"%{escaped}%", SEARCH_RESULT_LIMIT),
         ).fetchall()
 
-    return render_template("search.html", q=q, societies=societies, titles=titles, limit=SEARCH_RESULT_LIMIT)
+        # Reviews, searched over their full text - this is the only index
+        # that covers prose rather than names, so it's what makes a
+        # director, a cast member, or a venue findable at all: none of those
+        # exist as a column to search. Falls back to LIKE for the same
+        # reason as the society search above (an FTS table that isn't there
+        # yet on an older database).
+        review_ids = fts_match_ids(db, "historical_reviews_fts", q)
+        if review_ids is not None:
+            reviews = db.execute(
+                f"""
+                SELECT historical_reviews.id, historical_reviews.show_raw, historical_reviews.season,
+                       historical_reviews.review_text, historical_reviews.show_id,
+                       societies.name AS society_name
+                FROM historical_reviews
+                JOIN societies ON societies.id = historical_reviews.society_id
+                WHERE historical_reviews.id IN ({','.join('?' * len(review_ids))})
+                  AND historical_reviews.moderation_status = 'approved'
+                  AND historical_reviews.show_id IS NOT NULL
+                  AND NOT societies.hidden
+                ORDER BY historical_reviews.season DESC
+                LIMIT ?
+                """,
+                (*review_ids, SEARCH_RESULT_LIMIT),
+            ).fetchall() if review_ids else []
+        else:
+            reviews = db.execute(
+                """
+                SELECT historical_reviews.id, historical_reviews.show_raw, historical_reviews.season,
+                       historical_reviews.review_text, historical_reviews.show_id,
+                       societies.name AS society_name
+                FROM historical_reviews
+                JOIN societies ON societies.id = historical_reviews.society_id
+                WHERE historical_reviews.review_text LIKE ? ESCAPE '\\'
+                  AND historical_reviews.moderation_status = 'approved'
+                  AND historical_reviews.show_id IS NOT NULL
+                  AND NOT societies.hidden
+                ORDER BY historical_reviews.season DESC
+                LIMIT ?
+                """,
+                (f"%{escaped}%", SEARCH_RESULT_LIMIT),
+            ).fetchall()
+        reviews = [dict(r) | {"snippet": _review_snippet(r["review_text"], q)} for r in reviews]
+
+        # Award/nomination rows, matched on the nominee's own name as well as
+        # the show and society - the only way to search for a *person* on the
+        # site, since nominees aren't a table of their own. Show- and
+        # society-name matches are already covered by the two result kinds
+        # above, so this is filtered down to rows that actually matched on a
+        # person, to avoid repeating the same production three times over.
+        award_ids = fts_match_ids(db, "historical_results_fts", q)
+        awards = []
+        if award_ids:
+            awards = db.execute(
+                f"""
+                SELECT historical_results.year, historical_results.show, historical_results.tier,
+                       historical_results.category_name, historical_results.result,
+                       historical_results.nominee_name, historical_results.role,
+                       societies.name AS society_name, societies.id AS society_id
+                FROM historical_results
+                LEFT JOIN societies ON societies.id = historical_results.society_id
+                WHERE historical_results.id IN ({','.join('?' * len(award_ids))})
+                  AND historical_results.nominee_name IS NOT NULL
+                  AND historical_results.nominee_name LIKE ? ESCAPE '\\'
+                ORDER BY historical_results.year DESC
+                LIMIT ?
+                """,
+                (*award_ids, f"%{escaped}%", SEARCH_RESULT_LIMIT),
+            ).fetchall()
+
+    return render_template(
+        "search.html", q=q, societies=societies, titles=titles,
+        reviews=reviews, awards=awards, limit=SEARCH_RESULT_LIMIT,
+    )
 
 
 @bp.route("/adjudicators")
