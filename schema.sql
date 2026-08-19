@@ -312,7 +312,8 @@ CREATE TABLE IF NOT EXISTS historical_society_regions (
 CREATE TABLE IF NOT EXISTS adjudicators (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     name            TEXT NOT NULL UNIQUE,
-    notes           TEXT,
+    notes           TEXT,       -- short bio, shown on their public page
+    photo_filename  TEXT,       -- filename under the uploads dir, not a user path (see shows.poster_filename)
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

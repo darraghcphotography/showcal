@@ -3,7 +3,34 @@
 {% block content %}
   <p class="meta"><a href="{{ url_for('admin.adjudicators') }}">&larr; All adjudicators</a></p>
   <h1>{{ adjudicator['name'] }}</h1>
-  {% if adjudicator['notes'] %}<p class="meta">{{ adjudicator['notes'] }}</p>{% endif %}
+
+  <form method="post" action="{{ url_for('admin.edit_adjudicator', adjudicator_id=adjudicator['id']) }}"
+        enctype="multipart/form-data" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Name
+      <input type="text" name="name" value="{{ adjudicator['name'] }}" required>
+    </label>
+    <label>
+      Bio <span class="hint">(shown on their public page)</span>
+      <textarea name="notes" rows="3">{{ adjudicator['notes'] or '' }}</textarea>
+    </label>
+    <fieldset>
+      <legend>Photo</legend>
+      {% if adjudicator['photo_filename'] %}
+        <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=adjudicator['photo_filename']) }}" alt="Current photo">
+        <label class="checkbox-label">
+          <input type="checkbox" name="remove_photo" value="1">
+          Remove current photo
+        </label>
+      {% endif %}
+      <label>
+        {{ 'Replace photo' if adjudicator['photo_filename'] else 'Upload photo' }}
+        <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif">
+      </label>
+    </fieldset>
+    <button type="submit">Save</button>
+  </form>
 
   <h2>Seasons judged</h2>
   {% if seasons_judged %}

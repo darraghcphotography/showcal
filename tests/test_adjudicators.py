@@ -225,3 +225,37 @@ def test_delete_adjudicator_removes_when_unassigned(client, db):
 
     row = db.execute("SELECT * FROM adjudicators WHERE id = ?", (jane_id,)).fetchone()
     assert row is None
+
+
+def test_edit_adjudicator_sets_bio_after_creation(client, db):
+    """The add-a-new-adjudicator form could set notes once at creation but
+    never again - there was no way to add a bio to an adjudicator who
+    already existed."""
+    admin_id = seed_user(db, role="admin")
+    jane_id = seed_adjudicator(db, name="Jane Smith", notes=None)
+    login_as(client, admin_id)
+
+    client.post(f"/admin/adjudicators/{jane_id}/edit", data={"name": "Jane Smith", "notes": "A regular Eastern adjudicator."})
+
+    row = db.execute("SELECT notes FROM adjudicators WHERE id = ?", (jane_id,)).fetchone()
+    assert row["notes"] == "A regular Eastern adjudicator."
+
+
+def test_edit_adjudicator_requires_a_name(client, db):
+    admin_id = seed_user(db, role="admin")
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    login_as(client, admin_id)
+
+    client.post(f"/admin/adjudicators/{jane_id}/edit", data={"name": "", "notes": "irrelevant"})
+
+    row = db.execute("SELECT name FROM adjudicators WHERE id = ?", (jane_id,)).fetchone()
+    assert row["name"] == "Jane Smith"
+
+
+def test_bio_renders_on_the_public_page(client, db):
+    jane_id = seed_adjudicator(db, name="Jane Smith", notes="Judging since 2019.")
+    db.execute("INSERT INTO adjudicator_assignments (season, section, adjudicator_id) VALUES ('23/24', 'Gilbert', ?)", (jane_id,))
+    db.commit()
+
+    body = client.get(f"/adjudicators/{jane_id}").get_data(as_text=True)
+    assert "Judging since 2019." in body

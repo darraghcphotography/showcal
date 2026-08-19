@@ -65,6 +65,7 @@ COLUMN_MIGRATIONS = [
         "ALTER TABLE historical_reviews ADD COLUMN source TEXT NOT NULL DEFAULT 'showtimes' "
         "CHECK (source IN ('showtimes', 'manual'))",
     ),
+    ("adjudicators", "photo_filename", "ALTER TABLE adjudicators ADD COLUMN photo_filename TEXT"),
 ]
 
 

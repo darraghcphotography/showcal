@@ -2235,6 +2235,45 @@ def adjudicator_detail(adjudicator_id):
     )
 
 
+@bp.route("/adjudicators/<int:adjudicator_id>/edit", methods=("POST",))
+@login_required
+def edit_adjudicator(adjudicator_id):
+    """Bio (adjudicators.notes) and photo, editable after creation - the
+    add-a-new-adjudicator form on /admin/adjudicators could set notes once
+    at creation but never again, and there was no photo field at all (19
+    Aug 2026 feedback review, item 7). notes already rendered on the public
+    page if present; this is what actually lets a moderator set/change it."""
+    db = get_db()
+    adjudicator = db.execute("SELECT * FROM adjudicators WHERE id = ?", (adjudicator_id,)).fetchone()
+    if adjudicator is None:
+        abort(404)
+
+    name = request.form.get("name", "").strip()
+    notes = request.form.get("notes", "").strip() or None
+    if not name:
+        flash("Name is required.", "error")
+        return redirect(url_for("admin.adjudicator_detail", adjudicator_id=adjudicator_id))
+
+    photo_filename = adjudicator["photo_filename"]
+    photo_file = request.files.get("photo")
+    if photo_file and photo_file.filename:
+        try:
+            photo_filename = save_poster(photo_file, current_app.config["UPLOAD_DIR"])
+        except ValueError as e:
+            flash(str(e), "error")
+            return redirect(url_for("admin.adjudicator_detail", adjudicator_id=adjudicator_id))
+    elif request.form.get("remove_photo"):
+        photo_filename = None
+
+    db.execute(
+        "UPDATE adjudicators SET name = ?, notes = ?, photo_filename = ? WHERE id = ?",
+        (name, notes, photo_filename, adjudicator_id),
+    )
+    db.commit()
+    flash("Adjudicator updated.", "success")
+    return redirect(url_for("admin.adjudicator_detail", adjudicator_id=adjudicator_id))
+
+
 @bp.route("/adjudicators/<int:adjudicator_id>/delete", methods=("POST",))
 @admin_required
 def delete_adjudicator(adjudicator_id):
