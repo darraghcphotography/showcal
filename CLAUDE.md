@@ -64,6 +64,25 @@ the live site. (`docker compose exec` also needs to be run from the directory ho
 if it says "no configuration file provided", `docker exec <container-name>` works from anywhere once you
 have the container name from `docker ps`.)
 
+**Claude has direct SSH access to the NAS** (set up 2026-08-19, so Darragh doesn't have to relay
+every command manually): `ssh -i ~/.ssh/claudeshowcal_ed25519 claudeshowcal@dc-qnap-2` - a dedicated
+key-only account, no password stored or typed anywhere. Two things that aren't obvious from a plain
+shell there:
+- **`docker` isn't on `claudeshowcal`'s `$PATH`** - use the full path,
+  `/share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker`, for every `docker exec`/`docker ps`/etc.
+- **There's no `git` on the NAS host at all**, and the `showcal` project folder there
+  (`/share/CACHEDEV1_DATA/homes/darraghc/showcal/`) is a plain file copy, not a git clone - "pull and
+  redeploy" happens through Portainer's own git-backed stack mechanism, not anything on the host
+  filesystem. Don't try to `git pull` there or treat that folder as the deploy source.
+- **Portainer's own API (port 9000) is unreachable even from the NAS itself** - connections time out
+  rather than refuse, consistent with QNAP's own firewall app blocking it rather than the service
+  being down. Triggering "pull and redeploy" still needs to go through the Portainer UI (or Darragh's
+  phone/Chrome Remote Desktop) for now - this was investigated once and not solved, not untried.
+- The `aims.db` file itself lives at `/share/CACHEDEV1_DATA/Data/config/aims-web/aims.db` on the NAS
+  host - safe to `scp` down read-only for analysis (a live production audit doesn't need to run
+  inside the container), but never edit that copy and push it back; use the container's own management
+  scripts (with `--db /data/aims.db`, as above) for any real write.
+
 ## Rules for Claude working in this repo
 
 1. **Diffs, not rewrites.** Use `Edit` with a minimal, targeted `old_string`/`new_string`. Never

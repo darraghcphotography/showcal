@@ -7,21 +7,32 @@ phase changes.
 
 ## Start here (updated 2026-08-19)
 
-**Deployed state**: Round 27 (864-review verified extraction) was pulled and deployed on
-2026-08-19 (confirmed via `/suggestions`' deployed timestamp), and Darragh started moderating the
-real queue live on production - which surfaced Round 28's findings (a bulk-approve 500, two more
-extraction bugs, and a structural gap where show-matching never checked the older
-`historical_results` awards archive - see Round 28 below for the full story). **Round 28's fixes
-are committed but not yet redeployed** - confirm with Darragh before assuming any of it is live.
-After redeploying: re-run `load_historical_reviews.py` regardless of whether reviews were already
-loaded (refreshes any still-pending review's text, including 121 reviews whose venue line was
-bleeding into the review body before Round 28's fix)
-(`docker exec <container-name> python load_historical_reviews.py --db /data/aims.db` - use plain
-`docker exec`, not `docker compose exec`, unless already in the directory holding
-`docker-compose.yml`; get the container name from `docker ps`). Then check
-`/admin/historical-shows/title-check` - a retroactive audit found 35 of the skeleton shows already
-approved on production have a real title mismatch against the awards archive (case/punctuation-only
-differences don't need fixing, those already resolve correctly) worth a moderator's one-click fix.
+**Deployed state**: Round 27 (864-review verified extraction) and Round 28 (bulk-approve 500 fix,
+two extraction bugs, matching against the older `historical_results` awards archive) are both
+**live and confirmed deployed** (`/suggestions` read "19 Aug 2026, 12:16" after the Round 28 push;
+`load_historical_reviews.py` was re-run against production - 1 inserted, 849 already loaded, 14
+refreshed with corrected text, matching the full 864-review set). Darragh started actively
+moderating the real queue live on production, which is exactly what surfaced Round 28's bugs in the
+first place, then hit **one more real bug** using `/admin/historical-shows/title-check`: accepting
+a suggested title for a skeleton show 500'd when that title already belonged to a *different*,
+independently-existing show (a member submission entered separately from the review pipeline - see
+"Round 28.1" note at the end of the Round 28 entry below for the full story and the fix). **That
+fix (commit `0565a66`) is pushed but not yet redeployed** - the one specific stuck row
+(Thurles Musical Society, "Ragtime" 17/18) was already fixed directly on production via SQL so
+Darragh isn't blocked, but the *tool itself* will 500 again on any of the other ~34 remaining
+title-check entries that hit the same collision pattern until this gets redeployed.
+
+**A systemic gap worth investigating next session, not just this one bug**: the reason this
+collision could happen at all is that review-approval (`match_show_for_edit`, used both when a
+review gets approved and when a moderator edits one) only ever checks for an **exact** `show_raw`
+match against `shows` - it has no fuzzy/near-title matching against *existing shows rows*, only
+against the older `historical_results` archive (Round 28's `find_historical_results_candidates`).
+That means the same failure mode (a review creates its own skeleton instead of linking to an
+already-existing, differently-worded show) can still happen going forward for any of the ~700
+reviews still pending, not just the one already found. Worth extending the "ready" category's own
+check in `categorize_pending_reviews` to also run `find_historical_results_candidates`-style fuzzy
+matching against `shows` itself (not just `historical_results`) before calling a review safe to
+bulk-approve - see "Suggestions for future scope" below for the fuller shape of this.
 
 **Immediate, no-build task**: finish hand-entering the 29 confirmed season/tier/adjudicator combos
 (2009-2023) into `/admin/adjudicators` - Darragh had started this already. Full list is in Round 21
@@ -500,7 +511,69 @@ moderator using the tool for real found things it hadn't.
     fix. Built `/admin/historical-shows/title-check` as a permanent tool (not a one-off script) for
     this, since the same gap can recur any time a review gets approved with a title that doesn't
     quite match the archive.
-- All 251 tests pass (16 new/updated this round). Committed; not yet redeployed.
+- All 251 tests pass (16 new/updated this round). Committed and deployed (`0584c59`, confirmed live
+  and `load_historical_reviews.py` re-run against production - matches the full 864-review set).
+
+**Round 28.1 - the title-check tool's own 500, found using it live (2026-08-19):** Darragh started
+working through `/admin/historical-shows/title-check` for real and hit a 500 clicking "Use...".
+- **Root cause**: Thurles Musical Society already had *two* separate `shows` rows for the same real
+  17/18 production - one a skeleton from approving the historical review ("Ragtime"), one a member
+  submission entered independently ("Ragtime The Musical"). `match_show_for_edit` only checks for
+  an *exact* `show_raw` match at approval time, so the review never found the submission and made
+  its own skeleton instead. Accepting the suggested title tried to rename the skeleton into the
+  submission's exact title, colliding with `ux_shows_natural_key`.
+  - Confirmed only `historical_reviews.show_id` references `shows.id` (checked schema.sql directly,
+    not assumed) before treating this as safe to fix by merging: re-point the skeleton's review(s)
+    onto the real show, then delete the now-redundant skeleton, instead of renaming into a collision.
+    Applied directly to the one live stuck row via SSH so Darragh wasn't blocked, then shipped the
+    same fix in code (commit `0565a66`) for the rest of the queue.
+- **The deeper implication** (see "Start here" above): this is the same class of gap as Round 28's
+  main finding, just against `shows` instead of `historical_results` - `match_show_for_edit` never
+  fuzzy-matches against *either* archive, only exact-matches against `shows`. Not yet generalized -
+  see "Suggestions for future scope" below.
+- 20 tests pass (1 new this round: the merge-not-rename case). Committed (`0565a66`); pushed but
+  **not yet redeployed** as of this note.
+
+## Next steps / open questions for a future session
+
+**Immediate (blocking further title-check use)**: redeploy commit `0565a66` so
+`/admin/historical-shows/title-check` stops 500ing on any of the remaining ~34 entries that hit the
+same real-show-already-exists collision as the Thurles/Ragtime case. Nothing else is blocked -
+`/admin/historical-reviews` itself (the main queue) doesn't have this bug, only the retroactive
+skeleton-title-check tool does.
+
+**Worth investigating - the systemic version of the Ragtime bug**: `match_show_for_edit` (used at
+both review-approval and review-edit time) only ever does an *exact* string match against `shows`.
+Round 28 added fuzzy matching against `historical_results` for the moderation queue's own
+categorization (`find_historical_results_candidates`), but never extended the same idea to `shows`
+itself - so a review can still create a redundant skeleton instead of linking to an already-existing,
+differently-titled show (submission or import), for any of the ~700 reviews still pending. Concretely
+worth trying next session: run `find_historical_results_candidates`-shaped fuzzy matching against
+`shows` too (not just `historical_results`) as part of `categorize_pending_reviews`'s "ready" bucket,
+so a review with a plausible-but-not-exact existing show gets routed into a "needs a title/show check"
+category *before* approval, rather than only being caught after the fact by a title-check audit (which
+only exists for already-approved skeletons, not shows created any other way).
+
+**Deferred ideas, not started, lower priority than the above**:
+- Fuzzy-matching show *titles* to warn on likely duplicates more broadly, not just within this
+  review-import pipeline - Darragh's own earlier "a show match would be great too" ask. The
+  Round 28/28.1 work is really a specific instance of this same idea (title variants of the same
+  real production); `app.dedupe.find_candidates` already exists and is reused now, so extending its
+  use beyond the historical-review flow (e.g. flagging likely-duplicate `shows` rows generally, the
+  way the admin dashboard already flags likely-duplicate societies) is a natural next step, not a
+  new mechanism.
+- Extracting Director/Musical Director/Choreographer names from review text - explicitly flagged by
+  Darragh early on as "food for thought for later," not urgent.
+- A worthwhile cleanup, not urgent: `find_historical_results_candidates`, `match_show_for_edit`, and
+  `find_mismatched_skeleton_shows` are three separate, not-quite-unified matching code paths that
+  grew one at a time this session as each new problem surfaced. Once the current backlog (queue +
+  title-check) is actually cleared, consider whether these should collapse into one shared matching
+  utility rather than three similar-but-distinct ones - not urgent while there's still real,
+  unprocessed queue data to work through.
+- Continue working through the main `/admin/historical-reviews` queue itself (the "needs society
+  matched" / "same show, two reviews" / "likely has award history" categories, ~90 reviews as of
+  the last count) - the bulk-approvable "ready" bucket was already cleared during this session, but
+  those three categories all genuinely need a person to look at each one.
 
 ## Phase 0 - Incident response & hardening (done, 2026-08-03)
 - Recovered from the broken `/data` mount that wiped the database (absolute
