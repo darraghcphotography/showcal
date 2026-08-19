@@ -75,7 +75,47 @@ these are data, not code, so they are NOT in git and will not reappear from a re
   can't collide (matches `admin.new_society()`). Their skeleton shows moved too, or they'd have
   stayed on UCD's public page. UCD went 36 -> 29 shows.
 
+**Round 32 - Admin dashboard restructure (2026-08-19, same day):** Darragh flagged `/admin` itself
+as the "one long list, poor UX" pattern (not the adjudicators page, which is still open below) -
+11-12 "Needs attention" rows and 16 Tools links all in flat lists with no grouping, a permanently-
+nonzero count (award records with no society match, mostly defunct societies) sitting at the same
+visual weight as a real queue.
+- **Mockup-first, two options published**, both built from the site's own real CSS tokens
+  (`--bg`/`--accent`/`--warning` etc., not a new palette) so they'd preview accurately in the actual
+  theme. Option A (grouped table, same `data-table` component, just labelled sections) vs Option B
+  (summary strip + collapsible panels, reusing the historical-reviews-queue pattern). Recommended A
+  as lower-risk since it's a template change with no new component; Darragh agreed.
+- **Follow-up feedback, not just "ship A"**: even grouped, the counts still felt unmanageable.
+  Asked directly rather than guessing which of three plausible causes it was (visual weight, wall-of-
+  rows on click-through, no sense of where to start) - Darragh picked two: **clicking through dumps
+  you into a wall of individual rows** (true for several of these - checked the actual pages, not
+  assumed: `fix_dates.html` is one `<form>` per row with a full page reload per save, `venues.html`
+  already has decent inline-autosave-on-blur across the whole list, `shows_list`'s review-link fix
+  goes through each show's full edit page) and **no sense of where to start**.
+- **Shipped for the "no sense of where to start" half**: a "Quick win" callout (reuses the existing
+  `.explorer` hero-card CSS, same tinted-gradient treatment the Stats page's Award Explorer already
+  uses) surfacing whichever actionable count is smallest and non-zero, computed server-side in
+  `admin.dashboard()` - explicitly excludes the award-records-unmatched count (it's flagged as
+  permanent/won't-reach-0 and would otherwise "win" by being the biggest number on the page, the
+  opposite of a quick win).
+- **Not yet built - the "wall of rows" half**: extending real bulk-edit tooling to the pages that
+  don't have it yet. `fix_dates` is the worst of the three (full reload per row) and the cheapest fix
+  - give it the same inline-autosave-on-blur pattern `venues.html` already uses, no new mechanism to
+  invent. Review-link fixing (via each show's full edit page) and the review-link count itself would
+  need their own look at what a bulk view could reasonably do (dates and venues are single fields;
+  a review link is tied to `review_status` too, more like the historical-reviews queue's shape).
+- Verified in a real browser, not just template review: ran the local dev server, logged in with a
+  throwaway admin account, screenshotted the actual rendered page (headless Edge, 900px - the known
+  false-positive-narrow-viewport issue is well below that), confirmed groups/dot indicators/quick-win/
+  tools grid all render correctly against real local data. Throwaway login deleted and scratch files
+  removed afterward. All 259 tests still pass.
+- **Committed but not deployed** - `app/blueprints/admin.py`, `app/static/style.css`,
+  `app/templates/admin/dashboard.html`.
+
 **OPEN - next session should pick these up:**
+0. **Admin dashboard "wall of rows" follow-up** (Round 32, above) - give `fix_dates` the same inline-
+   autosave pattern `venues.html` already has (cheapest, worst offender), then look at whether
+   review-link fixing can get something similar or needs its own shape.
 1. **`extract_historical_reviews.py` still has the root bug** that caused the UCC/UCD mis-filing:
    `find_society_span` picks by whole-string ratio, so "UCC Musical Society" matches "UCD Musical
    Society" (0.95, one character apart) over the correct "UCC Musical Theatre Society", and it

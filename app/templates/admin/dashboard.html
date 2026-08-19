@@ -3,18 +3,65 @@
 {% block content %}
   <h1>Admin</h1>
 
-  <h2>Needs attention</h2>
+  {% if quick_win %}
+    <div class="explorer">
+      <span class="explorer-eyebrow">Quick win</span>
+      <h2>{{ quick_win.label }}</h2>
+      <p class="explorer-sub">Only {{ quick_win.count }} to go &mdash; the smallest thing on this page
+        right now. <a href="{{ quick_win.url }}">Start &rarr;</a></p>
+    </div>
+  {% endif %}
+
+  <h2 class="admin-group-label">Awaiting your review</h2>
   <table class="data-table">
     <tbody>
       <tr>
-        <td>Pending submissions</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if pending_count else 'admin-dot-off' }}"></span>
+            Pending submissions
+          </span>
+        </td>
         <td>{{ pending_count }}</td>
         <td><a href="{{ url_for('admin.queue') }}">Moderation queue</a></td>
       </tr>
       <tr>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if historical_reviews_pending_count else 'admin-dot-off' }}"></span>
+            Historical reviews awaiting moderation (ShowTimes archive)
+          </span>
+        </td>
+        <td>{{ historical_reviews_pending_count }}</td>
+        <td><a href="{{ url_for('admin.historical_reviews_queue') }}">Historical reviews</a></td>
+      </tr>
+      {% if awards_pending_season %}
+        <tr>
+          <td>
+            <span class="admin-row-label">
+              <span class="admin-dot admin-dot-on"></span>
+              Awards not yet entered for {{ awards_pending_season }} (concluded 60+ days ago)
+            </span>
+          </td>
+          <td>&mdash;</td>
+          <td><a href="{{ url_for('admin.bulk_award') }}">Add results</a></td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <h2 class="admin-group-label">Missing data</h2>
+  <table class="data-table">
+    <tbody>
+      <tr>
         <td>Shows missing a review link</td>
         <td>{{ needs_review_count }}</td>
         <td><a href="{{ url_for('admin.shows_list', needs_review=1) }}">All shows</a></td>
+      </tr>
+      <tr>
+        <td>Active societies missing a default venue</td>
+        <td>{{ missing_venue_count }}</td>
+        <td><a href="{{ url_for('admin.venues') }}">Fill in venues</a></td>
       </tr>
       <tr>
         <td>Shows missing a date</td>
@@ -22,31 +69,25 @@
         <td><a href="{{ url_for('admin.fix_dates', missing=1) }}">Fix dates</a></td>
       </tr>
       <tr>
+        <td>Historical societies with a region awaiting confirmation</td>
+        <td>{{ historical_regions_pending_count }}</td>
+        <td><a href="{{ url_for('admin.historical_societies') }}">Review</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="admin-group-label">Possible errors to check</h2>
+  <table class="data-table">
+    <tbody>
+      <tr>
         <td>Possible duplicate titles</td>
         <td>{{ duplicate_count }}</td>
         <td><a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a></td>
       </tr>
       <tr>
-        <td>Award records with no society match <span class="hint">(mostly genuinely defunct societies - won't reach 0; see "awaiting confirmation" below for what's actually actionable)</span></td>
+        <td>Award records with no society match <span class="hint">(mostly genuinely defunct societies - won't reach 0; see "awaiting confirmation" above for what's actually actionable)</span></td>
         <td>{{ unmatched_award_societies_count }}</td>
         <td><a href="{{ url_for('admin.awards_list', unmatched=1) }}">Awards</a></td>
-      </tr>
-      {% if awards_pending_season %}
-        <tr>
-          <td>Awards not yet entered for {{ awards_pending_season }} (concluded 60+ days ago)</td>
-          <td>&mdash;</td>
-          <td><a href="{{ url_for('admin.bulk_award') }}">Add results</a></td>
-        </tr>
-      {% endif %}
-      <tr>
-        <td>Historical societies with a region awaiting confirmation</td>
-        <td>{{ historical_regions_pending_count }}</td>
-        <td><a href="{{ url_for('admin.historical_societies') }}">Review</a></td>
-      </tr>
-      <tr>
-        <td>Active societies missing a default venue</td>
-        <td>{{ missing_venue_count }}</td>
-        <td><a href="{{ url_for('admin.venues') }}">Fill in venues</a></td>
       </tr>
       <tr>
         <td>Duplicate historical productions</td>
@@ -59,11 +100,6 @@
         <td><a href="{{ url_for('admin.data_quality') }}">Data quality</a></td>
       </tr>
       <tr>
-        <td>Historical reviews awaiting moderation (ShowTimes archive)</td>
-        <td>{{ historical_reviews_pending_count }}</td>
-        <td><a href="{{ url_for('admin.historical_reviews_queue') }}">Historical reviews</a></td>
-      </tr>
-      <tr>
         <td>Skeleton shows whose title doesn't line up with the awards archive</td>
         <td>{{ mismatched_skeleton_shows_count }}</td>
         <td><a href="{{ url_for('admin.historical_shows_title_check') }}">Check titles</a></td>
@@ -71,25 +107,40 @@
     </tbody>
   </table>
 
-  <h2>Tools</h2>
-  <p class="meta">
-    <a href="{{ url_for('admin.shows_list') }}">All shows</a> &middot;
-    <a href="{{ url_for('admin.societies_list') }}">Societies</a> &middot;
-    <a href="{{ url_for('admin.awards_list') }}">Awards</a> &middot;
-    <a href="{{ url_for('admin.fix_dates') }}">Fix dates</a> &middot;
-    <a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a> &middot;
-    <a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a> &middot;
-    <a href="{{ url_for('admin.bulk_historical_productions') }}">Bulk add historical productions</a> &middot;
-    <a href="{{ url_for('admin.data_quality') }}">Data quality</a> &middot;
-    <a href="{{ url_for('admin.venues') }}">Venues</a> &middot;
-    <a href="{{ url_for('admin.adjudicators') }}">Adjudicators</a> &middot;
-    <a href="{{ url_for('admin.historical_reviews_queue') }}">Historical reviews</a> &middot;
-    <a href="{{ url_for('admin.backfill_credits') }}">Backfill credits</a> &middot;
-    <a href="{{ url_for('admin.traffic') }}">Traffic</a> &middot;
-    <a href="{{ url_for('admin.suggestions') }}">Suggestions</a> &middot;
-    <a href="{{ url_for('admin.changelog') }}">Changelog</a>
-    {% if current_user['role'] == 'admin' %}
-      &middot; <a href="{{ url_for('admin.invite_codes') }}">Invite codes</a>
-    {% endif %}
-  </p>
+  <h2 class="admin-group-label">Tools</h2>
+  <div class="tools-grid">
+    <div>
+      <h3>Content</h3>
+      <ul class="tools-list">
+        <li><a href="{{ url_for('admin.shows_list') }}">All shows</a></li>
+        <li><a href="{{ url_for('admin.societies_list') }}">Societies</a></li>
+        <li><a href="{{ url_for('admin.awards_list') }}">Awards</a></li>
+        <li><a href="{{ url_for('admin.venues') }}">Venues</a></li>
+        <li><a href="{{ url_for('admin.adjudicators') }}">Adjudicators</a></li>
+        <li><a href="{{ url_for('admin.fix_dates') }}">Fix dates</a></li>
+        <li><a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Historical archive</h3>
+      <ul class="tools-list">
+        <li><a href="{{ url_for('admin.historical_reviews_queue') }}">Historical reviews</a></li>
+        <li><a href="{{ url_for('admin.backfill_credits') }}">Backfill credits</a></li>
+        <li><a href="{{ url_for('admin.bulk_historical_productions') }}">Bulk add historical productions</a></li>
+        <li><a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a></li>
+        <li><a href="{{ url_for('admin.data_quality') }}">Data quality</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Site</h3>
+      <ul class="tools-list">
+        <li><a href="{{ url_for('admin.traffic') }}">Traffic</a></li>
+        <li><a href="{{ url_for('admin.suggestions') }}">Suggestions</a></li>
+        <li><a href="{{ url_for('admin.changelog') }}">Changelog</a></li>
+        {% if current_user['role'] == 'admin' %}
+          <li><a href="{{ url_for('admin.invite_codes') }}">Invite codes</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
 {% endblock %}

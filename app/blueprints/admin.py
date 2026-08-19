@@ -224,6 +224,55 @@ def dashboard():
         if not has_awards:
             awards_pending_season = concluded["season"]
 
+    # The smallest non-zero, realistically-clearable count on the page - featured
+    # up top as a "start here" pick. Excludes unmatched_award_societies_count,
+    # which is explicitly a permanent, not-meant-to-reach-zero count (see its
+    # own hint below) and would otherwise almost always "win" by being the
+    # biggest number, not the quickest one.
+    quick_win_candidates = [
+        {"label": "Pending submissions", "count": pending_count, "url": url_for("admin.queue")},
+        {
+            "label": "Historical reviews awaiting moderation",
+            "count": historical_reviews_pending_count,
+            "url": url_for("admin.historical_reviews_queue"),
+        },
+        {
+            "label": "Historical societies with a region awaiting confirmation",
+            "count": historical_regions_pending_count,
+            "url": url_for("admin.historical_societies"),
+        },
+        {
+            "label": "Shows missing a date",
+            "count": missing_dates_count,
+            "url": url_for("admin.fix_dates", missing=1),
+        },
+        {
+            "label": "Active societies missing a default venue",
+            "count": missing_venue_count,
+            "url": url_for("admin.venues"),
+        },
+        {
+            "label": "Shows missing a review link",
+            "count": needs_review_count,
+            "url": url_for("admin.shows_list", needs_review=1),
+        },
+        {"label": "Possible duplicate titles", "count": duplicate_count, "url": url_for("admin.duplicate_titles")},
+        {
+            "label": "Duplicate historical productions",
+            "count": duplicate_historical_count,
+            "url": url_for("admin.data_quality"),
+        },
+        {"label": "Orphaned title data", "count": orphaned_titles_count, "url": url_for("admin.data_quality")},
+        {
+            "label": "Skeleton shows whose title doesn't line up with the awards archive",
+            "count": mismatched_skeleton_shows_count,
+            "url": url_for("admin.historical_shows_title_check"),
+        },
+    ]
+    quick_win = min(
+        (c for c in quick_win_candidates if c["count"]), key=lambda c: c["count"], default=None
+    )
+
     return render_template(
         "admin/dashboard.html",
         pending_count=pending_count,
@@ -238,6 +287,7 @@ def dashboard():
         mismatched_skeleton_shows_count=mismatched_skeleton_shows_count,
         awards_pending_season=awards_pending_season,
         historical_reviews_pending_count=historical_reviews_pending_count,
+        quick_win=quick_win,
     )
 
 
