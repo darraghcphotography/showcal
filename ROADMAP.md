@@ -75,6 +75,74 @@ these are data, not code, so they are NOT in git and will not reappear from a re
   can't collide (matches `admin.new_society()`). Their skeleton shows moved too, or they'd have
   stayed on UCD's public page. UCD went 36 -> 29 shows.
 
+**Site-wide UX audit (2026-08-19) - findings and Darragh's decisions. NOTHING BUILT YET.**
+Full audit: https://claude.ai/code/artifact/a8c8a2db-e59e-4697-9362-ead2c58bdb48 (revised after his
+review - the published version is the corrected one). Method: live-site screenshots at desktop +
+mobile, walked the public routes, every suspicion verified against the **production** db over SSH
+before being written down. Mobile (card layouts, bottom nav) is genuinely good - findings are
+specific misfires, not "looks bad".
+
+**A wrong finding, corrected - worth keeping as a lesson**: the audit originally claimed "Best
+Choreography" and "Best Choreographer" were the same award duplicated. **They were two genuinely
+separate awards** (a production award and a person award) - Darragh corrected this immediately.
+The data agrees and I should have checked it first: Best Choreographer has a nominee on 45/45
+records, Best Choreography on only 88/203. Overlapping year ranges are not sufficient evidence of a
+duplicate.
+
+**The real finding underneath (confirmed against the AIMS 25/26 adjudication changes,
+https://www.aims.ie/post/news-aims-adjudication-review-changes-in-place-the-2025-26-season):**
+three categories were renamed at the 2025->2026 boundary and the archive records old and new as
+unrelated, so a 48-year history reads as a one-year-old award. All three break cleanly, no overlap:
+- `Best Chorus` (1977-2025, 204) -> `Best Choral Singing` (2026-, 10)
+- `Best Choreography` (1977-2025, 203) -> `Best Moment of Theatre` (2026-, 10)
+- `Adjudicator's Special Award` (1977-2025, 69) -> `Spirit of AIMS` (2026-, 10)
+- `Best Choreographer` (2019-2026, 45) is **unaffected** - separate, still running.
+Found by querying for categories that stop at 2025 / start at 2026. **That method only catches
+renames at this one boundary** - an older rename wouldn't surface. Darragh: none others known "at
+this time", so don't treat the list as exhaustive if something looks odd pre-2025.
+
+**DECIDED (Darragh, 2026-08-19) - build these when picked up:**
+1. **Spirit of AIMS = renamed Adjudicator's Special Award.** Same award. Merge as one lineage.
+2. **Best Moment of Theatre starts fresh** - does NOT inherit Best Choreography's history. Cross-link
+   the two ("formerly..."/"continues as...") but count separately, since the award's meaning changed
+   (no longer dance-specific).
+3. **Best Chorus + Best Choral Singing merge** as one continuous award (pure rename per AIMS).
+   => So: **two merges (Chorus, Special Award), one fresh start (Choreography/Moment of Theatre).**
+   Implement as a query/display-time alias map, NOT a data rewrite - reversible, and keeps
+   `historical_results` faithful to what AIMS actually published each year.
+4. **Drop the "Since 23/24" timeframe toggle** - the archive now has enough depth. **CRITICAL
+   CAVEAT: remove the UI control only, keep `SHOWS_COVERAGE_START_YEAR`.** The constant does two
+   unrelated jobs: the toggle/default (goes) and the split that stops a production being counted
+   once from `shows` and again from `historical_results` (~20 references across `info.py`/
+   `public.py`/`admin.py` - removing it inflates essentially every number on the site).
+   Root cause it fixes: the "recent" default made per-person leaderboards degenerate - Best
+   Choreography since 23/24 showed six people all tied at 1; all-time gives a real ranking
+   (Siobhan McQuillan / Mary McDonagh / Barbara Meany at 3).
+5. **Navigation - one name per destination**: `/` = **Upcoming shows**, `/season` = **Seasons**
+   (was "Season Archive" in the header vs "This season" in the mobile bar - opposite meanings),
+   `/stats` = **Statistics**. And **promote `/titles` ("Shows A-Z") into the main nav** - 287 titles,
+   a main "has anyone done this show?" answer, currently reachable only from a footer link.
+6. **The 6 literal-`'None'` award rows** are a data fix, agreed. ids 12408, 13466, 13519, 13699,
+   13966, 14006 (`reason='None'`; 13519 also has `role`/`nominee_name='None'`). Not from the tracked
+   CSV (checked, clean) and not from today's admin form (`.strip() or None`) - legacy rows. Also
+   widen `awards.html`'s sentinel guard, which today only defends `role != 'NULL'`, to cover
+   `'None'`/`'NULL'` across all three fields.
+
+**PARKED on Darragh's privacy objection - the `people` table / person pages.** The underlying
+problem is real and measured: people are free text in three places with no link between them -
+1,730 distinct award nominee names, 746 credit names (`shows.director`/`musical_director`/
+`choreographer`), 18 adjudicators (already a real table with ids); **217 credit names are also an
+award nominee** by exact match alone, 8 adjudicators likewise. Duo nominees ("Claire Tighe and Jen
+Dawson" vs "Jennifer Dawson & Claire Tighe" vs "Claire Tighe" solo) are a symptom, only 46 of 1,730
+names. `/admin/backfill-credits` is actively adding more free-text names, so it grows if left.
+**Darragh's objection, which is a good one and should not be argued away**: a public page per
+person is a large feature and one those people may not want. **Resolution to carry forward: the
+identity layer and the public page are separable.** Internal identity resolution (canonical names +
+aliases, moderator-reviewed, reusing `dedupe.find_candidates`) fixes the counting/dedupe problem
+with **no new public surface** - no person pages, nothing published that isn't already on the
+awards page or in a review today. Any public person page would be a separate, later, opt-in-shaped
+decision. Do not build person pages as part of fixing the counting.
+
 **Round 32 - Admin dashboard restructure (2026-08-19, same day):** Darragh flagged `/admin` itself
 as the "one long list, poor UX" pattern (not the adjudicators page, which is still open below) -
 11-12 "Needs attention" rows and 16 Tools links all in flat lists with no grouping, a permanently-
