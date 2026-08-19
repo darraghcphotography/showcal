@@ -683,7 +683,13 @@ def show_detail(show_id):
     # plain external link for 23/24-onward shows that were never in the PDF
     # archive. A show can only ever have one of these approved at once in
     # practice (the archive stops before this site's own coverage begins),
-    # but nothing enforces that, so this is its own independent lookup.
+    # but nothing enforces that - confirmed the hard way (19 Aug 2026's
+    # feedback review): a batch re-extraction had left ten shows carrying
+    # two approved reviews apiece, and this query's missing ORDER BY meant
+    # which one rendered was down to SQLite's incidental scan order, not a
+    # real decision. ORDER BY id ASC LIMIT 1 makes the pick deterministic
+    # (oldest/first-approved wins) rather than leaving it to chance if this
+    # ever recurs.
     historical_review = db.execute(
         """
         SELECT historical_reviews.review_text, historical_reviews.source_issue,
@@ -691,6 +697,7 @@ def show_detail(show_id):
         FROM historical_reviews
         LEFT JOIN adjudicators ON adjudicators.id = historical_reviews.adjudicator_id
         WHERE historical_reviews.show_id = ? AND historical_reviews.moderation_status = 'approved'
+        ORDER BY historical_reviews.id ASC LIMIT 1
         """,
         (show_id,),
     ).fetchone()

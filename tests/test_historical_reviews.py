@@ -416,6 +416,41 @@ def test_approved_review_renders_on_the_shows_own_page(client, db):
     assert b"Issue 160, December 2022" in resp.data
 
 
+def test_two_approved_reviews_on_one_show_render_deterministically(client, db):
+    """A batch re-extraction (19 Aug 2026's feedback review) left several
+    shows carrying two approved reviews apiece - a near-duplicate the
+    extractor filed twice under slightly different society spellings, both
+    matched to the same skeleton show. show_detail()'s review lookup had no
+    ORDER BY, so which one rendered was down to SQLite's incidental scan
+    order rather than a real decision. Approving in reverse-id order is
+    exactly the case that would have exposed the old bug (a naive "last
+    approved wins" or unordered read could easily have shown the wrong one)."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Greasepaint Productions")
+    adjudicator_id = seed_adjudicator(db, name="Peter Kennedy")
+    login_as(client, admin_id)
+
+    first_id = seed_historical_review(
+        db, society_id=society_id, adjudicator_id=adjudicator_id, show_raw="Peter Pan",
+        review_text="First extracted copy of this review.", source_issue="Issue 164, May 2023",
+        flag="no_show_match",
+    )
+    client.post(f"/admin/historical-reviews/{first_id}/approve")
+    show_id = db.execute("SELECT show_id FROM historical_reviews WHERE id = ?", (first_id,)).fetchone()["show_id"]
+
+    second_id = seed_historical_review(
+        db, society_id=society_id, adjudicator_id=adjudicator_id, show_raw="Peter Pan",
+        review_text="Second, near-identical copy of the same review.", source_issue="Issue 166, Autumn 2023",
+        show_id=show_id, flag=None,
+    )
+    db.execute("UPDATE historical_reviews SET moderation_status = 'approved' WHERE id = ?", (second_id,))
+    db.commit()
+
+    body = client.get(f"/shows/{show_id}").get_data(as_text=True)
+    assert "First extracted copy of this review." in body
+    assert "Second, near-identical copy of the same review." not in body
+
+
 def seed_skeleton_show(db, society_id, season, show, tier="Sullivan"):
     db.execute(
         "INSERT INTO shows (society_id, season, region, section, show, source, moderation_status) "
