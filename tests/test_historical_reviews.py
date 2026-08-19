@@ -443,6 +443,42 @@ def test_apply_show_title_match_corrects_a_skeleton_shows_title(client, db):
     assert b"Awards &amp; nominations" in detail_resp.data
 
 
+def test_apply_show_title_match_merges_into_an_already_existing_show(client, db):
+    """The corrected title can collide with a real shows row that already
+    exists independently of the review pipeline - confirmed in production
+    (Thurles Musical Society, 17/18: a member submission 'Ragtime The
+    Musical' already existed; a review's own skeleton was a separate row
+    titled just 'Ragtime' for the same actual production). A plain rename
+    500'd on ux_shows_natural_key - should instead re-point the review onto
+    the real show and remove the now-redundant skeleton."""
+    admin_id = seed_user(db)
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    adjudicator_id = seed_adjudicator(db)
+    login_as(client, admin_id)
+    real_show_id = seed_skeleton_show(db, society_id, "17/18", "Ragtime The Musical")
+    db.execute("UPDATE shows SET source = 'submission' WHERE id = ?", (real_show_id,))
+    db.commit()
+    skeleton_id = seed_skeleton_show(db, society_id, "17/18", "Ragtime")
+    review_id = seed_historical_review(
+        db, society_id=society_id, adjudicator_id=adjudicator_id, show_id=skeleton_id,
+        season="17/18", show_raw="Ragtime", flag=None, source_issue="Issue 126, December 2017",
+    )
+    db.execute("UPDATE historical_reviews SET moderation_status = 'approved' WHERE id = ?", (review_id,))
+    db.commit()
+
+    resp = client.post(
+        f"/admin/historical-shows/{skeleton_id}/apply-title-match", data={"title": "Ragtime The Musical"},
+    )
+    assert resp.status_code == 302
+
+    assert db.execute("SELECT id FROM shows WHERE id = ?", (skeleton_id,)).fetchone() is None  # skeleton removed
+    review = db.execute("SELECT show_id FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
+    assert review["show_id"] == real_show_id  # re-pointed onto the real show
+
+    detail_resp = client.get(f"/shows/{real_show_id}")
+    assert b"A fine production." in detail_resp.data  # the review now renders on the real show's page
+
+
 def test_apply_show_title_match_refuses_a_non_skeleton_show(client, db):
     """A real imported show's title is authoritative on its own - this
     action only ever touches source='historical' rows."""

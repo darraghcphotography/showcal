@@ -2349,15 +2349,38 @@ def apply_show_title_match(show_id):
     authoritative on its own, never something to silently rewrite from a
     fuzzy suggestion."""
     db = get_db()
-    show = db.execute("SELECT id FROM shows WHERE id = ? AND source = 'historical'", (show_id,)).fetchone()
+    show = db.execute("SELECT * FROM shows WHERE id = ? AND source = 'historical'", (show_id,)).fetchone()
     if show is None:
         abort(404)
     title = request.form.get("title", "").strip()
     if not title:
         abort(400)
-    db.execute("UPDATE shows SET show = ? WHERE id = ?", (title, show_id))
-    db.commit()
-    flash(f'Show title corrected to "{title}".', "success")
+
+    # The corrected title can collide with a real shows row that already
+    # exists independently of the review pipeline (confirmed in production -
+    # Thurles Musical Society's 17/18 'Ragtime The Musical' already existed
+    # as a member submission; the review's own skeleton was a separate,
+    # differently-titled row for the same actual production) - a plain
+    # rename would 500 on ux_shows_natural_key. When that happens, the
+    # skeleton was never the real show to begin with - re-point its
+    # review(s) onto the one that already exists and remove the now-
+    # redundant skeleton, rather than trying to rename into a collision.
+    existing = db.execute(
+        "SELECT id FROM shows WHERE society_id = ? AND season = ? AND show = ? AND id != ?",
+        (show["society_id"], show["season"], title, show_id),
+    ).fetchone()
+    if existing is not None:
+        db.execute("UPDATE historical_reviews SET show_id = ? WHERE show_id = ?", (existing["id"], show_id))
+        db.execute("DELETE FROM shows WHERE id = ?", (show_id,))
+        db.commit()
+        flash(
+            f'"{title}" already exists as a real show for this society/season - linked the '
+            "review there instead and removed the duplicate skeleton.", "success",
+        )
+    else:
+        db.execute("UPDATE shows SET show = ? WHERE id = ?", (title, show_id))
+        db.commit()
+        flash(f'Show title corrected to "{title}".', "success")
     return redirect(url_for("admin.historical_shows_title_check"))
 
 
