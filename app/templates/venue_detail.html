@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ venue }} - DC Show Tracker{% endblock %}
+{% block og_description %}{{ production_count }} AIMS production{{ '' if production_count == 1 else 's' }} staged at {{ venue }}.{% endblock %}
+{% block content %}
+  <p class="meta"><a href="{{ url_for('public.venues_index') }}">&larr; All venues</a></p>
+  <h1>{{ venue }}</h1>
+
+  <div class="stat-tiles">
+    <div class="stat-tile"><span class="stat-value">{{ production_count }}</span><span class="stat-label">AIMS productions on record</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ resident_societies|length }}</span><span class="stat-label">Resident societ{{ 'y' if resident_societies|length == 1 else 'ies' }}</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ span }}</span><span class="stat-label">Seasons on record</span></div>
+  </div>
+
+  <h2>Resident societies</h2>
+  <div class="resident-list">
+    {% for r in resident_societies %}
+      <a class="resident-card" href="{{ url_for('public.society_detail', society_id=r['society_id']) }}">
+        <span class="name">{{ r['society_name'] }}</span>
+        <span class="n">{{ r['n'] }} production{{ '' if r['n'] == 1 else 's' }} here</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  {% if upcoming %}
+    <h2>Upcoming here</h2>
+    <table class="data-table">
+      <thead><tr><th>Show</th><th>Society</th><th>Season</th><th>Dates</th></tr></thead>
+      <tbody>
+        {% for s in upcoming %}
+          <tr>
+            <td><a href="{{ url_for('public.show_detail', show_id=s['id']) }}">{{ s['show'] or 'TBA' }}</a></td>
+            <td><a href="{{ url_for('public.society_detail', society_id=s['society_id']) }}">{{ s['society_name'] }}</a></td>
+            <td>{{ s['season'] }}</td>
+            <td>{{ s['opening_date']|date_range(s['closing_date']) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if past %}
+    <h2>Stage history</h2>
+    <table class="data-table">
+      <thead><tr><th>Season</th><th>Show</th><th>Society</th></tr></thead>
+      <tbody>
+        {% for s in past %}
+          <tr>
+            <td>{{ s['season'] }}</td>
+            <td><a href="{{ url_for('public.show_detail', show_id=s['id']) }}">{{ s['show'] or 'TBA' }}</a></td>
+            <td><a href="{{ url_for('public.society_detail', society_id=s['society_id']) }}">{{ s['society_name'] }}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

@@ -1100,6 +1100,29 @@ a.queue-item:hover { border-color: var(--accent); }
 
 .data-table th.num, .data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
+/* /venues - a plain card grid, deliberately thin (name + production/society
+   counts only). No capacity/type/map fields - that structured data doesn't
+   exist anywhere in the schema; a fuller version is a separate decision, not
+   quietly implied here by matching the look of a richer page. */
+.venue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.venue-card {
+  display: block; text-decoration: none; color: inherit; border: 1px solid var(--border);
+  border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); background: var(--bg);
+}
+.venue-card:hover { border-color: var(--accent); }
+.venue-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent); }
+.venue-card .stat-line { font-size: 0.82rem; color: var(--muted); }
+.venue-card .stat-line strong { color: var(--fg); }
+
+.resident-list { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.75rem; }
+.resident-card {
+  display: flex; flex-direction: column; gap: 0.1rem; border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.55rem 0.9rem; text-decoration: none; color: inherit; background: var(--bg);
+}
+.resident-card:hover { border-color: var(--accent); }
+.resident-card .name { font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+.resident-card .n { font-size: 0.74rem; color: var(--muted); }
+
 /* Roster table: how many years an adjudicator covered, scaled against the
    whole archive's span (computed in adjudicators_list()) so a two-season
    stint and a ten-season one read as different lengths on the same axis. */

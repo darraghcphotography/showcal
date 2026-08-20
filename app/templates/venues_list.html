@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% import "_pagination.html" as pg %}
+{% block title %}Venues - DC Show Tracker{% endblock %}
+{% block og_description %}Every venue an AIMS member society has staged a production in.{% endblock %}
+{% block content %}
+  <h1>Venues</h1>
+  <p class="meta" style="max-width: 62ch;">
+    Every venue on record from the shows database (05/06 on) - who's performed there and how often.
+    {{ total }} venue{{ '' if total == 1 else 's' }}.
+  </p>
+
+  <form method="get" class="filter-form">
+    <label>Venue or town
+      <input type="text" name="q" value="{{ q }}" placeholder="e.g. Gorey, Dean Crowe...">
+    </label>
+    {{ pg.per_page_field(per_page, page_sizes) }}
+    <button type="submit">Filter</button>
+    {% if q %}<a href="{{ url_for('public.venues_index') }}">Clear</a>{% endif %}
+  </form>
+
+  {% if venues %}
+    <div class="venue-grid">
+      {% for v in venues %}
+        <a class="venue-card" href="{{ url_for('public.venue_detail', venue=v['venue']) }}">
+          <h3>{{ v['venue'] }}</h3>
+          <div class="stat-line">
+            <strong>{{ v['n'] }}</strong> production{{ '' if v['n'] == 1 else 's' }} &middot;
+            <strong>{{ v['soc_n'] }}</strong> {{ 'society' if v['soc_n'] == 1 else 'societies' }}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No venues match.</p>
+  {% endif %}
+
+  {{ pg.pager('public.venues_index', page, total_pages) }}
+{% endblock %}

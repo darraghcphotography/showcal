@@ -11,11 +11,10 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
-## START HERE - Decades + Reviews built for real 2026-08-21, 3 mockups still waiting on a coding pass
+## START HERE - Decades + Reviews + Venues built for real 2026-08-21, 2 mockups still waiting on a coding pass
 
-**Update 2026-08-21: Decades Time Machine and Reviews are both live for real**, committed and pushed
-(Darragh confirmed "always commit and push" as a standing default for this repo - see memory). Both built
-straight off their approved mockups.
+**Update 2026-08-21: Decades Time Machine, Reviews, and Venues are all live for real**, committed and
+pushed (Darragh confirmed "always commit and push" as a standing default for this repo - see memory).
 
 **Decades Time Machine** (`/stats/trends`, `info.py`'s `stats_trends()`) - grounded in the awards archive
 (`historical_results`, 1912-2026), not the thinner `shows` catalogue. A decade-scrubber pill row (GET
@@ -45,17 +44,30 @@ counter, which was left untouched) - paste-and-save per row, same shape as Socie
 "Review" never appears anywhere in the page and the new sitewide nav link broke that assumption. Full suite
 392 tests, all green.
 
-**The other 3 mockups are still just mockups**, links saved below so they survive a `/clear` (Artifacts are
+**Venues** (public `/venues` + `/venues/<venue>`) - deliberately the **thin version**, per Darragh's explicit
+call when asked: no capacity/type/map fields at all (that structured data doesn't exist anywhere in the
+schema - `/admin/venues` is just a per-society free-text `default_venue` backfill, not a real venues table).
+`public.py`'s `venues_index()`/`venue_detail()` compute everything live from `shows.venue` - production
+count, resident societies (ranked by production count), stage history, and an "Upcoming here" table (reusing
+`shows.is_upcoming()`). Exact string match only, same "not fuzzy" policy as title matching elsewhere on the
+site (real messy data confirmed working as designed: "Aghada" shows up as its own 1-production venue,
+untouched rather than guessed at). `historical_results` has no venue column at all, so this is necessarily
+scoped to the `shows` table (05/06 on) - pre-05/06 venue history doesn't exist to show. Only linked from
+`/more` (not the main nav, which was already at 7 items after Reviews - same treatment Adjudicators gets).
+**Building the full data-model version (a real `venues` table + admin form + ongoing manual backfill of
+~140 venues) is still an open, undecided commitment** - this thin version was explicitly chosen instead for
+now, not a placeholder for it. 12 tests in `tests/test_venues.py`. Full suite 404 tests, all green.
+
+**2 mockups still waiting on a coding pass**, links saved below so they survive a `/clear` (Artifacts are
 private to Darragh's account until shared, not secret, but still don't paste these anywhere public):
-- Venues Explorer: https://claude.ai/code/artifact/811b3e19-42af-45fd-8a3a-4e97ddd8b391
 - Shows A-Z redesign: https://claude.ai/code/artifact/8748ee86-2422-4df3-aae6-7ee5973bc5c3
 - Society head-to-head compare: https://claude.ai/code/artifact/a3b6ce5c-1bbc-4eb3-aea9-8f480a51e209
 
-None of those 3 have been applied to real templates/routes yet. Per-feature scoping decisions made while
-mocking are recorded in each feature's own bullet below. Next session should either build one of the
-remaining 3 for real or gather feedback on the mockups first if Darragh hasn't reacted to them yet - to
-update a mockup with feedback, republish the same Artifact URL (via the Artifact tool's `url` param) rather
-than creating a new one, so the links above stay correct.
+Neither has been applied to real templates/routes yet. Per-feature scoping decisions made while mocking are
+recorded in each feature's own bullet below. Next session should either build one of these 2 for real or
+gather feedback on the mockups first if Darragh hasn't reacted to them yet - to update a mockup with
+feedback, republish the same Artifact URL (via the Artifact tool's `url` param) rather than creating a new
+one, so the links above stay correct.
 
 ## (original framing below, kept for context on how this pass was run)
 
@@ -176,8 +188,9 @@ isolated worktree, additive-only first pass.
 **OCR test on a programme photo** - blocked on Darragh sending one. Small once a photo exists (test
 extraction accuracy first, design nothing before seeing real output).
 
-**Venue-data gap** - still ~88 shows missing a venue as of the last check, despite the venue-backfill
-tool already existing.
+**Venue-data gap** - real count is 395 shows missing a venue (905 including historical skeleton rows),
+not the ~88 previously logged here (found stale 2026-08-21 while scoping the Venues page - see START HERE).
+The venue-backfill tool (`/admin/venues`) already exists; still not run down to 0.
 
 **People/person-page identity resolution** - parked on Darragh's privacy objection to public person
 pages. Agreed resolution path (internal-only dedup/matching, no public person pages) was never built.

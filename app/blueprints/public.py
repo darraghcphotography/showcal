@@ -1200,6 +1200,79 @@ def title_detail(title):
     )
 
 
+@bp.route("/venues")
+def venues_index():
+    db = get_db()
+    q = request.args.get("q", "").strip()
+
+    # Exact string match on shows.venue, same "not fuzzy" policy as title
+    # matching elsewhere on this site (similarity.normalize_title's own
+    # docstring) - a near-duplicate spelling of the same real venue is a
+    # data-quality question for later, not something to silently merge here.
+    # historical_results has no venue column at all, so this is necessarily
+    # scoped to the shows table (05/06 on), not the full awards archive.
+    query = """
+        SELECT shows.venue AS venue, COUNT(*) AS n, COUNT(DISTINCT shows.society_id) AS soc_n
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.venue IS NOT NULL AND shows.venue != ''
+          AND shows.moderation_status = 'approved' AND NOT societies.hidden
+    """
+    params = []
+    if q:
+        query += " AND shows.venue LIKE ? ESCAPE '\\'"
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        params.append(f"%{escaped}%")
+    query += " GROUP BY shows.venue ORDER BY shows.venue COLLATE NOCASE"
+    venues = db.execute(query, params).fetchall()
+
+    total = len(venues)
+    per_page, page, total_pages = paginate_args(total)
+    venues = venues[(page - 1) * per_page:page * per_page]
+
+    return render_template(
+        "venues_list.html", venues=venues, q=q,
+        page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=LIST_PAGE_SIZES,
+    )
+
+
+@bp.route("/venues/<path:venue>")
+def venue_detail(venue):
+    db = get_db()
+    shows = db.execute(
+        """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.venue = ? AND shows.moderation_status = 'approved' AND NOT societies.hidden
+        ORDER BY shows.season DESC, shows.opening_date DESC
+        """,
+        (venue,),
+    ).fetchall()
+    if not shows:
+        abort(404)
+
+    upcoming, past = [], []
+    for s in shows:
+        (upcoming if _is_upcoming(s) else past).append(s)
+
+    residents = {}
+    for s in shows:
+        entry = residents.setdefault(
+            s["society_id"], {"society_id": s["society_id"], "society_name": s["society_name"], "n": 0}
+        )
+        entry["n"] += 1
+    resident_societies = sorted(residents.values(), key=lambda r: (-r["n"], r["society_name"]))
+
+    seasons_seen = [s["season"] for s in shows]
+    earliest = min(seasons_seen, key=season_start_year)
+    latest = max(seasons_seen, key=season_start_year)
+    span = earliest if earliest == latest else f"{earliest}–{latest}"
+
+    return render_template(
+        "venue_detail.html", venue=venue, upcoming=upcoming, past=past,
+        resident_societies=resident_societies, production_count=len(shows), span=span,
+    )
+
+
 @bp.route("/more")
 def more():
     """Mobile-only "More" tab destination - everything that isn't one of the
