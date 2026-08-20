@@ -1222,7 +1222,13 @@ def venues_index():
         query += " AND shows.venue LIKE ? ESCAPE '\\'"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         params.append(f"%{escaped}%")
-    query += " GROUP BY shows.venue ORDER BY shows.venue COLLATE NOCASE"
+    # Most-used first, not alphabetical - the free-text venue field has real
+    # noise (data-entry slips like an anniversary note where a venue name
+    # should be, near-duplicate spellings of the same real venue) and
+    # alphabetical order put exactly that noise at the very top. Sorting by
+    # production count instead means the real, recognizable venues lead the
+    # list; the noise is still all there, just no longer first impression.
+    query += " GROUP BY shows.venue ORDER BY n DESC, shows.venue COLLATE NOCASE"
     venues = db.execute(query, params).fetchall()
 
     total = len(venues)

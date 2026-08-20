@@ -131,6 +131,24 @@ def test_span_shows_single_season_without_a_dash_when_theres_only_one(client, db
     assert "23/24–23/24" not in body
 
 
+def test_index_sorts_by_most_productions_first_not_alphabetical(client, db):
+    """The free-text venue field has real noise (data-entry slips, near-
+    duplicate spellings) - alphabetical order put exactly that noise first.
+    Most-used venues should lead instead."""
+    society_id = seed_society(db)
+    add_show(db, society_id, "One-off", "40th Anniversary (March run)", season="20/21")
+    add_show(db, society_id, "Show A", "Popular Theatre", season="24/25")
+    add_show(db, society_id, "Show B", "Popular Theatre", season="23/24")
+
+    body = client.get("/venues").get_data(as_text=True)
+    assert body.index("Popular Theatre") < body.index("40th Anniversary (March run)")
+
+
 def test_more_page_links_to_venues(client):
     body = client.get("/more").get_data(as_text=True)
+    assert 'href="/venues"' in body
+
+
+def test_footer_links_to_venues(client):
+    body = client.get("/").get_data(as_text=True)
     assert 'href="/venues"' in body
