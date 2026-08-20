@@ -40,24 +40,30 @@ Flat list, no particular order beyond roughly how it was prioritized when last d
 reasoning/history for any of these is in `ROADMAP_ARCHIVE.md` if needed - search there for a keyword
 before re-deriving from scratch.
 
-**Season calendar UX feedback (2026-08-20, real page: `/season?season=26/27&region=&tier=&sort=asc`)**
-- **Mockup built and iterated once (published Artifact, real tokens/production data), not yet applied to
-  the real template.** Current-season calendar as a `<details>` disclosure (open by default, closed on a
-  past season, native element already used elsewhere on /stats), a grouped Future/Current/Past season
-  dropdown replacing the inline "Jump to:" list, past-season copy switched to past tense, sort toggle and
-  "Hide cancelled shows" filter both removed per feedback (the latter because the underlying cancelled-
-  status data "has been inaccurate anywhere I found it" - scoped narrowly to just removing this page's
-  filter control for now; whether the `status='Cancelled'` data itself needs fixing, or the "Cancelled"
-  tag shown elsewhere on the site needs to go too, is a separate, bigger, undecided question).
-- Next: apply the approved mockup to `app/templates/season.html` / `info.py`'s `season_summary()`.
+**Season calendar UX feedback - SHIPPED 2026-08-20.** Mockup-first (published Artifact, real tokens/
+production data), iterated once on feedback, then applied to `app/templates/season.html` /
+`info.py`'s `season_summary()`. Season calendar is now a `<details>` disclosure (open by default,
+closed on a past season, same native element already used on /stats), a grouped Future/Current/Past
+season dropdown replaced the inline "Jump to:" list (sorted by real `season_start_year`, not a plain
+string DESC - the archive now spans the 1999/2000 rollover), past-season copy switched to past tense,
+and the sort toggle + "Hide cancelled shows" filter were both removed. The cancelled-status question is
+carried forward below, scoped narrowly for now (just this page's filter control removed - the
+underlying `status='Cancelled'` data and the "Cancelled" tag shown elsewhere on the site are untouched).
 
-**New feature idea, not yet scoped: a reviews page, both public-facing and admin-side.** Darragh raised
-this while mid-task adding missing `aims.ie` review links by hand, calling the current process "quite
-tedious." Immediate relief applied same session (`backfill_2526_reviews.py` - 28 of 46 missing 25/26
-review links matched against aims.ie's own published list and backfilled), but that was a one-off script,
-not the actual feature - the reviews-page idea itself is still unscoped. No reliable way to schedule a
-same-conversation follow-up outside `/loop` was found (a cloud routine would be a disconnected session,
-not this one) - just bring it up next session rather than waiting on a wakeup that isn't coming.
+**Cancelled-show data reliability - not investigated.** Darragh: the `status='Cancelled'` field "has
+been inaccurate anywhere I found it." Only the season calendar's filter control was removed in response
+(above) - whether the underlying data needs a real fix, and whether the "Cancelled" tag shown on
+chips/rows elsewhere (society pages, admin) should stop rendering until it's trustworthy, is still open
+and deliberately not decided or investigated yet.
+
+**Reviews page, both public-facing and admin-side - not yet scoped, but detail is firming up.** Darragh
+raised this while mid-task adding missing `aims.ie` review links by hand ("quite tedious"), then added:
+should be reachable from the nav bar, and searchable by show. Immediate relief applied same session
+(`backfill_2526_reviews.py` - 28 of 46 missing 25/26 review links matched against aims.ie's own
+published list and backfilled), but that was a one-off script, not the actual feature. Real scoping
+session still needed - what does "admin-side" mean concretely (a queue of shows missing a review link,
+one-click attach?), does public search here overlap with the existing sitewide /search's Reviews
+section, nav placement.
 
 **Society misattribution follow-ups (from today's fix, see above):**
 - **6 of the 8 remaining cases resolved and applied live 2026-08-20** (`fix_society_misattributions_2.py`,
