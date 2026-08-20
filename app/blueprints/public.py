@@ -58,7 +58,11 @@ def _congestion_teaser(db):
         return season_weeks(rows)
 
     season_used = current
-    congested = [w for w in weeks_for(current) if w["congested"]]
+    today = date.today()
+    # Already-finished weeks aren't "coming up" - same rule as /season's own
+    # calendar. A fully past fallback season below is browsed as history
+    # instead, so it keeps its whole spread.
+    congested = [w for w in weeks_for(current) if w["congested"] and w["end"] >= today]
     is_historical = False
 
     if not congested:
@@ -81,9 +85,7 @@ def _congestion_teaser(db):
         mid = len(congested) // 2
         picked = [congested[0], congested[mid], congested[-1]] if len(congested) >= 3 else congested
     else:
-        today = date.today()
-        upcoming = [w for w in congested if w["end"] >= today]
-        picked = (upcoming or congested)[:3]
+        picked = congested[:3]
 
     return {
         "season": season_used, "current_season": current, "is_historical": is_historical,

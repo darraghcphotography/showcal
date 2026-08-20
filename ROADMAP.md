@@ -30,11 +30,26 @@ Grid alternative - "option a is slick - go go go".
   (`test_season_page_sort_toggle_reverses_order`) fixed to scope its assertion to the table section only,
   since the new calendar above it always renders chronologically regardless of the table's sort toggle.
 
+**First commit (`5feffaf`) shipped combined-threshold congestion (3+ shows total, either section) - two rounds
+of real-usage feedback since then, both fixed before deploy:**
+1. **Already-finished months were showing at the top of the current season's calendar** ("the may/june
+   shows... makes no sense with them still being visible"). `season_summary()` now drops any week whose
+   `end` date is before today when the season being viewed isn't already fully past - a genuinely past
+   season (browsed as history via the season picker) keeps its complete calendar, unaffected.
+2. **Congestion is per-section, not combined** ("2 gilbert + 2 sullivan isn't a reason to flag") - an
+   adjudicator only needs to cover their own section, so 4 shows split 2-and-2 was never a real clash for
+   either of them. `season_weeks()` now judges Gilbert and Sullivan independently, each at its own 4+
+   threshold (raised from 3, since "4 shows in one section" is the real bar, not "3 shows total"); the
+   week-flag names which section(s) triggered it, and only that section's column gets the amber tint -
+   not the whole row.
+
 **Not done yet:**
 - Not committed or deployed - `app/blueprints/info.py`, `app/blueprints/public.py`, `app/season.py`,
   `app/static/style.css`, `app/templates/index.html`, `app/templates/season.html`,
-  `tests/test_stats_and_season_filters.py` are modified in the working tree; `tests/test_season_calendar.py`
-  is new/untracked. Needs a commit + push + redeploy before it's live.
+  `tests/test_season_calendar.py` are modified in the working tree (all three feedback rounds folded
+  into the same uncommitted diff). Needs a commit + push + redeploy before any of it is live - the
+  currently-deployed `5feffaf` is one commit behind and still has the combined-threshold/no-past-filter
+  behaviour that prompted these two fixes.
 - The live current-season view (as opposed to the always-available historical/any-season view via the
   existing season picker) will look sparse until more of 26/27 has confirmed dates - expected, matches
   the original Aug 5 scoping's "fast-follow" framing, not a bug.

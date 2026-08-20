@@ -1,15 +1,17 @@
 from datetime import date, timedelta
 
 
+CONGESTION_THRESHOLD = 4
+
+
 def season_weeks(rows):
     """Group a season's shows by the ISO week of their opening date, flagging
-    each week "congested" if 3+ non-cancelled shows are actually *running*
-    (not just opening) at any point in it - a still-running show from the
-    week before counts too, since a 9-day run and a 3-night run pose very
-    different "can I catch both" problems. Chips stay anchored to their
-    opening week (so nothing renders twice), but the congestion count looks
-    across the whole passed-in set, not just the shows anchored to that one
-    week - mirrors the design agreed in the season-calendar mockup."""
+    a week "congested" per section - Gilbert and Sullivan judged separately,
+    each at 4+ non-cancelled shows actually *running* (not just opening) at
+    any point in it, a still-running show from the week before counts too.
+    Per-section, not combined: an adjudicator only needs to reach every show
+    in their own section, so 2 Gilbert + 2 Sullivan in the same week isn't a
+    real clash for either of them, even though it's 4 shows total."""
     parsed = []
     for row in rows:
         if not row["opening_date"]:
@@ -22,26 +24,56 @@ def season_weeks(rows):
     for row, opening, closing in parsed:
         buckets.setdefault(opening.isocalendar()[:2], []).append(row)
 
+    def section_overlap(section, start, end):
+        return sum(
+            1 for r, o, c in parsed
+            if r["status"] != "Cancelled" and r["section"] == section and o <= end and c >= start
+        )
+
     weeks = []
     for iso_year, iso_week in sorted(buckets):
         start = date.fromisocalendar(iso_year, iso_week, 1)
         end = start + timedelta(days=6)
         shows = buckets[(iso_year, iso_week)]
-        overlap_count = sum(
-            1 for r, o, c in parsed
-            if r["status"] != "Cancelled" and o <= end and c >= start
-        )
-        open_count = sum(1 for r in shows if r["status"] != "Cancelled")
+
+        gilbert_shows = [r for r in shows if r["section"] == "Gilbert"]
+        sullivan_shows = [r for r in shows if r["section"] == "Sullivan"]
+        other_shows = [r for r in shows if r["section"] not in ("Gilbert", "Sullivan")]
+
+        gilbert_open = sum(1 for r in gilbert_shows if r["status"] != "Cancelled")
+        sullivan_open = sum(1 for r in sullivan_shows if r["status"] != "Cancelled")
+        gilbert_overlap = section_overlap("Gilbert", start, end)
+        sullivan_overlap = section_overlap("Sullivan", start, end)
+        gilbert_congested = gilbert_overlap >= CONGESTION_THRESHOLD
+        sullivan_congested = sullivan_overlap >= CONGESTION_THRESHOLD
+
+        congestion_notes = []
+        if gilbert_congested:
+            congestion_notes.append({
+                "label": "Gilbert", "overlap": gilbert_overlap, "carryover": gilbert_overlap - gilbert_open,
+            })
+        if sullivan_congested:
+            congestion_notes.append({
+                "label": "Sullivan", "overlap": sullivan_overlap, "carryover": sullivan_overlap - sullivan_open,
+            })
+
+        other_open = sum(1 for r in other_shows if r["status"] != "Cancelled")
+
         weeks.append({
             "start": start,
             "end": end,
-            "gilbert": [r for r in shows if r["section"] == "Gilbert"],
-            "sullivan": [r for r in shows if r["section"] == "Sullivan"],
-            "other": [r for r in shows if r["section"] not in ("Gilbert", "Sullivan")],
-            "overlap_count": overlap_count,
-            "open_count": open_count,
-            "congested": overlap_count >= 3,
-            "carryover": overlap_count - open_count,
+            "gilbert": gilbert_shows,
+            "sullivan": sullivan_shows,
+            "other": other_shows,
+            "open_count": gilbert_open + sullivan_open + other_open,
+            "gilbert_open": gilbert_open,
+            "sullivan_open": sullivan_open,
+            "gilbert_overlap": gilbert_overlap,
+            "sullivan_overlap": sullivan_overlap,
+            "gilbert_congested": gilbert_congested,
+            "sullivan_congested": sullivan_congested,
+            "congested": gilbert_congested or sullivan_congested,
+            "congestion_notes": congestion_notes,
             "month_key": start.strftime("%Y-%m"),
             "month_label": start.strftime("%B %Y"),
         })

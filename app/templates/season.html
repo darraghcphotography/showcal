@@ -47,9 +47,9 @@
   </span>
 {% endmacro %}
 
-{% macro season_column(label, cls, shows) %}
-  <div class="week-col {{ cls }}">
-    <div class="week-col-head">{{ label }} ({{ shows|length }})</div>
+{% macro season_column(label, cls, shows, congested=False) %}
+  <div class="week-col {{ cls }}{{ ' congested' if congested else '' }}">
+    <div class="week-col-head">{{ label }} ({{ shows|length }}){% if congested %} &#9888;{% endif %}</div>
     {% if shows %}
       {% for show in shows %}{{ season_chip(show) }}{% endfor %}
     {% else %}
@@ -146,9 +146,11 @@
   {% if weeks %}
     <div class="season-calendar">
       <h2>Season calendar</h2>
-      <p class="meta">Gilbert on the left, Sullivan on the right, grouped by week. A week is flagged
-        <strong>congested</strong> when 3+ shows are actually running at once - including one still mid-run
-        from the week before - not just when 3+ open in it.</p>
+      <p class="meta">Gilbert on the left, Sullivan on the right, grouped by week. A section is flagged
+        <strong>congested</strong> for a week where 4+ of its own shows are actually running at once -
+        including one still mid-run from the week before - judged separately per section, since an
+        adjudicator only needs to reach everything in their own.
+        {%- if not is_past_season %} Already-finished weeks aren't shown.{% endif %}</p>
       <div class="legend">
         <span class="legend-item"><span class="swatch gilbert"></span>Gilbert</span>
         <span class="legend-item"><span class="swatch sullivan"></span>Sullivan</span>
@@ -165,14 +167,18 @@
             <div class="week-row{{ ' congested' if week['congested'] else '' }}">
               <div class="week-row-top">
                 <span class="week-label">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</span>
-                {% if week['congested'] %}
-                  <span class="week-flag">&#9888; Congested &mdash; {{ week['overlap_count'] }} shows running{% if week['carryover'] > 0 %} ({{ week['carryover'] }} carrying over from the week before){% endif %}</span>
+                {% if week['congestion_notes'] %}
+                  <span class="week-flag">
+                    {% for note in week['congestion_notes'] %}
+                      &#9888; {{ note['label'] }} congested &mdash; {{ note['overlap'] }} running{% if note['carryover'] > 0 %} ({{ note['carryover'] }} carrying over){% endif %}{% if not loop.last %} &middot; {% endif %}
+                    {% endfor %}
+                  </span>
                 {% endif %}
               </div>
               <div class="week-split">
-                {{ season_column('Gilbert', 'gilbert-col', week['gilbert']) }}
+                {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
                 <div class="week-divider"></div>
-                {{ season_column('Sullivan', 'sullivan-col', week['sullivan']) }}
+                {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
               </div>
               {% if week['other'] %}
                 <div class="week-other">{{ season_column('Non-AIMS', '', week['other']) }}</div>

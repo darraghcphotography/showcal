@@ -68,21 +68,24 @@
       {% if congestion_teaser['is_historical'] %}
         <p class="meta">Not much confirmed yet for {{ congestion_teaser['current_season'] }} - but
           {{ congestion_teaser['season'] }} had {{ congestion_teaser['total'] }}
-          week{{ '' if congestion_teaser['total'] == 1 else 's' }} with 3+ shows running at once.
-          Here's what that looked like.</p>
+          week{{ '' if congestion_teaser['total'] == 1 else 's' }} where one section had 4+ shows running
+          at once. Here's what that looked like.</p>
       {% else %}
         <p class="meta">{{ congestion_teaser['season'] }} has {{ congestion_teaser['total'] }}
-          week{{ '' if congestion_teaser['total'] == 1 else 's' }} with 3+ shows running at once - worth knowing if
-          you're planning which weekend to go, or an adjudication visit.</p>
+          week{{ '' if congestion_teaser['total'] == 1 else 's' }} where one section has 4+ shows running
+          at once - worth knowing if you're planning which weekend to go, or an adjudication visit.</p>
       {% endif %}
       <div class="teaser-weeks">
         {% for week in congestion_teaser['weeks'] %}
+          {% set congested_shows = (week['gilbert'] if week['gilbert_congested'] else []) + (week['sullivan'] if week['sullivan_congested'] else []) %}
           <div class="teaser-week">
             <div class="tw-when">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</div>
-            <div class="tw-count">{{ week['overlap_count'] }} shows running</div>
+            <div class="tw-count">
+              {% for note in week['congestion_notes'] %}{{ note['label'] }}: {{ note['overlap'] }} running{% if not loop.last %} &middot; {% endif %}{% endfor %}
+            </div>
             <div class="tw-list">
-              {% for show in (week['gilbert'] + week['sullivan'] + week['other'])[:3] %}{{ show['show'] }}{{ ', ' if not loop.last }}{% endfor %}
-              {%- if week['open_count'] > 3 %}, +{{ week['open_count'] - 3 }} more{% endif %}
+              {% for show in congested_shows[:3] %}{{ show['show'] }}{{ ', ' if not loop.last }}{% endfor %}
+              {%- if congested_shows|length > 3 %}, +{{ congested_shows|length - 3 }} more{% endif %}
             </div>
           </div>
         {% endfor %}

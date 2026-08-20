@@ -537,20 +537,28 @@ details table { margin-top: 0.5rem; }
 .month-heading .count { font-weight: 400; color: var(--muted); font-size: 0.82rem; }
 
 .week-row { padding: 0.6rem 0.7rem; border-radius: 6px; margin-bottom: 0.4rem; border: 1px solid transparent; }
-.week-row.congested {
-  background: color-mix(in srgb, var(--warning) 12%, transparent);
-  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
-}
+.week-row.congested { border-color: color-mix(in srgb, var(--warning) 35%, transparent); }
 .week-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
 .week-label { font-size: 0.8rem; font-weight: 700; color: var(--fg); }
 .week-flag { font-size: 0.72rem; font-weight: 700; color: var(--warning); }
 
 .week-split { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0.75rem; }
 .week-divider { background: var(--border); }
-.week-col { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.week-col {
+  display: flex; flex-direction: column; gap: 0.35rem; min-width: 0;
+  padding: 0.4rem; border-radius: 6px; border: 1px solid transparent;
+}
 .week-col-head { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .week-col.gilbert-col .week-col-head { color: var(--tier-gilbert); }
 .week-col.sullivan-col .week-col-head { color: var(--tier-sullivan); }
+/* Congestion is judged per section, not combined - only the column that's
+   actually over threshold gets tinted, so 2 Gilbert + 2 Sullivan in one
+   week (neither side a real clash) never looks like a problem. */
+.week-col.congested {
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+}
+.week-col.congested .week-col-head { color: var(--warning); }
 .week-col-empty { font-size: 0.78rem; color: var(--muted); font-style: italic; }
 .week-other { margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px dashed var(--border); }
 

@@ -446,7 +446,14 @@ def season_summary():
     rows = db.execute(query, params).fetchall()
     upcoming = [r for r in rows if not r["is_past"]]
     finished = [r for r in rows if r["is_past"]]
+    is_past_season = season < current
     weeks = season_weeks(rows)
+    if not is_past_season:
+        # For the current/a future season, already-finished months at the top
+        # are just clutter - nothing left to plan around. A genuinely past
+        # season is being browsed as history, so it keeps its full calendar.
+        today = date.today()
+        weeks = [w for w in weeks if w["end"] >= today]
 
     # A society can reserve a slot for the season before announcing a title -
     # shows.show is NULL until they do (same "slotted, TBA" placeholder
@@ -504,7 +511,7 @@ def season_summary():
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
         unannounced=unannounced, weeks=weeks,
         upcoming_has_review=_has_review(upcoming), finished_has_review=_has_review(finished),
-        is_current=(season == current), is_past_season=(season < current), is_future_season=(season > current),
+        is_current=(season == current), is_past_season=is_past_season, is_future_season=(season > current),
         season_range_label=season_range_label,
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
         hide_cancelled=hide_cancelled, sort=sort,

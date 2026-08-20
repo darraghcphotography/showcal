@@ -1,8 +1,21 @@
 """Season calendar: /season's Gilbert/Sullivan agenda view and the homepage
 congestion teaser (app/season.py's season_weeks(), info.py's season_summary(),
-public.py's _congestion_teaser()). A week is "congested" when 3+ non-cancelled
-shows are actually running at some point in it - including one still mid-run
-from the week before - not just when 3+ open in it."""
+public.py's _congestion_teaser()).
+
+A section (Gilbert or Sullivan) is flagged "congested" for a week where 4+ of
+its own non-cancelled shows are actually *running* at some point in it -
+including one still mid-run from the week before, not just shows opening in
+it - judged separately per section, since an adjudicator only needs to reach
+everything in their own (2 Gilbert + 2 Sullivan in the same week is 4 shows
+total but a real clash for neither).
+
+info.py's season_summary() also drops already-finished weeks for the current/
+a future season (a past season being browsed as history keeps its full
+calendar) - integration tests below use dates offset from today so they stay
+valid regardless of when they're run.
+"""
+from datetime import date, timedelta
+
 from conftest import seed_society
 
 from app.season import season_weeks
@@ -23,31 +36,51 @@ def test_season_weeks_congestion_uses_overlap_not_just_opening_week():
     week's congestion too, not just shows that open in it."""
     rows = [
         _show(id=1, show="A", opening_date="2026-04-06", closing_date="2026-04-13"),  # spans two ISO weeks
-        _show(id=2, show="B", section="Sullivan", opening_date="2026-04-14", closing_date="2026-04-18"),
+        _show(id=2, show="B", opening_date="2026-04-14", closing_date="2026-04-18"),
         _show(id=3, show="C", opening_date="2026-04-15", closing_date="2026-04-19"),
+        _show(id=4, show="D", opening_date="2026-04-15", closing_date="2026-04-19"),
     ]
     weeks = season_weeks(rows)
     week2 = next(w for w in weeks if w["start"].isoformat() == "2026-04-13")
-    # B and C open in week 2; A is still running (13-13 Apr) into it - all 3 overlap
-    assert week2["congested"] is True
-    assert week2["overlap_count"] == 3
-    assert week2["open_count"] == 2
-    assert week2["carryover"] == 1
+    # B, C, D open in week 2; A is still running (13-13 Apr) into it - all 4 overlap
+    assert week2["gilbert_congested"] is True
+    assert week2["gilbert_overlap"] == 4
+    assert week2["gilbert_open"] == 3
+    assert week2["congestion_notes"] == [{"label": "Gilbert", "overlap": 4, "carryover": 1}]
+
+
+def test_season_weeks_two_plus_two_across_sections_is_not_congested():
+    """The exact case flagged as a false positive: 2 Gilbert + 2 Sullivan in
+    one week is 4 shows total, but neither section alone hits the threshold,
+    and an adjudicator only needs to cover their own section."""
+    rows = [
+        _show(id=1, show="A", section="Gilbert"),
+        _show(id=2, show="B", section="Gilbert"),
+        _show(id=3, show="C", section="Sullivan"),
+        _show(id=4, show="D", section="Sullivan"),
+    ]
+    weeks = season_weeks(rows)
+    assert len(weeks) == 1
+    week = weeks[0]
+    assert week["gilbert_congested"] is False
+    assert week["sullivan_congested"] is False
+    assert week["congested"] is False
+    assert week["congestion_notes"] == []
 
 
 def test_season_weeks_cancelled_shows_excluded_from_counts_not_from_lists():
     rows = [
         _show(id=1, show="A"),
-        _show(id=2, show="B", section="Sullivan"),
-        _show(id=3, show="C", status="Cancelled"),
+        _show(id=2, show="B"),
+        _show(id=3, show="C"),
+        _show(id=4, show="D", status="Cancelled"),
     ]
     weeks = season_weeks(rows)
     assert len(weeks) == 1
     week = weeks[0]
-    assert week["congested"] is False  # only 2 non-cancelled shows overlap
-    assert week["overlap_count"] == 2
-    assert len(week["gilbert"]) == 2  # A and the cancelled C both listed
-    assert len(week["sullivan"]) == 1
+    assert week["gilbert_congested"] is False  # only 3 non-cancelled overlap, threshold is 4
+    assert week["gilbert_overlap"] == 3
+    assert len(week["gilbert"]) == 4  # all four, including the cancelled one, still listed
 
 
 def test_season_weeks_ignores_rows_without_opening_date():
@@ -56,64 +89,122 @@ def test_season_weeks_ignores_rows_without_opening_date():
     assert sum(len(w["gilbert"]) + len(w["sullivan"]) + len(w["other"]) for w in weeks) == 1
 
 
-def _insert_show(db, society_id, show, opening, closing, section="Gilbert", status=None):
+def _monday_weeks_ahead(n):
+    today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    return monday + timedelta(weeks=n)
+
+
+def _week_run(weeks_ahead, day_offset=0, length=4):
+    """An opening/closing ISO date pair guaranteed to land `weeks_ahead` ISO
+    weeks from now (well clear of today, so the "hide already-finished
+    weeks" filter never eats it), offset a few days apart so several shows
+    in the same test land in the same ISO week without being on identical
+    dates."""
+    start = _monday_weeks_ahead(weeks_ahead) + timedelta(days=day_offset)
+    end = start + timedelta(days=length)
+    return start.isoformat(), end.isoformat()
+
+
+def _insert_show(db, society_id, show, opening, closing, section="Gilbert", status=None, region="Eastern"):
     db.execute(
         "INSERT INTO shows (society_id, season, region, section, show, opening_date, closing_date, "
-        "status, moderation_status) VALUES (?, '26/27', 'Eastern', ?, ?, ?, ?, ?, 'approved')",
-        (society_id, section, show, opening, closing, status),
+        "status, moderation_status) VALUES (?, '26/27', ?, ?, ?, ?, ?, ?, 'approved')",
+        (society_id, region, section, show, opening, closing, status),
     )
 
 
 def test_season_page_renders_split_columns_and_congestion_flag(client, db):
     society_id = seed_society(db)
-    _insert_show(db, society_id, "Gil One", "2026-04-06", "2026-04-10")
-    _insert_show(db, society_id, "Gil Two", "2026-04-07", "2026-04-10")
-    _insert_show(db, society_id, "Sul One", "2026-04-08", "2026-04-11", section="Sullivan")
+    o1, c1 = _week_run(4, day_offset=0)
+    o2, c2 = _week_run(4, day_offset=1)
+    o3, c3 = _week_run(4, day_offset=2)
+    o4, c4 = _week_run(4, day_offset=2)
+    o5, c5 = _week_run(4, day_offset=3)
+    _insert_show(db, society_id, "Gil One", o1, c1)
+    _insert_show(db, society_id, "Gil Two", o2, c2)
+    _insert_show(db, society_id, "Gil Three", o3, c3)
+    _insert_show(db, society_id, "Gil Four", o4, c4)
+    _insert_show(db, society_id, "Sul One", o5, c5, section="Sullivan")
     db.commit()
 
     body = client.get("/season?season=26/27").get_data(as_text=True)
     assert "Season calendar" in body
-    assert "Gilbert (2)" in body
+    assert "Gilbert (4)" in body
     assert "Sullivan (1)" in body
-    assert "Congested" in body
+    assert "week-row congested" in body
+    assert "Gilbert congested" in body
+    assert "Sullivan congested" not in body
 
 
 def test_season_page_section_filter_recomputes_congestion(client, db):
     society_id = seed_society(db)
-    _insert_show(db, society_id, "Gil One", "2026-04-06", "2026-04-10")
-    _insert_show(db, society_id, "Gil Two", "2026-04-07", "2026-04-10")
-    _insert_show(db, society_id, "Sul One", "2026-04-08", "2026-04-11", section="Sullivan")
-    _insert_show(db, society_id, "Sul Two", "2026-04-08", "2026-04-11", section="Sullivan")
+    o1, c1 = _week_run(5, day_offset=0)
+    o2, c2 = _week_run(5, day_offset=1)
+    o3, c3 = _week_run(5, day_offset=2)
+    o4, c4 = _week_run(5, day_offset=3)
+    _insert_show(db, society_id, "East One", o1, c1, region="Eastern")
+    _insert_show(db, society_id, "East Two", o2, c2, region="Eastern")
+    _insert_show(db, society_id, "West One", o3, c3, region="Western")
+    _insert_show(db, society_id, "West Two", o4, c4, region="Western")
     db.commit()
 
-    # Unfiltered: 4 shows overlapping one week - congested.
+    # Unfiltered: 4 Gilbert shows overlapping one week - congested.
     combined = client.get("/season?season=26/27").get_data(as_text=True)
     assert "week-row congested" in combined
 
-    # Filtered to Gilbert only: 2 shows - no longer congested.
-    gilbert_only = client.get("/season?season=26/27&tier=Gilbert").get_data(as_text=True)
-    assert "week-row congested" not in gilbert_only
-    assert "Sullivan (0)" in gilbert_only
+    # Filtered to Eastern only: 2 shows - no longer congested.
+    eastern_only = client.get("/season?season=26/27&region=Eastern").get_data(as_text=True)
+    assert "week-row congested" not in eastern_only
+    assert "Gilbert (2)" in eastern_only
 
 
 def test_season_page_cancelled_show_shown_but_not_congested(client, db):
     society_id = seed_society(db)
-    _insert_show(db, society_id, "Gil One", "2026-04-06", "2026-04-10")
-    _insert_show(db, society_id, "Gil Two", "2026-04-07", "2026-04-10")
-    _insert_show(db, society_id, "Gil Three", "2026-04-08", "2026-04-11", status="Cancelled")
+    o1, c1 = _week_run(6, day_offset=0)
+    o2, c2 = _week_run(6, day_offset=1)
+    o3, c3 = _week_run(6, day_offset=2)
+    o4, c4 = _week_run(6, day_offset=3)
+    _insert_show(db, society_id, "Gil One", o1, c1)
+    _insert_show(db, society_id, "Gil Two", o2, c2)
+    _insert_show(db, society_id, "Gil Three", o3, c3)
+    _insert_show(db, society_id, "Gil Four", o4, c4, status="Cancelled")
     db.commit()
 
     body = client.get("/season?season=26/27").get_data(as_text=True)
-    assert "Gil Three" in body
+    assert "Gil Four" in body
     assert "cancelled-tag" in body
     assert "week-row congested" not in body
 
 
+def test_season_page_hides_already_finished_weeks_for_current_season(client, db):
+    """Old Show still legitimately appears in the classic table further down
+    the page (that view is unchanged) - only the new calendar section above
+    it drops already-finished weeks, so the assertion is scoped there."""
+    society_id = seed_society(db)
+    past_opening = (date.today() - timedelta(days=60)).isoformat()
+    past_closing = (date.today() - timedelta(days=55)).isoformat()
+    future_opening, future_closing = _week_run(3)
+    _insert_show(db, society_id, "Old Show", past_opening, past_closing)
+    _insert_show(db, society_id, "New Show", future_opening, future_closing)
+    db.commit()
+
+    body = client.get("/season?season=26/27").get_data(as_text=True)
+    calendar_section = body.split("Season calendar")[1].split("Upcoming productions")[0]
+    assert "New Show" in calendar_section
+    assert "Old Show" not in calendar_section
+
+
 def test_homepage_congestion_teaser_uses_current_season_when_congested(client, db):
     society_id = seed_society(db)
-    _insert_show(db, society_id, "Gil One", "2026-04-06", "2026-04-10")
-    _insert_show(db, society_id, "Gil Two", "2026-04-07", "2026-04-10")
-    _insert_show(db, society_id, "Sul One", "2026-04-08", "2026-04-11", section="Sullivan")
+    o1, c1 = _week_run(4, day_offset=0)
+    o2, c2 = _week_run(4, day_offset=1)
+    o3, c3 = _week_run(4, day_offset=2)
+    o4, c4 = _week_run(4, day_offset=3)
+    _insert_show(db, society_id, "Gil One", o1, c1)
+    _insert_show(db, society_id, "Gil Two", o2, c2)
+    _insert_show(db, society_id, "Gil Three", o3, c3)
+    _insert_show(db, society_id, "Gil Four", o4, c4)
     db.commit()
 
     body = client.get("/").get_data(as_text=True)
@@ -123,24 +214,19 @@ def test_homepage_congestion_teaser_uses_current_season_when_congested(client, d
 
 def test_homepage_congestion_teaser_falls_back_to_prior_season(client, db):
     society_id = seed_society(db)
-    # Prior season, genuinely congested.
-    db.execute(
-        "INSERT INTO shows (society_id, season, region, section, show, opening_date, closing_date, moderation_status) "
-        "VALUES (?, '25/26', 'Eastern', 'Gilbert', 'Old One', '2025-04-06', '2025-04-10', 'approved')",
-        (society_id,),
-    )
-    db.execute(
-        "INSERT INTO shows (society_id, season, region, section, show, opening_date, closing_date, moderation_status) "
-        "VALUES (?, '25/26', 'Eastern', 'Gilbert', 'Old Two', '2025-04-07', '2025-04-10', 'approved')",
-        (society_id,),
-    )
-    db.execute(
-        "INSERT INTO shows (society_id, season, region, section, show, opening_date, closing_date, moderation_status) "
-        "VALUES (?, '25/26', 'Eastern', 'Sullivan', 'Old Three', '2025-04-08', '2025-04-11', 'approved')",
-        (society_id,),
-    )
+    # Prior season, genuinely congested (4 Gilbert shows overlapping).
+    for i, (opening, closing) in enumerate([
+        ("2025-04-06", "2025-04-10"), ("2025-04-07", "2025-04-10"),
+        ("2025-04-08", "2025-04-11"), ("2025-04-08", "2025-04-11"),
+    ]):
+        db.execute(
+            "INSERT INTO shows (society_id, season, region, section, show, opening_date, closing_date, moderation_status) "
+            "VALUES (?, '25/26', 'Eastern', 'Gilbert', ?, ?, ?, 'approved')",
+            (society_id, f"Old {i}", opening, closing),
+        )
     # Current season - real, but nowhere near congested.
-    _insert_show(db, society_id, "New One", "2026-09-01", "2026-09-05")
+    future_opening, future_closing = _week_run(2)
+    _insert_show(db, society_id, "New One", future_opening, future_closing)
     db.commit()
 
     body = client.get("/").get_data(as_text=True)
