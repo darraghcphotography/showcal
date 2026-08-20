@@ -41,18 +41,23 @@ reasoning/history for any of these is in `ROADMAP_ARCHIVE.md` if needed - search
 before re-deriving from scratch.
 
 **Season calendar UX feedback (2026-08-20, real page: `/season?season=26/27&region=&tier=&sort=asc`)**
-- not started:
-- Current season should take visual priority - the calendar view (possibly expandable/collapsible,
-  with a tooltip explaining the show/hide toggle) rather than sitting level with past seasons.
-- Past seasons need better display - a dropdown was suggested rather than the current layout - plus
-  "historical" phrasing (these are done-and-dusted, distinct language from an in-progress season) and a
-  tighter UX generally. Not mocked up yet.
+- **Mockup built and iterated once (published Artifact, real tokens/production data), not yet applied to
+  the real template.** Current-season calendar as a `<details>` disclosure (open by default, closed on a
+  past season, native element already used elsewhere on /stats), a grouped Future/Current/Past season
+  dropdown replacing the inline "Jump to:" list, past-season copy switched to past tense, sort toggle and
+  "Hide cancelled shows" filter both removed per feedback (the latter because the underlying cancelled-
+  status data "has been inaccurate anywhere I found it" - scoped narrowly to just removing this page's
+  filter control for now; whether the `status='Cancelled'` data itself needs fixing, or the "Cancelled"
+  tag shown elsewhere on the site needs to go too, is a separate, bigger, undecided question).
+- Next: apply the approved mockup to `app/templates/season.html` / `info.py`'s `season_summary()`.
 
 **New feature idea, not yet scoped: a reviews page, both public-facing and admin-side.** Darragh raised
 this while mid-task adding missing `aims.ie` review links by hand, calling the current process "quite
-tedious" - the pain point is real and current (2026-08-20), not hypothetical. Flagged to revisit and
-scope properly once free - a session wakeup was scheduled to ask again shortly after, don't let this
-go stale in chat only.
+tedious." Immediate relief applied same session (`backfill_2526_reviews.py` - 28 of 46 missing 25/26
+review links matched against aims.ie's own published list and backfilled), but that was a one-off script,
+not the actual feature - the reviews-page idea itself is still unscoped. No reliable way to schedule a
+same-conversation follow-up outside `/loop` was found (a cloud routine would be a disconnected session,
+not this one) - just bring it up next session rather than waiting on a wakeup that isn't coming.
 
 **Society misattribution follow-ups (from today's fix, see above):**
 - **6 of the 8 remaining cases resolved and applied live 2026-08-20** (`fix_society_misattributions_2.py`,
