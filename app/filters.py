@@ -68,6 +68,21 @@ def date_range(opening, closing):
     return f"{start.day} {start.strftime('%b %Y')} – {end.day} {end.strftime('%b %Y')}"
 
 
+def destub(value):
+    """Six historical_results rows (a legacy import predating the CSV
+    pipeline, not the tracked awards CSV or today's admin form) stored the
+    literal string 'None' - or for one row, 'NULL' - instead of a real
+    blank, in reason/role/nominee_name. A plain `{% if %}`/`or '&mdash;'`
+    check treats those as present, since they're non-empty strings, so the
+    public /awards page rendered an italic "None" note and "(None)" next to
+    a nominee. Normalizes both sentinels to a real blank so the existing
+    checks already do the right thing - defends against a future import
+    reintroducing the same sentinel, not just today's 6 known rows."""
+    if value in ("None", "NULL"):
+        return None
+    return value
+
+
 def maps_search_url(venue):
     """Google's free "Maps URL" text-search scheme - no API key or billing
     account needed (unlike the Maps Embed/Static/Geocoding APIs), and works
@@ -80,3 +95,4 @@ def register(app):
     app.jinja_env.filters["irish_datetime"] = irish_datetime
     app.jinja_env.filters["date_range"] = date_range
     app.jinja_env.filters["maps_search_url"] = maps_search_url
+    app.jinja_env.filters["destub"] = destub

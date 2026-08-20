@@ -168,7 +168,7 @@
               {% else %}
                 —
               {% endif %}
-              {% if row['reason'] %}<span class="meta">({{ row['reason'] }})</span>{% endif %}
+              {% if row['reason']|destub %}<span class="meta">({{ row['reason']|destub }})</span>{% endif %}
             </td>
           </tr>
         {% endfor %}
@@ -195,10 +195,10 @@
                 —
               {% endif %}
             </td>
-            <td>{{ row['nominee_name'] or '—' }}{% if row['role'] %} ({{ row['role'] }}){% endif %}</td>
+            <td>{{ row['nominee_name']|destub or '—' }}{% if row['role']|destub %} ({{ row['role']|destub }}){% endif %}</td>
           </tr>
-          {% if row['reason'] %}
-            <tr class="row-note"><td colspan="6"><em>{{ row['reason'] }}</em></td></tr>
+          {% if row['reason']|destub %}
+            <tr class="row-note"><td colspan="6"><em>{{ row['reason']|destub }}</em></td></tr>
           {% endif %}
         {% endfor %}
       </tbody>
@@ -220,9 +220,9 @@
             <span>&middot; {{ row['tier'] or '—' }}</span>
             {% if row['show'] %}<span>&middot; {{ row['category_name'] or '—' }}</span>{% endif %}
             {% if row['result'] != 'Winner' %}<span>&middot; {{ row['result'] or '—' }}</span>{% endif %}
-            <span>&middot; {{ row['nominee_name'] or '—' }}{% if row['role'] %} ({{ row['role'] }}){% endif %}</span>
+            <span>&middot; {{ row['nominee_name']|destub or '—' }}{% if row['role']|destub %} ({{ row['role']|destub }}){% endif %}</span>
           </div>
-          {% if row['reason'] %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ row['reason'] }}</em></p>{% endif %}
+          {% if row['reason']|destub %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ row['reason']|destub }}</em></p>{% endif %}
         </div>
       {% endfor %}
     </div>

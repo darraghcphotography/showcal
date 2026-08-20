@@ -4,11 +4,13 @@ nominee_name on those rows is actually a society name, not a person, see
 SOCIETY_AWARD_CATEGORY_NAMES in constants.py)."""
 
 
-def _add_result(db, year, category_name, result="Winner", society_name=None, nominee_name=None, tier="Gilbert"):
+def _add_result(db, year, category_name, result="Winner", society_name=None, nominee_name=None, tier="Gilbert",
+                 role=None, reason=None):
     db.execute(
-        "INSERT INTO historical_results (year, tier, category_name, result, society_name, nominee_name, source) "
-        "VALUES (?, ?, ?, ?, ?, ?, 'manual')",
-        (year, tier, category_name, result, society_name, nominee_name),
+        "INSERT INTO historical_results "
+        "(year, tier, category_name, result, society_name, nominee_name, role, reason, source) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual')",
+        (year, tier, category_name, result, society_name, nominee_name, role, reason),
     )
 
 
@@ -66,4 +68,20 @@ def test_awards_page_shows_nominee_for_person_category(client, db):
     db.commit()
 
     body = client.get("/awards").get_data(as_text=True)
+    assert "Jane Doe" in body
+
+
+def test_awards_page_hides_literal_none_sentinel(client, db):
+    """A handful of legacy rows store the literal string 'None' (or 'NULL')
+    in reason/role/nominee_name instead of a real blank - a plain
+    `or '—'`/`if x` check treats those as present, since they're non-empty
+    strings, so the page used to render an italic "None" note and a
+    "(None)" next to the nominee."""
+    _add_result(db, 2020, "Best Director", society_name="Test Society", nominee_name="None", role="None", reason="None")
+    _add_result(db, 2021, "Best Actor", society_name="Test Society", nominee_name="Jane Doe", role="NULL", reason="NULL")
+    db.commit()
+
+    body = client.get("/awards").get_data(as_text=True)
+    assert "None" not in body
+    assert "NULL" not in body
     assert "Jane Doe" in body

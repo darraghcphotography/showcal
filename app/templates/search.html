@@ -74,7 +74,7 @@
         <tbody>
           {% for a in awards %}
             <tr>
-              <td>{{ a['nominee_name'] }}{% if a['role'] %} <span class="meta">({{ a['role'] }})</span>{% endif %}</td>
+              <td>{{ a['nominee_name'] }}{% if a['role']|destub %} <span class="meta">({{ a['role']|destub }})</span>{% endif %}</td>
               <td>{{ a['category_name'] or '—' }}</td>
               <td>{% if a['result'] == 'Winner' %}<span class="tag tag-gold">Winner</span>{% else %}{{ a['result'] or '—' }}{% endif %}</td>
               <td>{% if a['show'] %}<a href="{{ url_for('public.title_detail', title=a['show']) }}">{{ a['show'] }}</a>{% else %}—{% endif %}</td>

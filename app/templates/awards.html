@@ -80,12 +80,12 @@
           </td>
           <td>
             {% if r['category_name'] not in society_award_category_names %}
-              {{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}
+              {{ r['nominee_name']|destub or '—' }}{% if r['role']|destub %} ({{ r['role']|destub }}){% endif %}
             {% endif %}
           </td>
         </tr>
-        {% if r['reason'] %}
-          <tr class="row-note"><td colspan="7"><em>{{ r['reason'] }}</em></td></tr>
+        {% if r['reason']|destub %}
+          <tr class="row-note"><td colspan="7"><em>{{ r['reason']|destub }}</em></td></tr>
         {% endif %}
       {% else %}
         <tr><td colspan="7">No award records match those filters.</td></tr>
@@ -117,10 +117,10 @@
             {% endif %}
           </span>
           {% if r['category_name'] not in society_award_category_names %}
-            <span>&middot; {{ r['nominee_name'] or '—' }}{% if r['role'] and r['role'] != 'NULL' %} ({{ r['role'] }}){% endif %}</span>
+            <span>&middot; {{ r['nominee_name']|destub or '—' }}{% if r['role']|destub %} ({{ r['role']|destub }}){% endif %}</span>
           {% endif %}
         </div>
-        {% if r['reason'] %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ r['reason'] }}</em></p>{% endif %}
+        {% if r['reason']|destub %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ r['reason']|destub }}</em></p>{% endif %}
       </div>
     {% else %}
       <p>No award records match those filters.</p>

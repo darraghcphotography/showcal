@@ -74,12 +74,12 @@
           <td>{{ r['result'] or '—' }}</td>
           <td>{{ r['show'] or '—' }}</td>
           <td>{{ r['society_name'] or '—' }}</td>
-          <td>{{ r['nominee_name'] or '—' }}{% if r['role'] %} ({{ r['role'] }}){% endif %}</td>
+          <td>{{ r['nominee_name']|destub or '—' }}{% if r['role']|destub %} ({{ r['role']|destub }}){% endif %}</td>
           <td>{% if r['source'] == 'manual' %}<span class="tag">manual</span>{% endif %}</td>
           <td><a href="{{ url_for('admin.edit_award', award_id=r['id']) }}">Edit</a></td>
         </tr>
-        {% if r['reason'] %}
-          <tr class="row-note"><td colspan="9"><em>{{ r['reason'] }}</em></td></tr>
+        {% if r['reason']|destub %}
+          <tr class="row-note"><td colspan="9"><em>{{ r['reason']|destub }}</em></td></tr>
         {% endif %}
       {% else %}
         <tr><td colspan="9">No award records match those filters.</td></tr>
