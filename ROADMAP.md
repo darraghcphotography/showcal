@@ -48,30 +48,31 @@ unnoticed for weeks.
    changed. **`show_detail()`'s own review lookup had no `ORDER BY`** - ten shows were carrying two
    approved reviews apiece with which one rendered down to SQLite's incidental scan order; added
    `ORDER BY id ASC LIMIT 1` (`f9dc9df`), verified it doesn't flip what's currently live on any of them.
-   **Two further problems found, both deliberately NOT auto-resolved - re-verified 20 Aug against live
-   production (the first count below was wrong when originally written and is corrected here):**
-   - **Five pairs where the same production has two separate public show pages**, confirmed by
-     checking `shows.society_id` (the resolved society, not the raw text) rather than the printed
-     name: "9 To 5"/"9 to 5" (Coolmine Musical Society, show 1188 vs 1960), "Beauty And The
-     Beast"/"Beauty and the Beast" (Bosco Drama Group, 1315 vs 1965), "The Pirates Of
-     Penzance"/"The Pirates of Penzance" (Fortwilliam Musical Society, 1339 vs 1966), "The 25Th
-     Annual.../The 25th Annual..." (MTU Musical Society, 1352 vs 1967), "Into The Woods"/"Into the
-     Woods" (UCD Musical Society, 1369 vs 1968). **Root cause identified**: `shows.society_id`
-     resolves identically in every pair - the only difference is title *capitalization* - and
-     `ux_shows_natural_key`'s uniqueness (`COALESCE(show, '')`) is case-sensitive by default in
-     SQLite, so "9 To 5" and "9 to 5" register as two distinct keys instead of matching the existing
-     row. Each pair is one real production sitting on two live public pages right now (double-counted
-     in `/season`, search, leaderboards). Fix shape: merge each pair (same mechanism
-     `/admin/duplicate-titles` already has for near-identical titles - move the review off the
-     redundant row before deleting it, same discipline as every merge this session), and consider
-     whether the natural key itself should be case-insensitive to stop new ones forming. Not
-     attempted - a merge is exactly the kind of production write that should be shown before running.
-   - **Three groups where the two reviews disagree on TIER and differ ~2x in length** (Sister Act/
-     Kilkenny Musical Society, The Merry Widow/Gorey Musical Society, Little Shop Of Horrors/Carnew
-     Musical Society) - NOT a spelling-variant duplicate. Two genuinely different reviews got matched
-     to one skeleton show, likely because the approval-time show-matching step doesn't check tier.
-     Distinct, more serious bug from the case above - needs investigation, probably needs separating
-     into two skeleton shows. Not attempted.
+   **The five duplicate-show-page pairs: RESOLVED 20 Aug, using the site's own `/admin/duplicate-titles`
+   merge logic (`_merge_titles`, copied into a standalone script since this ran directly against
+   production).** Merged each pair (e.g. "9 to 5" -> "9 To 5") keeping the earlier-created, Title-Case
+   row in every case - checked first that both sides of each pair had identical review length and
+   equal field-fill counts, confirming genuine duplication rather than two different productions.
+   **This is a title-spelling merge, not a single-production fix** - `_merge_titles` operates on every
+   row with that exact title string site-wide (by design; it's what the tool backing `/titles` and
+   stats groupings needs), so each merge consolidated *every* society's use of that spelling, not just
+   the one pair originally found - a bigger, correct effect than first planned, confirmed by checking
+   the full before/after id lists rather than assuming only 2 rows moved per pair.
+   **A second-order effect, caught by re-sweeping rather than assumed clean**: merging each pair
+   reunited a review with an exact-duplicate sibling that an earlier pass had deliberately left alone
+   (splitting them at the time would have orphaned a second show page - no longer true once the title
+   merge put them on one page). Six such pairs turned up (five exact, one 99.95%-similar with a stray
+   "9 TO 5 " fragment leaked into the review text itself, from the same heading-parsing bug that caused
+   the Castleblayney title error) - resolved the same way as Round 35's earlier cleanup: kept whichever
+   row `show_detail()` was already rendering, confirmed against the live page, so nothing public
+   changed except the redundant copy disappearing. `historical_reviews` now at 883 (was 1001 at the
+   start of this whole cleanup arc). Spot-checked two of the five merged pages live afterward.
+   **Still open, NOT touched - three groups where the two reviews disagree on TIER and differ ~2x in
+   length** (Sister Act/Kilkenny Musical Society, The Merry Widow/Gorey Musical Society, Little Shop Of
+   Horrors/Carnew Musical Society) - NOT a spelling-variant duplicate, confirmed unchanged by this
+   round's cleanup. Two genuinely different reviews got matched to one skeleton show, likely because
+   the approval-time show-matching step doesn't check tier. Needs investigation, probably needs
+   separating into two skeleton shows. Not attempted.
 3. **Three garbled ShowTimes titles fixed**, each confirmed by reading the review's own text before
    writing anything (not guessed): review 976/show 1940 `'Castleblayney'` (a town, not a show) →
    `'9 To 5'` (named explicitly in the review's own opening line); review 898/show 1871
