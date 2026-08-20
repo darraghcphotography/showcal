@@ -1,5 +1,48 @@
 # Roadmap
 
+## START HERE - full backlog triage after a marathon session (2026-08-20, late, pre-`/clear`)
+
+Darragh hit his usage limits after one very long session (Statistics rebuild, 3 misattributed-review
+investigations, a full 26/27 section reassignment, the 4 quick-win items, and the calendar/OCR scoping
+below) and asked for the backlog triaged before clearing: what's next, what's a big rework, what should
+wait for Opus. This is that triage - read this section first, before anything below it.
+
+**Pick up here, in order:**
+
+1. **Season calendar mockup** - the most concrete next thing, fully scoped (see the section immediately
+   below this one for the real numbers and decisions). A genuine UI build, not a quick add - budget it as
+   its own mockup-first session, same shape as tonight's Statistics work. Doesn't need Opus; it needs
+   focus time, not extra reasoning depth.
+2. **OCR test on a programme photo** - blocked on Darragh actually sending one. Small and self-contained
+   once a photo exists (test extraction accuracy first, design nothing before seeing real output) - can
+   slot in before or after the calendar mockup, doesn't need its own session.
+3. **`/admin/duplicate-titles` redesign** - mockup-first, Darragh asked for this one specifically. Same
+   size/shape as the calendar mockup - real work, no special reasoning needs.
+4. **Near-identical-society audit + merge `extractor-society-gate`** - eyeball the 77 pending changes on
+   that branch before merging. Judgment-heavy but bounded; doesn't need Opus.
+
+**Flagged for Opus specifically - the one item where the extra reasoning depth actually earns its keep:**
+- **The productions table migration** - `shows`/`historical_results`/`historical_reviews` becoming one
+  real table instead of three things joined by string/date matching. Real architecture decision, touches
+  most of the app's query surface, high blast radius if got wrong - this is genuinely different in kind
+  from everything else on this list, not just bigger. Full scoping brief already written - search this
+  file for "Scoping brief for the productions-table session". Darragh's own instinct to reserve Opus for
+  this specifically (not the calendar or duplicate-titles work) was right - confirmed while triaging
+  tonight, nothing found that changes that call.
+
+**Everything else already shipped tonight, for confidence, not action** - Statistics redesign, WAL mode,
+the case-insensitive shows-key fix (4 real duplicates found and merged), 8 garbled skeleton-show titles
+fixed, the unified society show/award timeline, the 3 tier-mismatch review investigations (which turned
+into a full misattribution/duplicate-society cleanup), and the 26/27 Gilbert/Sullivan section
+reassignment. All committed (`2e4c626`..`d4fa97a`), pushed, deployed, and verified live - nothing
+uncommitted, nothing to lose by clearing.
+
+**Trigger to paste after `/clear`:**
+```
+Read ROADMAP.md's "START HERE" section at the top and pick up from there.
+```
+If sending the programme photo in that same message, add: `Also testing OCR on this photo first.`
+
 ## NEXT SESSION - season calendar mockup, and an OCR test once a programme photo exists (2026-08-20, late)
 
 Two new decisions from Darragh tonight, picking up the season-calendar item from the "Real priority
