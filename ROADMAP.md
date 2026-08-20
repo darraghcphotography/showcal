@@ -5,6 +5,98 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
+## NEXT SESSION - start here: the Gemini/Antigravity audit backlog (2026-08-20)
+
+Darragh had Gemini Antigravity run a fresh-eyes audit of the codebase (`AUDIT_AND_RECOMMENDATIONS.md`,
+untracked, still sitting in the repo root - not deleted, it's the source doc for everything below).
+Reviewed it critically rather than relaying it as-is: two of its claims were checked against the
+actual code/data before being trusted, one confirmed right, one confirmed wrong. Darragh's instruction:
+track everything from it, then pick up in a fresh session in the order below.
+
+**Confirmed independently correct - do this one first.** The audit's #1 finding (Part 1) is
+`ux_shows_natural_key`'s missing `COLLATE NOCASE` - the exact root cause behind the 5 duplicate
+show-page pairs found and merged earlier this same session (`d5a3f0c`), rediscovered completely
+independently by a tool with no visibility into that work. Strong signal, and the context is still
+fresh (I already know the 5 pairs, already merged them).
+- **Before enforcing the constraint**: sweep for any OTHER latent case-only duplicate pairs beyond
+  those 5 - a new UNIQUE index will fail to apply if any existing row still violates it.
+- Add `COLLATE NOCASE` to the index in `schema.sql`, and add the equivalent migration to `app/db.py`
+  (SQLite can drop/recreate an index without a full table rebuild, unlike the `adjudicator_
+  assignments` PRIMARY KEY change - simpler than that pattern, still needs its own care).
+
+**One of the audit's own suggestions is wrong - do NOT implement as written.** Part 1, #4 proposes
+only rebuilding the FTS5 index on first creation, checking row count to skip it otherwise. Already
+tried and rejected - `app/db.py`'s own comment right above `_backfill_fts_indexes()` explains why: a
+`COUNT(*)` check on an external-content FTS5 table reads through to the real content table regardless
+of whether the index was ever built, so it never actually detects an unbuilt index. The audit tool
+had no way to see that history. Leave this one alone.
+
+**One "new feature" is already fully scoped elsewhere, further along than the audit realizes.** Part
+3's implicit ask for a season timeline/calendar view is the same idea as the "Phase 1" backlog item
+below (search this file for "which weeks are typically busiest") - real numbers already pulled (April
+is the crunch month, ISO week 15 is the busiest recurring week), and Darragh's own access/layout/
+sequencing decisions already recorded. Never started building. Don't re-scope from scratch - read
+that section first.
+
+**Everything else from the audit, tracked, not yet started:**
+
+*Technical/DB (Part 1):*
+- **WAL mode + busy_timeout in `app/db.py`'s `get_db()`** - standard SQLite-under-concurrent-writes
+  hardening (pageviews, submissions, backups, changelog sync all writing under Waitress's threads).
+  Safe, small, no reason to delay - but no evidence yet that locking has actually bitten in
+  production; worth asking Darragh whether this is preventative or answering a real symptom.
+- **Split `app/blueprints/admin.py` (2,925 lines, confirmed) into a package** (`shows.py`,
+  `societies.py`, `awards.py`, `reviews.py`, `adjudicators.py`, `suggestions.py`, `fixes.py` or similar
+  domain split). Real maintainability issue, but a nontrivial refactor (route registration, imports,
+  risk of a subtle breakage with zero user-visible benefit) - wants Darragh's explicit go-ahead before
+  starting, not something to fold in silently alongside other work.
+
+*UI/UX polish (Part 2):*
+- **Filter "chip" badges** (removable `[Eastern ×]`-style pills above filtered tables) on `/season`,
+  `/awards`, and `/stats`. The `/stats` instance should probably wait for the Statistics redesign
+  session rather than being styled twice - build it on `/season`/`/awards` first if picked up before
+  Statistics gets its own session.
+- **Unified show + award timeline on `society_detail.html`** - integrate award wins/nominations into
+  the show-history table rows instead of a separate table below. A display/query change, not a data
+  model change - doesn't need to wait on the still-undecided "one `productions` table" architecture
+  question (see Round 34's "Architecture question... NOT acted on"), though it's the same shape of
+  problem and worth keeping in mind while touching this.
+- **Poster lightbox/zoom modal** - small, isolated, low risk.
+
+*New feature concepts (Part 3) - each needs its own scoping pass, not just a build:*
+- **Show Discovery Hub** - filter `/titles` by amateur rights status/licensing house (both already
+  real columns on `show_info`) and by "dormant vs recent circuit staple". Builds on data that already
+  exists; the filtering logic is the actual work.
+- **"My Season Watchlist"** - zero-login, localStorage-based bookmark list + per-user `.ics` export.
+  Self-contained, no dependency on anything else in this list.
+- **Interactive Ireland map** (Leaflet/OpenStreetMap, no API key needed) - genuinely new frontend
+  surface (first map/JS-library dependency on the site). Bigger, more novel, lower urgency.
+- **"On This Day in AIMS History" homepage widget** - fun, low-effort, low-urgency engagement feature.
+- **Embeddable society widget / JSON feed** (`/api/society/<id>/upcoming.json` or an iframe widget) -
+  **needs a real security-scoping conversation before any build**: this is a new public API surface
+  with its own rate-limiting/abuse-prevention questions (what stops a society embedding it wrong, or
+  someone hammering it), not a quick add like the others in this section.
+
+**Recommended order for the next session** (audit items only - see the "Start here" note the session
+before this one for how these interleave with the still-open pre-existing backlog: the 3 tier-mismatch
+duplicate reviews, the `extractor-society-gate` branch, the near-identical-society audit,
+`/admin/duplicate-titles` redesign, junk skeleton titles, and Statistics's own deferred session):
+1. Case-insensitive shows key (confirmed real, context still fresh, small).
+2. WAL mode + busy_timeout (safe, small, ask Darragh if it's answering a real symptom first).
+3. Poster lightbox (small, isolated).
+4. Filter chips on `/season`/`/awards` (skip the `/stats` instance until Statistics gets redesigned).
+5. Show Discovery Hub filters (medium, builds on existing `show_info` data, good value).
+6. Unified society show/award timeline (medium, display-only, no architecture dependency).
+7. My Season Watchlist (medium, fully self-contained).
+8. Season timeline/calendar (already scoped and ready - Darragh previously flagged it as "may end up
+   being a large side request" and wanted mockups/own session; good candidate whenever there's
+   appetite for a bigger build, but don't squeeze it into a quick-wins day).
+9. Interactive map (bigger, novel dependency, lower urgency).
+10. On This Day widget (whenever - low stakes either way).
+11. Embeddable widget/JSON feed (needs a scoping conversation first, not a build).
+12. Split `admin.py` (only with Darragh's explicit go-ahead - internal refactor, no user-visible
+    benefit, real risk of subtle breakage).
+
 ## Round 35 - dcfeedback.docx: analysis, then a full build session (2026-08-19/20)
 
 Darragh brought a Word doc of ten observations from real use (screenshots included) and asked for a
