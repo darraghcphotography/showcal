@@ -1235,23 +1235,44 @@ def fix_dates():
     db = get_db()
 
     if request.method == "POST":
-        show_id = request.form.get("show_id", "")
-        opening_date = request.form.get("opening_date", "").strip() or None
-        closing_date = request.form.get("closing_date", "").strip() or None
+        # One shared form covers the whole visible batch (see fix_dates.html) -
+        # every row's fields are always present, so this always processes
+        # everything on the page, not just whichever row's button was clicked.
+        # All-or-nothing: a bad date anywhere blocks the whole save rather than
+        # silently skipping just that row.
+        rows = []
         errors = []
-        for label, value in (("Opening date", opening_date), ("Closing date", closing_date)):
-            if value and not DATE_RE.match(value):
-                errors.append(f"{label} must be a valid date.")
+        i = 0
+        while f"show_id_{i}" in request.form:
+            show_id = request.form.get(f"show_id_{i}", "")
+            opening_date = request.form.get(f"opening_date_{i}", "").strip() or None
+            closing_date = request.form.get(f"closing_date_{i}", "").strip() or None
+            for label, value in (("Opening date", opening_date), ("Closing date", closing_date)):
+                if value and not DATE_RE.match(value):
+                    errors.append(f"Row {i + 1}: {label} must be a valid date.")
+            rows.append((show_id, opening_date, closing_date))
+            i += 1
+
         if errors:
             for e in errors:
                 flash(e, "error")
         else:
-            db.execute(
-                "UPDATE shows SET opening_date = ?, closing_date = ?, updated_at = ? WHERE id = ?",
-                (opening_date, closing_date, datetime.utcnow().isoformat(), show_id),
-            )
+            updated = 0
+            for show_id, opening_date, closing_date in rows:
+                current = db.execute(
+                    "SELECT opening_date, closing_date FROM shows WHERE id = ?", (show_id,)
+                ).fetchone()
+                if current and (current["opening_date"] != opening_date or current["closing_date"] != closing_date):
+                    db.execute(
+                        "UPDATE shows SET opening_date = ?, closing_date = ?, updated_at = ? WHERE id = ?",
+                        (opening_date, closing_date, datetime.utcnow().isoformat(), show_id),
+                    )
+                    updated += 1
             db.commit()
-            flash("Dates updated.", "success")
+            if updated:
+                flash(f"Updated {updated} show{'' if updated == 1 else 's'}.", "success")
+            else:
+                flash("No changes to save.", "warning")
         return redirect(url_for("admin.fix_dates", **request.args))
 
     q = request.args.get("q", "").strip()

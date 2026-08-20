@@ -2,8 +2,8 @@
 {% block title %}Fix dates - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Fix dates</h1>
-  <p class="meta">Edit opening/closing dates directly and save row by row - handy for working through a batch of
-     wrong dates without opening each show's full edit page.</p>
+  <p class="meta">Edit opening/closing dates directly and save the whole batch at once - handy for working
+     through a batch of wrong dates without opening each show's full edit page.</p>
 
   <form method="get" class="filter-form">
     <label>
@@ -35,30 +35,34 @@
     <button type="submit">Filter</button>
   </form>
 
-  <table class="data-table">
-    <thead><tr><th>Season</th><th>Society</th><th>Show</th><th>Opening</th><th>Closing</th><th></th></tr></thead>
-    <tbody>
-      {% for show in shows %}
-        <tr>
-          <td>{{ show['season'] }}</td>
-          <td>{{ show['society_name'] }}</td>
-          <td>{{ show['show'] }}</td>
-          <td><input type="date" name="opening_date" form="row-{{ show['id'] }}" value="{{ show['opening_date'] or '' }}" min="1970-01-01" max="2036-12-31" data-sync-close="closing-{{ show['id'] }}"></td>
-          <td><input type="date" id="closing-{{ show['id'] }}" name="closing_date" form="row-{{ show['id'] }}" value="{{ show['closing_date'] or '' }}" min="1970-01-01" max="2036-12-31"></td>
-          <td><button type="submit" form="row-{{ show['id'] }}">Save</button></td>
-        </tr>
-      {% else %}
-        <tr><td colspan="6">No shows match.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <!-- One real <form> per row, referenced by the inputs above via the form="" attribute -
-       keeps the table itself valid HTML (a <tr> can't directly contain a <form>). -->
-  {% for show in shows %}
-    <form id="row-{{ show['id'] }}" method="post" action="{{ url_for('admin.fix_dates', q=q, season=season, region=region, missing=missing) }}" hidden>
+  {% if shows %}
+    <!-- One shared form for the whole batch - fixes the old per-row hidden
+         forms silently dropping every other row's unsaved edits when you hit
+         Save on just one of them. Every row's fields are always present, so
+         a click always saves the entire visible batch, not just one row. -->
+    <form method="post" action="{{ url_for('admin.fix_dates', q=q, season=season, region=region, missing=missing) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="show_id" value="{{ show['id'] }}">
+      <button type="submit">Save all changed rows</button>
+      <table class="data-table">
+        <thead><tr><th>Season</th><th>Society</th><th>Show</th><th>Opening</th><th>Closing</th></tr></thead>
+        <tbody>
+          {% for show in shows %}
+            <tr>
+              <td>{{ show['season'] }}</td>
+              <td>{{ show['society_name'] }}</td>
+              <td>{{ show['show'] }}</td>
+              <td>
+                <input type="hidden" name="show_id_{{ loop.index0 }}" value="{{ show['id'] }}">
+                <input type="date" name="opening_date_{{ loop.index0 }}" value="{{ show['opening_date'] or '' }}" min="1970-01-01" max="2036-12-31" data-sync-close="closing-{{ show['id'] }}">
+              </td>
+              <td><input type="date" id="closing-{{ show['id'] }}" name="closing_date_{{ loop.index0 }}" value="{{ show['closing_date'] or '' }}" min="1970-01-01" max="2036-12-31"></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="submit">Save all changed rows</button>
     </form>
-  {% endfor %}
+  {% else %}
+    <p>No shows match.</p>
+  {% endif %}
 {% endblock %}
