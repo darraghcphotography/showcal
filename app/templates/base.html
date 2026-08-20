@@ -189,6 +189,15 @@
           target.style.display = (el.value === el.getAttribute('data-toggle-value')) ? 'inline-block' : 'none';
         }
       }
+      // A date input paired via data-sync-close - when the opening date is
+      // set, an empty closing date jumps straight to that same month
+      // instead of defaulting to today's, so there's no picker click-through
+      // to get there. Never overwrites a closing date already filled in.
+      var syncId = el.getAttribute('data-sync-close');
+      if (syncId && el.value) {
+        var closeField = document.getElementById(syncId);
+        if (closeField && !closeField.value) closeField.value = el.value;
+      }
     });
   </script>
 

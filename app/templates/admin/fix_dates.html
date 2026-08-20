@@ -43,8 +43,8 @@
           <td>{{ show['season'] }}</td>
           <td>{{ show['society_name'] }}</td>
           <td>{{ show['show'] }}</td>
-          <td><input type="date" name="opening_date" form="row-{{ show['id'] }}" value="{{ show['opening_date'] or '' }}" min="1970-01-01" max="2036-12-31"></td>
-          <td><input type="date" name="closing_date" form="row-{{ show['id'] }}" value="{{ show['closing_date'] or '' }}" min="1970-01-01" max="2036-12-31"></td>
+          <td><input type="date" name="opening_date" form="row-{{ show['id'] }}" value="{{ show['opening_date'] or '' }}" min="1970-01-01" max="2036-12-31" data-sync-close="closing-{{ show['id'] }}"></td>
+          <td><input type="date" id="closing-{{ show['id'] }}" name="closing_date" form="row-{{ show['id'] }}" value="{{ show['closing_date'] or '' }}" min="1970-01-01" max="2036-12-31"></td>
           <td><button type="submit" form="row-{{ show['id'] }}">Save</button></td>
         </tr>
       {% else %}
