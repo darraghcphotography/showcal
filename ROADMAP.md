@@ -41,21 +41,27 @@ reasoning/history for any of these is in `ROADMAP_ARCHIVE.md` if needed - search
 before re-deriving from scratch.
 
 **Society misattribution follow-ups (from today's fix, see above):**
-- 5 reviews confirmed misattributed but not fixed - correct society's region/identity needs a real
-  decision, not a guess: **ESB Musical and Dramatic Society** (review 673, region unconfirmed), **"SONG"**
-  (review 595, Dundalk-based, full name/expansion unknown), **The Real Theatre Company** (review 367,
-  confirmed real, no location found), **National Youth Musical Theatre** (review 366, confirmed via
-  "NYMT" acronym, but it's a touring/national group not tied to one AIMS region), **UL Musical Theatre
-  Society** (review 951, confirmed via text, but unclear if it's the same entity as the already-
-  registered "University of Limerick Musical Theatre Society" id 124 or a separate group).
-- 3 reviews still unresolved from the text alone: review 577 (Ratoath vs Meath Youth, same pattern as
-  two already-fixed cases but this one's text doesn't name either), review 440 (Craic Theatre vs
-  suggested Civic Theatre - "Civic" may be the venue, not the society), review 790 (Kill vs Belfast
-  Music and Drama Society - plausible via venue, not textually confirmed).
+- **6 of the 8 remaining cases resolved and applied live 2026-08-20** (`fix_society_misattributions_2.py`,
+  same dry-run/test-apply/apply-for-real/independently-reverify discipline as the original 43) - going
+  back to each society's own official award-entry record (not just the review text) settled most of
+  these: review 951 merged into the existing University of Limerick Musical Theatre Society (id 124,
+  timeline evidence - 2019 founding, pandemic-delayed debut, id 124's own earliest record one season
+  later); review 440 repointed to a newly-created "Greenhills Variety Group" (the original auto-gate
+  suggestion "Civic Theatre" was wrong - Craic Theatre's own record already had its own separate,
+  correctly-attributed production that season); review 595 repointed to newly-created "SONG Dundalk"
+  (Darragh confirmed full name: Stage One New-Musical Group); review 673 repointed to newly-created "ESB
+  Musical and Dramatic Society" (region Eastern is a flagged best-guess, stored in the society's own
+  `notes` field rather than a schema change to the region CHECK constraint). Reviews 577 and 790 turned
+  out to be **false positives** - both societies' own official records already had the exact show/season
+  in question, dismissed on `/admin/society-corrections` rather than repointed.
+- **2 left, explicitly skipped this session (Darragh's call):** review 367 (The Real Theatre Company -
+  confirmed real via text, no region evidence anywhere, not on AIMS's current public list) and review 366
+  (National Youth Musical Theatre - confirmed via "NYMT" acronym, but a touring/national group not tied
+  to one AIMS region - needs its own structural decision, not a quick call).
 - `extractor-society-gate` branch (`edd445e`) still unmerged - has its own known remaining gap
   (confuses "Newcastle Glees" with "Newcastlewest"). Needs that fixed before merging.
 - Worth a fresh sweep for other near-identical-society pairs beyond what's already been caught - the
-  Carnew/Clane pattern alone hid 5 misattributed reviews before today's proper cross-check.
+  Carnew/Clane pattern alone hid 5 misattributed reviews before the first proper cross-check.
 
 **Search - diagnosed 2026-08-19, not fixed.** Searching a real award-winner's name ('april kelly')
 returns correct hits but they render dead last, under noise matches - the actual bugs:
@@ -84,6 +90,29 @@ tool already existing.
 
 **People/person-page identity resolution** - parked on Darragh's privacy objection to public person
 pages. Agreed resolution path (internal-only dedup/matching, no public person pages) was never built.
+Reaffirmed 2026-08-20 against Gemini Antigravity's `FEATURE_IDEAS.md` "Talent Directory" proposal -
+Darragh likes the underlying idea (director/MD/choreographer profiles with accolades/collaborations)
+but still only wants the internal-only version; the GDPR legitimate-interest argument for a *public*
+version was considered and didn't change his mind - the objection was never about legality, it's that
+the people involved may not want a page about themselves.
+
+**FEATURE_IDEAS.md triage (2026-08-20)** - Darragh's been using Gemini Antigravity alongside this repo;
+it dropped `FEATURE_IDEAS.md` (repo root) with 8 feature proposals, triaged together this session on his
+actual gut read, not just cost/risk:
+- **Wants to prioritize**: **Venues Explorer** (`/venues` + `/venues/<slug>` - capacity/tech specs,
+  resident societies, stage history, map - sequence the venue-data backfill work around this as the
+  real payoff, rather than filling gaps with no visible use) and **Decades Time Machine**
+  (`/stats/trends` - era breakdowns G&S->megamusicals->pop/rock, decade leaderboards - fits naturally
+  alongside the existing /stats rebuild).
+- **Interested, not urgent**: **Shows A-Z redesign** (`/titles` - alphabet scrubber, staples carousel,
+  revival-candidate/rare-gem filters - check whether `mockups/1_titles_az_mockup.html` referenced in
+  the doc actually exists or Gemini invented the path), **Society head-to-head compare** (`/compare` -
+  trophy counts, shared repertoire, direct clash history), **Society milestone badges** (Century Club,
+  Gilbert Grandmaster, Golden Jubilee etc - cheapest of the set, pure computation over data already in
+  the DB, could bolt onto existing society profile pages).
+- **Not interested**: Instagram/social-card generator (`/shows/<id>/card`).
+- **Duplicate, not new**: programme cover gallery (`/gallery/programmes`) - same idea as the
+  already-parked historical-posters gallery page below.
 
 **Review-author byline** - a `review_author` column + admin form + template change, discussed but never
 built. Two open design questions block it: backfill existing reviews or forward-only, and whether
