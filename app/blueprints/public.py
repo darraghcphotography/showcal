@@ -559,22 +559,37 @@ def society_detail(society_id):
     # Pre-2024 award/nomination history from the AIMS awards archive - one row
     # per category (so a single production can appear several times, once per
     # category it was up for). show can be NULL here (person-level awards like
-    # the Mary Kelly/Unsung Hero Award aren't tied to a specific production).
-    # A row with no category/result at all isn't an award record - it's a
-    # bare "this production happened" entry (see admin.bulk_historical_
-    # productions) - split those into their own show-history list rather
-    # than rendering as a nomination row full of "—" placeholders.
+    # the Mary Kelly/Unsung Hero Award aren't tied to a specific production) -
+    # those have nothing to group onto, so they're kept as their own list
+    # rather than folded into the per-production timeline below. A row with
+    # no category/result at all isn't an award record - it's a bare "this
+    # production happened" entry (see admin.bulk_historical_productions) -
+    # still gets its own timeline row, just with an empty awards list rather
+    # than being split into a separate table (see ROADMAP, 20 Aug 2026 -
+    # "integrate award wins/nominations into the show-history rows instead
+    # of a separate table below").
     historical_rows = db.execute(
         """
         SELECT year, tier, category_name, result, show, nominee_name, role, reason
         FROM historical_results
         WHERE society_id = ?
-        ORDER BY year DESC, category_name
+        ORDER BY year DESC, show, category_name
         """,
         (society_id,),
     ).fetchall()
-    historical = [r for r in historical_rows if r["category_name"] is not None or r["result"] is not None]
-    historical_shows = [r for r in historical_rows if r["category_name"] is None and r["result"] is None]
+    person_awards = [r for r in historical_rows if r["show"] is None]
+
+    productions = {}
+    for r in historical_rows:
+        if r["show"] is None:
+            continue
+        key = (r["year"], r["show"])
+        production = productions.setdefault(key, {"year": r["year"], "tier": r["tier"], "show": r["show"], "awards": []})
+        if not production["tier"]:
+            production["tier"] = r["tier"]
+        if r["category_name"] is not None or r["result"] is not None:
+            production["awards"].append(r)
+    historical_timeline = sorted(productions.values(), key=lambda p: (-p["year"], p["show"] or ""))
 
     # A compact "trophy case" summary - total wins, Best Overall Show wins
     # specifically, and the earliest year on record (from the awards archive,
@@ -610,8 +625,8 @@ def society_detail(society_id):
     active_since = earliest_award_year or (2000 + int(earliest_season[:2]) if earliest_season else None)
 
     return render_template(
-        "society_detail.html", society=society, shows=shows, future_shows=future_shows, historical=historical,
-        historical_shows=historical_shows,
+        "society_detail.html", society=society, shows=shows, future_shows=future_shows,
+        historical_timeline=historical_timeline, person_awards=person_awards,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
         society_login_url=society_login_url,
