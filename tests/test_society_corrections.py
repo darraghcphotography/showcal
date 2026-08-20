@@ -93,23 +93,37 @@ def test_approve_updates_society_raw_and_resolves_society_id(client, db, app, tm
     assert row["society_id"] == society_id
 
 
-def test_approve_refuses_to_touch_an_already_approved_review(client, db, app, tmp_path):
-    seed_society(db, name="Kilcock Musical Society")
+def test_approve_also_applies_to_an_already_approved_review(client, db, app, tmp_path):
+    """society_raw/society_id are internal citation fields only - never
+    rendered publicly, and an approved review's public society comes from
+    show_id -> shows.society_id instead (untouched here). Safe to correct
+    regardless of moderation_status, unlike review_text - there's no
+    moderator-authored content here to clobber. The page still needs to say
+    so honestly (see the template's "already public" note) rather than
+    silently pretending it moves the review to a different show."""
+    society_id = seed_society(db, name="Kilcock Musical Society")
     admin_id = seed_user(db, username="mod", role="moderator")
     login_as(client, admin_id)
     review_id = _seed_review(db, "Kill Musical Society", moderation_status="approved")
     db.commit()
     _write_suggestions(app, tmp_path, [SUGGESTION])
 
+    body = client.get("/admin/society-corrections").get_data(as_text=True)
+    assert "Already approved and public" in body
+
     resp = client.post("/admin/society-corrections/apply", data={
         "review_id_0": review_id, "new_value_0": "Kilcock Musical Society",
         "source_issue_0": SUGGESTION["source_issue"], "show_raw_0": "Evita", "adjudicator_0": "Jane Doe",
         "decision_0": "approve",
     }, follow_redirects=True)
-    assert b"already-approved" in resp.data
+    assert b"Corrected 1" in resp.data
 
-    row = db.execute("SELECT society_raw FROM historical_reviews WHERE id = ?", (review_id,)).fetchone()
-    assert row["society_raw"] == "Kill Musical Society"  # untouched
+    row = db.execute(
+        "SELECT society_raw, society_id, moderation_status FROM historical_reviews WHERE id = ?", (review_id,)
+    ).fetchone()
+    assert row["society_raw"] == "Kilcock Musical Society"
+    assert row["society_id"] == society_id
+    assert row["moderation_status"] == "approved"  # the review's own status is unaffected
 
 
 def test_dismiss_is_remembered_and_suggestion_stops_reappearing(client, db, app, tmp_path):

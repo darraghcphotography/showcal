@@ -1744,7 +1744,6 @@ def apply_society_corrections():
     db = get_db()
     applied = 0
     dismissed = 0
-    skipped_approved = 0
     i = 0
     while f"review_id_{i}" in request.form:
         review_id = request.form.get(f"review_id_{i}", "")
@@ -1755,21 +1754,19 @@ def apply_society_corrections():
         decision = request.form.get(f"decision_{i}", "skip")
 
         if decision == "approve" and review_id and new_value:
-            row = db.execute(
-                "SELECT moderation_status FROM historical_reviews WHERE id = ?", (review_id,)
-            ).fetchone()
-            # An approved review is already public - a silent rewrite isn't
-            # safe even if the correction is right. Same caution
-            # load_historical_reviews.py already applies to review_text.
-            if row and row["moderation_status"] != "approved":
-                society_id = _match_society_exact(db, new_value)
-                db.execute(
-                    "UPDATE historical_reviews SET society_raw = ?, society_id = ? WHERE id = ?",
-                    (new_value, society_id, review_id),
-                )
-                applied += 1
-            else:
-                skipped_approved += 1
+            # society_raw/society_id are internal citation fields, never
+            # rendered publicly - an approved review's public society comes
+            # from historical_reviews.show_id -> shows.society_id instead
+            # (set once, at moderation time), which this never touches. Safe
+            # to correct regardless of moderation_status - unlike review_text
+            # (load_historical_reviews.py's caution), there's no moderator-
+            # authored content here to accidentally clobber.
+            society_id = _match_society_exact(db, new_value)
+            db.execute(
+                "UPDATE historical_reviews SET society_raw = ?, society_id = ? WHERE id = ?",
+                (new_value, society_id, review_id),
+            )
+            applied += 1
         elif decision == "dismiss" and source_issue and show_raw and adjudicator:
             db.execute(
                 "INSERT OR IGNORE INTO dismissed_society_corrections (source_issue, show_raw, adjudicator) "
@@ -1785,8 +1782,6 @@ def apply_society_corrections():
         parts.append(f"corrected {applied}")
     if dismissed:
         parts.append(f"dismissed {dismissed}")
-    if skipped_approved:
-        parts.append(f"skipped {skipped_approved} already-approved (public) review(s) - edit those directly instead")
     flash(", ".join(parts).capitalize() + "." if parts else "No changes selected.", "success" if parts else "warning")
     return redirect(url_for("admin.society_corrections"))
 

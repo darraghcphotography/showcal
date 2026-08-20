@@ -2,7 +2,10 @@
 {% block title %}Society name corrections - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Society name corrections</h1>
-  <p class="meta">Suggestions only - nothing changes until you pick decisions below and submit them all at
+  <p class="meta">Each row below is <strong>one specific review that got filed under the wrong society
+     name</strong> when it was first extracted - correcting it only changes that one review's own record.
+     It never merges, renames, or otherwise touches any actual society, and never affects any other
+     review. Suggestions only - nothing changes until you pick decisions below and submit them all at
      once. These come from re-running the extractor with the fixed society-matching logic
      (<code>extractor-society-gate</code> branch) against the ShowTimes archive, then comparing the result
      against what's actually stored. {{ total_suggested }} total suggestions;
@@ -27,27 +30,28 @@
             {% if s['ambiguous_key'] %}<span class="tag tag-warning">Check carefully - ambiguous match</span>{% endif %}
           </p>
           <p>
+            This review is currently filed under
             <span class="tag tag-cancelled">{{ s['old_society_raw'] }}</span>
-            &rarr;
-            <span class="tag tag-active">{{ s['new_society_raw'] }}</span>
+            - should it say
+            <span class="tag tag-active">{{ s['new_society_raw'] }}</span> instead?
           </p>
           <p class="meta review-excerpt">&ldquo;{{ s['review_excerpt'] }}&hellip;&rdquo;</p>
           {% if s['already_approved'] %}
-            <p class="meta">Already approved and public - not editable here. Use
-              <a href="{{ url_for('admin.edit_historical_review', review_id=s['review_id']) }}">Edit fields</a> on the review directly if this needs fixing.</p>
-          {% else %}
-            <div class="actions">
-              <label class="checkbox-label">
-                <input type="radio" name="decision_{{ loop.index0 }}" value="skip" checked> Skip
-              </label>
-              <label class="checkbox-label">
-                <input type="radio" name="decision_{{ loop.index0 }}" value="approve"> Apply correction
-              </label>
-              <label class="checkbox-label">
-                <input type="radio" name="decision_{{ loop.index0 }}" value="dismiss"> Not right - dismiss
-              </label>
-            </div>
+            <p class="meta">Already approved and public. This field is only an internal citation - it isn't
+              shown to visitors and doesn't control which society's page the review appears on, so
+              correcting it here is safe, but it won't move a misfiled review to a different show.</p>
           {% endif %}
+          <div class="actions">
+            <label class="checkbox-label">
+              <input type="radio" name="decision_{{ loop.index0 }}" value="skip" checked> Skip
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="decision_{{ loop.index0 }}" value="approve"> Yes, correct it
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="decision_{{ loop.index0 }}" value="dismiss"> No, leave as printed
+            </label>
+          </div>
         </article>
       {% endfor %}
 
