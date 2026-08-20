@@ -140,3 +140,159 @@ def test_search_finds_an_award_nominee_by_name(client, db):
     body = client.get("/search?q=Aoibheann").get_data(as_text=True)
     assert "Aoibheann Nic Cárthaigh" in body
     assert "Best Director" in body
+
+
+def test_search_treats_multiword_query_as_a_phrase_not_an_and(client, db):
+    """Two separate words anywhere in the text used to match via FTS's
+    implicit AND - 'april kelly' would match a review mentioning April in
+    one sentence and a Kelly in a completely unrelated one."""
+    seed_society(db, id=1, name="Tullyvin Musical Society")
+    db.execute(
+        "INSERT INTO shows (id, society_id, season, region, section, show, source, moderation_status) "
+        "VALUES (600, 1, '15/16', 'Eastern', 'Sullivan', 'False Positive Show', 'historical', 'approved')"
+    )
+    db.execute(
+        """
+        INSERT INTO historical_reviews
+            (season, tier, show_raw, society_raw, review_text, source_issue, show_id, society_id, moderation_status)
+        VALUES ('15/16', 'Sullivan', 'False Positive Show', 'Tullyvin Musical Society',
+                'In April the committee began planning next season. Months later, Jonathan Kelly joined as musical director.',
+                'Issue 100, December 2014', 600, 1, 'approved')
+        """
+    )
+    db.execute(
+        "INSERT INTO shows (id, society_id, season, region, section, show, source, moderation_status) "
+        "VALUES (601, 1, '16/17', 'Eastern', 'Sullivan', 'Real Match Show', 'historical', 'approved')"
+    )
+    db.execute(
+        """
+        INSERT INTO historical_reviews
+            (season, tier, show_raw, society_raw, review_text, source_issue, show_id, society_id, moderation_status)
+        VALUES ('16/17', 'Sullivan', 'Real Match Show', 'Tullyvin Musical Society',
+                'Choreography was by April Kelly, whose routines lit up the second act.',
+                'Issue 101, January 2015', 601, 1, 'approved')
+        """
+    )
+    db.commit()
+
+    body = client.get("/search?q=april+kelly").get_data(as_text=True)
+    assert "Real Match Show" in body
+    assert "False Positive Show" not in body
+
+
+def test_review_snippet_centers_on_where_terms_actually_cluster(client, db):
+    """Without clustering, the snippet would center on the isolated first
+    mention of either word - nowhere near where the query actually matched
+    as a phrase, and useless as a reason the result showed up."""
+    seed_society(db, id=1, name="Tullyvin Musical Society")
+    review_text = (
+        "In April the committee met to plan the season ahead. "
+        "Kelly the rehearsal-room cat wandered across the stage, to everyone's amusement, quite unrelated to the show itself. "
+        "Padding text to push the two isolated mentions well clear of the real match further down the review. "
+        "Padding text to push the two isolated mentions well clear of the real match further down the review. "
+        "The choreography for this production was staged by April Kelly, whose inventive routines lit up the second act."
+    )
+    db.execute(
+        "INSERT INTO shows (id, society_id, season, region, section, show, source, moderation_status) "
+        "VALUES (602, 1, '15/16', 'Eastern', 'Sullivan', 'Clustered Show', 'historical', 'approved')"
+    )
+    db.execute(
+        """
+        INSERT INTO historical_reviews
+            (season, tier, show_raw, society_raw, review_text, source_issue, show_id, society_id, moderation_status)
+        VALUES ('15/16', 'Sullivan', 'Clustered Show', 'Tullyvin Musical Society', ?,
+                'Issue 100, December 2014', 602, 1, 'approved')
+        """,
+        (review_text,),
+    )
+    db.commit()
+
+    body = client.get("/search?q=april+kelly").get_data(as_text=True)
+    assert "inventive routines" in body
+    assert "committee met" not in body
+
+
+def test_search_strips_quotes_before_matching_show_titles(client, db):
+    """A title typed or pasted with quotes around it (e.g. searching for
+    "Oliver!" the way a person naturally would) used to find nothing, since
+    the stored title has no literal quote characters in it."""
+    society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status) "
+        "VALUES (?, '25/26', 'Eastern', 'Oliver!', 'approved')",
+        (society_id,),
+    )
+    db.commit()
+
+    body = client.get('/search?q=%22Oliver!%22').get_data(as_text=True)
+    assert "Times performed" in body  # only rendered when the Shows table has rows
+    assert "Oliver!" in body
+
+
+def test_reviews_ranked_by_match_quality_not_season(client, db):
+    """A review that mentions the search term five times used to rank behind
+    a newer-season review that mentions it once, purely because results
+    sorted by season - bm25 should put the stronger match first regardless."""
+    seed_society(db, id=1, name="Tullyvin Musical Society")
+    db.execute(
+        "INSERT INTO shows (id, society_id, season, region, section, show, source, moderation_status) "
+        "VALUES (610, 1, '10/11', 'Eastern', 'Sullivan', 'Anything Goes', 'historical', 'approved')"
+    )
+    db.execute(
+        """
+        INSERT INTO historical_reviews
+            (season, tier, show_raw, society_raw, review_text, source_issue, show_id, society_id, moderation_status)
+        VALUES ('10/11', 'Sullivan', 'Anything Goes', 'Tullyvin Musical Society',
+                'A wonderful evening. Wonderful singing, wonderful staging, wonderful all round - a wonderful show.',
+                'Issue 50, January 2010', 610, 1, 'approved')
+        """
+    )
+    db.execute(
+        "INSERT INTO shows (id, society_id, season, region, section, show, source, moderation_status) "
+        "VALUES (611, 1, '25/26', 'Eastern', 'Sullivan', 'Chicago', 'historical', 'approved')"
+    )
+    db.execute(
+        """
+        INSERT INTO historical_reviews
+            (season, tier, show_raw, society_raw, review_text, source_issue, show_id, society_id, moderation_status)
+        VALUES ('25/26', 'Sullivan', 'Chicago', 'Tullyvin Musical Society',
+                'A wonderful evening overall, with plenty else to enjoy about the production too.',
+                'Issue 200, January 2026', 611, 1, 'approved')
+        """
+    )
+    db.commit()
+
+    body = client.get("/search?q=wonderful").get_data(as_text=True)
+    assert body.index("Anything Goes") < body.index("Chicago")
+
+
+def test_award_exact_name_match_floats_award_section_to_top(client, db):
+    seed_society(db, id=1, name="Tullyvin Musical Society")
+    db.execute(
+        """
+        INSERT INTO historical_results
+            (society_id, society_name, year, show, tier, category_name, result, nominee_name, role)
+        VALUES (1, 'Tullyvin Musical Society', 2015, 'Chess', 'Sullivan',
+                'Best Director', 'Winner', 'Aoibheann Nic Cárthaigh', 'Director')
+        """
+    )
+    db.commit()
+
+    body = client.get("/search?q=Aoibheann+Nic+C%C3%A1rthaigh").get_data(as_text=True)
+    assert body.index(">Award nominees <span") < body.index(">Societies <span")
+
+
+def test_award_partial_name_match_keeps_default_section_order(client, db):
+    seed_society(db, id=1, name="Tullyvin Musical Society")
+    db.execute(
+        """
+        INSERT INTO historical_results
+            (society_id, society_name, year, show, tier, category_name, result, nominee_name, role)
+        VALUES (1, 'Tullyvin Musical Society', 2015, 'Chess', 'Sullivan',
+                'Best Director', 'Winner', 'Aoibheann Nic Cárthaigh', 'Director')
+        """
+    )
+    db.commit()
+
+    body = client.get("/search?q=Aoibheann").get_data(as_text=True)
+    assert body.index(">Societies <span") < body.index(">Award nominees <span")

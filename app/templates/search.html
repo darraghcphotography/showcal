@@ -12,6 +12,7 @@
   </form>
 
   {% if q %}
+    {% macro societies_section() %}
     <h2>Societies <span class="meta">({{ societies|length }}{{ '+' if societies|length == limit else '' }})</span></h2>
     {% if societies %}
       <table class="data-table">
@@ -29,7 +30,9 @@
     {% else %}
       <p class="meta">No societies match "{{ q }}".</p>
     {% endif %}
+    {% endmacro %}
 
+    {% macro titles_section() %}
     <h2>Shows <span class="meta">({{ titles|length }}{{ '+' if titles|length == limit else '' }})</span></h2>
     {% if titles %}
       <table class="data-table">
@@ -46,7 +49,9 @@
     {% else %}
       <p class="meta">No shows match "{{ q }}".</p>
     {% endif %}
+    {% endmacro %}
 
+    {% macro reviews_section() %}
     <h2>Reviews <span class="meta">({{ reviews|length }}{{ '+' if reviews|length == limit else '' }})</span></h2>
     {% if reviews %}
       <p class="meta">Matches inside the full text of ShowTimes reviews - a director, a performer, a venue,
@@ -66,7 +71,9 @@
     {% else %}
       <p class="meta">No review text matches "{{ q }}".</p>
     {% endif %}
+    {% endmacro %}
 
+    {% macro awards_section() %}
     <h2>Award nominees <span class="meta">({{ awards|length }}{{ '+' if awards|length == limit else '' }})</span></h2>
     {% if awards %}
       <table class="data-table table-wide">
@@ -86,6 +93,22 @@
       </table>
     {% else %}
       <p class="meta">No award nominee matches "{{ q }}".</p>
+    {% endif %}
+    {% endmacro %}
+
+    {% if awards_exact_match %}
+      {# An exact full-name hit on a nominee is the strongest possible match this page can
+         produce - float the whole section to the top rather than burying it under three
+         other headings. #}
+      {{ awards_section() }}
+      {{ societies_section() }}
+      {{ titles_section() }}
+      {{ reviews_section() }}
+    {% else %}
+      {{ societies_section() }}
+      {{ titles_section() }}
+      {{ reviews_section() }}
+      {{ awards_section() }}
     {% endif %}
   {% else %}
     <p class="meta">Search across every society, show, ShowTimes review, and award nominee on record.</p>

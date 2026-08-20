@@ -1,3 +1,5 @@
+import itertools
+import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
 from urllib.parse import quote_plus
@@ -10,7 +12,7 @@ from ..calendar_links import google_calendar_url
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
 from ..rate_limit import limiter
-from ..search import fts_match_ids
+from ..search import build_phrase_query, fts_match_ids
 from ..season import current_season, historical_results_year, season_has_ended, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
@@ -146,22 +148,58 @@ def societies_list():
 SEARCH_RESULT_LIMIT = 12
 SEARCH_SNIPPET_CONTEXT = 90
 
+# Straight and curly/smart quote characters stripped before building any LIKE
+# pattern - a title typed or pasted with quotes around it (e.g. "Oliver!")
+# would otherwise never match, since the stored title has no literal quote
+# characters in it. FTS-backed search doesn't need this: its tokenizer
+# already treats punctuation as a separator, so quotes are invisible there.
+_QUOTE_CHARS = str.maketrans("", "", "\"'‘’“”")
+
+
+_SNIPPET_MAX_OCCURRENCES_PER_TERM = 20
+
 
 def _review_snippet(review_text, q):
-    """A window of the review around the first search term that appears in
-    it. Without this a review result is just a show title, giving no clue
-    why it matched - the whole point of searching review prose is that the
-    match is a name or a phrase that exists nowhere else on the site."""
+    """A window of the review centered on where the search terms actually
+    cluster together - not just wherever the first term happens to appear,
+    which could be nowhere near the others and give a misleading snippet
+    even on a genuinely correct match. Without a snippet at all a review
+    result is just a show title, giving no clue why it matched - the whole
+    point of searching review prose is that the match is a name or a phrase
+    that exists nowhere else on the site."""
     if not review_text:
         return ""
     lowered = review_text.lower()
-    position = -1
-    for term in q.lower().split():
-        found = lowered.find(term)
-        if found != -1 and (position == -1 or found < position):
-            position = found
-    if position == -1:
+    terms = [t for t in q.lower().split() if t]
+    if not terms:
         return review_text[:SEARCH_SNIPPET_CONTEXT * 2].strip() + "…"
+
+    occurrences = []
+    for term in terms:
+        positions = []
+        start = 0
+        while len(positions) < _SNIPPET_MAX_OCCURRENCES_PER_TERM:
+            found = lowered.find(term, start)
+            if found == -1:
+                break
+            positions.append(found)
+            start = found + 1
+        if positions:
+            occurrences.append(positions)
+
+    if not occurrences:
+        return review_text[:SEARCH_SNIPPET_CONTEXT * 2].strip() + "…"
+
+    # Smallest window containing one occurrence of every term that appears
+    # at all in the text (terms with no match are simply left out of the
+    # window, rather than failing the whole snippet).
+    best_lo, best_hi = None, None
+    for combo in itertools.product(*occurrences):
+        lo, hi = min(combo), max(combo)
+        if best_lo is None or (hi - lo) < (best_hi - best_lo):
+            best_lo, best_hi = lo, hi
+
+    position = (best_lo + best_hi) // 2
     start = max(0, position - SEARCH_SNIPPET_CONTEXT)
     end = min(len(review_text), position + SEARCH_SNIPPET_CONTEXT)
     return ("…" if start else "") + review_text[start:end].strip() + ("…" if end < len(review_text) else "")
@@ -176,7 +214,7 @@ def search():
     reviews = []
     awards = []
     if q:
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = q.translate(_QUOTE_CHARS).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
         # FTS5 (typo/partial-word tolerant), falling back to a plain LIKE -
         # same pattern as societies_list()'s own search box.
@@ -216,28 +254,36 @@ def search():
         # Reviews, searched over their full text - this is the only index
         # that covers prose rather than names, so it's what makes a
         # director, a cast member, or a venue findable at all: none of those
-        # exist as a column to search. Falls back to LIKE for the same
-        # reason as the society search above (an FTS table that isn't there
-        # yet on an older database).
-        review_ids = fts_match_ids(db, "historical_reviews_fts", q)
-        if review_ids is not None:
-            reviews = db.execute(
-                f"""
-                SELECT historical_reviews.id, historical_reviews.show_raw, historical_reviews.season,
-                       historical_reviews.review_text, historical_reviews.show_id,
-                       societies.name AS society_name
-                FROM historical_reviews
-                JOIN societies ON societies.id = historical_reviews.society_id
-                WHERE historical_reviews.id IN ({','.join('?' * len(review_ids))})
-                  AND historical_reviews.moderation_status = 'approved'
-                  AND historical_reviews.show_id IS NOT NULL
-                  AND NOT societies.hidden
-                ORDER BY historical_reviews.season DESC
-                LIMIT ?
-                """,
-                (*review_ids, SEARCH_RESULT_LIMIT),
-            ).fetchall() if review_ids else []
-        else:
+        # exist as a column to search. Ranked by bm25 match quality (best
+        # first) rather than season, since a strong text match on an old
+        # review is more relevant than a weak one on a recent show. Falls
+        # back to LIKE + season-DESC for the same reason as the society
+        # search above (an FTS table that isn't there yet on an older
+        # database, or a MATCH syntax error from unusual input).
+        phrase_query = build_phrase_query(q)
+        reviews = None
+        if phrase_query is not None:
+            try:
+                reviews = db.execute(
+                    """
+                    SELECT historical_reviews.id, historical_reviews.show_raw, historical_reviews.season,
+                           historical_reviews.review_text, historical_reviews.show_id,
+                           societies.name AS society_name
+                    FROM historical_reviews_fts
+                    JOIN historical_reviews ON historical_reviews.id = historical_reviews_fts.rowid
+                    JOIN societies ON societies.id = historical_reviews.society_id
+                    WHERE historical_reviews_fts MATCH ?
+                      AND historical_reviews.moderation_status = 'approved'
+                      AND historical_reviews.show_id IS NOT NULL
+                      AND NOT societies.hidden
+                    ORDER BY historical_reviews_fts.rank
+                    LIMIT ?
+                    """,
+                    (phrase_query, SEARCH_RESULT_LIMIT),
+                ).fetchall()
+            except sqlite3.OperationalError:
+                reviews = None
+        if reviews is None:
             reviews = db.execute(
                 """
                 SELECT historical_reviews.id, historical_reviews.show_raw, historical_reviews.season,
@@ -282,9 +328,18 @@ def search():
                 (*award_ids, f"%{escaped}%", SEARCH_RESULT_LIMIT),
             ).fetchall()
 
+    # An exact full-name hit on a nominee is the strongest possible match
+    # this page can produce, but Award nominees was always the last section
+    # rendered - a real match could sit buried under three other headings.
+    # Float the whole section to the top only in that case; leave the
+    # default order (Societies, Shows, Reviews, Award nominees) otherwise.
+    q_lower = q.strip().lower()
+    awards_exact_match = any((a["nominee_name"] or "").strip().lower() == q_lower for a in awards)
+
     return render_template(
         "search.html", q=q, societies=societies, titles=titles,
         reviews=reviews, awards=awards, limit=SEARCH_RESULT_LIMIT,
+        awards_exact_match=awards_exact_match,
     )
 
 
