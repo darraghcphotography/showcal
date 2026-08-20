@@ -39,29 +39,22 @@ def test_stats_defines_distinct_titles(client):
     assert "counts once" in body
 
 
-def test_season_page_hides_cancelled_shows_when_requested(client, db):
+def test_season_page_always_shows_cancelled_shows(client, db):
+    """The "Hide cancelled shows" filter was removed (see ROADMAP,
+    2026-08-20) - the underlying status data was found unreliable, so a
+    cancelled show is always shown (with its Cancelled tag) rather than
+    silently dropped by a filter nobody could trust."""
     society_id = seed_society(db)
     db.execute(
         "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status, status) "
         "VALUES (?, '26/27', 'Eastern', 'Cancelled Show', '2026-09-01', '2026-09-05', 'approved', 'Cancelled')",
         (society_id,),
     )
-    db.execute(
-        "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status) "
-        "VALUES (?, '26/27', 'Eastern', 'Still On', '2026-09-10', '2026-09-14', 'approved')",
-        (society_id,),
-    )
     db.commit()
 
-    resp = client.get("/season?season=26/27")
-    body = resp.get_data(as_text=True)
+    body = client.get("/season?season=26/27").get_data(as_text=True)
     assert "Cancelled Show" in body
-    assert "Still On" in body
-
-    resp = client.get("/season?season=26/27&hide_cancelled=1")
-    body = resp.get_data(as_text=True)
-    assert "Cancelled Show" not in body
-    assert "Still On" in body
+    assert "hide_cancelled" not in body
 
 
 def _add_award(db, category_name, result, tier, society_name=None, nominee_name=None, year=2025):
@@ -231,13 +224,12 @@ def test_signature_show_and_leaderboards_removed(client):
     assert "Win-rate leaderboard" not in body
 
 
-def test_season_page_sort_toggle_reverses_order(client, db):
-    """The sort toggle only reorders the classic table/card list - the
-    season calendar above it always renders chronologically by week
-    regardless of sort direction, so the assertion is scoped to the table
-    section (everything after its heading) rather than the whole page."""
+def test_season_page_lists_shows_soonest_first(client, db):
+    """The sort-direction toggle was removed (see ROADMAP, 2026-08-20) -
+    always soonest/earliest-first now, the fixed order the toggle already
+    defaulted to."""
     society_id = seed_society(db)
-    for show, opening in [("Early Bird", "2026-09-01"), ("Late Bloomer", "2026-09-20")]:
+    for show, opening in [("Late Bloomer", "2026-09-20"), ("Early Bird", "2026-09-01")]:
         db.execute(
             "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status) "
             "VALUES (?, '26/27', 'Eastern', ?, ?, ?, 'approved')",
@@ -245,8 +237,5 @@ def test_season_page_sort_toggle_reverses_order(client, db):
         )
     db.commit()
 
-    asc_table = client.get("/season?season=26/27&sort=asc").get_data(as_text=True).split("Upcoming productions")[-1]
-    assert asc_table.index("Early Bird") < asc_table.index("Late Bloomer")
-
-    desc_table = client.get("/season?season=26/27&sort=desc").get_data(as_text=True).split("Upcoming productions")[-1]
-    assert desc_table.index("Late Bloomer") < desc_table.index("Early Bird")
+    table = client.get("/season?season=26/27").get_data(as_text=True).split("Upcoming productions")[-1]
+    assert table.index("Early Bird") < table.index("Late Bloomer")

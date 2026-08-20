@@ -405,12 +405,14 @@ def stats():
 def season_summary():
     db = get_db()
 
-    all_seasons = [
-        r["season"]
-        for r in db.execute(
-            "SELECT DISTINCT season FROM shows WHERE show IS NOT NULL ORDER BY season DESC"
-        ).fetchall()
-    ]
+    # Sorted in Python by season_start_year, not a plain SQL string DESC -
+    # this archive spans 05/06 through 27/28 and a text sort of season
+    # strings breaks across the 1999/2000 rollover (the exact bug already
+    # fixed twice elsewhere in this codebase - see season.py).
+    all_seasons = sorted(
+        (r["season"] for r in db.execute("SELECT DISTINCT season FROM shows WHERE show IS NOT NULL").fetchall()),
+        key=season_start_year, reverse=True,
+    )
 
     current = current_season(db)
     requested = request.args.get("season", "")
@@ -418,10 +420,6 @@ def season_summary():
 
     region = request.args.get("region", "")
     tier = request.args.get("tier", "")
-    hide_cancelled = request.args.get("hide_cancelled") == "1"
-    sort = request.args.get("sort", "asc")
-    if sort not in ("asc", "desc"):
-        sort = "asc"
 
     query = """
         SELECT shows.*, societies.name AS society_name,
@@ -437,11 +435,10 @@ def season_summary():
     if tier in SHOW_SECTIONS:
         query += " AND shows.section = ?"
         params.append(tier)
-    if hide_cancelled:
-        query += " AND shows.status IS NOT 'Cancelled'"
-    # NULL opening dates always sort last regardless of direction - only the
-    # dated rows actually flip.
-    query += f" ORDER BY (shows.opening_date IS NULL), shows.opening_date {'DESC' if sort == 'desc' else 'ASC'}"
+    # NULL opening dates always sort last. Soonest/earliest-first throughout -
+    # the reverse-sort toggle this used to have was removed as unnecessary
+    # (see ROADMAP, 2026-08-20).
+    query += " ORDER BY (shows.opening_date IS NULL), shows.opening_date ASC"
 
     rows = db.execute(query, params).fetchall()
     upcoming = [r for r in rows if not r["is_past"]]
@@ -507,14 +504,22 @@ def season_summary():
             for r in rows_
         )
 
+    # Grouped for the season picker's <optgroup>s (see season.html) rather
+    # than one flat list - the archive has 20+ seasons now and only grows.
+    current_year = season_start_year(current)
+    future_seasons = [s for s in all_seasons if season_start_year(s) > current_year]
+    past_seasons = [s for s in all_seasons if season_start_year(s) < current_year]
+
+    calendar_show_count = sum(w["open_count"] for w in weeks)
+
     return render_template(
-        "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
-        unannounced=unannounced, weeks=weeks,
+        "season.html", season=season, upcoming=upcoming, finished=finished,
+        future_seasons=future_seasons, current_season_value=current, past_seasons=past_seasons,
+        unannounced=unannounced, weeks=weeks, calendar_show_count=calendar_show_count,
         upcoming_has_review=_has_review(upcoming), finished_has_review=_has_review(finished),
         is_current=(season == current), is_past_season=is_past_season, is_future_season=(season > current),
         season_range_label=season_range_label,
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
-        hide_cancelled=hide_cancelled, sort=sort,
     )
 
 

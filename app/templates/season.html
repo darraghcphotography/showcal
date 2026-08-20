@@ -97,18 +97,25 @@
   <p>{{ total }} show{{ '' if total == 1 else 's' }} announced for {{ season }}{% if is_current %} (current season){% endif %}
     {%- if season_range_label %} &middot; runs {{ season_range_label }}{% endif %}.</p>
 
-  {% if all_seasons|length > 1 %}
-    <p class="season-picker">
-      Jump to:
-      {% for s in all_seasons %}
-        <a href="{{ url_for('info.season_summary', season=s, region=selected_region, tier=selected_tier, hide_cancelled=('1' if hide_cancelled else none), sort=sort) }}" class="{{ 'current' if s == season }}">{{ s }}</a>{% if not loop.last %} &middot; {% endif %}
-      {% endfor %}
-    </p>
-  {% endif %}
-
   <form method="get" class="filter-form">
-    <input type="hidden" name="season" value="{{ season }}">
-    <input type="hidden" name="sort" value="{{ sort }}">
+    <label>
+      Season
+      <select name="season">
+        {% if future_seasons %}
+          <optgroup label="Future">
+            {% for s in future_seasons %}<option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </optgroup>
+        {% endif %}
+        <optgroup label="Current">
+          <option value="{{ current_season_value }}" {% if current_season_value == season %}selected{% endif %}>{{ current_season_value }}</option>
+        </optgroup>
+        {% if past_seasons %}
+          <optgroup label="Past seasons">
+            {% for s in past_seasons %}<option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </optgroup>
+        {% endif %}
+      </select>
+    </label>
     <label>
       Region
       <select name="region">
@@ -127,30 +134,22 @@
         {% endfor %}
       </select>
     </label>
-    <label class="checkbox-label">
-      <input type="checkbox" name="hide_cancelled" value="1" {% if hide_cancelled %}checked{% endif %}>
-      Hide cancelled shows
-    </label>
     <button type="submit">Filter</button>
-    {% if selected_region or selected_tier or hide_cancelled %}
+    {% if selected_region or selected_tier %}
       <a href="{{ url_for('info.season_summary', season=season) }}">Clear</a>
     {% endif %}
   </form>
 
-  <p class="meta">
-    <a href="{{ url_for('info.season_summary', season=season, region=selected_region, tier=selected_tier, hide_cancelled=('1' if hide_cancelled else none), sort=('desc' if sort == 'asc' else 'asc')) }}">
-      Sort: {{ 'Soonest first' if sort == 'asc' else 'Latest first' }} (click to reverse)
-    </a>
-  </p>
-
   {% if weeks %}
-    <div class="season-calendar">
-      <h2>Season calendar</h2>
+    <details class="season-calendar" {% if not is_past_season %}open{% endif %} title="Show or hide the week-by-week calendar">
+      <summary>Season calendar <span class="count">({{ calendar_show_count }} {{ 'productions across the season' if is_past_season else 'opening this season so far' }})</span></summary>
       <p class="meta">
-        {%- if selected_tier %}{{ selected_tier }} shows, grouped by week.
-        {%- else %}Gilbert on the left, Sullivan on the right, grouped by week.
-        {%- endif %} A &#9888; flag marks a busy week - several shows running at once, worth planning
-        ahead if you want to catch more than one.</p>
+        {%- if is_past_season %}How the season's busy weeks played out
+        {%- else %}{% if selected_tier %}{{ selected_tier }} shows, grouped by week{% else %}Gilbert on the left, Sullivan on the right, grouped by week{% endif %}
+        {%- endif %} - A &#9888; flag marks a
+        {%- if is_past_season %} week where several shows clashed.
+        {%- else %} busy week, several shows running at once, worth planning ahead if you want to catch more than one.
+        {%- endif %}</p>
       <div class="legend">
         {%- if not selected_tier or selected_tier == 'Gilbert' %}
           <span class="legend-item"><span class="swatch gilbert"></span>Gilbert</span>
@@ -201,7 +200,7 @@
           {% endfor %}
         </div>
       {% endfor %}
-    </div>
+    </details>
   {% endif %}
 
   {% if is_past_season %}

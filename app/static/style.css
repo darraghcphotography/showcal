@@ -529,15 +529,27 @@ details table { margin-top: 0.5rem; }
 .venue-table input.venue-input { width: 100%; max-width: 320px; }
 .venue-table input.venue-input-error { border-color: var(--danger); }
 
-.season-picker { font-size: 0.9rem; }
-.season-picker a { margin: 0 0.15rem; }
-.season-picker a.current { font-weight: 700; text-decoration: none; color: var(--fg); }
-
 /* Season calendar: month -> week rows, Gilbert/Sullivan split left/right so
    an adjudicator can scan just their own column - see the season-calendar
    mockup. A week is "congested" when 3+ non-cancelled shows are actually
    running at once (a still-running show from the week before counts too),
-   not just when 3+ open in it. */
+   not just when 3+ open in it. The whole thing is a native <details>
+   disclosure (open by default on the current season, closed on a past one -
+   see info.py's season_summary()) rather than always-visible, so it doesn't
+   compete with the Past productions table for attention when browsing
+   history. Same element the /stats page already uses for its own
+   older-seasons collapse. */
+details.season-calendar { border: 1px solid var(--border); border-radius: 8px; padding: 0 1.1rem 1rem; margin: 1.5rem 0; }
+details.season-calendar[open] { padding-top: 0.2rem; }
+details.season-calendar summary {
+  cursor: pointer; padding: 0.9rem 0; font-weight: 700; font-size: 1.05rem;
+  list-style: none; display: flex; align-items: center; gap: 0.5rem;
+}
+details.season-calendar summary::-webkit-details-marker { display: none; }
+details.season-calendar summary::before { content: "▸"; color: var(--muted); transition: transform 0.15s; font-size: 0.8rem; }
+details.season-calendar[open] summary::before { transform: rotate(90deg); }
+details.season-calendar summary .count { font-weight: 400; color: var(--muted); font-size: 0.85rem; }
+
 .season-calendar .legend {
   display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
   margin: 0 0 1.25rem; font-size: 0.85rem; color: var(--muted);
