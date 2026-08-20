@@ -1,33 +1,41 @@
 # Roadmap
 
-## START HERE - society-corrections review queue built, needs deploy (2026-08-20, later-later session)
+## START HERE - big session closed out, everything below is DEPLOYED and confirmed live (2026-08-20)
 
-**Item 4's "near-identical-society audit" half is done - a review queue, not a merge.** Darragh's ask
-after seeing the extractor-society-gate diff: publish the suggestions somewhere he can approve/reject
-himself (he knows these societies), no live production changes made by Claude. Built
-`/admin/society-corrections` (`cf0b64b`) - see that commit message for the full story, short version:
-- Re-ran the branch's extractor against the full PDF archive in an isolated worktree (removed after),
-  diffed against `historical_reviews_pilot.json`. **80 real changes, not the 77 the branch's own commit
-  claimed** - `societies.csv`/the archive have drifted since that measurement.
-- Two spot checks against real PDFs cut both ways - one "suspicious" value was actually exactly what's
-  printed (the OLD code was the one silently wrong), one was a pre-existing unrelated garbled record.
-  Confirms the branch's fix mechanism is sound, but also that eyeballing needs the real archive, not
-  just pattern-matching the diff text - which is exactly why this became a review queue for Darragh
-  rather than something to wave through.
-- The queue shows each suggestion with a review-text excerpt for context (often settles it on sight),
-  Approve/Reject/Skip per row, same bulk pattern as `/admin/duplicate-titles`. Approving corrects that
-  one `historical_reviews` row's `society_raw`/`society_id` in place - deliberately not a blind
-  re-extract+reload, which would've silently inserted duplicate rows (`load_historical_reviews.py`
-  dedupes on `(source_issue, society_raw, show_raw)` - change `society_raw` and that key stops matching
-  the existing row). Refuses to touch an already-approved/public review. Rejecting is remembered
-  (new `dismissed_society_corrections` table) so it stops reappearing.
-- **The `extractor-society-gate` branch itself stays unmerged** - confirmed via `society_names.is_same_society`
-  directly that its own gate still can't safely tell "Newcastle Glees Musical Society" from
-  "Newcastlewest Musical Society" apart (0.95 similarity, above its own 0.85 threshold). Data corrections
-  can go ahead without merging the code; the code fix needs that gap addressed first.
+Darragh pulled and redeployed (`5feffaf`..`d2f1977`, 13 commits) - checked live at `darraghc.ie/showcal`
+rather than just trusting the push: `/awards` defaults to All results with the dropdown showing it
+selected, `/season` renders the new calendar with the softened "Busy for..." wording, `/admin/login`
+serves clean. Shipped this session, in order:
 
-**Not yet redeployed** - `cf0b64b` is pushed but production is still 4 commits behind (also carrying the
-season calendar's two follow-up fixes and the fix-dates bulk-save fix from earlier this session).
+1. **Season calendar** on `/season` - Gilbert/Sullivan split by week, a section flagged **busy** (not
+   "congested" - too clinical for public copy, see below) at 4+ of its own shows genuinely overlapping,
+   judged per-section. Iterated through several real rounds of feedback: combined->per-section threshold,
+   already-finished weeks hidden for the current season, homepage teaser cut entirely (`/season` only),
+   the empty other-section column hidden when filtered to one tier, congestion copy simplified for a
+   general audience. `season_weeks()` lives in `app/season.py`.
+2. **`/admin/shows/dates` (Fix dates) - two real fixes**: opening date now jumps closing date to the same
+   month (`data-sync-close`, reuses the delegated CSP-safe listener in `base.html`), and a real bug fixed
+   where saving one row's date silently discarded every other row's unsaved edits (one shared `<form>`
+   with indexed fields now, applies the whole visible batch atomically).
+3. **`/admin/society-corrections`** (new) - review queue for the `extractor-society-gate` branch's 80
+   proposed society-name corrections (not the 77 its own commit claimed - the archive had drifted).
+   Approve/Reject/Skip per row, same pattern as `/admin/duplicate-titles`; approving corrects one
+   `historical_reviews` row in place rather than risking duplicate rows from a blind re-extract+reload.
+   **Still needs Darragh's own pass through the 80 suggestions** - nothing there applies itself. The
+   `extractor-society-gate` branch itself stays unmerged (a real gap found in its own matching logic:
+   Newcastle Glees vs Newcastlewest still isn't told apart).
+4. **`/awards` defaults to All results, not Winner-only** - was hiding every nomination unless you knew
+   to change the filter.
+5. **32 shows' confirmed dates entered directly on production** (two batches, 17 + 15, all season 26/27) -
+   matched by exact ID against a read-only copy first, applied via an assertion-guarded script Darragh ran
+   himself over SSH (the auto-mode classifier blocks Claude from writing to production directly, even
+   with in-chat approval - needs a real settings.json permission change, which Claude also can't make on
+   its own behalf. See git history around `2026-08-20 17:00` in chat for the exact scripts if more dates
+   come in the same shape).
+
+**A `/admin/duplicate-titles` mockup was also built this session** (real 27 candidates, confidence-tiered,
+shows each title's actual society/season history) - Darragh called it "not really an issue," parked, not
+built into real code.
 
 ## Previous START HERE - season calendar + fix-dates tweak done, needs deploy (2026-08-20, later session)
 
