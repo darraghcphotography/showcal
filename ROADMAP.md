@@ -110,7 +110,54 @@ unnoticed for weeks.
    data sources (`shows`, `historical_results`, `historical_reviews`) with three different counting
    rules and never says which one a given number is using. Recommendation on record: give it its own
    mockup session like the adjudicator pages got, not another patch - see the artifact above for the
-   source-vs-coverage table this needs to work from.
+   source-vs-coverage table this needs to work from. **Still the plan** - not started as of this
+   writing (20 Aug).
+
+**Round 35 continued, 20 Aug - three more decided items from the standing UX-audit backlog, all
+shipped same session, in the order Darragh confirmed ("yes let's go in that order"):**
+
+11. **The 6 literal-`'None'` award rows fixed** (`1c83bf0`) - and the sentinel bug behind them was
+    live in five templates, not the one originally flagged. A legacy import (predating the CSV
+    pipeline) stored the literal string `'None'`/`'NULL'` instead of a real blank in
+    `reason`/`role`/`nominee_name`; a plain `or '—'`/`if x` check treats a non-empty string as
+    present, so `/awards` rendered an italic "None" note and a "(None)" next to a nominee. New
+    `destub` filter (`app/filters.py`) normalizes both sentinels; applied to `awards.html`,
+    `show_detail.html`, `society_detail.html`, `search.html`, and the admin awards list - checked all
+    five rather than assuming the one page was the only one affected. The 6 rows fixed directly on
+    production too.
+12. **Award category lineage built** (`b855353`) - implements Darragh's decided merges as a
+    query/display-time alias map in `AWARD_CATEGORIES` (`app/constants.py`), no data rewrite:
+    - Best Chorus (1977-2025) -> Best Choral Singing (2026-): clean rename, merged.
+    - Adjudicator's Special Award -> Spirit of AIMS: **turned out to be a three-name lineage, not
+      two** - "Spirit of AIMS/Adjudicator's Special Award" was a real printed category for two
+      decades (2001-2022), missed when the original decision only checked the outer two names.
+      Verified year-by-year that no two of the three names ever overlap in the same year before
+      merging all three.
+    - Best Choreography -> Best Moment of Theatre: NOT merged (award's meaning changed) - a
+      cross-link note now surfaces on the Award Explorer result for both entries instead.
+    - **A real, previously-unknown bug found and fixed while verifying this year-by-year**: "Best
+      Choreography" and "Best Choreographer" have been wrongly merged into one Explorer entry since
+      Round 6 (2026-08-05), on the assumption they were a renamed award. They're not - both
+      categories ran in parallel, side by side, every single year from 2019 through 2025 (a rename
+      can't coexist with its own old name for 7 straight years). Reverted to two separate entries.
+      **Also corrected a wrong assumption made earlier in this same investigation**: "Best
+      Choreography"'s low nominee-fill-rate (88/203) looked like evidence it was society-level, but
+      the nominees it does have are real people's names, not societies - it's a person award with
+      incomplete historical data, not a show award. Checked the actual nominee values before
+      classifying, rather than trusting the fill-rate alone.
+13. **Nav labels + Shows A-Z promoted** (`188f52b`) - `/season` said "Season Archive" in the header
+    and "This season" in the mobile tab bar, opposite meanings for the same page; both now say
+    "Seasons". Shows A-Z (287 titles) added to the header nav and `/more`, ahead of Awards on both -
+    it was only ever reachable from the footer. Deliberately did NOT touch "Home"/"Upcoming shows" or
+    "Stats"/"Statistics" mobile-vs-desktop wording - those are shorter labels for tight mobile space,
+    not the opposite-meanings contradiction the decision was actually about; flagged this scoping
+    choice rather than silently applying a broader rule than what was asked.
+    Screenshotted both desktop and mobile nav in a real browser to confirm no wrapping/cramping.
+
+All three verified against real running-server data (not just the test client) before committing -
+the constants.py fix in particular was checked against local `historical_results` (4,731 rows,
+counts matching production) with the dev server actually serving `/stats?award_category=...` for
+every affected category, not just trusted from the test suite. Test suite 297 -> 299.
 10. **Verification discipline held throughout** - every piece checked against a real running server
     (not just the pytest client, which disables CSRF): a throwaway admin login, real multipart file
     uploads (the adjudicator photo), the full add/refuse-duplicate/remove review cycle, all exercised
