@@ -146,15 +146,19 @@
   {% if weeks %}
     <div class="season-calendar">
       <h2>Season calendar</h2>
-      <p class="meta">Gilbert on the left, Sullivan on the right, grouped by week. A section is flagged
-        <strong>congested</strong> for a week where 4+ of its own shows are actually running at once -
-        including one still mid-run from the week before - judged separately per section, since an
-        adjudicator only needs to reach everything in their own.
-        {%- if not is_past_season %} Already-finished weeks aren't shown.{% endif %}</p>
+      <p class="meta">
+        {%- if selected_tier %}{{ selected_tier }} shows, grouped by week.
+        {%- else %}Gilbert on the left, Sullivan on the right, grouped by week.
+        {%- endif %} A &#9888; flag marks a busy week - several shows running at once, worth planning
+        ahead if you want to catch more than one.</p>
       <div class="legend">
-        <span class="legend-item"><span class="swatch gilbert"></span>Gilbert</span>
-        <span class="legend-item"><span class="swatch sullivan"></span>Sullivan</span>
-        <span class="legend-item"><span class="swatch congested"></span>Congested week</span>
+        {%- if not selected_tier or selected_tier == 'Gilbert' %}
+          <span class="legend-item"><span class="swatch gilbert"></span>Gilbert</span>
+        {%- endif %}
+        {%- if not selected_tier or selected_tier == 'Sullivan' %}
+          <span class="legend-item"><span class="swatch sullivan"></span>Sullivan</span>
+        {%- endif %}
+        <span class="legend-item"><span class="swatch congested"></span>Busy week</span>
       </div>
       {% for month_key, month_weeks in weeks|groupby('month_key') %}
         {% set month_weeks = month_weeks|list %}
@@ -170,16 +174,26 @@
                 {% if week['congestion_notes'] %}
                   <span class="week-flag">
                     {% for note in week['congestion_notes'] %}
-                      &#9888; {{ note['label'] }} congested &mdash; {{ note['overlap'] }} running{% if note['carryover'] > 0 %} ({{ note['carryover'] }} carrying over){% endif %}{% if not loop.last %} &middot; {% endif %}
+                      &#9888; Busy for {{ note['label'] }} &mdash; {{ note['overlap'] }} shows running{% if not loop.last %} &middot; {% endif %}
                     {% endfor %}
                   </span>
                 {% endif %}
               </div>
-              <div class="week-split">
-                {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
-                <div class="week-divider"></div>
-                {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
-              </div>
+              {% if selected_tier == 'Gilbert' %}
+                <div class="week-split week-split-solo">
+                  {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
+                </div>
+              {% elif selected_tier == 'Sullivan' %}
+                <div class="week-split week-split-solo">
+                  {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
+                </div>
+              {% else %}
+                <div class="week-split">
+                  {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
+                  <div class="week-divider"></div>
+                  {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
+                </div>
+              {% endif %}
               {% if week['other'] %}
                 <div class="week-other">{{ season_column('Non-AIMS', '', week['other']) }}</div>
               {% endif %}

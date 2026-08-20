@@ -519,6 +519,8 @@ details table { margin-top: 0.5rem; }
 .week-flag { font-size: 0.72rem; font-weight: 700; color: var(--warning); }
 
 .week-split { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0.75rem; }
+/* One section filtered in - no point rendering an empty column for the other. */
+.week-split-solo { display: block; }
 .week-divider { background: var(--border); }
 .week-col {
   display: flex; flex-direction: column; gap: 0.35rem; min-width: 0;

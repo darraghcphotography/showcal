@@ -133,8 +133,26 @@ def test_season_page_renders_split_columns_and_congestion_flag(client, db):
     assert "Gilbert (4)" in body
     assert "Sullivan (1)" in body
     assert "week-row congested" in body
-    assert "Gilbert congested" in body
-    assert "Sullivan congested" not in body
+    assert "Busy for Gilbert" in body
+    assert "Busy for Sullivan" not in body
+
+
+def test_season_page_hides_the_other_column_when_filtered_to_one_section(client, db):
+    society_id = seed_society(db)
+    o1, c1 = _week_run(4, day_offset=0)
+    o2, c2 = _week_run(4, day_offset=1)
+    _insert_show(db, society_id, "Gil One", o1, c1)
+    _insert_show(db, society_id, "Sul One", o2, c2, section="Sullivan")
+    db.commit()
+
+    unfiltered = client.get("/season?season=26/27").get_data(as_text=True)
+    assert "Gilbert (1)" in unfiltered
+    assert "Sullivan (1)" in unfiltered
+
+    gilbert_only = client.get("/season?season=26/27&tier=Gilbert").get_data(as_text=True)
+    assert "Gilbert (1)" in gilbert_only
+    assert "Sullivan (0)" not in gilbert_only
+    assert "None opening" not in gilbert_only
 
 
 def test_season_page_section_filter_recomputes_congestion(client, db):
