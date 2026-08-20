@@ -95,15 +95,20 @@ def test_nav_matches_new_arrangement(client):
     header = body.split("</header>")[0]
     footer = body.split("<footer")[1]
 
-    for label in ["Upcoming shows", "Societies", "Awards", "Statistics", "Season Archive"]:
+    for label in ["Upcoming shows", "Societies", "Shows A-Z", "Awards", "Statistics", "Seasons"]:
         assert label in header
 
     # "Submit a show" is deliberately not a standalone nav destination anymore
     assert "Submit a show" not in header
     assert "Submit a show" not in footer
 
-    # Demoted to the footer, not cluttering the main nav
-    assert "Shows A-Z" not in header
+    # 19 Aug 2026: "Season Archive" (header) vs "This season" (mobile tab bar)
+    # read as opposite meanings for the same page - one name everywhere now.
+    assert "Season Archive" not in header
+
+    # Shows A-Z was promoted into the main nav (still in the footer too,
+    # same as Awards/Statistics/Seasons - a footer sitemap link isn't
+    # removed just because the header also has one).
     assert "Suggest a feature" not in header
     assert "Shows A-Z" in footer
     assert "Suggest a feature" in footer

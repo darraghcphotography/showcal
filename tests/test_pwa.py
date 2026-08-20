@@ -22,6 +22,7 @@ def test_service_worker_served_at_root_with_js_mimetype(client):
 
 def test_more_page_renders_and_links_resolve(client):
     body = client.get("/more").get_data(as_text=True)
+    assert 'href="/titles"' in body
     assert 'href="/awards"' in body
     assert 'href="/submit/unlock"' in body
     assert 'href="/suggest"' in body
