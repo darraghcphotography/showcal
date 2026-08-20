@@ -40,6 +40,21 @@
     </div>
   {% endif %}
 
+  {% if badges %}
+    <div class="badge-row">
+      {% for b in badges %}
+        <div class="badge {{ b['cls'] }}" tabindex="0">
+          <span class="icon">{{ b['icon'] }}</span>
+          <span>
+            <span class="label">{{ b['label'] }}</span>
+            <span class="criteria">{{ b['criteria'] }}</span>
+          </span>
+          <div class="tooltip"><b>{{ b['label'] }}</b>{{ b['tooltip'] }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% if current_user %}
     <p><a href="{{ url_for('admin.edit_society', society_id=society['id']) }}" class="edit-callout">Edit this society &rarr;</a></p>
   {% endif %}

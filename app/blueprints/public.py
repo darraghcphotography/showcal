@@ -553,6 +553,149 @@ def adjudicator_detail(adjudicator_id):
     )
 
 
+BADGE_CENTURY_MIN = 100
+BADGE_TRIPLE_CROWN_MIN = 3
+BADGE_CLEAN_SWEEP_MIN = 8
+BADGE_JUBILEE_MIN = 50
+BADGE_ALL_ROUNDER_MIN = 5
+
+
+def _consecutive_year_streak(years):
+    """Longest run of years with no gap bigger than one between consecutive
+    entries, e.g. {2010, 2011, 2013, 2014, 2015} -> 3 (2013-2015)."""
+    if not years:
+        return 0
+    ordered = sorted(years)
+    best = current = 1
+    for i in range(1, len(ordered)):
+        if ordered[i] - ordered[i - 1] <= 1:
+            current += 1
+            best = max(best, current)
+        else:
+            current = 1
+    return best
+
+
+def _society_badges(db, society_id):
+    """Milestone badges for a society's profile page - each only ever
+    appears once earned, same as the trophy case above it (nothing renders
+    for a society with none). Built entirely from historical_results (the
+    one results table spanning every season - see SHOWS_COVERAGE_START_YEAR)
+    plus shows for the current-era production count and active-years set.
+    Gilbert Grandmaster (3+ Best Overall Show wins in the Gilbert tier) was
+    considered and parked, not built - Darragh's call, can activate later."""
+    badges = []
+
+    # Production count mirrors info.py's "Unified productions on record"
+    # logic (built for the 20 Aug stats rebuild after a real 371-production
+    # undercounting bug) at reduced precision: skips that logic's
+    # skeleton-show-with-no-award-record reconciliation, since being off by
+    # one or two productions at a threshold is low-stakes for a decorative
+    # badge in a way it wasn't for the stats page itself.
+    pre_2024_productions = db.execute(
+        "SELECT COUNT(*) FROM (SELECT DISTINCT year, show FROM historical_results "
+        "WHERE society_id = ? AND year < ? AND show IS NOT NULL)",
+        (society_id, SHOWS_COVERAGE_START_YEAR),
+    ).fetchone()[0]
+    recent_productions = db.execute(
+        "SELECT COUNT(*) FROM shows WHERE society_id = ? AND show IS NOT NULL "
+        "AND moderation_status = 'approved' AND source != 'historical'",
+        (society_id,),
+    ).fetchone()[0]
+    total_productions = pre_2024_productions + recent_productions
+    if total_productions >= BADGE_CENTURY_MIN:
+        badges.append({
+            "icon": "🌟", "cls": "b-century", "label": "Century Club",
+            "criteria": f"{total_productions} productions on record",
+            "tooltip": "100 or more productions staged on record, across the full archive and current seasons.",
+        })
+
+    triple_crown = db.execute(
+        "SELECT year, show, COUNT(*) AS wins FROM historical_results "
+        "WHERE society_id = ? AND result = 'Winner' AND show IS NOT NULL "
+        "GROUP BY year, show HAVING wins >= ? ORDER BY wins DESC LIMIT 1",
+        (society_id, BADGE_TRIPLE_CROWN_MIN),
+    ).fetchone()
+    if triple_crown:
+        badges.append({
+            "icon": "👑", "cls": "b-triple", "label": "Triple Crown",
+            "criteria": f"{triple_crown['wins']} wins for one production ({triple_crown['year']})",
+            "tooltip": "3 or more wins for the same production in the same year - total dominance in a single outing.",
+        })
+
+    clean_sweep = db.execute(
+        "SELECT year, COUNT(*) AS noms FROM historical_results "
+        "WHERE society_id = ? AND category_name IS NOT NULL "
+        "GROUP BY year HAVING noms >= ? ORDER BY noms DESC LIMIT 1",
+        (society_id, BADGE_CLEAN_SWEEP_MIN),
+    ).fetchone()
+    if clean_sweep:
+        badges.append({
+            "icon": "🧹", "cls": "b-sweep", "label": "The Clean Sweep",
+            "criteria": f"{clean_sweep['noms']} nominations in {clean_sweep['year']}",
+            "tooltip": "8 or more award nominations across every category in a single year.",
+        })
+
+    years = {r[0] for r in db.execute(
+        "SELECT DISTINCT year FROM historical_results WHERE society_id = ? AND show IS NOT NULL", (society_id,)
+    )}
+    for r in db.execute(
+        "SELECT DISTINCT season FROM shows WHERE society_id = ? AND show IS NOT NULL AND moderation_status = 'approved'",
+        (society_id,),
+    ):
+        years.add(historical_results_year(r[0]))
+    streak = _consecutive_year_streak(years)
+    if streak >= BADGE_JUBILEE_MIN:
+        badges.append({
+            "icon": "🎂", "cls": "b-jubilee", "label": "Golden Jubilee Society",
+            "criteria": f"{streak} consecutive years active",
+            "tooltip": "50 or more consecutive years with at least one production on record - gaps of a year or less don't break the streak.",
+        })
+
+    winning_tiers = {r[0] for r in db.execute(
+        "SELECT DISTINCT tier FROM historical_results "
+        "WHERE society_id = ? AND category_name = 'Best Overall Show' AND result = 'Winner'",
+        (society_id,),
+    )}
+    if {"Gilbert", "Sullivan"} <= winning_tiers:
+        badges.append({
+            "icon": "🎭", "cls": "b-dual", "label": "Dual Tier Champions",
+            "criteria": "Won Best Overall Show in Gilbert & Sullivan",
+            "tooltip": "Has won Best Overall Show at least once in both the Gilbert and Sullivan tiers, at different points in its history.",
+        })
+
+    category_count = db.execute(
+        "SELECT COUNT(DISTINCT category_name) FROM historical_results "
+        "WHERE society_id = ? AND result = 'Winner' AND category_name IS NOT NULL",
+        (society_id,),
+    ).fetchone()[0]
+    if category_count >= BADGE_ALL_ROUNDER_MIN:
+        badges.append({
+            "icon": "🎨", "cls": "b-allrounder", "label": "The All-Rounder",
+            "criteria": f"Won in {category_count} different categories",
+            "tooltip": "Won 5 or more distinct award categories over its history - not just Best Overall Show, but Direction, Choreography, MD, Costume and the rest.",
+        })
+
+    first_year = db.execute(
+        "SELECT MIN(year) FROM historical_results WHERE society_id = ? AND show IS NOT NULL", (society_id,)
+    ).fetchone()[0]
+    if first_year is not None:
+        debut = db.execute(
+            "SELECT result FROM historical_results WHERE society_id = ? AND year = ? "
+            "AND result IN ('Winner', 'Second Place', 'Third Place') LIMIT 1",
+            (society_id, first_year),
+        ).fetchone()
+        if debut:
+            verb = "Won" if debut["result"] == "Winner" else debut["result"]
+            badges.append({
+                "icon": "🌱", "cls": "b-debut", "label": "Debut Delight",
+                "criteria": f"{verb} in their first-ever year, {first_year}",
+                "tooltip": "Won or placed in the very first year this society appears on record.",
+            })
+
+    return badges
+
+
 @bp.route("/societies/<int:society_id>")
 def society_detail(society_id):
     db = get_db()
@@ -679,12 +822,14 @@ def society_detail(society_id):
     ).fetchone()[0]
     active_since = earliest_award_year or (2000 + int(earliest_season[:2]) if earliest_season else None)
 
+    badges = _society_badges(db, society_id)
+
     return render_template(
         "society_detail.html", society=society, shows=shows, future_shows=future_shows,
         historical_timeline=historical_timeline, person_awards=person_awards,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
-        society_login_url=society_login_url,
+        society_login_url=society_login_url, badges=badges,
     )
 
 
