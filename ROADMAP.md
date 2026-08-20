@@ -107,12 +107,17 @@ actual gut read, not just cost/risk:
 - **Interested, not urgent**: **Shows A-Z redesign** (`/titles` - alphabet scrubber, staples carousel,
   revival-candidate/rare-gem filters - check whether `mockups/1_titles_az_mockup.html` referenced in
   the doc actually exists or Gemini invented the path), **Society head-to-head compare** (`/compare` -
-  trophy counts, shared repertoire, direct clash history), **Society milestone badges** (Century Club,
-  Gilbert Grandmaster, Golden Jubilee etc - cheapest of the set, pure computation over data already in
-  the DB, could bolt onto existing society profile pages).
+  trophy counts, shared repertoire, direct clash history).
 - **Not interested**: Instagram/social-card generator (`/shows/<id>/card`).
 - **Duplicate, not new**: programme cover gallery (`/gallery/programmes`) - same idea as the
   already-parked historical-posters gallery page below.
+- **Society milestone badges - SHIPPED 2026-08-20.** Mockup-first (published Artifact, real site tokens,
+  grounded in real production data), iterated once - Darragh didn't like the originally-proposed Gilbert
+  Grandmaster badge (icon clashed with the existing trophy case's own 🏆), asked for alternatives instead
+  of just dropping it. Ended up with 7 live badges: Century Club, Triple Crown, The Clean Sweep, Golden
+  Jubilee Society, Dual Tier Champions, The All-Rounder, Debut Delight - all computed in
+  `_society_badges()` (`app/blueprints/public.py`), rendered on `/societies/<id>`. Gilbert Grandmaster
+  itself is parked, not built - can be activated later if wanted after all.
 
 **Review-author byline** - a `review_author` column + admin form + template change, discussed but never
 built. Two open design questions block it: backfill existing reviews or forward-only, and whether
