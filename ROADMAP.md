@@ -1,6 +1,35 @@
 # Roadmap
 
-## START HERE - season calendar + fix-dates tweak done, needs deploy (2026-08-20, later session)
+## START HERE - society-corrections review queue built, needs deploy (2026-08-20, later-later session)
+
+**Item 4's "near-identical-society audit" half is done - a review queue, not a merge.** Darragh's ask
+after seeing the extractor-society-gate diff: publish the suggestions somewhere he can approve/reject
+himself (he knows these societies), no live production changes made by Claude. Built
+`/admin/society-corrections` (`cf0b64b`) - see that commit message for the full story, short version:
+- Re-ran the branch's extractor against the full PDF archive in an isolated worktree (removed after),
+  diffed against `historical_reviews_pilot.json`. **80 real changes, not the 77 the branch's own commit
+  claimed** - `societies.csv`/the archive have drifted since that measurement.
+- Two spot checks against real PDFs cut both ways - one "suspicious" value was actually exactly what's
+  printed (the OLD code was the one silently wrong), one was a pre-existing unrelated garbled record.
+  Confirms the branch's fix mechanism is sound, but also that eyeballing needs the real archive, not
+  just pattern-matching the diff text - which is exactly why this became a review queue for Darragh
+  rather than something to wave through.
+- The queue shows each suggestion with a review-text excerpt for context (often settles it on sight),
+  Approve/Reject/Skip per row, same bulk pattern as `/admin/duplicate-titles`. Approving corrects that
+  one `historical_reviews` row's `society_raw`/`society_id` in place - deliberately not a blind
+  re-extract+reload, which would've silently inserted duplicate rows (`load_historical_reviews.py`
+  dedupes on `(source_issue, society_raw, show_raw)` - change `society_raw` and that key stops matching
+  the existing row). Refuses to touch an already-approved/public review. Rejecting is remembered
+  (new `dismissed_society_corrections` table) so it stops reappearing.
+- **The `extractor-society-gate` branch itself stays unmerged** - confirmed via `society_names.is_same_society`
+  directly that its own gate still can't safely tell "Newcastle Glees Musical Society" from
+  "Newcastlewest Musical Society" apart (0.95 similarity, above its own 0.85 threshold). Data corrections
+  can go ahead without merging the code; the code fix needs that gap addressed first.
+
+**Not yet redeployed** - `cf0b64b` is pushed but production is still 4 commits behind (also carrying the
+season calendar's two follow-up fixes and the fix-dates bulk-save fix from earlier this session).
+
+## Previous START HERE - season calendar + fix-dates tweak done, needs deploy (2026-08-20, later session)
 
 **Item 1 from the triage below is done: the season calendar, mockup-first, built, iterated on real
 feedback, and pushed - not yet redeployed.** Final shape: `/season` gets a new "Season calendar" section
@@ -43,8 +72,10 @@ wait for Opus. This is that triage - read this section first, before anything be
    slot in any time, doesn't need its own session.
 3. **`/admin/duplicate-titles` redesign** - mockup-first, Darragh asked for this one specifically. Same
    size/shape as the calendar mockup was - real work, no special reasoning needs.
-4. **Near-identical-society audit + merge `extractor-society-gate`** - eyeball the 77 pending changes on
-   that branch before merging. Judgment-heavy but bounded; doesn't need Opus.
+4. ~~**Near-identical-society audit + merge `extractor-society-gate`**~~ **Half done** - the audit is now
+   a review queue at `/admin/society-corrections` (see this file's current top section), waiting on
+   Darragh's own approve/reject passes, not further Claude action. The branch itself stays unmerged - a
+   real gap found in its own matching logic (Newcastle Glees vs Newcastlewest) needs addressing first.
 5. **Date guesstimate on `/admin/shows/dates`** - new, from tonight's fix-dates feedback (see this file's
    top section) - pre-fill opening/closing as an editable guess from the same society's most recent
    prior-season show. Needs a quick scoping pass first, not a straight build. Small/cheap, can slot in
