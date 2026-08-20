@@ -10,6 +10,15 @@ def get_db():
         g.db = sqlite3.connect(current_app.config["DATABASE"])
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
+        # WAL lets readers (most requests) proceed without blocking on a
+        # writer, instead of every connection fighting over one exclusive
+        # lock - standard hardening for SQLite under concurrent requests
+        # (pageviews, submissions, backups and changelog sync all writing
+        # under Waitress's worker threads). busy_timeout makes a write that
+        # does collide retry for up to 5s instead of failing immediately
+        # with "database is locked".
+        g.db.execute("PRAGMA journal_mode = WAL")
+        g.db.execute("PRAGMA busy_timeout = 5000")
     return g.db
 
 
@@ -199,6 +208,32 @@ def _migrate_shows_source_check(db):
     db.execute("CREATE INDEX IF NOT EXISTS idx_shows_review_status ON shows(review_status)")
 
 
+def _migrate_shows_natural_key_collation(db):
+    """ux_shows_natural_key originally had no COLLATE NOCASE on the title
+    part, so a case-only difference ("Made in Dagenham" vs "Made In
+    Dagenham") wasn't caught as the same production - a review-created
+    skeleton show could silently duplicate an existing member-submitted one
+    whenever the extracted title's casing didn't match exactly (see
+    ROADMAP, 20 Aug 2026 - 4 real instances found and merged in production
+    before this was written). `CREATE INDEX IF NOT EXISTS` in schema.sql
+    can't change an index that already exists under that name, so this
+    drops and recreates it - keyed off whether the live index's own SQL
+    already mentions NOCASE (read from sqlite_master, same reasoning as
+    _migrate_shows_source_check above), so it's a no-op once a database has
+    been migrated, including a brand-new one where schema.sql already
+    creates it in the final shape."""
+    current_sql = db.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'ux_shows_natural_key'"
+    ).fetchone()
+    if current_sql is None or "NOCASE" in current_sql[0]:
+        return
+    db.execute("DROP INDEX ux_shows_natural_key")
+    db.execute(
+        "CREATE UNIQUE INDEX ux_shows_natural_key "
+        "ON shows(society_id, season, COALESCE(show, '') COLLATE NOCASE)"
+    )
+
+
 # FTS5 external-content tables need an explicit 'rebuild' to actually build
 # the searchable index from their source table - the triggers in schema.sql
 # only cover changes from this point on. Deliberately NOT guarded by a
@@ -225,6 +260,7 @@ def init_schema():
         db.executescript(f.read())
     _migrate_adjudicator_assignments_table(db)
     _migrate_shows_source_check(db)
+    _migrate_shows_natural_key_collation(db)
     _apply_column_migrations(db)
     db.commit()
 

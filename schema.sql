@@ -108,8 +108,18 @@ CREATE TABLE IF NOT EXISTS shows (
 -- this season, title TBA" rows) and plain SQLite UNIQUE treats every NULL as
 -- distinct, which would make those rows duplicate on every re-run - so the key
 -- is built on COALESCE(show, '') instead of show directly.
+--
+-- COLLATE NOCASE (added 20 Aug 2026): a case-only title difference used to be
+-- a distinct key, so a review-created skeleton show could silently duplicate
+-- an existing member-submitted one whenever the extracted title's casing
+-- didn't match exactly ("Made in Dagenham" vs "Made In Dagenham") - 4 real
+-- instances found and merged in production before this was added. Confirmed
+-- import_csv.py's ON CONFLICT(society_id, season, COALESCE(show, '')) still
+-- resolves correctly against this index without needing its own COLLATE
+-- NOCASE annotation - SQLite matches the conflict target structurally and
+-- applies the index's collation regardless.
 CREATE UNIQUE INDEX IF NOT EXISTS ux_shows_natural_key
-    ON shows(society_id, season, COALESCE(show, ''));
+    ON shows(society_id, season, COALESCE(show, '') COLLATE NOCASE);
 
 CREATE INDEX IF NOT EXISTS idx_shows_society_id        ON shows(society_id);
 CREATE INDEX IF NOT EXISTS idx_shows_season             ON shows(season);
