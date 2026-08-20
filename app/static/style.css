@@ -867,6 +867,27 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   color: var(--accent);
 }
 
+/* /stats - a prominent, clickable banner pointing at /stats/trends (Decades),
+   sitting above the region filter so it isn't just a small link buried in
+   the intro line the way it launched. The whole card is the link, same
+   pattern as a.queue-item on the More page. */
+.trends-callout {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.3rem;
+  margin: 1.25rem 0 1.75rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, var(--bg)), var(--bg) 75%);
+  box-shadow: var(--shadow);
+  text-decoration: none; color: inherit;
+}
+.trends-callout:hover { border-color: var(--gold); }
+.trends-callout .trends-copy h2 { margin: 0 0 0.2rem; font-size: 1.05rem; color: var(--fg); }
+.trends-callout .trends-copy p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+.trends-callout .trends-cta {
+  flex-shrink: 0; font-weight: 700; font-size: 0.9rem; white-space: nowrap;
+  background: var(--accent); color: var(--accent-contrast); padding: 0.55rem 1.1rem; border-radius: 6px;
+}
+.trends-callout:hover .trends-cta { filter: brightness(1.1); }
+
 /* /stats/trends - a decade scrubber (real historical_results record counts
    per decade, GET ?decade=... like every other stats filter on this site,
    no JS) plus one full "era card" for whichever decade is selected. */

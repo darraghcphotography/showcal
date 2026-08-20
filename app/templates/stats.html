@@ -22,10 +22,17 @@
 
 {% block content %}
   <h1>Statistics</h1>
-  <p><a href="{{ url_for('feeds.export_shows_csv') }}">Download the full dataset (CSV) &darr;</a>
-     &middot; <a href="{{ url_for('info.stats_trends') }}">See how the circuit's taste has shifted decade by decade &rarr;</a></p>
+  <p><a href="{{ url_for('feeds.export_shows_csv') }}">Download the full dataset (CSV) &darr;</a></p>
   <p class="meta">Counts below only include shows that have actually opened and weren't cancelled -
      announced-but-not-yet-run shows don't count until they happen.</p>
+
+  <a class="trends-callout" href="{{ url_for('info.stats_trends') }}">
+    <div class="trends-copy">
+      <h2>&#9203; How has the circuit's taste changed?</h2>
+      <p>See the most-staged shows and top societies for any decade back to 1912.</p>
+    </div>
+    <span class="trends-cta">Explore Decades &rarr;</span>
+  </a>
 
   <form method="get" class="filter-form">
     <input type="hidden" name="award_category" value="{{ selected_award_category }}">
