@@ -1,59 +1,31 @@
 # Roadmap
 
-## START HERE - season calendar built, needs deploy (2026-08-20, later session)
+## START HERE - season calendar + fix-dates tweak done, needs deploy (2026-08-20, later session)
 
-**Item 1 from the triage below is built and tested locally, not yet deployed.** Mockup-first as planned
-(published artifact, iterated through 3 rounds of feedback - renamed "danger week" to "congested week",
-switched congestion from "shows opening the same week" to true run-overlap ("running", not just
-"opening", so a 9-day run and a 3-night run are told apart), added a Gilbert-left/Sullivan-right split
-so an adjudicator can scan just their own column). Darragh approved Option A (Agenda) over the Month
-Grid alternative - "option a is slick - go go go".
+**Item 1 from the triage below is done: the season calendar, mockup-first, built, iterated on real
+feedback, and pushed - not yet redeployed.** Final shape: `/season` gets a new "Season calendar" section
+above the existing sortable tables (unchanged) - Gilbert left / Sullivan right per week, real run dates
+on every chip (`season_weeks()` in `app/season.py`), a section flagged **congested** at 4+ of its own
+non-cancelled shows actually running at once (judged separately per section - 2 Gilbert + 2 Sullivan
+isn't a clash for either adjudicator), already-finished weeks dropped from the current/a future season
+(a genuinely past season keeps its full history via the season picker). No homepage teaser - cut after
+Darragh's "don't show congested on homepage", so `/season` is the only place it lives. New
+`--tier-gilbert`/`--tier-sullivan` CSS tokens. Test suite 307 -> 316. Commits `5feffaf`..`c23c76b`
+(season calendar) plus one more small one bundled into the same unreleased batch:
+- **`/admin/shows/dates` (fix-dates): opening date now jumps an empty closing date to the same month**
+  ("clunky... having to click through each month") - reuses the delegated CSP-safe `change` listener
+  already in `base.html` (`data-sync-close`, same pattern as `data-auto-submit`), never overwrites a
+  closing date already filled in. Verified structurally (right markup renders) and by the same mechanism
+  already proven for `data-auto-submit` - not click-tested in a real browser, no Selenium/Playwright
+  available here.
 
-**What shipped, in `app/season.py`/`info.py`/`public.py`/`season.html`/`index.html`/`style.css`:**
-- `season_weeks()` (new, `app/season.py`) - groups a season's shows by ISO week of opening date;
-  a week is "congested" at 3+ non-cancelled shows actually *running* at any point in it (a carryover
-  show still mid-run from the week before counts too), not just 3+ opening in it.
-- `/season` gets a new "Season calendar" section, above the existing sortable tables (which are
-  unchanged and keep their own sort toggle) - Gilbert/Sullivan chips split left/right per week, each
-  chip showing the real run dates (via the existing `date_range` filter), congested weeks tinted and
-  flagged. Reuses the page's existing region/section filters - congestion recomputes against whatever's
-  currently filtered, so filtering to one section shows that adjudicator's actual clash risk.
-- Homepage gets a small "Congested weeks" teaser card (`_congestion_teaser()` in `public.py`) - shows
-  the current season's upcoming congested weeks if any exist yet, otherwise falls back to a real example
-  from the most recently completed season ("Not much confirmed yet for 26/27 - but 25/26 had...").
-- New `--tier-gilbert`/`--tier-sullivan` CSS tokens (light + dark) - the site had no per-section colour
-  before this, only a neutral `.tag-tier` badge.
-- Verified in a real browser (headless Edge screenshots, light + dark, 600px mobile-stack width) and via
-  `curl` against several region/section/season param combinations, including the current sparse 26/27
-  season and an older 22/23 season - no crashes, congestion recomputes correctly per filter.
-- Test suite 307 -> 316: 9 new tests (`tests/test_season_calendar.py`) plus one existing test
-  (`test_season_page_sort_toggle_reverses_order`) fixed to scope its assertion to the table section only,
-  since the new calendar above it always renders chronologically regardless of the table's sort toggle.
+**Not yet redeployed** - production is still running the very first commit of this arc and has the old
+combined-threshold/no-past-filter/homepage-teaser behaviour. Needs a Portainer redeploy.
 
-**First commit (`5feffaf`) shipped combined-threshold congestion (3+ shows total, either section) - two rounds
-of real-usage feedback since then, both fixed before deploy:**
-1. **Already-finished months were showing at the top of the current season's calendar** ("the may/june
-   shows... makes no sense with them still being visible"). `season_summary()` now drops any week whose
-   `end` date is before today when the season being viewed isn't already fully past - a genuinely past
-   season (browsed as history via the season picker) keeps its complete calendar, unaffected.
-2. **Congestion is per-section, not combined** ("2 gilbert + 2 sullivan isn't a reason to flag") - an
-   adjudicator only needs to cover their own section, so 4 shows split 2-and-2 was never a real clash for
-   either of them. `season_weeks()` now judges Gilbert and Sullivan independently, each at its own 4+
-   threshold (raised from 3, since "4 shows in one section" is the real bar, not "3 shows total"); the
-   week-flag names which section(s) triggered it, and only that section's column gets the amber tint -
-   not the whole row.
-
-**Third round: the homepage teaser itself got cut** - "don't show congested on homepage". `/season` is
-now the only place the calendar lives; `_congestion_teaser()`, its call site, its markup, and its CSS
-are all removed rather than just hidden (`dc48b3b`). Test suite 318 -> 316.
-
-**Committed and pushed (`5feffaf`..`dc48b3b`), not yet redeployed** - three commits behind what's
-currently live on production, which still has the original combined-threshold/no-past-filter/homepage-
-teaser build from the first commit. Needs a Portainer redeploy before any of these three rounds of
-fixes are live.
-- The live current-season view (as opposed to the always-available historical/any-season view via the
-  existing season picker) will look sparse until more of 26/27 has confirmed dates - expected, matches
-  the original Aug 5 scoping's "fast-follow" framing, not a bug.
+**New backlog item, not scoped, from the fix-dates conversation**: pre-fill opening/closing dates on
+`/admin/shows/dates` as an editable guess based on the same society's most recent prior-season show,
+rather than leaving them blank. Needs its own quick scoping pass (what "similar timing" means - same
+week last year? same month? - and what to do for a society with no prior record) before building.
 
 ## Previous START HERE - full backlog triage after a marathon session (2026-08-20, late, pre-`/clear`)
 
@@ -64,17 +36,19 @@ wait for Opus. This is that triage - read this section first, before anything be
 
 **Pick up here, in order:**
 
-1. **Season calendar mockup** - the most concrete next thing, fully scoped (see the section immediately
-   below this one for the real numbers and decisions). A genuine UI build, not a quick add - budget it as
-   its own mockup-first session, same shape as tonight's Statistics work. Doesn't need Opus; it needs
-   focus time, not extra reasoning depth.
+1. ~~**Season calendar mockup**~~ **DONE** - see this file's current top "START HERE" section. Built,
+   iterated through real feedback, pushed - just needs a redeploy.
 2. **OCR test on a programme photo** - blocked on Darragh actually sending one. Small and self-contained
    once a photo exists (test extraction accuracy first, design nothing before seeing real output) - can
-   slot in before or after the calendar mockup, doesn't need its own session.
+   slot in any time, doesn't need its own session.
 3. **`/admin/duplicate-titles` redesign** - mockup-first, Darragh asked for this one specifically. Same
-   size/shape as the calendar mockup - real work, no special reasoning needs.
+   size/shape as the calendar mockup was - real work, no special reasoning needs.
 4. **Near-identical-society audit + merge `extractor-society-gate`** - eyeball the 77 pending changes on
    that branch before merging. Judgment-heavy but bounded; doesn't need Opus.
+5. **Date guesstimate on `/admin/shows/dates`** - new, from tonight's fix-dates feedback (see this file's
+   top section) - pre-fill opening/closing as an editable guess from the same society's most recent
+   prior-season show. Needs a quick scoping pass first, not a straight build. Small/cheap, can slot in
+   any time, doesn't need its own session.
 
 **Flagged for Opus specifically - the one item where the extra reasoning depth actually earns its keep:**
 - **The productions table migration** - `shows`/`historical_results`/`historical_reviews` becoming one
