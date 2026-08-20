@@ -92,9 +92,14 @@ shell there:
 3. **Read `/docs` before asking.** `docs/user-guide.md`, `docs/moderator-guide.md`,
    `docs/deployment.md`, and `docs/data-model.md` already answer most "how does X work" or
    "why is Y built this way" questions - check there first.
-4. **Check `ROADMAP.md` at the start of a session.** It tracks the current phase of work and any
-   working agreements from prior retrospectives - update it when the phase changes rather than
-   just saying the plan out loud in chat, since chat history doesn't survive `/clear`.
+4. **Check `ROADMAP.md` at the start of a session.** It tracks the current phase of work, a flat
+   list of genuinely open items, and working agreements from prior retrospectives - update it when
+   the phase changes rather than just saying the plan out loud in chat, since chat history doesn't
+   survive `/clear`. Kept deliberately lean (pruned 2026-08-20, was ~3,000 lines) since it's read
+   every session - full session-by-session history lives in `ROADMAP_ARCHIVE.md` instead; only
+   check that file if you need past reasoning/detail behind something, not for everyday pickup.
+   When a session fully resolves an open item, move its entry out of `ROADMAP.md` rather than
+   letting resolved items accumulate there again.
 
 ## Things worth knowing before editing
 
