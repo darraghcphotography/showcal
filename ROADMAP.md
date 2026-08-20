@@ -43,13 +43,14 @@ of real-usage feedback since then, both fixed before deploy:**
    week-flag names which section(s) triggered it, and only that section's column gets the amber tint -
    not the whole row.
 
-**Not done yet:**
-- Not committed or deployed - `app/blueprints/info.py`, `app/blueprints/public.py`, `app/season.py`,
-  `app/static/style.css`, `app/templates/index.html`, `app/templates/season.html`,
-  `tests/test_season_calendar.py` are modified in the working tree (all three feedback rounds folded
-  into the same uncommitted diff). Needs a commit + push + redeploy before any of it is live - the
-  currently-deployed `5feffaf` is one commit behind and still has the combined-threshold/no-past-filter
-  behaviour that prompted these two fixes.
+**Third round: the homepage teaser itself got cut** - "don't show congested on homepage". `/season` is
+now the only place the calendar lives; `_congestion_teaser()`, its call site, its markup, and its CSS
+are all removed rather than just hidden (`dc48b3b`). Test suite 318 -> 316.
+
+**Committed and pushed (`5feffaf`..`dc48b3b`), not yet redeployed** - three commits behind what's
+currently live on production, which still has the original combined-threshold/no-past-filter/homepage-
+teaser build from the first commit. Needs a Portainer redeploy before any of these three rounds of
+fixes are live.
 - The live current-season view (as opposed to the always-available historical/any-season view via the
   existing season picker) will look sparse until more of 26/27 has confirmed dates - expected, matches
   the original Aug 5 scoping's "fast-follow" framing, not a bug.
