@@ -5,6 +5,242 @@ start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
 phase changes.
 
+## NEXT SESSION - deploy, then items 4-9 (2026-08-20, end of session, updated)
+
+**Items 3, 6, 7, 9 done this session too - the four Darragh flagged as cheap enough to do without
+Opus.** All code changes tested (full suite 300 -> 307), the two production-data fixes already applied
+directly via SSH (won't reappear/don't need redeploy); the code changes below **do** need a redeploy.
+- **7. WAL mode + busy_timeout** - `app/db.py`'s `get_db()` now sets `PRAGMA journal_mode = WAL` and
+  `PRAGMA busy_timeout = 5000` on every connection.
+- **3. Case-insensitive shows-key fix** - swept production first, per the caveat: **4 real case-only
+  duplicate pairs already existed** (e.g. "Made in Dagenham" vs "Made In Dagenham," same society/season) -
+  3 were a member-submitted show duplicated by a review-created skeleton with different title casing, the
+  4th was a near-identical-text duplicate review (Round 35's pattern, not this bug). Merged all 4 on
+  production, then added `COLLATE NOCASE` to `ux_shows_natural_key` in `schema.sql` plus a migration
+  (`_migrate_shows_natural_key_collation` in `app/db.py`, same drop/recreate pattern as the existing
+  `_migrate_shows_source_check`) so an existing database picks it up automatically. Confirmed
+  `import_csv.py`'s `ON CONFLICT(society_id, season, COALESCE(show, ''))` still resolves correctly against
+  the collated index without needing its own change - tested directly before trusting it, not assumed.
+  Index fix also applied directly to production so it's protected immediately, not just after redeploy.
+- **6. Junk skeleton show titles** - swept every `source='historical'` show with a linked approved review
+  for whether its title actually appears anywhere in its own review text (787 checked, 174 didn't match -
+  almost all false positives, real titles just not quoted verbatim in the prose). Read through by eye and
+  found **8 genuinely garbled ones** (sentence fragments like "Whisper it quietly but this is one" and
+  "Somewhat appropriately for a," from the same truncated-extraction bug fixed twice already tonight),
+  confirmed each against its own review text before fixing (e.g. "Rydell High" + "cigarette smoking pupils"
+  = Grease; "MIRACLE ON 34th STREET - The" reordered to "Miracle on 34th Street"). Applied directly to
+  production.
+- **9. Unified society show/award timeline** - `society_detail.html` used to split a society's pre-23/24
+  history into two separate tables ("Earlier show history" for bare productions, "Awards & nominations"
+  with one row per award *category* below it - a show that won 5 categories was 5 separate rows). Now one
+  timeline, one row per production, award categories folded in as inline badges (gold for Winner, muted for
+  Nominee/other) - `public.py`'s `society_detail()` groups `historical_results` by `(year, show)` in Python
+  rather than a second query. Person-level awards with no `show` (Mary Kelly/Unsung Hero Award) get their
+  own small list since they have nothing to group onto. `tests/test_society_historical_show_split.py`
+  rewritten for the new unified shape (it was pinning the old two-table split, now pins the merge).
+
+**Deploy status**: none of tonight's code changes (Statistics redesign, the collation migration, WAL mode,
+the unified timeline) are deployed yet. All the *data* fixes across the whole session (section
+reassignments, the tier-mismatch resolutions, the case-dupe merges, the 8 title fixes) are already live on
+production regardless, applied directly over SSH.
+
+**Left for their own session - not urgent, not necessarily Opus either (see Darragh's "lowest hanging
+fruit" question this session for the reasoning):**
+- **4. `/admin/duplicate-titles` redesign** - mockup-first, same shape as tonight's Statistics work.
+- **5. Near-identical-society audit + merge `extractor-society-gate`** - eyeball the 77 changes first.
+- **8. Season production calendar** - the one real new-feature build, wants its own dedicated session.
+- **The productions-table migration** - the one item that actually benefits from Opus's extra reasoning
+  depth (real architecture decision, high blast radius). Scoping brief already written, see below.
+
+## Previous "NEXT SESSION" entry, superseded above (2026-08-20 evening)
+
+Tonight covered items 1 and 2 of the "Real priority order" list below (Statistics redesign, the 3 tier-
+mismatch reviews), plus a run of real-usage bugs Darragh found while testing that weren't on any list.
+**Next session starts at item 3 - the case-insensitive shows-key fix (`COLLATE NOCASE` on
+`ux_shows_natural_key`)** - see that item's own entry further down for the "sweep for other case-only
+duplicates before enforcing the constraint" caveat. After that, keep working down the list in order (4-9)
+unless Darragh redirects.
+
+**Item 1, Statistics redesign - built, still not deployed.** See the full write-up immediately below this
+one. Nothing further to do here except an eventual redeploy.
+
+**Item 2, the 3 tier-mismatch reviews - done, and turned out bigger than expected.** None of the three were
+actually a same-show duplicate needing separation - every one was the extractor pinning the wrong society
+name onto what was really a second society's own genuine production:
+- **Sister Act**: Kilkenny's review (id 218) was already correct. The "duplicate" (id 840) was actually
+  **Kilcock Musical & Dramatic Society**'s own 2018 production - confirmed by cross-checking the cast
+  against the awards archive (Amanda Cunningham/Helena Begley both on record under Kilcock's 2018 Sister
+  Act, tier Sullivan, matching the review's own credits exactly). Repointed, gave Kilcock a proper skeleton
+  show (id 1972) for what had been a total gap in their record.
+- **The Merry Widow**: Gorey's review (id 428) was correct. The other (id 414) named "Island Hall Theatre,
+  Lisburn" in its own opening line - not Gorey at all. Traced to **Fusion Theatre** (Lisburn, Northern) -
+  which turned out to already have **11 other reviews sitting completely unmatched since extraction**
+  (2011-2019, every one `show_id`/`society_id` NULL, still `pending`). Darragh confirmed this is the same
+  real society as **Fusion Theatre Group**, the brand-new entry just added this session from the 26/27
+  Gilbert/Sullivan list (see the section-reassignment work below) - so all 12 reviews are now linked to that
+  one society (id 10003), 8+ years of real history recovered for what looked like a brand-new AIMS member.
+  **The 11 pending ones are still unapproved** - only the society link was fixed, not the moderation
+  decision itself; they're sitting at `/admin/historical-reviews` for a real content review.
+- **Little Shop of Horrors**: neither review was Carnew's. One was **Clane Musical & Dramatic Society**'s
+  (self-named twice in the text - "Congratulations to everyone in Clane Musical Society"). The other was
+  **Maree Musical Society** (Clarinbridge, Co. Galway) - had real award history in the archive
+  (`historical_results`, 2014) but no societies row and no match at all; created it (Western, Sullivan).
+  Carnew's skeleton show (id 1593) had nothing left supporting it once both reviews were moved off it -
+  deleted; Carnew apparently never staged this title.
+- Net new: 2 societies (Fusion Theatre Group's history recovered, Maree Musical Society created), 5 new
+  skeleton shows, 5 misattributed reviews now on the right society.
+
+**Also fixed this session, found by Darragh live-testing rather than from any list:**
+- Two more instances of the same truncated-extraction bug fixed earlier for the Addams Family (shows
+  1924/1962, 9 Arch Musical Society) - a single review re-extracted 2-3 times with progressively more of
+  its opening line missing, each truncated copy spawning its own garbled-title skeleton show. Deleted the
+  duplicates, kept the complete one.
+- Show 1377 "Pop-Up" corrected to "Urinetown" (Teachers' Musical Society) - an isolated wrong-title
+  extraction, confirmed via the review's own text (names Urinetown twice, credits match exactly) and swept
+  the rest of that ShowTimes issue to confirm it wasn't a heading-bleed pattern.
+- Teachers' Musical Society's 17/18 gap filled: **The Producers**, March 2018, DCU St Patrick's College -
+  had 3 real award wins (Best Chorus/Comedian/Stage Management) but zero shows-table presence and no
+  review, invisible from the show-page experience even though technically on record via the awards archive.
+  Created from details Darragh supplied directly (no ShowTimes review exists for it - checked the full
+  archive, confirmed).
+- **The 26/27 Gilbert/Sullivan society-section reassignment**, from AIMS's own published list (two images):
+  23 real section changes, 7 stale `section_as_of` refreshes, one real duplicate-society merge found along
+  the way (**CIT Musical Society id 10000 merged into MTU Musical Society id 151** - same real entity
+  recorded twice, only found because renaming one to match the other hit a UNIQUE constraint; moved 3
+  shows/3 reviews across before deleting the emptied row), and 4 new societies created (Armagh Creative
+  Theatre Group, Fusion Theatre Group, Seven Woods Productions, KATS - regions confirmed by Darragh
+  directly for the three with no locational clue in the name).
+
+**Every production-data fix above was applied directly to the production database over SSH, not through
+git** - none of it will reappear or need redeploying; all of it is already live.
+
+## Statistics redesign - full write-up (2026-08-20 evening)
+
+**Statistics redesign: built and tested tonight, NOT yet deployed.** Mockup session (this file's previous
+top entry, item 1 of the "Real priority order") went through two real revisions from Darragh's direct
+feedback before landing, then got built same session once he said "yes go for that":
+- **The old page split `shows`/`historical_results`/`historical_reviews` into three sections that read as
+  three different populations you'd add up.** Darragh's correction: "combined they should cover a majority
+  of the past productions on record. We should treat it as so." Checking that properly turned up a real bug,
+  not just a framing problem - see below.
+- **Rebuilt around one unified "productions on record" total** - `shows` (23/24+) unioned with
+  `historical_results` (pre-24/25, distinct by year+show+society), plus any `shows.source='historical'`
+  skeleton show (created purely to host a ShowTimes review) that has **no** matching award record - a
+  production doesn't need to have been nominated for anything to count, most never are.
+- **Found and fixed a real undercount while building this, not a hypothetical one**: 371 real productions
+  (pre-24/25, on production data as of 20 Aug) existed only as review-linked skeleton shows with zero award
+  record, and were invisible from every count on the old page - it only ever read `historical_results`.
+  Confirmed via a direct check against production over SSH, not assumed.
+- **"Reviewed" is one continuous idea across the whole timeline, not tied to ShowTimes alone** - second
+  correction from Darragh: "'with a review available online' should be any review... this replaced ShowTimes
+  publication in 2023." So coverage = `historical_reviews` (pre-23/24 ShowTimes archive) **plus**
+  `shows.review_status='Published'` with a `review_url` set (23/24 on, AIMS's own aims.ie link-out workflow).
+  On production data this raised all-time review coverage from 806 to 1,068 and closed a visible gap right at
+  the 23/24 boundary (coverage now reads ~90%+ just after the switch instead of falling to zero).
+- **Signature Show cut** (flagged low-value twice by Darragh), **the "Since 23/24 / All-time" Timeframe toggle
+  removed** (standing backlog item - was making per-person leaderboards degenerate), **the whole standalone
+  Leaderboards grid cut** ("remove the 'all time' leaderboards, the awards explorer is fine" - Award Explorer
+  already covers award-outcome rankings interactively per category, the six static cards under it duplicated
+  that job). Award Explorer itself untouched beyond losing its now-redundant Timeframe control - it's tested
+  well twice already (Round 6, and again this session).
+- Two mockup rounds published and iterated live against Darragh's feedback:
+  https://claude.ai/code/artifact/436606a7-188a-4225-a2fa-a4d4140be5df (same URL, redeployed twice - final
+  version is what got built).
+- **Implementation**: `app/blueprints/info.py`'s `stats()` rewritten (era param and six leaderboard/signature
+  queries removed; new unified season-by-season aggregation built from five single GROUP BY queries - no
+  per-row loop, see [[perf_per_row_expensive_ops]] - merged in Python via `season_start_year`, never a string
+  compare, closing off the same rollover bug class fixed twice before in this codebase). New
+  `historical_results_season()` helper added to `app/season.py` (the inverse of the existing
+  `historical_results_year()`). `app/templates/stats.html` and `app/static/style.css` (`.stat-sub`) updated to
+  match. Test suite: two pre-existing tests updated for the new reality (`test_csp.py`'s dropdown check no
+  longer expects an `era` control; `test_hidden_societies.py`'s "hidden society still counts" test now checks
+  the numeric total instead of a leaderboard name, since the name-bearing leaderboards are gone) plus three new
+  tests covering the actual new logic (review-only skeleton shows get counted, matched skeleton shows don't
+  double-count, Signature Show/Leaderboards confirmed gone). 297 -> 300, full suite green. Verified against a
+  real local dev server too, not just the test client - stat tiles, season table, collapsed earlier-seasons
+  detail and Award Explorer all checked directly in rendered HTML.
+- **Not yet deployed.** Next session (or whenever Darragh next redeploys): confirm the live `/stats` page
+  shows the new "Productions on record" gold tile and "Productions by season" table, not the old three-source
+  layout.
+
+**Two live production bugs found and fixed the same session, via Darragh reporting real 500s while working:**
+- `/admin/shows/1924/edit` and `/admin/shows/1962/edit` were both 500ing (`ux_shows_natural_key` UNIQUE
+  constraint) - root cause: the same ShowTimes review (Issue 162, "Carry On Addams!", 9 Arch Musical Society,
+  22/23) got extracted **three times**, each copy missing a bit more of its opening line, and each truncated
+  copy's leftover fragment ("based", then "in") got picked up as a bogus show title, spawning its own garbled
+  skeleton show. The complete, correctly-titled copy (show 1361, review 334, "The Addams Family") was already
+  live and correct throughout. Confirmed via `SequenceMatcher` diff (99.67%/99.98% identical, only a leading-
+  text truncation different) before touching anything, then confirmed nothing else in the schema references
+  `shows(id)` except `historical_reviews.show_id`. Deleted reviews 957/999 and shows 1924/1962 directly on
+  production via SSH (user confirmed before the write) - 883 -> 881 reviews, 1393 -> 1391 shows. Same bug
+  shape as Round 35's 110-group ShowTimes duplicate cleanup, just a fresh instance that sweep didn't catch
+  (its ratio, 99.67%, sits just under some of that sweep's matching buckets) - **worth a fresh archive-wide
+  sweep for more instances like this one, not yet done, low urgency.**
+
+**NEW - a real productions table: Darragh has now steered toward building it, not just discussed it.**
+While reacting to the Statistics mockup he said: "I think a new combined productions database/table would be
+a good way to have a single source of truth matching awards, societies, etc" - **this is the parked Round 34
+architecture question again** ("can `shows` and `historical_results` be one source of truth?" - answered then
+as "yes to one source of truth, no to a table merge; the real fix is a `productions` table both sides point
+at" - see this file's Round 34 section further down), but this time with an actual steer to build it rather
+than a request to write up cost/benefit for later. Darragh also suggested switching to **Opus** for this
+specific piece of work, reasoning it's a bigger, more careful task than finishing a mockup - agreed, and this
+write-up is the handoff for that session.
+
+### Scoping brief for the productions-table session (start here, Opus)
+
+**Why now, concretely - not hypothetical.** Tonight's Statistics rebuild had to hand-roll exactly the
+problem a real table would solve: five separate GROUP BY queries (`historical_results` by year, unmatched
+`shows.source='historical'` skeletons by season via a `NOT EXISTS` anti-join, `historical_reviews` by season,
+`shows` by season twice more for the post-24 split) merged together in Python via a season-string dance, just
+to answer "how many productions, and how many are reviewed" - one honest number. That logic now lives once,
+in `info.py`'s `stats()`. It will need re-deriving, slightly differently, the next time `admin.py` or
+`public.py` needs the same honest count (the 371-production undercount this session found existed **because**
+no shared definition of "a production" existed to check against). A real table makes the union/anti-join a
+one-time backfill instead of a recurring query pattern.
+
+**What exists today (confirmed, not assumed - re-verify at scoping time in case anything's moved):**
+- `shows` (`schema.sql` ~line 61) - one row per staging, 23/24 onward for real ('import'/'submission') rows,
+  plus `source='historical'` skeleton rows (pre-24/25, created only to give a ShowTimes review a page to live
+  on - 788 of these in production as of tonight, 371 with no matching award record at all).
+- `historical_results` (~line 223) - one row per **award record**, 1912-2026, not one row per production (a
+  show with 5 category results is 5 rows; a show nominated for nothing isn't there at all). `source_id` links
+  loosely to `societies`, `society_name` is the free-text fallback for anything unmatched.
+- `historical_reviews` (~line 352) - one row per review, 09/10-22/23 (ShowTimes archive) plus any
+  `source='manual'` review typed in directly via Edit Show. Links to `shows.id` via `show_id`, `societies.id`
+  via `society_id` (both nullable until matched/approved).
+- Cross-cutting: `shows.review_status`/`review_url` (23/24+, AIMS's own aims.ie link-out, unrelated table/
+  column to the above but conceptually the same "is this production reviewed" question from tonight's fix).
+- The already-parked **people** identity question (award nominees / credit names / adjudicators - see this
+  file's "PARKED on Darragh's privacy objection" section) is the same shape of problem one level down - a
+  production and a person are both "this entity has no real identity, so every query joins on strings and
+  splits on date ranges." Worth keeping in view while scoping this, but Darragh's privacy objection on public
+  person pages stands regardless of what happens to productions - don't conflate the two decisions.
+
+**Proposed shape (a starting hypothesis for the scoping session, not a final schema):** one `productions`
+table, one row per real staging, with `shows.id`, `historical_results` rows (many-to-one, via a new
+`production_id` FK) and `historical_reviews.production_id` all pointing at it instead of at each other by
+string/date matching. Region and society resolve once per production, not re-derived per query the way
+`hist_region_clause`'s fallback join does today.
+
+**What the scoping session actually needs to produce, in order:**
+1. **A full inventory** of every current query that stands in for "how many productions" or "is this
+   production reviewed" today - `info.py` (now current), `admin.py`'s dashboard counts, `public.py`'s
+   society/show pages, `export_csv.py`/`export_awards.py`. Grep for `SHOWS_COVERAGE_START_YEAR` and
+   `hist_join`/`hist_region_clause` as starting points - both are proxies for exactly this problem today.
+2. **A backfill script with verification asserts**, not a leap of faith - reuse tonight's exact matching
+   logic as the starting recipe (shows-table rows since 23/24 anchor 1:1; `historical_results` distinct
+   `(year, show, society)` anchors pre-24 award-linked productions; unmatched `source='historical'` skeleton
+   shows anchor the review-only productions). Assert the backfilled totals match tonight's corrected unified
+   counts before trusting it on production - same discipline as every other production data script this
+   session and Round 35's cleanup used.
+3. **Additive only for the first pass** - new table plus FKs, old tables/columns stay exactly as they are
+   until the new one's proven safe in real use. No dropping or renaming anything on the first cut.
+4. **A staged cutover, one surface at a time** - Statistics first (freshest in mind, smallest blast radius),
+   then the admin dashboard counts, then public show/society pages last (highest traffic, most to lose from a
+   subtle regression).
+5. **Do this in an isolated worktree**, given the blast radius crosses most of the query surface in the app -
+   not a quick same-session addition the way tonight's Statistics fixes were.
 ## NEXT SESSION - start here: the Gemini/Antigravity audit backlog (2026-08-20)
 
 Darragh had Gemini Antigravity run a fresh-eyes audit of the codebase (`AUDIT_AND_RECOMMENDATIONS.md`,
