@@ -40,6 +40,20 @@ Flat list, no particular order beyond roughly how it was prioritized when last d
 reasoning/history for any of these is in `ROADMAP_ARCHIVE.md` if needed - search there for a keyword
 before re-deriving from scratch.
 
+**Season calendar UX feedback (2026-08-20, real page: `/season?season=26/27&region=&tier=&sort=asc`)**
+- not started:
+- Current season should take visual priority - the calendar view (possibly expandable/collapsible,
+  with a tooltip explaining the show/hide toggle) rather than sitting level with past seasons.
+- Past seasons need better display - a dropdown was suggested rather than the current layout - plus
+  "historical" phrasing (these are done-and-dusted, distinct language from an in-progress season) and a
+  tighter UX generally. Not mocked up yet.
+
+**New feature idea, not yet scoped: a reviews page, both public-facing and admin-side.** Darragh raised
+this while mid-task adding missing `aims.ie` review links by hand, calling the current process "quite
+tedious" - the pain point is real and current (2026-08-20), not hypothetical. Flagged to revisit and
+scope properly once free - a session wakeup was scheduled to ask again shortly after, don't let this
+go stale in chat only.
+
 **Society misattribution follow-ups (from today's fix, see above):**
 - **6 of the 8 remaining cases resolved and applied live 2026-08-20** (`fix_society_misattributions_2.py`,
   same dry-run/test-apply/apply-for-real/independently-reverify discipline as the original 43) - going
@@ -130,10 +144,13 @@ called the underlying issue "not really an issue" when a real mockup existed. Pa
 but a fresh full-archive sweep for more instances (the fix pattern's match threshold might miss some)
 was flagged as worth doing and never run.
 
-**Two smaller open design questions**: what should happen when a society later fills in real detail on
-a skeleton show (created just to host a ShowTimes review); and the society self-service "add a show"
-form has no check against `historical_results` for double-counting a show that's already on record via
-an award entry (flagged, not confirmed to have actually bitten anyone yet).
+**Skeleton-show fill-in and double-count check - SHIPPED 2026-08-20.** Turned out the skeleton-show
+fill-in "gap" was already solved mechanically (dashboard/edit already allow it, no source filter
+anywhere) - just needed discoverability, so a skeleton show missing a venue now shows "Has a review -
+add details" / "Add details" instead of a plain "Edit". The double-count question got a real yes: the
+self-service "add a show" form now warns (same soft-warn/confirm-checkbox pattern as the existing
+near-duplicate-title check) when this society already has an award-archive record for the same season
+under a matching title (`similarity.find_award_record_match`).
 
 **~112 stale orphaned `historical_reviews` rows** - cross-referenced as real, but explicitly not deleted
 pending a more rigorous verification method than what was used to find them.
