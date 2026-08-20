@@ -145,8 +145,10 @@ actual gut read, not just cost/risk:
   itself is parked, not built - can be activated later if wanted after all.
 
 **Review-author byline** - a `review_author` column + admin form + template change, discussed but never
-built. Two open design questions block it: backfill existing reviews or forward-only, and whether
-authorship is per-person or per-publication.
+built. Both design questions that were blocking it are resolved (2026-08-20): backfill existing reviews
+(not forward-only), authorship is per-person (not per-publication, despite the free-text-name fragility
+that already dogs the parked person-identity work above - accepted knowingly, not overlooked). Just
+needs building now.
 
 **`/admin/duplicate-titles` UX redesign** - Darragh asked for mockups specifically at one point, later
 called the underlying issue "not really an issue" when a real mockup existed. Parked, low priority.
