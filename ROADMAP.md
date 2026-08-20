@@ -1,5 +1,40 @@
 # Roadmap
 
+## NEXT SESSION - season calendar mockup, and an OCR test once a programme photo exists (2026-08-20, late)
+
+Two new decisions from Darragh tonight, picking up the season-calendar item from the "Real priority
+order" list (item 8) and a brand-new idea - both scoped, neither started:
+
+**Season calendar - access model changed from the original Aug 5 scoping.** That session decided an
+**unlisted shared link** (no login, same pattern as `/submit/unlock`), historical view first. Darragh's
+ask tonight is bigger: **public, embedded directly on `/season` and the homepage**, not a separate
+unlisted link - for theatregoers planning their year across regions as much as for adjudicators. Everything
+else from the Aug 5 scoping still stands and should carry forward:
+- **Layout**: one shared calendar, Gilbert/Sullivan colour-coded together (not two separate calendars) -
+  shows real cross-section overlap, not each tier in isolation.
+- **Danger weeks**: explicit flag at 3+ shows opening the same week (the adjudicator's own example), not
+  just a density/count heuristic.
+- **Sequencing**: historical view first (buildable now, no live-data dependency - real numbers already
+  pulled: April is the crunch month by a wide margin, 94 combined Gilbert+Sullivan adjudicator visits vs a
+  ~10-40/month baseline; ISO week 15 (mid-April) is the single busiest recurring week at 31 combined
+  visits; 83% of adjudicator visits happen within 0-4 days of a show's `opening_date`, so that field alone
+  is a reliable stand-in without needing `adjudication_date` filled in ahead of time). Live current-season
+  view is the fast-follow, once enough of the season has confirmed dates to not look sparse - see the full
+  numbers/reasoning in this file's Round-numbered "adjudication_date" section (search "which weeks are
+  typically busiest").
+- **Not started** - mockup-first per this repo's established pattern, own session.
+
+**Programme-photo OCR backfill - a new idea, genuinely untested.** Darragh has old society show
+programmes listing production history and wants to photograph them over time to backfill the archive.
+Confirmed he wants OCR extraction tried, not manual typing - there's already a manual-entry tool for this
+exact data shape (`/admin/historical-productions/bulk`, one "YEAR Title" line per society, skips anything
+already on record), so the only new work is the extraction step itself. **Blocked on a real test photo** -
+nothing about print quality, layout (list? table? mixed with photos/text?), or OCR accuracy on an actual
+programme page is known yet. Do not design an ingestion pipeline before seeing one - same discipline as
+every other extraction tool in this repo (`extract_historical_reviews.py` was built against real PDFs, not
+assumed). Once a photo exists: test OCR accuracy on it directly first, then decide the parsing/matching
+approach against what the real output actually looks like.
+
 Tracks the current phase of work so a new session (after `/clear` or a fresh
 start) can pick up where the last one left off without re-deriving context.
 Update this file - don't just say the plan out loud in chat - whenever the
