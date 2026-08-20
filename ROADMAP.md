@@ -13,13 +13,12 @@ open (not started, explicitly parked, or blocked on something).
 
 ## START HERE - Decades + Reviews + Venues built for real 2026-08-21, 2 mockups still waiting on a coding pass
 
-**Update 2026-08-21: Decades Time Machine, Reviews, and Venues are all live for real**, committed and
-pushed (Darragh confirmed "always commit and push" as a standing default for this repo - see memory).
-**Darragh is redeploying via Portainer right at the end of this session** - not yet independently verified
-live on the NAS. First thing next session (or once he confirms): check it's actually live the proper way -
-grep a marker string from these commits (e.g. "Decades" or "reviews-queue") inside the running container's
-code, not just the `/suggestions` deployed-at timestamp, which only proves the process restarted, not which
-commit is running.
+**Update 2026-08-21: Decades Time Machine, Reviews, and Venues are all live for real** - committed, pushed,
+deployed, and independently verified running in production (not just the `/suggestions` timestamp - actually
+grepped `stats_trends`/`reviews_index`/`venues_index`/`reviews_queue` markers inside the running `aims-web`
+container's code, and confirmed `GET /stats/trends` returns 200 from inside the container). Darragh's
+Portainer redeploy briefly looked stuck/erroring from his side; turned out to just be Portainer mid-cycle
+(container legitimately stopping/recreating/starting) - nothing was actually wrong, no action needed.
 
 **Decades Time Machine** (`/stats/trends`, `info.py`'s `stats_trends()`) - grounded in the awards archive
 (`historical_results`, 1912-2026), not the thinner `shows` catalogue. A decade-scrubber pill row (GET
