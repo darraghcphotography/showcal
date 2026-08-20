@@ -48,6 +48,15 @@ counter, which was left untouched) - paste-and-save per row, same shape as Socie
 "Review" never appears anywhere in the page and the new sitewide nav link broke that assumption. Full suite
 392 tests, all green.
 
+**Venues fixed twice post-launch, 2026-08-21** - Darragh caught both from the real deployed page within
+minutes: (1) it was only linked from the mobile-only `/more` page, no desktop path existed at all - "code
+verified running" isn't the same as "verified reachable"; fixed by adding it to the footer (the actual
+thing that makes Adjudicators desktop-reachable, which is what I'd meant to match but got wrong). (2) the
+index sorted alphabetically, which put real free-text noise ("40th Anniversary (March run)", a data-entry
+slip) at the very top as the first thing anyone saw - now sorts by production count instead, so the real,
+recognizable venues lead and the noise sinks down (still there, not hidden, just not first impression).
+Both pushed in a follow-up commit, 2 new tests, full suite 406 green.
+
 **Venues** (public `/venues` + `/venues/<venue>`) - deliberately the **thin version**, per Darragh's explicit
 call when asked: no capacity/type/map fields at all (that structured data doesn't exist anywhere in the
 schema - `/admin/venues` is just a per-society free-text `default_venue` backfill, not a real venues table).
