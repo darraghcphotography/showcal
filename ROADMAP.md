@@ -48,18 +48,30 @@ unnoticed for weeks.
    changed. **`show_detail()`'s own review lookup had no `ORDER BY`** - ten shows were carrying two
    approved reviews apiece with which one rendered down to SQLite's incidental scan order; added
    `ORDER BY id ASC LIMIT 1` (`f9dc9df`), verified it doesn't flip what's currently live on any of them.
-   **Six groups (now three, after the near-dup pass) deliberately NOT auto-resolved** - two different
-   situations, both flagged for Darragh rather than guessed:
-   - **Three groups where both copies are already approved on two SEPARATE show pages** (e.g. "9 To 5"
-     / Coolmine Musical Society exists as both show 1188 and show 1960) - deleting either orphans a
-     real public page. Needs a real decision (probably a show-page merge, same shape as
-     `/admin/duplicate-titles`), not a script.
+   **Two further problems found, both deliberately NOT auto-resolved - re-verified 20 Aug against live
+   production (the first count below was wrong when originally written and is corrected here):**
+   - **Five pairs where the same production has two separate public show pages**, confirmed by
+     checking `shows.society_id` (the resolved society, not the raw text) rather than the printed
+     name: "9 To 5"/"9 to 5" (Coolmine Musical Society, show 1188 vs 1960), "Beauty And The
+     Beast"/"Beauty and the Beast" (Bosco Drama Group, 1315 vs 1965), "The Pirates Of
+     Penzance"/"The Pirates of Penzance" (Fortwilliam Musical Society, 1339 vs 1966), "The 25Th
+     Annual.../The 25th Annual..." (MTU Musical Society, 1352 vs 1967), "Into The Woods"/"Into the
+     Woods" (UCD Musical Society, 1369 vs 1968). **Root cause identified**: `shows.society_id`
+     resolves identically in every pair - the only difference is title *capitalization* - and
+     `ux_shows_natural_key`'s uniqueness (`COALESCE(show, '')`) is case-sensitive by default in
+     SQLite, so "9 To 5" and "9 to 5" register as two distinct keys instead of matching the existing
+     row. Each pair is one real production sitting on two live public pages right now (double-counted
+     in `/season`, search, leaderboards). Fix shape: merge each pair (same mechanism
+     `/admin/duplicate-titles` already has for near-identical titles - move the review off the
+     redundant row before deleting it, same discipline as every merge this session), and consider
+     whether the natural key itself should be case-insensitive to stop new ones forming. Not
+     attempted - a merge is exactly the kind of production write that should be shown before running.
    - **Three groups where the two reviews disagree on TIER and differ ~2x in length** (Sister Act/
-     Kilkenny, The Merry Widow/Gorey, Little Shop Of Horrors/Carnew) - NOT a spelling-variant
-     duplicate. Two genuinely different reviews got matched to one skeleton show, likely because the
-     approval-time show-matching step doesn't check tier. This is a distinct, more serious bug from
-     the spelling-duplicate class above - needs investigation, probably needs separating into two
-     skeleton shows. Not attempted this round.
+     Kilkenny Musical Society, The Merry Widow/Gorey Musical Society, Little Shop Of Horrors/Carnew
+     Musical Society) - NOT a spelling-variant duplicate. Two genuinely different reviews got matched
+     to one skeleton show, likely because the approval-time show-matching step doesn't check tier.
+     Distinct, more serious bug from the case above - needs investigation, probably needs separating
+     into two skeleton shows. Not attempted.
 3. **Three garbled ShowTimes titles fixed**, each confirmed by reading the review's own text before
    writing anything (not guessed): review 976/show 1940 `'Castleblayney'` (a town, not a show) →
    `'9 To 5'` (named explicitly in the review's own opening line); review 898/show 1871
