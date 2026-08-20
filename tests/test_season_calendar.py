@@ -195,7 +195,10 @@ def test_season_page_hides_already_finished_weeks_for_current_season(client, db)
     assert "Old Show" not in calendar_section
 
 
-def test_homepage_congestion_teaser_uses_current_season_when_congested(client, db):
+def test_homepage_never_shows_congestion_teaser(client, db):
+    """Darragh's call: the congestion teaser was cut from the homepage -
+    /season is the only place the calendar lives now, however congested a
+    season's weeks get."""
     society_id = seed_society(db)
     o1, c1 = _week_run(4, day_offset=0)
     o2, c2 = _week_run(4, day_offset=1)
@@ -208,32 +211,5 @@ def test_homepage_congestion_teaser_uses_current_season_when_congested(client, d
     db.commit()
 
     body = client.get("/").get_data(as_text=True)
-    assert "Congested weeks coming up" in body
-    assert "Not much confirmed yet" not in body
-
-
-def test_homepage_congestion_teaser_falls_back_to_prior_season(client, db):
-    society_id = seed_society(db)
-    # Prior season, genuinely congested (4 Gilbert shows overlapping).
-    for i, (opening, closing) in enumerate([
-        ("2025-04-06", "2025-04-10"), ("2025-04-07", "2025-04-10"),
-        ("2025-04-08", "2025-04-11"), ("2025-04-08", "2025-04-11"),
-    ]):
-        db.execute(
-            "INSERT INTO shows (society_id, season, region, section, show, opening_date, closing_date, moderation_status) "
-            "VALUES (?, '25/26', 'Eastern', 'Gilbert', ?, ?, ?, 'approved')",
-            (society_id, f"Old {i}", opening, closing),
-        )
-    # Current season - real, but nowhere near congested.
-    future_opening, future_closing = _week_run(2)
-    _insert_show(db, society_id, "New One", future_opening, future_closing)
-    db.commit()
-
-    body = client.get("/").get_data(as_text=True)
-    assert "Not much confirmed yet for 26/27" in body
-    assert "25/26 had" in body
-
-
-def test_homepage_no_teaser_when_no_dated_shows(client, db):
-    body = client.get("/").get_data(as_text=True)
-    assert "Congested weeks" not in body
+    assert "Congested" not in body
+    assert "congested" not in body

@@ -340,30 +340,6 @@ button.button-primary { background: var(--success); color: #fff; }
 }
 .site-notice p { margin: 0; }
 
-/* Homepage congestion teaser - links through to the /season calendar */
-.teaser-frame {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.1rem 1.25rem 1.25rem;
-  box-shadow: var(--shadow);
-  background: var(--bg);
-  margin-bottom: 1.5rem;
-}
-.teaser-frame h3 { margin: 0 0 0.2rem; font-size: 1.05rem; }
-.teaser-frame p.meta { margin: 0 0 0.85rem; }
-.teaser-weeks { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-.teaser-week {
-  flex: 1 1 220px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  background: color-mix(in srgb, var(--warning) 12%, transparent);
-}
-.teaser-week .tw-when { font-weight: 700; font-size: 0.85rem; }
-.teaser-week .tw-count { color: var(--warning); font-weight: 700; font-size: 0.78rem; margin: 0.15rem 0 0.4rem; }
-.teaser-week .tw-list { font-size: 0.78rem; color: var(--muted); }
-.teaser-cta { display: inline-block; margin-top: 0.9rem; font-size: 0.85rem; font-weight: 600; }
-
 .honeypot {
   position: absolute;
   left: -9999px;
