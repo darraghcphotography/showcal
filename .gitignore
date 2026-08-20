@@ -13,3 +13,16 @@ uploads/
 /*.png
 /*.gif
 /*.webp
+
+# Word's own lock file for any open .docx, wherever it lands.
+~$*
+
+# Reference docs dropped in the repo root, not source - e.g. Darragh's
+# feedback doc (dcfeedback.docx) or a one-off external audit write-up
+# (AUDIT_AND_RECOMMENDATIONS.md, from Gemini Antigravity - see ROADMAP.md).
+*.docx
+AUDIT_AND_RECOMMENDATIONS.md
+
+# Local mockup drafts (HTML/CSS explored outside the app). Mockups normally
+# get published as Claude Artifacts for review, not committed here.
+/mockups/
