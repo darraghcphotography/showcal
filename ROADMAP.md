@@ -11,28 +11,40 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
-## START HERE - society misattribution fix applied and verified live (2026-08-20)
+## START HERE - next session is a mockup-only design pass, no code (set up 2026-08-20)
 
-Darragh spotted a wrong society on a live show page (Calamity Jane filed under Carnew Musical Society
-when the review's own text names Clane) via `/admin/society-corrections` - that page only ever fixes
-the internal `society_raw` citation label, never `show_id`, so approving the suggestion there couldn't
-have fixed it. Investigated properly: read all 80 `society_gate_suggestions.json` entries' own review
-text against a real copy of production (the extractor-gate branch itself has a known remaining gap, so
-its suggestions needed checking, not trusting).
+**2026-08-20 was a long, productive session** - full detail of everything shipped/fixed/investigated is
+in the "Open items" list below (search for "SHIPPED 2026-08-20" to find each one) rather than repeated
+here. Quick summary: 8 society misattributions resolved, 5 search bugs fixed, Society Milestone Badges
+shipped, two small society-dashboard UX fixes shipped, the season calendar UX mockup built/approved/
+applied, 28 review links backfilled from aims.ie, and the reviews-page feature scoped.
 
-**Result: 43 real misattributions confirmed and fixed, applied and verified live this session.**
-`fix_society_misattributions.py` (repo root) - dry-run and test-applied against a disposable copy
-first, then run for real over SSH, then independently re-verified against a fresh pull of production.
-Fixed: 25 shows repointed to an already-registered society, 7 new society records created for real
-societies that had no record at all (Belfast Music and Drama Society, Meath Youth Musical Society,
-Encore Theatre Company, Patrician Musical Society, Headford Musical Society, New Lyric Operatic
-Company Belfast) with 11 shows repointed to them, 2 duplicate ShowTimes reviews removed, 1 review's
-title+society both corrected (was linked to a show with a completely different title), 5 stale
-`/admin/society-corrections` suggestions dismissed (confirmed wrong from the review's own text).
+**Darragh's explicit instruction for next session: mockup-only, do NOT commit code.** Work through the
+"big features" list below one at a time - question him first (same interactive style that worked well
+all through 2026-08-20 - AskUserQuestion, not assumption), *then* build a mockup (published Artifact,
+real site tokens per `artifact-design`/established convention, grounded in real production data where
+possible - the pattern used for the badges and season-calendar mockups this session). The explicit goal
+is to see how the features would all look and feel *together* as one cohesive design pass, not each one
+built in isolation. No template/route edits, no commits, until he says otherwise.
 
-**Left deliberately unfixed, carried forward below**: 5 confirmed-real misattributions where the
-correct society's region/identity is still ambiguous, and 3 the review text alone couldn't settle
-either way.
+**Big features to mock up, in the order they were prioritized (2026-08-20's triage - not rigid, ask if
+priorities have shifted):**
+1. **Reviews page** (public + admin) - scope already settled, see its own entry below. Straight to mockup.
+2. **Decades Time Machine** (`/stats/trends`) - era breakdowns, decade leaderboards. Not yet scoped in
+   detail beyond the original FEATURE_IDEAS.md pitch - ask before mocking.
+3. **Venues Explorer** (`/venues` + `/venues/<slug>`) - capacity/tech specs, resident societies, stage
+   history, map. Real data gap underneath it (~88 shows missing a venue) - worth asking whether the
+   mockup should show the feature assuming complete data (aspirational) or reflect today's real gappy
+   state, before building it.
+4. **Shows A-Z redesign** (`/titles`) - check whether `mockups/1_titles_az_mockup.html` (referenced in
+   Gemini's FEATURE_IDEAS.md) actually exists in this repo or was invented, before assuming it as a
+   starting point.
+5. **Society head-to-head compare** (`/compare`) - trophy counts, shared repertoire, direct clash history.
+
+**Not mockup candidates** (no UI, or too small to warrant this treatment) - **productions-table
+migration** (backend architecture, flagged for its own Opus session separately) and **review-author
+byline** (a column + small form + template tweak, design questions already resolved - just build it
+directly when its turn comes, doesn't need a big mockup pass).
 
 ## Open items
 
@@ -56,16 +68,23 @@ been inaccurate anywhere I found it." Only the season calendar's filter control 
 chips/rows elsewhere (society pages, admin) should stop rendering until it's trustworthy, is still open
 and deliberately not decided or investigated yet.
 
-**Reviews page, both public-facing and admin-side - not yet scoped, but detail is firming up.** Darragh
-raised this while mid-task adding missing `aims.ie` review links by hand ("quite tedious"), then added:
-should be reachable from the nav bar, and searchable by show. Immediate relief applied same session
-(`backfill_2526_reviews.py` - 28 of 46 missing 25/26 review links matched against aims.ie's own
-published list and backfilled), but that was a one-off script, not the actual feature. Real scoping
-session still needed - what does "admin-side" mean concretely (a queue of shows missing a review link,
-one-click attach?), does public search here overlap with the existing sitewide /search's Reviews
-section, nav placement.
+**Reviews page, both public-facing and admin-side - scoped 2026-08-20, not built.** Darragh raised this
+while mid-task adding missing `aims.ie` review links by hand ("quite tedious"). Immediate relief applied
+same session (`backfill_2526_reviews.py` - 28 of 46 missing 25/26 review links matched against aims.ie's
+own published list and backfilled), but that was a one-off script, not the actual feature. Scope settled:
+- **Public**: a full browsable index of reviews, filterable/searchable by show/society/season - not a
+  search-first page, browsing is the primary mode. Deliberately separate from the sitewide `/search`
+  page's existing Reviews section (full-text search over review prose, bm25-ranked as of this session) -
+  different purpose, not a replacement.
+- **Admin**: a queue, same pattern as `/admin/society-corrections` - one row per show that's already
+  finished, isn't marked "Not adjudicated," and has no review link yet. Real count in production right
+  now: **36** (not the 894 a naive query returns before excluding future/unstaged shows and ones already
+  correctly marked not-adjudicated). Paste-and-save per row.
+- **Nav**: a new top-level "Reviews" item alongside Shows A-Z/Societies/Awards/Statistics/Seasons -
+  Darragh's call to confirm, not yet locked in.
+Not built - next session's mockup pass, see START HERE.
 
-**Society misattribution follow-ups (from today's fix, see above):**
+**Society misattribution follow-ups (from the 43-fix session, 2026-08-20):**
 - **6 of the 8 remaining cases resolved and applied live 2026-08-20** (`fix_society_misattributions_2.py`,
   same dry-run/test-apply/apply-for-real/independently-reverify discipline as the original 43) - going
   back to each society's own official award-entry record (not just the review text) settled most of
