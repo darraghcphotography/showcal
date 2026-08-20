@@ -15,7 +15,7 @@ from ..constants import (
 )
 from ..db import get_db
 from ..search import fts_match_ids
-from ..season import current_season
+from ..season import current_season, historical_results_season, historical_results_year, season_start_year
 
 bp = Blueprint("info", __name__)
 
@@ -29,18 +29,6 @@ def stats():
     region = request.args.get("region", "")
     if region not in REGIONS:
         region = ""
-
-    # Recency toggle for the Explorer + Leaderboards section - defaults to
-    # "recent" (since 23/24) rather than all-time, since the all-time totals
-    # are dominated by whichever society has simply existed longest (Wexford
-    # Light Opera, founded 1911) rather than being currently active/leading -
-    # same "don't skew or hide the real numbers, just don't default to the
-    # most lopsided framing" principle as Round 6's Award Explorer randomizer.
-    # All-time remains one click away, nothing is hidden.
-    era = request.args.get("era", "recent")
-    if era not in ("recent", "all"):
-        era = "recent"
-    era_recent = era == "recent"
 
     # A show only counts toward "how many have actually happened" once it's
     # opened and wasn't cancelled - excludes announced-but-not-yet-run shows
@@ -84,78 +72,6 @@ def stats():
     query += region_clause(params)
     total_titles = db.execute(query, params).fetchone()[0]
 
-    # All-time counts fold in historical_results (AIMS awards archive, 1977
-    # through the season before shows.csv's own coverage begins - see
-    # SHOWS_COVERAGE_START_YEAR above for why that split can't double-count
-    # a production, even though historical_results itself now holds the full
-    # archive through the present day for the Awards page/society pages).
-    # Region-filterable on both halves - an unmatched historical society has
-    # no region on record, so it's excluded whenever a region is selected.
-    if era_recent:
-        params = [today]
-        query = f"""
-            SELECT show, COUNT(*) AS n FROM shows
-            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
-            {region_clause(params)}
-            GROUP BY show ORDER BY n DESC, show LIMIT ?
-            """
-        most_performed = db.execute(query, params + [TOP_N]).fetchall()
-    else:
-        params = [today]
-        hist_params = [SHOWS_COVERAGE_START_YEAR]
-        hist_region_sql = hist_region_clause(hist_params)
-        query = f"""
-            SELECT show, COUNT(*) AS n FROM (
-                SELECT shows.show AS show FROM shows
-                WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
-                {region_clause(params)}
-                UNION ALL
-                SELECT historical_results.show AS show FROM historical_results {hist_join}
-                WHERE historical_results.show IS NOT NULL AND historical_results.year < ?
-                {hist_region_sql}
-            )
-            GROUP BY show ORDER BY n DESC, show LIMIT ?
-            """
-        most_performed = db.execute(query, params + hist_params + [TOP_N]).fetchall()
-
-    # "Most selected" = how many *different* societies have put this show on,
-    # as opposed to "most performed" which also counts a society doing the
-    # same show twice - a cleaner measure of a show's popularity across the
-    # circuit than raw staging count. Split into two eras: the site's own
-    # tracked data (23/24 onward - the "DC Database") on its own, and an
-    # all-time view folding in the pre-2024 AIMS awards archive too. A
-    # historical society without a societies.id match still counts as a
-    # distinct selector, keyed by its name instead.
-    params = [today]
-    query = f"""
-        SELECT show, COUNT(DISTINCT society_id) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
-    """
-    query += region_clause(params)
-    query += " GROUP BY show ORDER BY n DESC, show LIMIT ?"
-    params.append(TOP_N)
-    most_selected_recent_era = db.execute(query, params).fetchall()
-
-    params = [today]
-    hist_params = [SHOWS_COVERAGE_START_YEAR]
-    hist_region_sql = hist_region_clause(hist_params)
-    query = f"""
-        SELECT show, COUNT(DISTINCT society_key) AS n FROM (
-            SELECT shows.show AS show, 'id:' || shows.society_id AS society_key FROM shows
-            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
-            {region_clause(params)}
-            UNION ALL
-            SELECT historical_results.show AS show,
-                   COALESCE('id:' || historical_results.society_id, 'name:' || historical_results.society_name) AS society_key
-            FROM historical_results {hist_join}
-            WHERE historical_results.show IS NOT NULL AND historical_results.year < ?
-            {hist_region_sql}
-        )
-        GROUP BY show ORDER BY n DESC, show LIMIT ?
-        """
-    most_selected = db.execute(query, params + hist_params + [TOP_N]).fetchall()
-    most_selected_display = most_selected_recent_era if era_recent else most_selected
-
     params = [today]
     hist_params = [SHOWS_COVERAGE_START_YEAR]
     hist_region_sql = hist_region_clause(hist_params)
@@ -174,17 +90,6 @@ def stats():
         """
     one_offs = db.execute(query, params + hist_params).fetchall()
 
-    params = [SHOWS_COVERAGE_START_YEAR]
-    query = f"""
-        SELECT MIN(historical_results.year), MAX(historical_results.year),
-               COUNT(DISTINCT historical_results.year || historical_results.show || historical_results.society_name)
-        FROM historical_results {hist_join}
-        WHERE historical_results.year < ?
-    """
-    query += hist_region_clause(params)
-    historical_years = db.execute(query, params).fetchone()
-    historical_from, historical_to, historical_productions = historical_years
-
     # Full archive (1977-present) - award-category detail isn't tracked in
     # shows at all, so no double-counting risk here, unlike the stats above.
     params = []
@@ -198,30 +103,15 @@ def stats():
     award_totals = db.execute(query, params).fetchone()
     award_total_records, award_total_winners, award_from, award_to = award_totals
 
-    params = []
-    query = f"""
-        SELECT COALESCE(historical_results.society_name, 'Unknown') AS label, COUNT(*) AS n
-        FROM historical_results {hist_join}
-        WHERE historical_results.result = 'Winner' AND historical_results.society_name IS NOT NULL
-    """
-    if era_recent:
-        query += " AND historical_results.year >= ?"
-        params.append(SHOWS_COVERAGE_START_YEAR)
-    query += hist_region_clause(params)
-    query += " GROUP BY COALESCE(historical_results.society_id, historical_results.society_name) ORDER BY n DESC, label LIMIT ?"
-    params.append(TOP_N)
-    most_award_wins = db.execute(query, params).fetchall()
-
     # Award category leaderboard picker - one category (default "Best Overall
     # Show") + optional Gilbert/Sullivan tier, chosen via dropdowns on the
     # page (GET params, same pattern as the region filter). Replaces what
     # used to be a fixed "Best Overall Show" wins card - that's now just the
     # default selection rather than the only category on offer. "person"
     # categories (Best Director, Best Actor, etc.) group/label by
-    # nominee_name; "society" categories group/label by society_name, same
-    # as most_award_wins above - see AWARD_CATEGORIES in constants.py for
-    # which is which and why (it's checked against real data, not assumed
-    # from the column name).
+    # nominee_name; "society" categories group/label by society_name - see
+    # AWARD_CATEGORIES in constants.py for which is which and why (it's
+    # checked against real data, not assumed from the column name).
     # A bare visit (no award_category param at all) picks a random category
     # each time, rather than always landing on Best Overall Show - avoids the
     # Explorer's default view itself becoming a fixed "who's won the most"
@@ -248,9 +138,6 @@ def stats():
     if award_tier:
         tier_sql = " AND historical_results.tier = ?"
         params.append(award_tier)
-    if era_recent:
-        tier_sql += " AND historical_results.year >= ?"
-        params.append(SHOWS_COVERAGE_START_YEAR)
     if award_category_entry["person"]:
         query = f"""
             SELECT historical_results.nominee_name AS label, COUNT(*) AS n
@@ -290,149 +177,128 @@ def stats():
         """
     ).fetchall()
 
-    # Unmatched societies (when no region filter) included by name - a society
-    # with several nominations but not a single win. Aggregates over every
-    # result type per society (not just pre-filtered to 'Nominee' rows) since
-    # the HAVING clause needs to see the Winner rows too, to confirm there are
-    # none - filtering them out in WHERE would make that check vacuously true.
-    params = []
+    # Unified "productions on record": shows and historical_results are one
+    # continuous list of productions, split only at the site's own tracked-
+    # data boundary (SHOWS_COVERAGE_START_YEAR) so nothing counts twice -
+    # never three separate populations for a reader to add up themselves
+    # (see 20 Aug's redesign - the old page's split-by-source layout was
+    # undercounting by 371 real productions as a direct result). A
+    # production doesn't need an award record to count - not every show is
+    # nominated for anything, so historical_results is a source here, never
+    # a gate.
+    params = [SHOWS_COVERAGE_START_YEAR]
     query = f"""
-        SELECT COALESCE(historical_results.society_name, 'Unknown') AS label,
-               SUM(CASE WHEN historical_results.result = 'Nominee' THEN 1 ELSE 0 END) AS n
+        SELECT historical_results.year AS year,
+               COUNT(DISTINCT historical_results.show || historical_results.society_name) AS n
         FROM historical_results {hist_join}
-        WHERE historical_results.society_name IS NOT NULL
+        WHERE historical_results.year < ?
     """
-    if era_recent:
-        query += " AND historical_results.year >= ?"
-        params.append(SHOWS_COVERAGE_START_YEAR)
     query += hist_region_clause(params)
-    query += """
-        GROUP BY COALESCE(historical_results.society_id, historical_results.society_name)
-        HAVING SUM(CASE WHEN historical_results.result = 'Winner' THEN 1 ELSE 0 END) = 0 AND n >= 3
-        ORDER BY n DESC, label
-        LIMIT ?
-    """
-    params.append(TOP_N)
-    most_nominated_no_wins = db.execute(query, params).fetchall()
+    query += " GROUP BY historical_results.year"
+    hist_by_year = {row["year"]: row["n"] for row in db.execute(query, params).fetchall()}
 
-    # Wins as a share of (wins + nominations) - rewards a strong hit rate
-    # over sheer volume. Minimum 5 nominations so one lucky nomination can't
-    # look like a 100% record.
+    # A ShowTimes review with no matching award record still creates a real,
+    # countable production (a skeleton show, source='historical') - matched
+    # here by society + title against historical_results so it's never
+    # double-counted when an award record for the same production also
+    # exists.
     params = []
-    query = f"""
-        SELECT COALESCE(historical_results.society_name, 'Unknown') AS label,
-               SUM(CASE WHEN historical_results.result = 'Winner' THEN 1 ELSE 0 END) AS wins,
-               COUNT(*) AS total,
-               ROUND(SUM(CASE WHEN historical_results.result = 'Winner' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS pct
-        FROM historical_results {hist_join}
-        WHERE historical_results.result IN ('Winner', 'Nominee') AND historical_results.society_name IS NOT NULL
-    """
-    if era_recent:
-        query += " AND historical_results.year >= ?"
-        params.append(SHOWS_COVERAGE_START_YEAR)
-    query += hist_region_clause(params)
-    query += """
-        GROUP BY COALESCE(historical_results.society_id, historical_results.society_name)
-        HAVING total >= 5
-        ORDER BY pct DESC, wins DESC
-        LIMIT ?
-    """
-    params.append(TOP_N)
-    win_rate_leaderboard = db.execute(query, params).fetchall()
-
-    # Recent era only (region-filterable, like the other shows-table stats) -
-    # each society's own most-repeated title, i.e. their "usual suspect".
-    # Needs at least 3 stagings of the same title to count as a real
-    # signature - 2 read as too weak/coincidental to Darragh (raised from the
-    # original threshold of 2 after seeing it live).
-    params = [today]
-    region_sql = ""
-    if region:
-        region_sql = " AND region = ?"
-        params.append(region)
-    signature_show = db.execute(
-        f"""
-        WITH counts AS (
-            SELECT society_id, show, COUNT(*) AS n,
-                   ROW_NUMBER() OVER (PARTITION BY society_id ORDER BY COUNT(*) DESC, show) AS rn
-            FROM shows
-            WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}{region_sql}
-            GROUP BY society_id, show
-        )
-        SELECT societies.name AS label, counts.show, counts.n
-        FROM counts JOIN societies ON societies.id = counts.society_id
-        WHERE counts.rn = 1 AND counts.n >= 3
-        ORDER BY counts.n DESC, label
-        LIMIT ?
-        """,
-        (*params, TOP_N),
-    ).fetchall()
-
-    # Recency toggle mirrors most_performed above: "recent" is just the shows
-    # table; "all" folds in the historical archive too (region-filterable on
-    # both halves - the recent-era half via its societies join, the
-    # historical half via the same societies-or-confirmed-guess fallback as
-    # the rest of the awards-archive stats above).
-    if era_recent:
-        region_filter_shows = " AND societies.region = ?" if region else ""
-        params = [today] + ([region] if region else [])
-        query = f"""
-            SELECT societies.name AS label, COUNT(*) AS n
-            FROM shows JOIN societies ON societies.id = shows.society_id
-            WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
-            {region_filter_shows}
-            GROUP BY shows.society_id ORDER BY n DESC, label LIMIT ?
-            """
-        most_prolific_society = db.execute(query, params + [TOP_N]).fetchall()
-    else:
-        region_filter_shows = " AND societies.region = ?" if region else ""
-        region_filter_hist = " AND COALESCE(societies.region, hr_guess.confirmed_region) = ?" if region else ""
-        params = [today] + ([region] if region else [])
-        hist_params = [SHOWS_COVERAGE_START_YEAR] + ([region] if region else [])
-        query = f"""
-            SELECT label, COUNT(*) AS n FROM (
-                SELECT 'id:' || shows.society_id AS key, societies.name AS label
-                FROM shows JOIN societies ON societies.id = shows.society_id
-                WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}
-                {region_filter_shows}
-                UNION ALL
-                SELECT COALESCE('id:' || historical_results.society_id, 'name:' || historical_results.society_name) AS key,
-                       COALESCE(societies.name, historical_results.society_name) AS label
-                FROM historical_results
-                LEFT JOIN societies ON societies.id = historical_results.society_id
-                LEFT JOIN historical_society_regions hr_guess ON hr_guess.society_name = historical_results.society_name
-                WHERE historical_results.show IS NOT NULL AND historical_results.year < ?
-                {region_filter_hist}
-            )
-            GROUP BY key ORDER BY n DESC, label LIMIT ?
-            """
-        most_prolific_society = db.execute(query, params + hist_params + [TOP_N]).fetchall()
-
-    # total/distinct_titles only count shows that have actually happened
-    # (see `happened` above) - cancelled shows aren't counted or referenced
-    # here at all.
-    params = [today, today]
-    query = f"""
-        SELECT
-            season,
-            SUM(CASE WHEN {happened} THEN 1 ELSE 0 END) AS total,
-            COUNT(DISTINCT CASE WHEN {happened} THEN show END) AS distinct_titles
+    query = """
+        SELECT shows.season AS season, COUNT(*) AS n
         FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
+        WHERE shows.source = 'historical'
+          AND NOT EXISTS (
+              SELECT 1 FROM historical_results
+              WHERE historical_results.society_id = shows.society_id
+                AND historical_results.show = shows.show
+          )
     """
     query += region_clause(params)
-    query += " GROUP BY season ORDER BY season DESC"
-    by_season = db.execute(query, params).fetchall()
+    query += " GROUP BY shows.season"
+    skeleton_unmatched_by_season = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
+
+    # "Reviewed" is one continuous idea spanning the same 23/24 boundary as
+    # everything else, not a fourth population: a ShowTimes write-up before
+    # 23/24, or a Published review link on aims.ie (which replaced ShowTimes
+    # in 2023) from 23/24 on. Coverage of the productions above, never a
+    # rival count - a review is always a review *of* one of them.
+    params = []
+    query = """
+        SELECT historical_reviews.season AS season, COUNT(DISTINCT historical_reviews.show_id) AS n
+        FROM historical_reviews
+        LEFT JOIN societies ON societies.id = historical_reviews.society_id
+        WHERE historical_reviews.moderation_status = 'approved' AND historical_reviews.show_id IS NOT NULL
+    """
+    if region:
+        query += " AND societies.region = ?"
+        params.append(region)
+    query += " GROUP BY historical_reviews.season"
+    reviews_by_season = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
+
+    params = [today]
+    query = f"""
+        SELECT season, COUNT(*) AS n FROM shows
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
+    """
+    query += region_clause(params)
+    query += " GROUP BY season"
+    shows_by_season = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
+
+    params = [today]
+    query = f"""
+        SELECT season, COUNT(*) AS n FROM shows
+        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
+          AND review_status = 'Published' AND review_url IS NOT NULL AND review_url != ''
+    """
+    query += region_clause(params)
+    query += " GROUP BY season"
+    reviewed_by_season_post = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
+
+    # Century-safe throughout (season_start_year, never a plain string
+    # compare) - this table spans 1912-present, so a string sort would
+    # repeat the exact rollover bug already fixed twice elsewhere in this
+    # codebase (Round 25's adjudicator grid, Round 34's 16/17 misfile).
+    pre_seasons = (
+        {historical_results_season(year) for year in hist_by_year}
+        | set(skeleton_unmatched_by_season)
+        | set(reviews_by_season)
+    )
+    all_seasons = pre_seasons | set(shows_by_season) | set(reviewed_by_season_post)
+
+    productions_by_season = []
+    for season in sorted(all_seasons, key=season_start_year, reverse=True):
+        is_recent = season_start_year(season) >= SHOWS_COVERAGE_START_YEAR - 1
+        if is_recent:
+            productions = shows_by_season.get(season, 0)
+            reviewed = reviewed_by_season_post.get(season, 0)
+        else:
+            productions = hist_by_year.get(historical_results_year(season), 0) + skeleton_unmatched_by_season.get(season, 0)
+            reviewed = reviews_by_season.get(season, 0)
+        if productions == 0 and reviewed == 0:
+            continue
+        # /season only has real content for seasons the live shows table
+        # covers - linking out for an older season would just land on an
+        # empty page, since shows.source='historical' skeleton rows rarely
+        # carry a real date.
+        productions_by_season.append(
+            {"season": season, "productions": productions, "reviewed": reviewed, "has_season_page": is_recent}
+        )
+
+    productions_total = sum(r["productions"] for r in productions_by_season)
+    reviewed_total = sum(r["reviewed"] for r in productions_by_season)
 
     # Split at the site's own tracked-data boundary (see SHOWS_COVERAGE_START_YEAR)
     # rather than an arbitrary "top N" - a society backfilling decades of its own
     # history via bulk-add is expected/encouraged, but it shouldn't make the
     # by-far-most-complete recent seasons look like a rounding error in a page-long
-    # list of mostly-1-show seasons. Earlier seasons stay fully visible, just
+    # list of mostly-1-production seasons. Earlier seasons stay fully visible, just
     # collapsed behind a <details> disclosure by default.
-    coverage_start_season = f"{(SHOWS_COVERAGE_START_YEAR - 1) % 100:02d}/{SHOWS_COVERAGE_START_YEAR % 100:02d}"
-    by_season_recent = [r for r in by_season if r["season"] >= coverage_start_season]
-    by_season_earlier = [r for r in by_season if r["season"] < coverage_start_season]
+    productions_by_season_recent = [
+        r for r in productions_by_season if season_start_year(r["season"]) >= SHOWS_COVERAGE_START_YEAR - 1
+    ]
+    productions_by_season_earlier = [
+        r for r in productions_by_season if season_start_year(r["season"]) < SHOWS_COVERAGE_START_YEAR - 1
+    ]
 
     by_region = db.execute(
         f"""
@@ -511,21 +377,17 @@ def stats():
         total_societies=total_societies,
         total_shows=total_shows,
         total_titles=total_titles,
-        most_performed=most_performed,
-        most_selected_display=most_selected_display,
         one_offs=one_offs,
-        by_season=by_season_recent,
-        by_season_earlier=by_season_earlier,
+        productions_total=productions_total,
+        reviewed_total=reviewed_total,
+        productions_by_season=productions_by_season_recent,
+        productions_by_season_earlier=productions_by_season_earlier,
         by_region=by_region,
         by_tier=by_tier,
-        historical_from=historical_from,
-        historical_to=historical_to,
-        historical_productions=historical_productions,
         award_total_records=award_total_records,
         award_total_winners=award_total_winners,
         award_from=award_from,
         award_to=award_to,
-        most_award_wins=most_award_wins,
         award_categories=AWARD_CATEGORIES,
         selected_award_category=award_category,
         selected_award_tier=award_tier,
@@ -533,14 +395,9 @@ def stats():
         award_leaderboard_is_person=award_category_entry["person"],
         award_category_note=award_category_entry.get("note"),
         wins_by_region=wins_by_region,
-        most_nominated_no_wins=most_nominated_no_wins,
-        win_rate_leaderboard=win_rate_leaderboard,
-        signature_show=signature_show,
-        most_prolific_society=most_prolific_society,
         fun_facts=fun_facts,
         regions=REGIONS,
         selected_region=region,
-        era=era,
     )
 
 

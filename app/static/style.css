@@ -447,6 +447,13 @@ details table { margin-top: 0.5rem; }
 .tag-silver { background: color-mix(in srgb, var(--silver) 18%, transparent); color: var(--silver); font-weight: 600; }
 .tag-bronze { background: color-mix(in srgb, var(--bronze) 18%, transparent); color: var(--bronze); font-weight: 600; }
 
+/* Award badges folded into a society's show-history rows (see
+   society_detail.html) - several tags per cell, so they need to wrap with a
+   gap instead of relying on .tag's own margin-left, which only works for a
+   single tag following inline text. */
+.award-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.award-badges .tag { margin-left: 0; }
+
 .trophy-case { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
 .trophy-case .tag { margin-left: 0; font-size: 0.85rem; padding: 0.25rem 0.75rem; }
 
@@ -584,6 +591,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 
 .stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
 .stat-label { font-size: 0.8rem; color: var(--muted); }
+.stat-sub { font-size: 0.72rem; color: var(--accent); margin-top: 0.15rem; }
 
 /* Stats page leaderboards: a numbered rank badge (gold/silver/bronze for
    the top 3, competition-style so a tie shares a rank - see stats.html's

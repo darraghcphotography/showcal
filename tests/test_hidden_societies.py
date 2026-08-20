@@ -85,7 +85,11 @@ def test_admin_can_toggle_hidden_via_edit_society(client, db):
 
 def test_hidden_society_still_counted_in_stats(client, db):
     """Hiding a society's public page must not rewrite historical stats -
-    their past productions still count."""
+    their past productions still count. Used to be checked by name, via a
+    society-name leaderboard that included hidden societies on purpose -
+    those leaderboards were cut 20 Aug 2026 (redundant with Award Explorer),
+    so this now checks the same invariant the numeric way: the aggregate
+    count still includes their production."""
     society_id = seed_society(db, name="Hidden But Historic")
     db.execute("UPDATE societies SET hidden = 1 WHERE id = ?", (society_id,))
     db.execute(
@@ -96,4 +100,4 @@ def test_hidden_society_still_counted_in_stats(client, db):
     db.commit()
 
     body = client.get("/stats").get_data(as_text=True)
-    assert "Hidden But Historic" in body
+    assert '<span class="stat-value">1</span><span class="stat-label">Shows since 23/24</span>' in body

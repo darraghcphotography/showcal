@@ -57,7 +57,6 @@ def test_filter_dropdowns_use_data_auto_submit(client):
 
     body = client.get("/stats").get_data(as_text=True)
     assert 'name="region" data-auto-submit' in body
-    assert 'name="era" data-auto-submit' in body
     assert 'id="award_category" name="award_category" data-auto-submit' in body
     assert 'id="award_tier" name="award_tier" data-auto-submit' in body
 

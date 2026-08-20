@@ -20,21 +20,6 @@
   </div>
 {% endmacro %}
 
-{% macro rank_list_pct(rows) %}
-  <div class="rank-list">
-    {% set ns = namespace(rank=0, prev=None) %}
-    {% for row in rows %}
-      {% set ns.rank = loop.index if row['pct'] != ns.prev else ns.rank %}
-      {% set ns.prev = row['pct'] %}
-      <div class="rank-row">
-        <span class="rank-badge{{ ' r1' if ns.rank == 1 else ' r2' if ns.rank == 2 else ' r3' if ns.rank == 3 else '' }}">{{ ns.rank }}</span>
-        <span>{{ row['label'] }}</span>
-        <span class="rank-n">{{ row['pct']|int }}% ({{ row['wins'] }} of {{ row['total'] }})</span>
-      </div>
-    {% endfor %}
-  </div>
-{% endmacro %}
-
 {% block content %}
   <h1>Statistics</h1>
   <p><a href="{{ url_for('feeds.export_shows_csv') }}">Download the full dataset (CSV) &darr;</a></p>
@@ -53,13 +38,6 @@
         {% endfor %}
       </select>
     </label>
-    <label>
-      Timeframe
-      <select name="era" data-auto-submit>
-        <option value="recent" {% if era == 'recent' %}selected{% endif %}>Since 23/24</option>
-        <option value="all" {% if era == 'all' %}selected{% endif %}>All-time{% if historical_from %} (since {{ historical_from }}){% endif %}</option>
-      </select>
-    </label>
     {% if selected_region %}
       <a href="{{ url_for('info.stats') }}">Clear</a>
     {% endif %}
@@ -67,27 +45,27 @@
 
   <div class="stat-tiles">
     <div class="stat-tile"><span class="stat-value">{{ total_societies }}</span><span class="stat-label">Societies</span></div>
+    <div class="stat-tile stat-tile-gold">
+      <span class="stat-value">{{ productions_total }}</span>
+      <span class="stat-label">Productions on record, 1912&ndash;present{% if selected_region %} ({{ selected_region }}){% endif %}</span>
+      <span class="stat-sub">{{ reviewed_total }} with a review on file</span>
+    </div>
     <div class="stat-tile"><span class="stat-value">{{ total_shows }}</span><span class="stat-label">Shows since 23/24{% if selected_region %} ({{ selected_region }}){% endif %}</span></div>
     <div class="stat-tile"><span class="stat-value">{{ total_titles }}</span><span class="stat-label">Distinct titles since 23/24{% if selected_region %} ({{ selected_region }}){% endif %}</span></div>
-    {% if historical_productions %}
-      <div class="stat-tile stat-tile-gold">
-        <span class="stat-value">{{ historical_productions }}</span>
-        <span class="stat-label">More productions on record, {{ historical_from }}&ndash;{{ historical_to }}</span>
-      </div>
-    {% endif %}
   </div>
+  <p class="meta"><strong>Shows</strong> is every production that opened; <strong>distinct titles</strong> is
+     how many different shows those were - the same title staged by two societies in one season counts once.</p>
 
   <div class="explorer">
     <div class="explorer-eyebrow">Award Explorer</div>
     <h2>Explore any award category</h2>
     <p class="explorer-sub">Pick any AIMS award category and a Gilbert/Sullivan tier - production-team
        and cast categories (Director, Musical Director, Choreography, Stage Management, Chorus
-       Master/Mistress, and every on-stage award) are won by an individual, not a society. Uses the
-       region and timeframe filters above too.</p>
+       Master/Mistress, and every on-stage award) are won by an individual, not a society. All-time,
+       every category - uses the region filter above too.</p>
 
     <form method="get" class="explorer-controls">
       <input type="hidden" name="region" value="{{ selected_region }}">
-      <input type="hidden" name="era" value="{{ era }}">
       <div class="field">
         <label for="award_category">Award category</label>
         <select id="award_category" name="award_category" data-auto-submit>
@@ -145,36 +123,37 @@
     {% endfor %}
   </div>
 
-  <h2>Shows by season{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-  <p class="meta">Only counts productions that have actually opened - cancelled slots aren't counted here.
-     <strong>Shows</strong> is every production that opened; <strong>distinct titles</strong> is how many
-     different shows those were - the same title staged by two societies in one season counts once.</p>
+  <h2>Productions by season{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  <p class="meta">One row per season, from the live database and the AIMS awards archive together - a
+     production doesn't need an award to count, most never win anything. <strong>With a review</strong> is
+     coverage of that same total (a ShowTimes write-up before 23/24, or a Published review link on aims.ie
+     - which replaced ShowTimes in 2023 - from 23/24 on), never a separate count.</p>
   <table class="data-table">
-    <thead><tr><th>Season</th><th>Shows</th><th>Distinct titles</th><th></th></tr></thead>
+    <thead><tr><th>Season</th><th>Productions on record</th><th>With a review</th><th></th></tr></thead>
     <tbody>
-      {% for row in by_season %}
+      {% for row in productions_by_season %}
         <tr>
           <td>{{ row['season'] }}</td>
-          <td>{{ row['total'] }}</td>
-          <td>{{ row['distinct_titles'] }}</td>
-          <td><a href="{{ url_for('info.season_summary', season=row['season'], region=selected_region) }}">View</a></td>
+          <td>{{ row['productions'] }}</td>
+          <td>{{ row['reviewed'] }}</td>
+          <td>{% if row['has_season_page'] %}<a href="{{ url_for('info.season_summary', season=row['season'], region=selected_region) }}">View</a>{% endif %}</td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
 
-  {% if by_season_earlier %}
+  {% if productions_by_season_earlier %}
     <details>
-      <summary>Show {{ by_season_earlier|length }} earlier season{{ '' if by_season_earlier|length == 1 else 's' }}
-        ({{ by_season_earlier[-1]['season'] }}&ndash;{{ by_season_earlier[0]['season'] }},
-        {{ by_season_earlier|sum(attribute='total') }} shows total)</summary>
+      <summary>Show {{ productions_by_season_earlier|length }} earlier season{{ '' if productions_by_season_earlier|length == 1 else 's' }}
+        ({{ productions_by_season_earlier[-1]['season'] }}&ndash;{{ productions_by_season_earlier[0]['season'] }},
+        {{ productions_by_season_earlier|sum(attribute='productions') }} productions total)</summary>
       <table class="data-table">
         <tbody>
-          {% for row in by_season_earlier %}
+          {% for row in productions_by_season_earlier %}
             <tr>
               <td>{{ row['season'] }}</td>
-              <td>{{ row['total'] }}</td>
-              <td>{{ row['distinct_titles'] }}</td>
+              <td>{{ row['productions'] }}</td>
+              <td>{{ row['reviewed'] }}</td>
               <td><a href="{{ url_for('info.season_summary', season=row['season'], region=selected_region) }}">View</a></td>
             </tr>
           {% endfor %}
@@ -182,56 +161,6 @@
       </table>
     </details>
   {% endif %}
-
-  {% set era_label = 'since 23/24' if era == 'recent' else ('all time, since ' ~ historical_from if historical_from else 'all time') %}
-  <h2>Leaderboards{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-  <p class="meta">Showing {{ era_label }} - use the Timeframe filter above to switch.</p>
-  <div class="lb-grid">
-    <div class="lb-card">
-      <h3>Most selected shows</h3>
-      <p class="lb-meta">By distinct societies, {{ era_label }}</p>
-      {{ rank_list(most_selected_display) }}
-    </div>
-    <div class="lb-card">
-      <h3>Most performed shows</h3>
-      <p class="lb-meta">{{ era_label|capitalize }}</p>
-      {{ rank_list(most_performed) }}
-    </div>
-    <div class="lb-card">
-      <h3>Most prolific societies</h3>
-      <p class="lb-meta">Total real productions staged, {{ era_label }}</p>
-      {{ rank_list(most_prolific_society, linked=false) }}
-    </div>
-    <div class="lb-card">
-      <h3>Most award wins</h3>
-      <p class="lb-meta">Every category win counted, {{ era_label }}</p>
-      {{ rank_list(most_award_wins, linked=false) }}
-    </div>
-    <div class="lb-card">
-      <h3>Most nominated, never won</h3>
-      <p class="lb-meta">At least 3 nominations on record, zero wins, {{ era_label }}</p>
-      {{ rank_list(most_nominated_no_wins, linked=false) }}
-    </div>
-    <div class="lb-card">
-      <h3>Win-rate leaderboard</h3>
-      <p class="lb-meta">Wins as a share of nominations (minimum 5 nominations), {{ era_label }}</p>
-      {{ rank_list_pct(win_rate_leaderboard) }}
-    </div>
-  </div>
-
-  <h2>Signature show{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
-  <div class="lb-card">
-    <p class="lb-meta">Each society's own most-repeated title since 23/24 - their "usual suspect" (at least 3 stagings to count)</p>
-    {% if signature_show %}
-      <ul class="plain-list">
-        {% for row in signature_show %}
-          <li>{{ row['label'] }} &mdash; <a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a> ({{ row['n'] }}&times;)</li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="meta">No society has staged the same title 3 or more times yet{% if selected_region %} in {{ selected_region }}{% endif %}.</p>
-    {% endif %}
-  </div>
 
   <h2>One-off productions ({{ one_offs|length }} shows){% if selected_region %} ({{ selected_region }}){% endif %}</h2>
   <div class="lb-card">

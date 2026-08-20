@@ -18,6 +18,12 @@ def historical_results_year(season):
     return 2000 + int(season[:2]) + 1
 
 
+def historical_results_season(year):
+    """Inverse of historical_results_year - the 'yy/yy' season string a given
+    historical_results.year belongs to."""
+    return f"{(year - 1) % 100:02d}/{year % 100:02d}"
+
+
 def season_start_year(season):
     """Real four-digit start year for a 'yy/yy' season string, so seasons can
     be compared across the 1999/2000 rollover. Plain string comparison is

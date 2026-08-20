@@ -1,22 +1,25 @@
 """Stats page: pre-23/24 seasons collapse behind a <details> disclosure
-instead of cluttering the main "Shows by season" table (see info.py's
+instead of cluttering the main "Productions by season" table (see info.py's
 stats() and stats.html). Season Archive page: a "hide cancelled shows"
 filter and a soonest/latest sort toggle."""
+import re
+
 from conftest import seed_society
 
 
 def test_stats_splits_seasons_at_coverage_boundary(client, db):
     society_id = seed_society(db)
-    # One recent (in-coverage) show, one from well before 23/24.
+    # One recent (in-coverage) show, one production from well before 23/24 -
+    # productions that old live in historical_results, not shows, so that's
+    # what the unified "Productions by season" table actually reads from.
     db.execute(
         "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status) "
         "VALUES (?, '24/25', 'Eastern', 'Chicago', '2024-11-01', '2024-11-05', 'approved')",
         (society_id,),
     )
     db.execute(
-        "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status) "
-        "VALUES (?, '10/11', 'Eastern', 'Oliver!', '2010-11-01', '2010-11-05', 'approved')",
-        (society_id,),
+        "INSERT INTO historical_results (year, tier, category_name, result, show, society_name, source) "
+        "VALUES (2011, 'Gilbert', 'Best Overall Show', 'Nominee', 'Oliver!', 'Test Society', 'manual')"
     )
     db.commit()
 
@@ -142,7 +145,7 @@ def test_award_leaderboard_merges_renamed_categories(client, db):
     _add_award(db, "Best Choral Singing", "Winner", "Gilbert", society_name="Old Era Society", year=2026)
     db.commit()
 
-    body = client.get("/stats?award_category=Best+Choral+Singing&era=all").get_data(as_text=True)
+    body = client.get("/stats?award_category=Best+Choral+Singing").get_data(as_text=True)
     assert '<span class="rank-n">2</span>' in body
     assert "Renamed from" in body
 
@@ -153,32 +156,17 @@ def test_stats_headline_reframed(client):
     assert "Explore any award category" in body
 
 
-def test_leaderboards_default_to_recent_era(client, db):
-    _add_award(db, "Best Overall Show", "Winner", "Gilbert", society_name="Old Timer Society", year=1980)
-    db.commit()
-
-    recent = client.get("/stats").get_data(as_text=True)
-    assert "Since 23/24" in recent
-    assert "Old Timer Society" not in recent
-
-    all_time = client.get("/stats?era=all").get_data(as_text=True)
-    assert "Old Timer Society" in all_time
-
-
-def test_explorer_respects_era_filter(client, db):
+def test_no_timeframe_toggle_and_explorer_is_always_all_time(client, db):
+    """The 'Since 23/24 / All-time' toggle was removed 20 Aug 2026 - it was
+    making per-person leaderboards degenerate (a handful of people tied at 1
+    under 'recent', a real ranking all-time). Explorer and every remaining
+    stat are all-time only now, no control needed to see old data."""
     _add_award(db, "Best Director", "Winner", "Gilbert", nominee_name="Old Adjudicator Pick", year=1980)
     db.commit()
 
-    recent = client.get("/stats?award_category=Best+Director").get_data(as_text=True)
-    assert "Old Adjudicator Pick" not in recent
-
-    all_time = client.get("/stats?award_category=Best+Director&era=all").get_data(as_text=True)
-    assert "Old Adjudicator Pick" in all_time
-
-
-def test_invalid_era_falls_back_to_recent(client, db):
-    body = client.get("/stats?era=nonsense").get_data(as_text=True)
-    assert 'value="recent" selected' in body
+    body = client.get("/stats?award_category=Best+Director").get_data(as_text=True)
+    assert "Old Adjudicator Pick" in body
+    assert "Timeframe" not in body
 
 
 def test_award_leaderboard_invalid_category_falls_back_to_default(client, db):
@@ -186,6 +174,61 @@ def test_award_leaderboard_invalid_category_falls_back_to_default(client, db):
     assert resp.status_code == 200
     body = resp.get_data(as_text=True)
     assert 'value="Best Overall Show" selected' in body
+
+
+def _productions_cell(body, season):
+    match = re.search(rf"<td>{re.escape(season)}</td>\s*<td>(\d+)</td>", body)
+    return int(match.group(1)) if match else None
+
+
+def test_productions_count_includes_review_only_skeleton_shows(client, db):
+    """A ShowTimes review with no matching award record still creates a
+    real, countable production (a shows.source='historical' skeleton show)
+    - previously invisible from every count on this page (371 such
+    productions found in production data, 20 Aug 2026, the bug that drove
+    the 20 Aug redesign). Fixed by folding unmatched skeleton shows into
+    the unified season table."""
+    society_id = seed_society(db)
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status, source) "
+        "VALUES (?, '18/19', 'Eastern', 'Review Only Show', 'approved', 'historical')",
+        (society_id,),
+    )
+    db.commit()
+
+    body = client.get("/stats").get_data(as_text=True)
+    assert _productions_cell(body, "18/19") == 1
+
+
+def test_productions_count_does_not_double_count_matched_skeleton_shows(client, db):
+    """A skeleton show that DOES have a matching award record must count
+    once, not twice - the NOT EXISTS check that keeps the two sources from
+    double-counting the same real production."""
+    society_id = seed_society(db, name="Matched Society")
+    db.execute(
+        "INSERT INTO historical_results (year, tier, category_name, result, show, society_id, society_name, source) "
+        "VALUES (2019, 'Gilbert', 'Best Overall Show', 'Nominee', 'Matched Show', ?, 'Matched Society', 'manual')",
+        (society_id,),
+    )
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status, source) "
+        "VALUES (?, '18/19', 'Eastern', 'Matched Show', 'approved', 'historical')",
+        (society_id,),
+    )
+    db.commit()
+
+    body = client.get("/stats").get_data(as_text=True)
+    assert _productions_cell(body, "18/19") == 1
+
+
+def test_signature_show_and_leaderboards_removed(client):
+    """Both cut 20 Aug 2026 - Signature Show confirmed low-value twice by
+    Darragh; the standalone Leaderboards grid duplicated what Award
+    Explorer already does interactively per category."""
+    body = client.get("/stats").get_data(as_text=True)
+    assert "Signature show" not in body
+    assert "Most nominated, never won" not in body
+    assert "Win-rate leaderboard" not in body
 
 
 def test_season_page_sort_toggle_reverses_order(client, db):
