@@ -261,6 +261,18 @@ CREATE TABLE IF NOT EXISTS dismissed_duplicate_pairs (
     PRIMARY KEY (title_a, title_b)
 );
 
+-- One-time review queue for society_gate_suggestions.json (the
+-- extractor-society-gate branch's proposed historical_reviews.society_raw
+-- corrections - see ROADMAP.md's "Near-identical-society audit"). Rejecting
+-- a suggestion here is remembered the same way dismissed_duplicate_pairs
+-- remembers "not a duplicate", so it stops reappearing on reload.
+CREATE TABLE IF NOT EXISTS dismissed_society_corrections (
+    source_issue    TEXT NOT NULL,
+    show_raw        TEXT NOT NULL,
+    adjudicator     TEXT NOT NULL,
+    PRIMARY KEY (source_issue, show_raw, adjudicator)
+);
+
 -- Moderator-confirmed link (Wikipedia or elsewhere) for a show title, shown
 -- on the /titles browse page. Titles without a row here fall back to an
 -- auto-generated Wikipedia search link at render time - nothing is ever

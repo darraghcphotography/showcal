@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Society name corrections - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Society name corrections</h1>
+  <p class="meta">Suggestions only - nothing changes until you pick decisions below and submit them all at
+     once. These come from re-running the extractor with the fixed society-matching logic
+     (<code>extractor-society-gate</code> branch) against the ShowTimes archive, then comparing the result
+     against what's actually stored. {{ total_suggested }} total suggestions;
+     {{ dismissed_count }} already dismissed, {{ stale_count }} no longer match what's stored (already
+     handled some other way).</p>
+
+  {% if suggestions %}
+    <form method="post" action="{{ url_for('admin.apply_society_corrections') }}"
+          data-confirm="Apply every correction/dismiss decision selected below? Corrections rename the society on that one review and cannot be undone.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% for s in suggestions %}
+        <input type="hidden" name="review_id_{{ loop.index0 }}" value="{{ s['review_id'] }}">
+        <input type="hidden" name="new_value_{{ loop.index0 }}" value="{{ s['new_society_raw'] }}">
+        <input type="hidden" name="source_issue_{{ loop.index0 }}" value="{{ s['source_issue'] }}">
+        <input type="hidden" name="show_raw_{{ loop.index0 }}" value="{{ s['show_raw'] }}">
+        <input type="hidden" name="adjudicator_{{ loop.index0 }}" value="{{ s['adjudicator'] }}">
+        <article class="queue-item">
+          <p>
+            <strong>{{ s['show_raw'] }}</strong>
+            <span class="meta">&middot; {{ s['source_issue'] }} &middot; {{ s['tier'] or '—' }} &middot; reviewed by {{ s['adjudicator'] }}</span>
+            {% if s['ambiguous_key'] %}<span class="tag tag-warning">Check carefully - ambiguous match</span>{% endif %}
+          </p>
+          <p>
+            <span class="tag tag-cancelled">{{ s['old_society_raw'] }}</span>
+            &rarr;
+            <span class="tag tag-active">{{ s['new_society_raw'] }}</span>
+          </p>
+          <p class="meta review-excerpt">&ldquo;{{ s['review_excerpt'] }}&hellip;&rdquo;</p>
+          {% if s['already_approved'] %}
+            <p class="meta">Already approved and public - not editable here. Use
+              <a href="{{ url_for('admin.edit_historical_review', review_id=s['review_id']) }}">Edit fields</a> on the review directly if this needs fixing.</p>
+          {% else %}
+            <div class="actions">
+              <label class="checkbox-label">
+                <input type="radio" name="decision_{{ loop.index0 }}" value="skip" checked> Skip
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="decision_{{ loop.index0 }}" value="approve"> Apply correction
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="decision_{{ loop.index0 }}" value="dismiss"> Not right - dismiss
+              </label>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+
+      <button type="submit">Apply selected decisions</button>
+    </form>
+  {% else %}
+    <p>No corrections left to review.</p>
+  {% endif %}
+{% endblock %}

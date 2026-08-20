@@ -1,4 +1,5 @@
 import functools
+import json
 import re
 import secrets
 import sqlite3
@@ -1667,6 +1668,127 @@ def bulk_historical_societies():
     else:
         flash("No changes selected.", "warning")
     return redirect(url_for("admin.historical_societies"))
+
+
+def _match_society_exact(db, society_raw):
+    """Same exact-match convention as load_historical_reviews.py's
+    match_society - the raw name as printed, then the part before a comma
+    (some issues append a location that isn't part of the society's actual
+    name on record)."""
+    for candidate in (society_raw, society_raw.split(",")[0].strip()):
+        row = db.execute("SELECT id FROM societies WHERE name = ?", (candidate,)).fetchone()
+        if row:
+            return row["id"]
+    return None
+
+
+@bp.route("/society-corrections")
+@login_required
+def society_corrections():
+    """One-time review queue for society_gate_suggestions.json - proposed
+    historical_reviews.society_raw corrections from the extractor-society-
+    gate branch's fix (see ROADMAP.md's "Near-identical-society audit").
+    Generated offline (needs PyMuPDF and the PDF archive, neither available
+    here), not recomputed live - this page only cross-references it against
+    the real database and lets a moderator approve or reject each one.
+    Nothing is applied automatically."""
+    db = get_db()
+    with open(current_app.config["SOCIETY_CORRECTIONS_PATH"], encoding="utf-8") as f:
+        all_suggestions = json.load(f)
+
+    dismissed = {
+        (r["source_issue"], r["show_raw"], r["adjudicator"])
+        for r in db.execute(
+            "SELECT source_issue, show_raw, adjudicator FROM dismissed_society_corrections"
+        ).fetchall()
+    }
+
+    actionable = []
+    dismissed_count = 0
+    stale_count = 0
+    for s in all_suggestions:
+        key = (s["source_issue"], s["show_raw"], s["adjudicator"])
+        if key in dismissed:
+            dismissed_count += 1
+            continue
+        row = db.execute(
+            """
+            SELECT historical_reviews.id AS review_id, historical_reviews.moderation_status
+            FROM historical_reviews
+            JOIN adjudicators ON adjudicators.id = historical_reviews.adjudicator_id
+            WHERE historical_reviews.source_issue = ? AND historical_reviews.show_raw = ?
+              AND adjudicators.name = ? AND historical_reviews.society_raw = ?
+            """,
+            (s["source_issue"], s["show_raw"], s["adjudicator"], s["old_society_raw"]),
+        ).fetchone()
+        # No matching row left with the *old* value means this one's already
+        # been handled some other way (or was never loaded into this
+        # database) - nothing actionable here, not an error.
+        if row is None:
+            stale_count += 1
+            continue
+        entry = dict(s)
+        entry["review_id"] = row["review_id"]
+        entry["already_approved"] = row["moderation_status"] == "approved"
+        actionable.append(entry)
+
+    return render_template(
+        "admin/society_corrections.html", suggestions=actionable,
+        total_suggested=len(all_suggestions), dismissed_count=dismissed_count, stale_count=stale_count,
+    )
+
+
+@bp.route("/society-corrections/apply", methods=("POST",))
+@login_required
+def apply_society_corrections():
+    db = get_db()
+    applied = 0
+    dismissed = 0
+    skipped_approved = 0
+    i = 0
+    while f"review_id_{i}" in request.form:
+        review_id = request.form.get(f"review_id_{i}", "")
+        new_value = request.form.get(f"new_value_{i}", "").strip()
+        source_issue = request.form.get(f"source_issue_{i}", "")
+        show_raw = request.form.get(f"show_raw_{i}", "")
+        adjudicator = request.form.get(f"adjudicator_{i}", "")
+        decision = request.form.get(f"decision_{i}", "skip")
+
+        if decision == "approve" and review_id and new_value:
+            row = db.execute(
+                "SELECT moderation_status FROM historical_reviews WHERE id = ?", (review_id,)
+            ).fetchone()
+            # An approved review is already public - a silent rewrite isn't
+            # safe even if the correction is right. Same caution
+            # load_historical_reviews.py already applies to review_text.
+            if row and row["moderation_status"] != "approved":
+                society_id = _match_society_exact(db, new_value)
+                db.execute(
+                    "UPDATE historical_reviews SET society_raw = ?, society_id = ? WHERE id = ?",
+                    (new_value, society_id, review_id),
+                )
+                applied += 1
+            else:
+                skipped_approved += 1
+        elif decision == "dismiss" and source_issue and show_raw and adjudicator:
+            db.execute(
+                "INSERT OR IGNORE INTO dismissed_society_corrections (source_issue, show_raw, adjudicator) "
+                "VALUES (?, ?, ?)",
+                (source_issue, show_raw, adjudicator),
+            )
+            dismissed += 1
+        i += 1
+
+    db.commit()
+    parts = []
+    if applied:
+        parts.append(f"corrected {applied}")
+    if dismissed:
+        parts.append(f"dismissed {dismissed}")
+    if skipped_approved:
+        parts.append(f"skipped {skipped_approved} already-approved (public) review(s) - edit those directly instead")
+    flash(", ".join(parts).capitalize() + "." if parts else "No changes selected.", "success" if parts else "warning")
+    return redirect(url_for("admin.society_corrections"))
 
 
 def _award_categories(db):

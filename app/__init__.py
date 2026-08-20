@@ -30,6 +30,7 @@ def create_app(test_config=None):
         SECRET_KEY=os.environ.get("SECRET_KEY", "dev-insecure-change-me"),
         DATABASE=os.environ.get("AIMS_DB_PATH", str(BASE_DIR / "aims.db")),
         SCHEMA_PATH=str(BASE_DIR / "schema.sql"),
+        SOCIETY_CORRECTIONS_PATH=str(BASE_DIR / "society_gate_suggestions.json"),
         UPLOAD_DIR=os.environ.get("AIMS_UPLOAD_DIR", str(BASE_DIR / "uploads")),
         MAX_CONTENT_LENGTH=8 * 1024 * 1024,  # 8 MB - generous for a poster photo, not for abuse
         # Secure only in Docker/production (signalled by AIMS_DB_PATH being
