@@ -33,6 +33,31 @@
   {% endfor %}
 {% endmacro %}
 
+{% macro season_chip(show) %}
+  <span class="chip {{ 'gilbert' if show['section'] == 'Gilbert' else ('sullivan' if show['section'] == 'Sullivan' else 'other') }}{{ ' is-cancelled' if show['status'] == 'Cancelled' else '' }}">
+    <span class="dot"></span>
+    <span class="chip-text">
+      <a class="show-name" href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+      <span class="chip-meta">
+        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
+        &middot; <span class="date-range">{{ show['opening_date']|date_range(show['closing_date']) }}</span>
+      </span>
+    </span>
+    {% if show['status'] == 'Cancelled' %}<span class="cancelled-tag">Cancelled</span>{% endif %}
+  </span>
+{% endmacro %}
+
+{% macro season_column(label, cls, shows) %}
+  <div class="week-col {{ cls }}">
+    <div class="week-col-head">{{ label }} ({{ shows|length }})</div>
+    {% if shows %}
+      {% for show in shows %}{{ season_chip(show) }}{% endfor %}
+    {% else %}
+      <div class="week-col-empty">None opening</div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
 {% macro show_cards(shows, past=False, with_review=True) %}
   {% for show in shows %}
     <div class="queue-item">
@@ -117,6 +142,47 @@
       Sort: {{ 'Soonest first' if sort == 'asc' else 'Latest first' }} (click to reverse)
     </a>
   </p>
+
+  {% if weeks %}
+    <div class="season-calendar">
+      <h2>Season calendar</h2>
+      <p class="meta">Gilbert on the left, Sullivan on the right, grouped by week. A week is flagged
+        <strong>congested</strong> when 3+ shows are actually running at once - including one still mid-run
+        from the week before - not just when 3+ open in it.</p>
+      <div class="legend">
+        <span class="legend-item"><span class="swatch gilbert"></span>Gilbert</span>
+        <span class="legend-item"><span class="swatch sullivan"></span>Sullivan</span>
+        <span class="legend-item"><span class="swatch congested"></span>Congested week</span>
+      </div>
+      {% for month_key, month_weeks in weeks|groupby('month_key') %}
+        {% set month_weeks = month_weeks|list %}
+        <div class="month-block">
+          <div class="month-heading">
+            <span>{{ month_weeks[0]['month_label'] }}</span>
+            <span class="count">{{ month_weeks|sum(attribute='open_count') }} opening{{ '' if month_weeks|sum(attribute='open_count') == 1 else 's' }}</span>
+          </div>
+          {% for week in month_weeks %}
+            <div class="week-row{{ ' congested' if week['congested'] else '' }}">
+              <div class="week-row-top">
+                <span class="week-label">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</span>
+                {% if week['congested'] %}
+                  <span class="week-flag">&#9888; Congested &mdash; {{ week['overlap_count'] }} shows running{% if week['carryover'] > 0 %} ({{ week['carryover'] }} carrying over from the week before){% endif %}</span>
+                {% endif %}
+              </div>
+              <div class="week-split">
+                {{ season_column('Gilbert', 'gilbert-col', week['gilbert']) }}
+                <div class="week-divider"></div>
+                {{ season_column('Sullivan', 'sullivan-col', week['sullivan']) }}
+              </div>
+              {% if week['other'] %}
+                <div class="week-other">{{ season_column('Non-AIMS', '', week['other']) }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   {% if is_past_season %}
     <h2>Past productions</h2>

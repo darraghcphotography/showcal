@@ -232,6 +232,10 @@ def test_signature_show_and_leaderboards_removed(client):
 
 
 def test_season_page_sort_toggle_reverses_order(client, db):
+    """The sort toggle only reorders the classic table/card list - the
+    season calendar above it always renders chronologically by week
+    regardless of sort direction, so the assertion is scoped to the table
+    section (everything after its heading) rather than the whole page."""
     society_id = seed_society(db)
     for show, opening in [("Early Bird", "2026-09-01"), ("Late Bloomer", "2026-09-20")]:
         db.execute(
@@ -241,8 +245,8 @@ def test_season_page_sort_toggle_reverses_order(client, db):
         )
     db.commit()
 
-    asc_body = client.get("/season?season=26/27&sort=asc").get_data(as_text=True)
-    assert asc_body.index("Early Bird") < asc_body.index("Late Bloomer")
+    asc_table = client.get("/season?season=26/27&sort=asc").get_data(as_text=True).split("Upcoming productions")[-1]
+    assert asc_table.index("Early Bird") < asc_table.index("Late Bloomer")
 
-    desc_body = client.get("/season?season=26/27&sort=desc").get_data(as_text=True)
-    assert desc_body.index("Late Bloomer") < desc_body.index("Early Bird")
+    desc_table = client.get("/season?season=26/27&sort=desc").get_data(as_text=True).split("Upcoming productions")[-1]
+    assert desc_table.index("Late Bloomer") < desc_table.index("Early Bird")

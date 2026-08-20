@@ -1,6 +1,45 @@
 # Roadmap
 
-## START HERE - full backlog triage after a marathon session (2026-08-20, late, pre-`/clear`)
+## START HERE - season calendar built, needs deploy (2026-08-20, later session)
+
+**Item 1 from the triage below is built and tested locally, not yet deployed.** Mockup-first as planned
+(published artifact, iterated through 3 rounds of feedback - renamed "danger week" to "congested week",
+switched congestion from "shows opening the same week" to true run-overlap ("running", not just
+"opening", so a 9-day run and a 3-night run are told apart), added a Gilbert-left/Sullivan-right split
+so an adjudicator can scan just their own column). Darragh approved Option A (Agenda) over the Month
+Grid alternative - "option a is slick - go go go".
+
+**What shipped, in `app/season.py`/`info.py`/`public.py`/`season.html`/`index.html`/`style.css`:**
+- `season_weeks()` (new, `app/season.py`) - groups a season's shows by ISO week of opening date;
+  a week is "congested" at 3+ non-cancelled shows actually *running* at any point in it (a carryover
+  show still mid-run from the week before counts too), not just 3+ opening in it.
+- `/season` gets a new "Season calendar" section, above the existing sortable tables (which are
+  unchanged and keep their own sort toggle) - Gilbert/Sullivan chips split left/right per week, each
+  chip showing the real run dates (via the existing `date_range` filter), congested weeks tinted and
+  flagged. Reuses the page's existing region/section filters - congestion recomputes against whatever's
+  currently filtered, so filtering to one section shows that adjudicator's actual clash risk.
+- Homepage gets a small "Congested weeks" teaser card (`_congestion_teaser()` in `public.py`) - shows
+  the current season's upcoming congested weeks if any exist yet, otherwise falls back to a real example
+  from the most recently completed season ("Not much confirmed yet for 26/27 - but 25/26 had...").
+- New `--tier-gilbert`/`--tier-sullivan` CSS tokens (light + dark) - the site had no per-section colour
+  before this, only a neutral `.tag-tier` badge.
+- Verified in a real browser (headless Edge screenshots, light + dark, 600px mobile-stack width) and via
+  `curl` against several region/section/season param combinations, including the current sparse 26/27
+  season and an older 22/23 season - no crashes, congestion recomputes correctly per filter.
+- Test suite 307 -> 316: 9 new tests (`tests/test_season_calendar.py`) plus one existing test
+  (`test_season_page_sort_toggle_reverses_order`) fixed to scope its assertion to the table section only,
+  since the new calendar above it always renders chronologically regardless of the table's sort toggle.
+
+**Not done yet:**
+- Not committed or deployed - `app/blueprints/info.py`, `app/blueprints/public.py`, `app/season.py`,
+  `app/static/style.css`, `app/templates/index.html`, `app/templates/season.html`,
+  `tests/test_stats_and_season_filters.py` are modified in the working tree; `tests/test_season_calendar.py`
+  is new/untracked. Needs a commit + push + redeploy before it's live.
+- The live current-season view (as opposed to the always-available historical/any-season view via the
+  existing season picker) will look sparse until more of 26/27 has confirmed dates - expected, matches
+  the original Aug 5 scoping's "fast-follow" framing, not a bug.
+
+## Previous START HERE - full backlog triage after a marathon session (2026-08-20, late, pre-`/clear`)
 
 Darragh hit his usage limits after one very long session (Statistics rebuild, 3 misattributed-review
 investigations, a full 26/27 section reassignment, the 4 quick-win items, and the calendar/OCR scoping

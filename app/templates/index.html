@@ -62,6 +62,35 @@
   <h1>DC Show Tracker</h1>
   <p>Show history, upcoming productions, and the AIMS awards archive for every AIMS member society.</p>
 
+  {% if congestion_teaser %}
+    <div class="teaser-frame">
+      <h3>&#9888; Congested weeks{{ ' coming up' if not congestion_teaser['is_historical'] }}</h3>
+      {% if congestion_teaser['is_historical'] %}
+        <p class="meta">Not much confirmed yet for {{ congestion_teaser['current_season'] }} - but
+          {{ congestion_teaser['season'] }} had {{ congestion_teaser['total'] }}
+          week{{ '' if congestion_teaser['total'] == 1 else 's' }} with 3+ shows running at once.
+          Here's what that looked like.</p>
+      {% else %}
+        <p class="meta">{{ congestion_teaser['season'] }} has {{ congestion_teaser['total'] }}
+          week{{ '' if congestion_teaser['total'] == 1 else 's' }} with 3+ shows running at once - worth knowing if
+          you're planning which weekend to go, or an adjudication visit.</p>
+      {% endif %}
+      <div class="teaser-weeks">
+        {% for week in congestion_teaser['weeks'] %}
+          <div class="teaser-week">
+            <div class="tw-when">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</div>
+            <div class="tw-count">{{ week['overlap_count'] }} shows running</div>
+            <div class="tw-list">
+              {% for show in (week['gilbert'] + week['sullivan'] + week['other'])[:3] %}{{ show['show'] }}{{ ', ' if not loop.last }}{% endfor %}
+              {%- if week['open_count'] > 3 %}, +{{ week['open_count'] - 3 }} more{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <a class="teaser-cta" href="{{ url_for('info.season_summary', season=congestion_teaser['season']) }}">See the full season calendar &rarr;</a>
+    </div>
+  {% endif %}
+
   {% if poster_gallery %}
     <div class="poster-gallery">
       {% for show in poster_gallery %}

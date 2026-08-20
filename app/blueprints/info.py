@@ -15,7 +15,7 @@ from ..constants import (
 )
 from ..db import get_db
 from ..search import fts_match_ids
-from ..season import current_season, historical_results_season, historical_results_year, season_start_year
+from ..season import current_season, historical_results_season, historical_results_year, season_start_year, season_weeks
 
 bp = Blueprint("info", __name__)
 
@@ -446,6 +446,7 @@ def season_summary():
     rows = db.execute(query, params).fetchall()
     upcoming = [r for r in rows if not r["is_past"]]
     finished = [r for r in rows if r["is_past"]]
+    weeks = season_weeks(rows)
 
     # A society can reserve a slot for the season before announcing a title -
     # shows.show is NULL until they do (same "slotted, TBA" placeholder
@@ -501,7 +502,7 @@ def season_summary():
 
     return render_template(
         "season.html", season=season, upcoming=upcoming, finished=finished, all_seasons=all_seasons,
-        unannounced=unannounced,
+        unannounced=unannounced, weeks=weeks,
         upcoming_has_review=_has_review(upcoming), finished_has_review=_has_review(finished),
         is_current=(season == current), is_past_season=(season < current), is_future_season=(season > current),
         season_range_label=season_range_label,

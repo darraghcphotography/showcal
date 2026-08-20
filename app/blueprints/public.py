@@ -11,7 +11,7 @@ from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SU
 from ..db import get_db
 from ..rate_limit import limiter
 from ..search import fts_match_ids
-from ..season import current_season, historical_results_year, season_has_ended, season_start_year
+from ..season import current_season, historical_results_year, season_has_ended, season_start_year, season_weeks
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
 
@@ -37,6 +37,58 @@ def paginate_args(total):
     page = request.args.get("page", type=int, default=1)
     page = max(1, min(page, total_pages))
     return per_page, page, total_pages
+
+
+def _congestion_teaser(db):
+    """Small homepage widget: the next couple of congested weeks (3+ shows
+    running at once) in the current season, or - if it's too early in the
+    season for that to have happened yet - a representative example from the
+    most recently completed season instead. Mirrors season_summary()'s own
+    congestion logic (season_weeks()) rather than reinventing it."""
+    current = current_season(db)
+
+    def weeks_for(season):
+        rows = db.execute(
+            """SELECT shows.*, societies.name AS society_name
+               FROM shows JOIN societies ON societies.id = shows.society_id
+               WHERE shows.season = ? AND shows.moderation_status = 'approved' AND shows.show IS NOT NULL
+                 AND NOT societies.hidden""",
+            (season,),
+        ).fetchall()
+        return season_weeks(rows)
+
+    season_used = current
+    congested = [w for w in weeks_for(current) if w["congested"]]
+    is_historical = False
+
+    if not congested:
+        prev_rows = db.execute(
+            "SELECT DISTINCT season FROM shows WHERE show IS NOT NULL AND opening_date IS NOT NULL"
+        ).fetchall()
+        prior_seasons = sorted(
+            (r["season"] for r in prev_rows if season_start_year(r["season"]) < season_start_year(current)),
+            key=season_start_year, reverse=True,
+        )
+        if prior_seasons:
+            season_used = prior_seasons[0]
+            congested = [w for w in weeks_for(season_used) if w["congested"]]
+            is_historical = True
+
+    if not congested:
+        return None
+
+    if is_historical:
+        mid = len(congested) // 2
+        picked = [congested[0], congested[mid], congested[-1]] if len(congested) >= 3 else congested
+    else:
+        today = date.today()
+        upcoming = [w for w in congested if w["end"] >= today]
+        picked = (upcoming or congested)[:3]
+
+    return {
+        "season": season_used, "current_season": current, "is_historical": is_historical,
+        "total": len(congested), "weeks": picked,
+    }
 
 
 @bp.route("/")
@@ -79,6 +131,7 @@ def index():
         regions=REGIONS,
         upcoming_region=upcoming_region,
         changelog_teaser=changelog_teaser,
+        congestion_teaser=_congestion_teaser(db),
     )
 
 
