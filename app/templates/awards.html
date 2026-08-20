@@ -48,7 +48,7 @@
     </label>
     {{ pg.per_page_field(per_page, page_sizes) }}
     <button type="submit">Filter</button>
-    {% if selected_year or selected_category or selected_tier or q or selected_result != 'Winner' %}
+    {% if selected_year or selected_category or selected_tier or q or selected_result %}
       <a href="{{ url_for('info.awards') }}">Clear</a>
     {% endif %}
   </form>

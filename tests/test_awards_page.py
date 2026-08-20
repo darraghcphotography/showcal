@@ -50,6 +50,21 @@ def test_awards_page_out_of_range_page_clamps_to_last(client, db):
     assert "Society 0" in body
 
 
+def test_awards_page_defaults_to_all_results_not_just_winners(client, db):
+    """Darragh's ask: someone might want to see how many times they've been
+    nominated, not just wins - the default view (no ?result= at all) should
+    include Nominee rows, not just Winner."""
+    _add_result(db, 2020, "Best Overall Show", result="Winner", society_name="Winning Society")
+    _add_result(db, 2020, "Best Overall Show", result="Nominee", society_name="Nominated Society")
+    db.commit()
+
+    body = client.get("/awards").get_data(as_text=True)
+    assert "Winning Society" in body
+    assert "Nominated Society" in body
+    assert '<option value="" selected>All results</option>' in body
+    assert "Clear" not in body  # no filter is actually active at the bare /awards default
+
+
 def test_awards_page_hides_nominee_for_society_category(client, db):
     _add_result(db, 2020, "Best Technical (Lighting, Sets & Sound)", society_name="Carrick-on-Suir Musical Society", nominee_name="Carrick-on-Suir Musical Society")
     db.commit()

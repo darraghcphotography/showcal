@@ -528,7 +528,7 @@ def awards():
     year = request.args.get("year", "").strip()
     category = request.args.get("category", "")
     tier = request.args.get("tier", "")
-    result = request.args.get("result", "Winner")
+    result = request.args.get("result", "")
     q = request.args.get("q", "").strip()
 
     per_page = request.args.get("per_page", type=int, default=AWARDS_PAGE_SIZES[0])
