@@ -15,6 +15,11 @@ open (not started, explicitly parked, or blocked on something).
 
 **Update 2026-08-21: Decades Time Machine, Reviews, and Venues are all live for real**, committed and
 pushed (Darragh confirmed "always commit and push" as a standing default for this repo - see memory).
+**Darragh is redeploying via Portainer right at the end of this session** - not yet independently verified
+live on the NAS. First thing next session (or once he confirms): check it's actually live the proper way -
+grep a marker string from these commits (e.g. "Decades" or "reviews-queue") inside the running container's
+code, not just the `/suggestions` deployed-at timestamp, which only proves the process restarted, not which
+commit is running.
 
 **Decades Time Machine** (`/stats/trends`, `info.py`'s `stats_trends()`) - grounded in the awards archive
 (`historical_results`, 1912-2026), not the thinner `shows` catalogue. A decade-scrubber pill row (GET
