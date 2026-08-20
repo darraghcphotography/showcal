@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Reviews - DC Show Tracker{% endblock %}
+{% block og_description %}Every adjudicator review archived on the site, browsable by show, society, season and tier.{% endblock %}
+
+{% macro review_row(r, show_season=false) %}
+  {% if r['source'] == 'full_text' %}
+    <a class="review-row" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">
+      {% if show_season %}<span class="season-badge">{{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}</span>{% endif %}
+      <span class="show">{{ r['show'] }}</span>
+      <span class="soc">{{ r['society_name'] }}</span>
+      {% if r['adjudicator_name'] %}<span class="by">{{ r['adjudicator_name'] }}</span>{% endif %}
+      <span class="src src-full">Full review</span>
+    </a>
+  {% else %}
+    <a class="review-row" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
+      {% if show_season %}<span class="season-badge">{{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}</span>{% endif %}
+      <span class="show">{{ r['show'] }}</span>
+      <span class="soc">{{ r['society_name'] }}</span>
+      {% if r['adjudicator_name'] %}<span class="by">{{ r['adjudicator_name'] }}</span>{% endif %}
+      <span class="src">Read on aims.ie</span>
+    </a>
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+  <h1>Reviews</h1>
+  <p class="meta" style="max-width: 62ch;">
+    Every adjudicator review archived on the site - the full ShowTimes text where AIMS republished it here,
+    and a link out to aims.ie for anything reviewed since. Browse by show, society, season, tier or
+    adjudicator below.
+  </p>
+
+  <div class="site-notice">
+    <p><strong>Looking for a word or phrase inside a review?</strong> This page is for browsing - try
+      <a href="{{ url_for('public.search') }}">Search</a> instead for full-text search across every review's
+      actual wording.</p>
+  </div>
+
+  <div class="stat-tiles">
+    <div class="stat-tile"><span class="stat-value">{{ stats['total'] }}</span><span class="stat-label">Reviews on the site</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ stats['full_text'] }}</span><span class="stat-label">Full ShowTimes text</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ stats['linked'] }}</span><span class="stat-label">Linked to aims.ie</span></div>
+    {% if stats.get('span') %}
+      <div class="stat-tile"><span class="stat-value">{{ stats['span'] }}</span><span class="stat-label">Seasons covered</span></div>
+    {% endif %}
+  </div>
+
+  <form method="get" class="filter-form">
+    <label>Show or society
+      <input type="search" name="q" value="{{ q }}" placeholder="e.g. Oklahoma!, Tullyvin...">
+    </label>
+    <label>Season
+      <select name="season">
+        <option value="">All seasons</option>
+        {% for s in seasons %}
+          <option value="{{ s }}" {% if s == selected_season %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Tier
+      <select name="tier">
+        <option value="">Gilbert &amp; Sullivan</option>
+        <option value="Gilbert" {% if selected_tier == 'Gilbert' %}selected{% endif %}>Gilbert</option>
+        <option value="Sullivan" {% if selected_tier == 'Sullivan' %}selected{% endif %}>Sullivan</option>
+      </select>
+    </label>
+    <label>Adjudicator
+      <select name="adjudicator">
+        <option value="">All adjudicators</option>
+        {% for a in adjudicators %}
+          <option value="{{ a['id'] }}" {% if selected_adjudicator == a['id'] %}selected{% endif %}>{{ a['name'] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+    {% if q or selected_season or selected_tier or selected_adjudicator %}
+      <a href="{{ url_for('public.reviews_index') }}">Clear</a>
+    {% endif %}
+  </form>
+  <p class="hint" style="margin-bottom: 1.5rem;">A show/society search matches across every season and tier by
+    default - the dropdowns narrow it further, they don't scope it.</p>
+
+  {% if q %}
+    <p class="meta">{{ result_count }} result{{ '' if result_count == 1 else 's' }} for &ldquo;{{ q }}&rdquo;</p>
+    {% if flat_reviews %}
+      <div class="review-list">
+        {% for r in flat_reviews %}{{ review_row(r, show_season=true) }}{% endfor %}
+      </div>
+    {% else %}
+      <p>No reviews match.</p>
+    {% endif %}
+  {% elif season_groups %}
+    {% for group in season_groups %}
+      <details class="queue-item"{% if loop.index0 < 2 %} open{% endif %}>
+        <summary>
+          {{ group['season'] }}
+          <span class="review-n">{{ group['reviews']|length }} review{{ '' if group['reviews']|length == 1 else 's' }}</span>
+        </summary>
+        <div class="queue-item-body review-list">
+          {% for r in group['reviews'] %}{{ review_row(r) }}{% endfor %}
+        </div>
+      </details>
+    {% endfor %}
+  {% else %}
+    <p>No reviews match those filters.</p>
+  {% endif %}
+{% endblock %}

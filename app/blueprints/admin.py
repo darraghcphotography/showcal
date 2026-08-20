@@ -1786,6 +1786,73 @@ def apply_society_corrections():
     return redirect(url_for("admin.society_corrections"))
 
 
+@bp.route("/reviews-queue")
+@login_required
+def reviews_queue():
+    db = get_db()
+    today = date.today().isoformat()
+
+    # "Already finished" (closing_date, opening_date as a fallback for a show
+    # with only one date on record) - unlike the dashboard's own "Shows
+    # missing a review link" count, which is season-based and can include a
+    # not-yet-run show in the current season. "Not adjudicated" is a
+    # deliberate, permanent state, same reasoning as needs_review_count. A
+    # skeleton show (source='historical') is excluded - its review lives in
+    # historical_reviews, not review_url. The NOT EXISTS guards against the
+    # rare case of a non-skeleton show that also has an approved
+    # historical_reviews row (already has a real review, just not via this
+    # field) - shouldn't be nagged about here either.
+    rows = db.execute(
+        """
+        SELECT shows.id, shows.show, shows.season, shows.review_status,
+               COALESCE(shows.closing_date, shows.opening_date) AS finished_on,
+               societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.moderation_status = 'approved'
+          AND shows.show IS NOT NULL AND shows.source != 'historical'
+          AND shows.review_status != 'Not adjudicated'
+          AND (shows.review_url IS NULL OR shows.review_url = '')
+          AND COALESCE(shows.closing_date, shows.opening_date) < ?
+          AND NOT EXISTS (
+              SELECT 1 FROM historical_reviews
+              WHERE historical_reviews.show_id = shows.id AND historical_reviews.moderation_status = 'approved'
+          )
+        ORDER BY finished_on DESC
+        """,
+        (today,),
+    ).fetchall()
+
+    return render_template("admin/reviews_queue.html", rows=rows)
+
+
+@bp.route("/reviews-queue/<int:show_id>/save", methods=("POST",))
+@login_required
+def save_review_link(show_id):
+    url = request.form.get("review_url", "").strip()
+    if url and URL_RE.match(url):
+        get_db().execute(
+            "UPDATE shows SET review_url = ?, review_status = 'Published', updated_at = datetime('now') WHERE id = ?",
+            (url, show_id),
+        )
+        get_db().commit()
+        flash("Review link saved.", "success")
+    else:
+        flash("Enter a valid http(s) URL.", "error")
+    return redirect(url_for("admin.reviews_queue"))
+
+
+@bp.route("/reviews-queue/<int:show_id>/not-adjudicated", methods=("POST",))
+@login_required
+def mark_review_not_adjudicated(show_id):
+    get_db().execute(
+        "UPDATE shows SET review_status = 'Not adjudicated', updated_at = datetime('now') WHERE id = ?",
+        (show_id,),
+    )
+    get_db().commit()
+    flash("Marked not adjudicated.", "success")
+    return redirect(url_for("admin.reviews_queue"))
+
+
 def _award_categories(db):
     return [
         r[0] for r in db.execute(

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Reviews queue - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Reviews queue</h1>
+  <p class="meta">One row per show that's already finished, isn't marked <strong>Not adjudicated</strong>, and
+     has no review link yet. Paste the aims.ie link and save - it appears on the show's page immediately.
+     {{ rows|length }} waiting, most recently closed first.</p>
+
+  {% if rows %}
+    {% for r in rows %}
+      <div class="queue-item">
+        <p>
+          <strong>{{ r['show'] }}</strong>
+          <span class="meta">&middot; {{ r['society_name'] }} &middot; {{ r['season'] }}
+            &middot; closed {{ r['finished_on'] }}
+            &middot; review status: <span class="tag tag-warning">{{ r['review_status'] }}</span></span>
+        </p>
+        <div class="actions">
+          <form method="post" action="{{ url_for('admin.save_review_link', show_id=r['id']) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="url" name="review_url" placeholder="https://www.aims.ie/post/review-..." size="40">
+            <button type="submit">Save</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.mark_review_not_adjudicated', show_id=r['id']) }}"
+                class="inline-form" data-confirm="Mark &quot;{{ r['show'] }}&quot; as not adjudicated?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="link-button">Mark not adjudicated instead</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>Nothing waiting - every finished show either has a review link or is marked Not adjudicated.</p>
+  {% endif %}
+{% endblock %}

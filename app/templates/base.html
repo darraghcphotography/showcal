@@ -47,6 +47,7 @@
       <a href="{{ url_for('info.awards') }}">Awards</a>
       <a href="{{ url_for('info.stats') }}">Statistics</a>
       <a href="{{ url_for('info.season_summary') }}">Seasons</a>
+      <a href="{{ url_for('public.reviews_index') }}">Reviews</a>
       <form class="site-search" method="get" action="{{ url_for('public.search') }}" role="search">
         <input type="search" name="q" placeholder="Search" aria-label="Search societies and shows" value="{{ request.args.get('q', '') if request.endpoint == 'public.search' else '' }}">
       </form>

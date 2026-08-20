@@ -11,36 +11,51 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
-## START HERE - Decades Time Machine built for real 2026-08-21, 4 mockups still waiting on a coding pass
+## START HERE - Decades + Reviews built for real 2026-08-21, 3 mockups still waiting on a coding pass
 
-**Update 2026-08-21: Decades Time Machine is live for real** (`/stats/trends`, `app/blueprints/info.py`'s
-`stats_trends()`, `app/templates/stats_trends.html`, linked from `/stats`) - built straight off the approved
-mockup, no further check-in needed since Darragh explicitly picked it ("Go for decades"). Grounded in the
-awards archive (`historical_results`, 1912-2026), not the thinner `shows` catalogue, per the scoping
-decision below. A decade-scrubber pill row (GET `?decade=1980` etc., no JS, same pattern as every other
-stats-page filter) picks one decade; that decade's era card shows top 5 most-staged shows (deduped to
-distinct (show, year, society) - a show nominated in 3 categories the same year is 1 staging, not 3), top 5
-most-nominated societies (raw nomination count, deliberately not deduped the same way), and every Best
-Overall Show winner that decade. Default decade is the current one if it has data, else the latest decade
-that does. 10 new tests in `tests/test_stats_trends.py` (incl. the dedup-vs-not-dedup distinction and the
-default-decade fallback), full suite (366 tests) still green. **Not yet committed to git** - ask Darragh
-before committing/pushing.
+**Update 2026-08-21: Decades Time Machine and Reviews are both live for real**, committed and pushed
+(Darragh confirmed "always commit and push" as a standing default for this repo - see memory). Both built
+straight off their approved mockups.
 
-**The other 4 mockups are still just mockups**, links saved below so they survive a `/clear` (Artifacts are
+**Decades Time Machine** (`/stats/trends`, `info.py`'s `stats_trends()`) - grounded in the awards archive
+(`historical_results`, 1912-2026), not the thinner `shows` catalogue. A decade-scrubber pill row (GET
+`?decade=1980`, no JS) picks one decade; its era card shows top 5 most-staged shows (deduped to distinct
+(show, year, society) productions, not raw nomination rows), top 5 most-nominated societies (raw nomination
+count, deliberately not deduped), and every Best Overall Show winner that decade. Default decade is the
+current one if it has data, else the latest that does. Linked from `/stats` as a prominent clickable banner
+(moved there after Darragh flagged the first version - a small inline text link - as "feels hidden"). 10
+tests in `tests/test_stats_trends.py`.
+
+**Reviews** (public `/reviews` + admin `/admin/reviews-queue`) - `public.py`'s `reviews_index()` merges two
+eras into one list (AIMS's own aims.ie link-out reviews and the extracted ShowTimes archive full text), same
+`source`-tag pattern already used on an adjudicator's own page. A show/society search matches across every
+season and tier by default - the season/tier/adjudicator dropdowns only narrow it, never implicitly scope it
+(the specific fix requested after the first mockup draft). Adjudicator credit is direct for a full-text
+review, inferred via `adjudicator_assignments` for a link-out one (only when exactly one adjudicator covered
+that season/tier - never guessed across a recorded mid-season change). Default browse view groups by season
+(collapsed `<details>`, 2 most recent open - same pattern as an adjudicator's own reviews list) rather than
+paginating; a full mockup detail (a "Page 1 of 44" footer) wasn't carried over since it was a rough
+placeholder, not a reasoned part of the design. New "Reviews" nav link (site-wide) + `/more` entry. Admin
+queue (`admin.reviews_queue()`) lists every already-finished, non-"Not adjudicated" show with no review link
+yet (closing_date-based, deliberately more precise than the existing season-based dashboard "needs review"
+counter, which was left untouched) - paste-and-save per row, same shape as Society name corrections, plus a
+"Mark not adjudicated instead" action. Linked from the admin dashboard's Tools grid. 14 + 12 tests
+(`tests/test_reviews_index.py`, `tests/test_admin_reviews_queue.py`) - one pre-existing test
+(`test_show_detail_review_adjudication.py`) had to be rescoped to the page-content area, since it asserted
+"Review" never appears anywhere in the page and the new sitewide nav link broke that assumption. Full suite
+392 tests, all green.
+
+**The other 3 mockups are still just mockups**, links saved below so they survive a `/clear` (Artifacts are
 private to Darragh's account until shared, not secret, but still don't paste these anywhere public):
-- Reviews (public + admin): https://claude.ai/code/artifact/f71bd97b-649a-456e-a9fd-0a6e9d069470 - iterated
-  once on feedback (default search now crosses all seasons/tiers rather than being scoped by the dropdowns,
-  adjudicator dropdown + reviewer credit added to every row).
 - Venues Explorer: https://claude.ai/code/artifact/811b3e19-42af-45fd-8a3a-4e97ddd8b391
 - Shows A-Z redesign: https://claude.ai/code/artifact/8748ee86-2422-4df3-aae6-7ee5973bc5c3
 - Society head-to-head compare: https://claude.ai/code/artifact/a3b6ce5c-1bbc-4eb3-aea9-8f480a51e209
 
-None of those 4 have been applied to real templates/routes yet. Per-feature scoping decisions made while
+None of those 3 have been applied to real templates/routes yet. Per-feature scoping decisions made while
 mocking are recorded in each feature's own bullet below. Next session should either build one of the
-remaining 4 for real (Reviews is the next-recommended - fully scoped, no new data needed, fixes a real
-annoyance Darragh already hit) or gather feedback on the mockups first if Darragh hasn't reacted to them
-yet - to update a mockup with feedback, republish the same Artifact URL (via the Artifact tool's `url`
-param) rather than creating a new one, so the links above stay correct.
+remaining 3 for real or gather feedback on the mockups first if Darragh hasn't reacted to them yet - to
+update a mockup with feedback, republish the same Artifact URL (via the Artifact tool's `url` param) rather
+than creating a new one, so the links above stay correct.
 
 ## (original framing below, kept for context on how this pass was run)
 
@@ -113,21 +128,8 @@ been inaccurate anywhere I found it." Only the season calendar's filter control 
 chips/rows elsewhere (society pages, admin) should stop rendering until it's trustworthy, is still open
 and deliberately not decided or investigated yet.
 
-**Reviews page, both public-facing and admin-side - scoped 2026-08-20, not built.** Darragh raised this
-while mid-task adding missing `aims.ie` review links by hand ("quite tedious"). Immediate relief applied
-same session (`backfill_2526_reviews.py` - 28 of 46 missing 25/26 review links matched against aims.ie's
-own published list and backfilled), but that was a one-off script, not the actual feature. Scope settled:
-- **Public**: a full browsable index of reviews, filterable/searchable by show/society/season - not a
-  search-first page, browsing is the primary mode. Deliberately separate from the sitewide `/search`
-  page's existing Reviews section (full-text search over review prose, bm25-ranked as of this session) -
-  different purpose, not a replacement.
-- **Admin**: a queue, same pattern as `/admin/society-corrections` - one row per show that's already
-  finished, isn't marked "Not adjudicated," and has no review link yet. Real count in production right
-  now: **36** (not the 894 a naive query returns before excluding future/unstaged shows and ones already
-  correctly marked not-adjudicated). Paste-and-save per row.
-- **Nav**: a new top-level "Reviews" item alongside Shows A-Z/Societies/Awards/Statistics/Seasons -
-  Darragh's call to confirm, not yet locked in.
-Not built - next session's mockup pass, see START HERE.
+**Reviews page, both public-facing and admin-side - SHIPPED 2026-08-21.** See START HERE for the real
+implementation detail. Nav question resolved: "Reviews" is now a real top-level nav item.
 
 **Society misattribution follow-ups (from the 43-fix session, 2026-08-20):**
 - **6 of the 8 remaining cases resolved and applied live 2026-08-20** (`fix_society_misattributions_2.py`,

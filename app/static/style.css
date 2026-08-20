@@ -1144,6 +1144,12 @@ a.queue-item:hover { border-color: var(--accent); }
 .review-row:hover .show { text-decoration: underline; }
 .review-row .show { font-weight: 600; color: var(--accent); }
 .review-row .soc { color: var(--muted); font-size: 0.86rem; }
+.review-row .by { color: var(--muted); font-size: 0.86rem; }
+.review-row .by::before { content: "by "; }
+.review-row .season-badge {
+  font-size: 0.72rem; font-weight: 600; color: var(--muted);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
 .review-row .src {
   margin-left: auto;
   font-size: 0.68rem;

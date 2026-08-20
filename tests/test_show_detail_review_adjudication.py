@@ -22,7 +22,11 @@ def test_review_none_hidden_for_upcoming_show(client, db):
     show_id = _insert_show(db, society_id, "2026-11-10", review_status="None")
 
     body = client.get(f"/shows/{show_id}").get_data(as_text=True)
-    assert "Review" not in body
+    # Scoped to the page content, not the whole document - the site nav now
+    # always has a "Reviews" link (added for the /reviews index), which
+    # contains "Review" as a substring regardless of this show's own status.
+    content = body.split('<main class="container">')[1]
+    assert "Review" not in content
 
 
 def test_review_shown_for_upcoming_show_with_real_status(client, db):

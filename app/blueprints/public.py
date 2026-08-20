@@ -13,7 +13,7 @@ from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SU
 from ..db import get_db
 from ..rate_limit import limiter
 from ..search import build_phrase_query, fts_match_ids
-from ..season import current_season, historical_results_year, season_has_ended, season_start_year
+from ..season import current_season, historical_results_year, season_has_ended, season_range, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
 
@@ -550,6 +550,119 @@ def adjudicator_detail(adjudicator_id):
 
     return render_template(
         "adjudicator_detail.html", adjudicator=adjudicator, stats=stats, season_groups=season_groups,
+    )
+
+
+@bp.route("/reviews")
+def reviews_index():
+    db = get_db()
+    q = request.args.get("q", "").strip()
+    season = request.args.get("season", "")
+    tier = request.args.get("tier", "")
+    if tier not in ("Gilbert", "Sullivan"):
+        tier = ""
+    adjudicator_id = request.args.get("adjudicator", type=int)
+
+    # AIMS assigns one adjudicator per tier per season, not per show - same
+    # "only credit when exactly one candidate is on record" rule show_detail()
+    # and adjudicator_detail() above already use for a link-out review. Done
+    # here in Python across the whole list at once, rather than per-row in
+    # SQL, since a season/tier can rarely have 2 assignment rows (a recorded
+    # mid-season change) and a join would silently double a show's row count
+    # in exactly that case.
+    assignment_candidates = defaultdict(list)
+    for row in db.execute("SELECT season, section, adjudicator_id FROM adjudicator_assignments").fetchall():
+        assignment_candidates[(row["season"], row["section"])].append(row["adjudicator_id"])
+    adjudicator_names = dict(db.execute("SELECT id, name FROM adjudicators").fetchall())
+
+    # Two different eras, one merged list, same "source" tag pattern already
+    # used on the adjudicator's own page: AIMS's own link-out (aims.ie, 23/24
+    # on) and the extracted ShowTimes archive (full text, lives on the show's
+    # own page here). Structurally can't overlap - the archive ends before
+    # the link-out era begins - so no dedup needed between the two.
+    rows = db.execute(
+        """
+        SELECT shows.id AS show_id, shows.show AS show, shows.season AS season,
+               shows.section AS tier, shows.review_url AS review_url,
+               societies.name AS society_name, NULL AS direct_adjudicator_id, 'link' AS source
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.review_status = 'Published' AND shows.review_url IS NOT NULL
+          AND shows.review_url != '' AND shows.moderation_status = 'approved' AND NOT societies.hidden
+
+        UNION ALL
+
+        SELECT shows.id AS show_id, shows.show AS show, historical_reviews.season AS season,
+               historical_reviews.tier AS tier, NULL AS review_url,
+               societies.name AS society_name, historical_reviews.adjudicator_id AS direct_adjudicator_id,
+               'full_text' AS source
+        FROM historical_reviews
+        JOIN shows ON shows.id = historical_reviews.show_id
+        JOIN societies ON societies.id = shows.society_id
+        WHERE historical_reviews.moderation_status = 'approved'
+          AND shows.moderation_status = 'approved' AND NOT societies.hidden
+        """
+    ).fetchall()
+
+    all_reviews = []
+    for r in rows:
+        if r["source"] == "link":
+            candidates = assignment_candidates.get((r["season"], r["tier"]), [])
+            adj_id = candidates[0] if len(candidates) == 1 else None
+        else:
+            adj_id = r["direct_adjudicator_id"]
+        all_reviews.append({
+            "show_id": r["show_id"], "show": r["show"], "season": r["season"], "tier": r["tier"],
+            "society_name": r["society_name"], "source": r["source"], "review_url": r["review_url"],
+            "adjudicator_id": adj_id, "adjudicator_name": adjudicator_names.get(adj_id),
+        })
+    all_reviews.sort(key=lambda r: (-season_start_year(r["season"]), (r["show"] or "").lower()))
+
+    stats = {
+        "total": len(all_reviews),
+        "full_text": sum(1 for r in all_reviews if r["source"] == "full_text"),
+        "linked": sum(1 for r in all_reviews if r["source"] == "link"),
+    }
+    if all_reviews:
+        seasons_seen = [r["season"] for r in all_reviews]
+        stats["span"] = f"{min(seasons_seen, key=season_start_year)}–{max(seasons_seen, key=season_start_year)}"
+
+    reviews = all_reviews
+    if q:
+        needle = q.lower()
+        reviews = [
+            r for r in reviews
+            if needle in (r["show"] or "").lower() or needle in (r["society_name"] or "").lower()
+        ]
+    if season:
+        reviews = [r for r in reviews if r["season"] == season]
+    if tier:
+        reviews = [r for r in reviews if r["tier"] == tier]
+    if adjudicator_id:
+        reviews = [r for r in reviews if r["adjudicator_id"] == adjudicator_id]
+
+    # Grouped by season for plain browsing (no search text) - matches
+    # adjudicator_detail() above; only meaningful once a search narrows the
+    # list to something that could reasonably cross seasons/tiers on its own,
+    # so a search result stays a single flat list instead.
+    season_groups = []
+    if not q:
+        groups_by_season = {}
+        for r in reviews:
+            group = groups_by_season.get(r["season"])
+            if group is None:
+                group = {"season": r["season"], "reviews": []}
+                groups_by_season[r["season"]] = group
+                season_groups.append(group)
+            group["reviews"].append(r)
+
+    adjudicators = db.execute("SELECT id, name FROM adjudicators ORDER BY name").fetchall()
+
+    return render_template(
+        "reviews_index.html",
+        q=q, selected_season=season, selected_tier=tier, selected_adjudicator=adjudicator_id,
+        seasons=season_range(db), adjudicators=adjudicators,
+        stats=stats, result_count=len(reviews),
+        season_groups=season_groups, flat_reviews=reviews if q else [],
     )
 
 
