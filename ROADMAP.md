@@ -77,25 +77,59 @@ that section first.
   with its own rate-limiting/abuse-prevention questions (what stops a society embedding it wrong, or
   someone hammering it), not a quick add like the others in this section.
 
-**Recommended order for the next session** (audit items only - see the "Start here" note the session
-before this one for how these interleave with the still-open pre-existing backlog: the 3 tier-mismatch
-duplicate reviews, the `extractor-society-gate` branch, the near-identical-society audit,
-`/admin/duplicate-titles` redesign, junk skeleton titles, and Statistics's own deferred session):
-1. Case-insensitive shows key (confirmed real, context still fresh, small).
-2. WAL mode + busy_timeout (safe, small, ask Darragh if it's answering a real symptom first).
-3. Poster lightbox (small, isolated).
-4. Filter chips on `/season`/`/awards` (skip the `/stats` instance until Statistics gets redesigned).
-5. Show Discovery Hub filters (medium, builds on existing `show_info` data, good value).
-6. Unified society show/award timeline (medium, display-only, no architecture dependency).
-7. My Season Watchlist (medium, fully self-contained).
-8. Season timeline/calendar (already scoped and ready - Darragh previously flagged it as "may end up
-   being a large side request" and wanted mockups/own session; good candidate whenever there's
-   appetite for a bigger build, but don't squeeze it into a quick-wins day).
-9. Interactive map (bigger, novel dependency, lower urgency).
-10. On This Day widget (whenever - low stakes either way).
-11. Embeddable widget/JSON feed (needs a scoping conversation first, not a build).
-12. Split `admin.py` (only with Darragh's explicit go-ahead - internal refactor, no user-visible
-    benefit, real risk of subtle breakage).
+**SUPERSEDED below - Darragh asked for a real recommendation, not just the audit items in isolation
+("what do you really recommend, what should we skip, what should we not do"). Revised 20 Aug: the
+audit is a fresh-eyes *code* review with zero visibility into how this site is actually used or
+what's already been asked for - it's good at spotting real technical patterns (confirmed once,
+independently, above) and bad at judging what's worth building for a niche, single-moderator,
+volunteer-association site. Several of its "new feature concepts" are the kind of thing any tool
+would suggest for any small web app, with no evidence they solve a problem anyone here actually has.
+The pre-existing backlog (things Darragh has personally flagged more than once, or that came from
+real user feedback, or that this session found while working) has far more validated urgency than
+most of the audit's speculative ideas, and should go first.**
+
+**Real priority order - integrates the audit items with the rest of the standing backlog:**
+1. **Statistics redesign** (mockup session) - flagged as confusing by Darragh on three separate
+   occasions now. Nothing else on any list has been reported as broken more often. Highest value
+   single item outstanding.
+2. **The 3 tier-mismatch duplicate reviews** (Sister Act/Kilkenny, Merry Widow/Gorey, Little Shop/
+   Carnew) - real data bug found this session, not yet fixed.
+3. **Case-insensitive shows-key fix** - from the audit, earns its place: caused real, confirmed damage
+   found only hours before the audit surfaced the same root cause independently.
+4. **`/admin/duplicate-titles` redesign** - Darragh explicitly asked for mockups on this one.
+5. **Near-identical-society audit + merge the `extractor-society-gate` branch** (eyeball the 77
+   changes first, per that item's own note) - real, previously-found bug, lower urgency than 1-4.
+6. **Junk skeleton show titles** - small tidy-up.
+7. **WAL mode + busy_timeout** - cheap insurance, no urgency signal, bundle in whenever convenient.
+8. **Season production calendar/timeline** - the one genuinely good "new feature" idea in the audit,
+   because it has a real origin (an adjudicator's actual complaint about clashing show dates), not a
+   guess. Already fully scoped with real numbers (see "which weeks are typically busiest" above).
+   Worth its own session once there's appetite for a bigger build - don't squeeze it into a quick-wins
+   day.
+9. **Unified society show/award timeline display** - nice cleanup, no urgency.
+
+**Skip, or don't build without asking first - and why:**
+- **FTS reindex "optimization"** - not low-priority, actively WRONG. Would undo a bug fix already in
+  the code (see above). Do not build this one at all.
+- **Filter chip badges** - only worth it as part of the Statistics redesign (item 1). Building it
+  standalone on `/season`/`/awards` first is polish nobody asked for.
+- **My Season Watchlist, the interactive map, "On This Day" widget** - no one has ever asked for any
+  of these. Generic small-web-app feature suggestions with no evidence they solve a real problem for
+  this specific audience (a regional volunteer theatre association, not a mass-consumer app). Skip
+  unless Darragh reports a specific real request for one of them.
+- **Embeddable widget / JSON API** - the one to actively caution against, not just deprioritize. Opens
+  a public API surface with no rate-limiting infrastructure built for it, for a feature nobody's
+  requested. Don't build speculative public surface "just in case" - only if a specific society
+  actually asks to embed something.
+- **Splitting `admin.py`** - a real internal tidiness observation, but pure refactor risk (route
+  registration, imports) for zero user-visible benefit, and Claude works in the file fine as it is
+  across this entire session's heavy use of it. Only worth doing if it starts actually causing
+  problems, not pre-emptively "because a file is long."
+- **Show Discovery Hub (licensing/rights filters)** - the one idea worth a second look, but ask
+  Darragh directly whether this solves a problem he or a society has actually raised before scoping
+  it - unlike the season calendar, this one has no validated origin story yet.
+- **Poster lightbox** - harmless, but not needed. Do only if everything else above is done and there's
+  spare time with nothing else queued.
 
 ## Round 35 - dcfeedback.docx: analysis, then a full build session (2026-08-19/20)
 
