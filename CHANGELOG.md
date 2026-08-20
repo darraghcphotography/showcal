@@ -1,3 +1,7 @@
+Statistics now has a Decades page, showing the most-staged shows, most-nominated societies, and Best Overall Show winners for any decade back to 1912, straight off the awards archive
+
+---
+
 Season Archive now shows a season calendar, grouped by week with Gilbert and Sullivan side by side, flagging any week that's especially busy for one section - useful for planning which weekend to go, or spotting a clash
 Awards page now defaults to showing every result, not just Winners, so you can see nominations without changing the filter
 Admin: Fix Dates can now save a whole batch of shows in one go - saving used to silently drop every row except the one you clicked Save on
