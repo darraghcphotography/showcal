@@ -531,6 +531,7 @@ def stats():
         selected_award_tier=award_tier,
         award_leaderboard=award_leaderboard,
         award_leaderboard_is_person=award_category_entry["person"],
+        award_category_note=award_category_entry.get("note"),
         wins_by_region=wins_by_region,
         most_nominated_no_wins=most_nominated_no_wins,
         win_rate_leaderboard=win_rate_leaderboard,

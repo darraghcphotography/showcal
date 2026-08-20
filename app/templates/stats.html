@@ -114,6 +114,7 @@
       <h3>{{ selected_award_category }}{% if selected_award_tier %} &mdash; {{ selected_award_tier }}{% endif %}</h3>
       <span class="kind-tag">{{ 'By person' if award_leaderboard_is_person else 'By society' }}</span>
     </div>
+    {% if award_category_note %}<p class="meta">{{ award_category_note }}</p>{% endif %}
     {% if award_leaderboard %}
       {{ rank_list(award_leaderboard, linked=false) }}
     {% else %}

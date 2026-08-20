@@ -44,30 +44,68 @@ SUGGESTION_STATUSES = ["New", "Planned", "In Progress", "Done", "Not planned"]
 # society_name) - checked against real data, not assumed from the column
 # name: Best Technical/Visual/Programme/House Management all store a
 # *society* name in nominee_name despite the column, and were confirmed
-# society-level by cross-checking against society_name population. "Best
-# Choreography" and "Best Choreographer" are the same award under two
-# historical names (both in use 2019-2025, not a clean rename) - merged
-# into one picker entry, db_names carries both so the query catches either.
+# society-level by cross-checking against society_name population.
+#
+# "Best Choreography" and "Best Choreographer" were merged into one entry
+# here for years (db_names carrying both) on the assumption they were the
+# same award under two historical names - WRONG, corrected 19 Aug 2026:
+# checked year-by-year and both ran in parallel, as clearly distinct
+# categories, every single year from 2019 through 2025 (never a rename -
+# a renamed award doesn't coexist with its own "old name" for 7 straight
+# years). Reverted to two separate entries below.
+#
+# Three renames ARE confirmed clean (the category simply stops appearing
+# under one name and starts under another, never both in the same year) -
+# merged via db_names, with a "note" surfaced on the Explorer result so a
+# 48-year history doesn't silently read as brand new:
+#   - Best Chorus (1977-2025) -> Best Choral Singing (2026-)
+#   - Adjudicator's Special Award (1977-2000, and again 2023-2025) ->
+#     "Spirit of AIMS/Adjudicator's Special Award" (2001-2022, a real
+#     printed category name for two decades, missed by the first pass at
+#     this lineage since only the outer two names were checked) ->
+#     Spirit of AIMS (2026-)
+# Best Choreography (1977-2025) -> Best Moment of Theatre (2026-) is
+# deliberately NOT merged - the award's meaning changed (no longer
+# dance-specific), so Darragh's call was to cross-link but count
+# separately. Best Choreographer (2019-2026) is untouched by any of this -
+# a separate, still-running person award throughout.
 AWARD_CATEGORIES = [
     {"key": "Best Overall Show", "group": "Show", "person": False, "db_names": ["Best Overall Show"]},
     {"key": "Best Technical (Lighting, Sets & Sound)", "group": "Show", "person": False, "db_names": ["Best Technical (Lighting, Sets & Sound)"]},
     {"key": "Best Visual (Costumes, Props, Make-Up & Hair)", "group": "Show", "person": False, "db_names": ["Best Visual (Costumes, Props, Make-Up & Hair)"]},
     {"key": "Best Programme", "group": "Show", "person": False, "db_names": ["Best Programme"]},
     {"key": "Best House Management", "group": "Show", "person": False, "db_names": ["Best House Management"]},
-    {"key": "Best Chorus", "group": "Show", "person": False, "db_names": ["Best Chorus"]},
+    {
+        "key": "Best Choral Singing", "group": "Show", "person": False,
+        "db_names": ["Best Chorus", "Best Choral Singing"],
+        "note": 'Renamed from "Best Chorus" for the 2025/26 season - counted continuously across both names.',
+    },
     {"key": "Best Ensemble", "group": "Show", "person": False, "db_names": ["Best Ensemble"]},
     {"key": "Best Gilbert & Sullivan/Pre 1935 Show/Modern Opera", "group": "Show", "person": False, "db_names": ["Best Gilbert & Sullivan/Pre 1935 Show/Modern Opera"]},
-    {"key": "Best Choral Singing", "group": "Show", "person": False, "db_names": ["Best Choral Singing"]},
     {"key": "Best Lighting", "group": "Show", "person": False, "db_names": ["Best Lighting"]},
     {"key": "Best Sets", "group": "Show", "person": False, "db_names": ["Best Sets"]},
     {"key": 'Best Show "All Amateur Cast"', "group": "Show", "person": False, "db_names": ['Best Show "All Amateur Cast"']},
-    {"key": "Best Moment of Theatre", "group": "Show", "person": False, "db_names": ["Best Moment of Theatre"]},
-    {"key": "Spirit of AIMS", "group": "Show", "person": False, "db_names": ["Spirit of AIMS"]},
-    {"key": "Spirit of AIMS/Adjudicator's Special Award", "group": "Show", "person": False, "db_names": ["Spirit of AIMS/Adjudicator's Special Award"]},
-    {"key": "Adjudicator's Special Award", "group": "Show", "person": False, "db_names": ["Adjudicator's Special Award"]},
+    {
+        "key": "Best Moment of Theatre", "group": "Show", "person": False, "db_names": ["Best Moment of Theatre"],
+        "note": 'New for the 2025/26 season - formerly "Best Choreography" (see that entry under Production '
+                "team), but counted separately: this one has no individual nominee on any of its 10 records "
+                "so far, confirming the award's meaning genuinely changed (no longer dance-specific), not just its name.",
+    },
+    {
+        "key": "Spirit of AIMS", "group": "Show", "person": False,
+        "db_names": ["Adjudicator's Special Award", "Spirit of AIMS/Adjudicator's Special Award", "Spirit of AIMS"],
+        "note": 'Renamed from "Adjudicator\'s Special Award" for the 2025/26 season (printed as "Spirit of AIMS/'
+                'Adjudicator\'s Special Award" 2001-2022) - counted continuously across all three names.',
+    },
     {"key": "Best Director", "group": "Production team", "person": True, "db_names": ["Best Director"]},
     {"key": "Best Musical Director", "group": "Production team", "person": True, "db_names": ["Best Musical Director"]},
-    {"key": "Best Choreography", "group": "Production team", "person": True, "db_names": ["Best Choreography", "Best Choreographer"]},
+    {
+        "key": "Best Choreography", "group": "Production team", "person": True, "db_names": ["Best Choreography"],
+        "note": 'Retired after the 2024/25 season - continues as "Best Moment of Theatre" (see that entry '
+                "under Show), but that award's meaning changed (no longer dance-specific), so its history "
+                "starts fresh rather than inheriting this one's.",
+    },
+    {"key": "Best Choreographer", "group": "Production team", "person": True, "db_names": ["Best Choreographer"]},
     {"key": "Best Stage Management", "group": "Production team", "person": True, "db_names": ["Best Stage Management"]},
     {"key": "Best Chorus Master/Mistress", "group": "Production team", "person": True, "db_names": ["Best Chorus Master/Mistress"]},
     {"key": "Best Actor", "group": "Cast", "person": True, "db_names": ["Best Actor"]},

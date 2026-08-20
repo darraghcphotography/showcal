@@ -115,14 +115,36 @@ def test_award_leaderboard_tier_filter_narrows_results(client, db):
     assert "John Smith" not in body
 
 
-def test_award_leaderboard_merges_choreography_and_choreographer(client, db):
-    _add_award(db, "Best Choreography", "Winner", "Gilbert", nominee_name="Old Name Award")
-    _add_award(db, "Best Choreographer", "Winner", "Gilbert", nominee_name="Old Name Award")
+def test_award_leaderboard_keeps_choreography_and_choreographer_separate(client, db):
+    """These were merged into one Explorer entry for a while on the
+    assumption they were the same award renamed - wrong, corrected 19 Aug
+    2026 by checking year-by-year: both ran in parallel as clearly distinct
+    categories every year from 2019 to 2025, which a rename can't do."""
+    _add_award(db, "Best Choreography", "Winner", "Gilbert", nominee_name="Choreography Winner")
+    _add_award(db, "Best Choreographer", "Winner", "Gilbert", nominee_name="Choreographer Winner")
     db.commit()
 
-    body = client.get("/stats?award_category=Best+Choreography").get_data(as_text=True)
-    assert "Old Name Award" in body
+    choreography = client.get("/stats?award_category=Best+Choreography").get_data(as_text=True)
+    assert "Choreography Winner" in choreography
+    assert "Choreographer Winner" not in choreography
+
+    choreographer = client.get("/stats?award_category=Best+Choreographer").get_data(as_text=True)
+    assert "Choreographer Winner" in choreographer
+    assert "Choreography Winner" not in choreographer
+
+
+def test_award_leaderboard_merges_renamed_categories(client, db):
+    """Best Chorus -> Best Choral Singing and Adjudicator's Special Award ->
+    Spirit of AIMS ARE clean renames (confirmed year-by-year: the category
+    simply stops appearing under one name and starts under another, never
+    both in the same year) - these should count continuously."""
+    _add_award(db, "Best Chorus", "Winner", "Gilbert", society_name="Old Era Society", year=2000)
+    _add_award(db, "Best Choral Singing", "Winner", "Gilbert", society_name="Old Era Society", year=2026)
+    db.commit()
+
+    body = client.get("/stats?award_category=Best+Choral+Singing&era=all").get_data(as_text=True)
     assert '<span class="rank-n">2</span>' in body
+    assert "Renamed from" in body
 
 
 def test_stats_headline_reframed(client):
