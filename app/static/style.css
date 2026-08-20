@@ -867,6 +867,46 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   color: var(--accent);
 }
 
+/* /stats/trends - a decade scrubber (real historical_results record counts
+   per decade, GET ?decade=... like every other stats filter on this site,
+   no JS) plus one full "era card" for whichever decade is selected. */
+.decade-scrubber {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.5rem 0 2rem;
+  padding: 0.9rem; border: 1px solid var(--border); border-radius: 10px; background: var(--row-alt);
+}
+.decade-pill {
+  display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
+  padding: 0.5rem 0.75rem; border-radius: 8px; text-decoration: none; color: var(--fg);
+  border: 1px solid transparent; min-width: 4.2rem;
+}
+.decade-pill .n { font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.decade-pill.active { background: var(--bg); border-color: var(--accent); box-shadow: var(--shadow); font-weight: 700; }
+.decade-pill:hover:not(.active) { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+.era-card { border: 1px solid var(--border); border-radius: 14px; margin-bottom: 2rem; overflow: hidden; box-shadow: var(--shadow-lg); }
+.era-head {
+  padding: 1.4rem 1.6rem 1.1rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--bg)), var(--bg) 75%);
+}
+.era-head .era-years { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
+.era-head h2 { margin: 0.15rem 0 0.5rem; font-size: 1.4rem; }
+.era-head p { margin: 0; color: var(--muted); font-size: 0.92rem; max-width: 62ch; }
+.era-body { padding: 0 1.6rem 1.6rem; }
+
+.winners-strip { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.winner-chip {
+  display: flex; align-items: baseline; gap: 0.4rem; border: 1px solid var(--border);
+  border-radius: 999px; padding: 0.3rem 0.75rem 0.3rem 0.6rem; font-size: 0.82rem; background: var(--bg);
+}
+.winner-chip .yr { font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.winner-chip .soc { color: var(--muted); }
+.winner-chip a { text-decoration: none; }
+.winner-chip a:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .era-head, .era-body { padding-left: 1.1rem; padding-right: 1.1rem; }
+}
+
 .error-page {
   text-align: center;
   padding: 3rem 1rem;

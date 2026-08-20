@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Decades - DC Show Tracker{% endblock %}
+{% block og_description %}How AIMS's own taste has shifted decade by decade, read off over a century of awards-archive results.{% endblock %}
+
+{% macro rank_list(rows, linked=true) %}
+  <div class="rank-list">
+    {% set ns = namespace(rank=0, prev=None) %}
+    {% for row in rows %}
+      {% set ns.rank = loop.index if row['n'] != ns.prev else ns.rank %}
+      {% set ns.prev = row['n'] %}
+      <div class="rank-row">
+        <span class="rank-badge{{ ' r1' if ns.rank == 1 else ' r2' if ns.rank == 2 else ' r3' if ns.rank == 3 else '' }}">{{ ns.rank }}</span>
+        {% if linked %}
+          <a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a>
+        {% else %}
+          <span>{{ row['label'] }}</span>
+        {% endif %}
+        <span class="rank-n">{{ row['n'] }}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{% block content %}
+  <h1>Decades</h1>
+  <p class="meta" style="max-width: 62ch;">
+    How AIMS's own taste has shifted, decade by decade, read off the awards archive - who got nominated, who
+    won, and what the circuit was actually staging.
+  </p>
+
+  {% if not decades %}
+    <p class="meta">No awards-archive data on record yet.</p>
+  {% else %}
+    <div class="site-notice">
+      <p><strong>Why the awards archive, not the shows catalogue:</strong> the show-by-show database only
+        goes back to 05/06 - too thin for a real "decades" story. The AIMS Awards archive goes back to
+        {{ decades[0]['decade'] }}, so that's what powers this page.</p>
+    </div>
+
+    <div class="decade-scrubber">
+      {% for d in decades %}
+        <a class="decade-pill{{ ' active' if d['decade'] == selected else '' }}"
+           href="{{ url_for('info.stats_trends', decade=d['decade']) }}">
+          {{ d['decade'] }}s<span class="n">{{ d['n'] }} record{{ '' if d['n'] == 1 else 's' }}</span>
+        </a>
+      {% endfor %}
+    </div>
+
+    <section class="era-card">
+      <div class="era-head">
+        <span class="era-years">{{ selected }}&ndash;{{ decade_end }}{% if decade_in_progress %} (in progress){% endif %}</span>
+        <h2>{{ selected }}s</h2>
+        {% if headline %}<p>{{ headline }}</p>{% endif %}
+      </div>
+      <div class="era-body">
+        <div class="lb-grid">
+          <div class="lb-card">
+            <h3>Most-staged shows</h3>
+            <p class="lb-meta">By distinct production entered for the decade</p>
+            {% if top_shows %}
+              {{ rank_list(top_shows) }}
+            {% else %}
+              <p class="hint">No shows on record for this decade.</p>
+            {% endif %}
+          </div>
+          <div class="lb-card">
+            <h3>Most-nominated societies</h3>
+            <p class="lb-meta">Total nominations across all categories</p>
+            {% if top_societies %}
+              {{ rank_list(top_societies, linked=false) }}
+            {% else %}
+              <p class="hint">No societies on record for this decade.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if best_overall_winners %}
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.6rem;">Best Overall Show winners</h3>
+          <div class="winners-strip">
+            {% for w in best_overall_winners %}
+              <span class="winner-chip">
+                <span class="yr">{{ w['year'] }}</span>
+                <a href="{{ url_for('public.title_detail', title=w['show']) }}">{{ w['show'] }}</a>
+                {% if w['society_name'] %}<span class="soc">{{ w['society_name'] }}</span>{% endif %}
+                {% if w['tier'] %}<span class="tag tag-tier">{{ w['tier'] }}</span>{% endif %}
+              </span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

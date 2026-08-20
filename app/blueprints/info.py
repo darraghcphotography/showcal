@@ -401,6 +401,95 @@ def stats():
     )
 
 
+DECADE_TOP_N = 5
+
+
+@bp.route("/stats/trends")
+def stats_trends():
+    db = get_db()
+    today = date.today()
+
+    decades = db.execute(
+        """
+        SELECT (year / 10) * 10 AS decade, COUNT(*) AS n
+        FROM historical_results
+        WHERE year IS NOT NULL
+        GROUP BY decade ORDER BY decade
+        """
+    ).fetchall()
+    if not decades:
+        return render_template("stats_trends.html", decades=[], selected=None)
+
+    available = [row["decade"] for row in decades]
+    current_decade = (today.year // 10) * 10
+    default_decade = current_decade if current_decade in available else available[-1]
+
+    try:
+        decade = int(request.args.get("decade", default_decade))
+    except ValueError:
+        decade = default_decade
+    if decade not in available:
+        decade = default_decade
+    decade_end = decade + 9
+
+    # "Staged" = a distinct (show, year, society) combination - historical_results
+    # has one row per award *category* a production was entered for, so a plain
+    # COUNT(*) here would count nominations, not productions (a show nominated in
+    # 5 categories the same year isn't 5 stagings). "Most-nominated societies"
+    # below deliberately doesn't dedupe the same way - that one's meant to be a
+    # raw nomination-volume count.
+    top_shows = db.execute(
+        """
+        SELECT show, COUNT(*) AS n FROM (
+            SELECT DISTINCT show, year, COALESCE(society_id, society_name) AS soc_key
+            FROM historical_results
+            WHERE show IS NOT NULL AND show != '' AND year BETWEEN ? AND ?
+        )
+        GROUP BY show ORDER BY n DESC, show LIMIT ?
+        """,
+        (decade, decade_end, DECADE_TOP_N),
+    ).fetchall()
+
+    top_societies = db.execute(
+        """
+        SELECT COALESCE(society_name, 'Unknown') AS label, COUNT(*) AS n
+        FROM historical_results
+        WHERE society_name IS NOT NULL AND year BETWEEN ? AND ?
+        GROUP BY COALESCE(society_id, society_name) ORDER BY n DESC, label LIMIT ?
+        """,
+        (decade, decade_end, DECADE_TOP_N),
+    ).fetchall()
+
+    best_overall_winners = db.execute(
+        """
+        SELECT year, show, society_name, tier FROM historical_results
+        WHERE category_name = 'Best Overall Show' AND result = 'Winner'
+          AND show IS NOT NULL AND year BETWEEN ? AND ?
+        ORDER BY year, tier
+        """,
+        (decade, decade_end),
+    ).fetchall()
+
+    headline = None
+    if top_shows:
+        headline = (
+            f"{top_shows[0]['show']} led the decade, staged {top_shows[0]['n']} times "
+            f"by AIMS societies between {decade} and {decade_end}."
+        )
+
+    return render_template(
+        "stats_trends.html",
+        decades=decades,
+        selected=decade,
+        decade_end=decade_end,
+        decade_in_progress=(decade == current_decade),
+        top_shows=top_shows,
+        top_societies=top_societies,
+        best_overall_winners=best_overall_winners,
+        headline=headline,
+    )
+
+
 @bp.route("/season")
 def season_summary():
     db = get_db()

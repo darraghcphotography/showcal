@@ -11,7 +11,38 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
-## START HERE - next session is a mockup-only design pass, no code (set up 2026-08-20)
+## START HERE - Decades Time Machine built for real 2026-08-21, 4 mockups still waiting on a coding pass
+
+**Update 2026-08-21: Decades Time Machine is live for real** (`/stats/trends`, `app/blueprints/info.py`'s
+`stats_trends()`, `app/templates/stats_trends.html`, linked from `/stats`) - built straight off the approved
+mockup, no further check-in needed since Darragh explicitly picked it ("Go for decades"). Grounded in the
+awards archive (`historical_results`, 1912-2026), not the thinner `shows` catalogue, per the scoping
+decision below. A decade-scrubber pill row (GET `?decade=1980` etc., no JS, same pattern as every other
+stats-page filter) picks one decade; that decade's era card shows top 5 most-staged shows (deduped to
+distinct (show, year, society) - a show nominated in 3 categories the same year is 1 staging, not 3), top 5
+most-nominated societies (raw nomination count, deliberately not deduped the same way), and every Best
+Overall Show winner that decade. Default decade is the current one if it has data, else the latest decade
+that does. 10 new tests in `tests/test_stats_trends.py` (incl. the dedup-vs-not-dedup distinction and the
+default-decade fallback), full suite (366 tests) still green. **Not yet committed to git** - ask Darragh
+before committing/pushing.
+
+**The other 4 mockups are still just mockups**, links saved below so they survive a `/clear` (Artifacts are
+private to Darragh's account until shared, not secret, but still don't paste these anywhere public):
+- Reviews (public + admin): https://claude.ai/code/artifact/f71bd97b-649a-456e-a9fd-0a6e9d069470 - iterated
+  once on feedback (default search now crosses all seasons/tiers rather than being scoped by the dropdowns,
+  adjudicator dropdown + reviewer credit added to every row).
+- Venues Explorer: https://claude.ai/code/artifact/811b3e19-42af-45fd-8a3a-4e97ddd8b391
+- Shows A-Z redesign: https://claude.ai/code/artifact/8748ee86-2422-4df3-aae6-7ee5973bc5c3
+- Society head-to-head compare: https://claude.ai/code/artifact/a3b6ce5c-1bbc-4eb3-aea9-8f480a51e209
+
+None of those 4 have been applied to real templates/routes yet. Per-feature scoping decisions made while
+mocking are recorded in each feature's own bullet below. Next session should either build one of the
+remaining 4 for real (Reviews is the next-recommended - fully scoped, no new data needed, fixes a real
+annoyance Darragh already hit) or gather feedback on the mockups first if Darragh hasn't reacted to them
+yet - to update a mockup with feedback, republish the same Artifact URL (via the Artifact tool's `url`
+param) rather than creating a new one, so the links above stay correct.
+
+## (original framing below, kept for context on how this pass was run)
 
 **2026-08-20 was a long, productive session** - full detail of everything shipped/fixed/investigated is
 in the "Open items" list below (search for "SHIPPED 2026-08-20" to find each one) rather than repeated
@@ -29,17 +60,31 @@ built in isolation. No template/route edits, no commits, until he says otherwise
 
 **Big features to mock up, in the order they were prioritized (2026-08-20's triage - not rigid, ask if
 priorities have shifted):**
-1. **Reviews page** (public + admin) - scope already settled, see its own entry below. Straight to mockup.
-2. **Decades Time Machine** (`/stats/trends`) - era breakdowns, decade leaderboards. Not yet scoped in
-   detail beyond the original FEATURE_IDEAS.md pitch - ask before mocking.
-3. **Venues Explorer** (`/venues` + `/venues/<slug>`) - capacity/tech specs, resident societies, stage
-   history, map. Real data gap underneath it (~88 shows missing a venue) - worth asking whether the
-   mockup should show the feature assuming complete data (aspirational) or reflect today's real gappy
-   state, before building it.
-4. **Shows A-Z redesign** (`/titles`) - check whether `mockups/1_titles_az_mockup.html` (referenced in
-   Gemini's FEATURE_IDEAS.md) actually exists in this repo or was invented, before assuming it as a
-   starting point.
-5. **Society head-to-head compare** (`/compare`) - trophy counts, shared repertoire, direct clash history.
+1. **Reviews page** (public + admin) - scope already settled, mockup built 2026-08-20 (see its own entry
+   below). Search/filter iterated once on feedback - default search now crosses every season/tier rather
+   than being scoped by whatever the dropdowns happen to show, and an adjudicator dropdown + reviewer
+   name were added per-row (both filter rows and search results).
+2. **Decades Time Machine** (`/stats/trends`) - scoped 2026-08-20. Build on the **awards archive
+   (`historical_results`), which actually spans 1912-2026** - not the `shows` catalogue, which only
+   covers 05/06-27/28 (~22 years, too thin for the original "50 years of evolving taste" pitch). Era
+   breakdowns/decade leaderboards should read off real award nominees/winners across that full span.
+3. **Venues Explorer** (`/venues` + `/venues/<slug>`) - scoped 2026-08-20. There's no capacity/stage-type/
+   tech-spec/map data anywhere in the schema today - not just missing venue names (905 of 1387 shows have
+   no `venue` value at all; 395 excluding historical skeleton rows - the "~88" figure previously logged
+   here was stale/scoped differently and shouldn't be trusted). Darragh's call: mock the **full aspirational
+   vision** anyway (capacity, stage type, map, resident societies) with realistic placeholder data clearly
+   flagged as not yet collected, to see the destination before deciding whether to commit to gathering it -
+   this is the biggest new-data commitment of the four, more than a page-design question.
+4. **Shows A-Z redesign** (`/titles`) - `mockups/1_titles_az_mockup.html` (Gemini Antigravity's own
+   prototype, referenced from `FEATURE_IDEAS.md`) does exist in-repo, but uses its own invented design
+   tokens (`--font-display`, `--gold`, `--bg-card`...), not the real site's CSS. Darragh's call: take its
+   ideas (alphabet scrubber, staples carousel, revival-candidate/rare-gem filters) but rebuild in real site
+   tokens grounded in real title-staging data, same treatment as every other mockup this pass.
+5. **Society head-to-head compare** (`/compare`) - scoped 2026-08-20. Entry point is a "Compare" picker
+   from each society's own page (pick society A's page, click Compare, search for society B) rather than a
+   standalone page with two search boxes - stays a strict 2-society comparison, not multi-way. Trophy
+   counts, shared repertoire, and clash log (same category/year in `historical_results`) all have real data
+   behind them already.
 
 **Not mockup candidates** (no UI, or too small to warrant this treatment) - **productions-table
 migration** (backend architecture, flagged for its own Opus session separately) and **review-author
