@@ -10,7 +10,7 @@ from ..db import get_db
 from ..rate_limit import limiter
 from ..season import season_range
 from ..shows import is_upcoming
-from ..similarity import find_close_title
+from ..similarity import find_award_record_match, find_close_title
 from ..uploads import save_poster
 
 bp = Blueprint("society", __name__, url_prefix="/society")
@@ -209,6 +209,22 @@ def new_show():
                     "warning",
                 )
 
+        # A separate check from the title-duplicate one above: this catches
+        # the same production already sitting in the older awards archive
+        # under this same society and season (see similarity.find_award_
+        # record_match) - adding it again here would double-count it in any
+        # production total that sums both sources.
+        award_match = None
+        if fields["show"] and SEASON_RE.match(fields["season"]) and not request.form.get("confirm_double_count"):
+            award_match = find_award_record_match(db, society["id"], fields["show"], fields["season"])
+            if award_match:
+                flash(
+                    f'Your society already has an award-archive record for "{award_match}" in this '
+                    "season - if that's this production, no need to add it again (it's already "
+                    "counted). If it's genuinely a different show, tick the box below and save again.",
+                    "warning",
+                )
+
         poster_filename = None
         poster_file = request.files.get("poster")
         if poster_file and poster_file.filename:
@@ -217,12 +233,12 @@ def new_show():
             except ValueError as e:
                 errors.append(str(e))
 
-        if errors or similar_title:
+        if errors or similar_title or award_match:
             for e in errors:
                 flash(e, "error")
             return render_template(
                 "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
-                form=request.form, similar_title=similar_title, mode="new",
+                form=request.form, similar_title=similar_title, award_match=award_match, mode="new",
             )
 
         db.execute(

@@ -46,6 +46,13 @@
       </label>
     {% endif %}
 
+    {% if mode == 'new' and award_match %}
+      <label class="checkbox-label">
+        <input type="checkbox" name="confirm_double_count" value="1">
+        This is a different production from "{{ award_match }}" - save as entered
+      </label>
+    {% endif %}
+
     <label>
       Section
       <select name="section">

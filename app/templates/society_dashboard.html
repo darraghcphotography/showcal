@@ -39,10 +39,11 @@
           <td>
             {{ show['show'] or 'TBA' }}
             {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
+            {% if show['source'] == 'historical' and not show['venue'] %}<span class="tag tag-warning">Has a review - add details</span>{% endif %}
           </td>
           <td>{{ show['section'] or '—' }}</td>
           <td>{% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}</td>
-          <td><a href="{{ url_for('society.edit_show', show_id=show['id']) }}">Edit</a></td>
+          <td><a href="{{ url_for('society.edit_show', show_id=show['id']) }}">{{ 'Add details' if show['source'] == 'historical' and not show['venue'] else 'Edit' }}</a></td>
         </tr>
       {% else %}
         <tr><td colspan="5">No shows on record yet - add your first one above.</td></tr>

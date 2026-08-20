@@ -1,5 +1,7 @@
 import re
 
+from .season import historical_results_year
+
 _STRIP_RE = re.compile(r"[^a-z0-9\s]")
 _SPACE_RE = re.compile(r"\s+")
 
@@ -36,4 +38,25 @@ def find_close_title(db, title):
             return None
         if normalize_title(existing) == norm:
             return existing
+    return None
+
+
+def find_award_record_match(db, society_id, title, season):
+    """Return the historical_results show title if this society already has
+    an award-archive record (any category, any result) for the same season
+    under a normalized-matching title, or None. A society adding this same
+    production again via self-service would otherwise double-count it: once
+    from the old award import, once from this new submission."""
+    norm = normalize_title(title)
+    if not norm:
+        return None
+
+    year = historical_results_year(season)
+    rows = db.execute(
+        "SELECT DISTINCT show FROM historical_results WHERE society_id = ? AND year = ? AND show IS NOT NULL",
+        (society_id, year),
+    ).fetchall()
+    for row in rows:
+        if normalize_title(row["show"]) == norm:
+            return row["show"]
     return None
