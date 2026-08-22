@@ -2,6 +2,7 @@ Statistics now has a Decades page, showing the most-staged shows, most-nominated
 New Reviews page: every adjudicator review on the site in one browsable, searchable list - search by show or society matches across every season and tier at once, or narrow by season, tier or adjudicator
 Admin: new Reviews queue tool for pasting in an aims.ie review link for a finished show, one row at a time - same paste-and-save pattern as Society name corrections
 New Venues page: every venue an AIMS society has staged a production in, with who's performed there and the full stage history
+Filled in the venue for 38 more 26/27-season shows that were missing one
 
 ---
 

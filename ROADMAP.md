@@ -201,9 +201,22 @@ isolated worktree, additive-only first pass.
 **OCR test on a programme photo** - blocked on Darragh sending one. Small once a photo exists (test
 extraction accuracy first, design nothing before seeing real output).
 
-**Venue-data gap** - real count is 395 shows missing a venue (905 including historical skeleton rows),
-not the ~88 previously logged here (found stale 2026-08-21 while scoping the Venues page - see START HERE).
-The venue-backfill tool (`/admin/venues`) already exists; still not run down to 0.
+**Venue-data gap** - down from 395 to 357 shows missing a venue (2026-08-21: `backfill_2627_venues.py`
+applied 38 real venues for 26/27-season shows, sourced from Darragh's `venues_report.md` - Gemini
+Antigravity's own research against the site's 26/27 season page). Not the ~88 originally logged here (that
+figure was stale - see the earlier correction below). 16 more shows from that same report already have a
+*different* venue on record and were deliberately left alone (see the script's own docstring/`CONFLICTS`
+list) - worth a human look, one at a time, rather than either auto-applied or ignored:
+- **Likely just needs picking one wording** (same real venue, differently detailed): shows 366, 386, 392,
+  360, 399, 457, 410, 384, 426, 420, 406, 407, 421.
+- **Worth actually checking**: show 385 (Bellvue Academy's Newsies - on record just says "Cork run", not a
+  real venue name; report suggests "The Everyman / Firkin Crane / Strand Theatre") and show 398 (Trim MS's
+  Sweet Charity - on record says "40th Anniversary (March run)", not a venue at all; report suggests "Swift
+  Cultural Centre / Scoil Mhuire Hall, Trim").
+- **Genuine disagreement, not just phrasing**: show 352 (Bravo Theatre Group's Dear Evan Hansen) - on record
+  says "Temperance Hall, Loughrea", the report says "Town Hall Theatre, Loughrea" - two different-sounding
+  venues in the same town, not a wording difference.
+The venue-backfill tool (`/admin/venues`) also still exists for filling in the rest by hand.
 
 **People/person-page identity resolution** - parked on Darragh's privacy objection to public person
 pages. Agreed resolution path (internal-only dedup/matching, no public person pages) was never built.
