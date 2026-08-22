@@ -179,17 +179,16 @@ implementation detail. Nav question resolved: "Reviews" is now a real top-level 
 - Worth a fresh sweep for other near-identical-society pairs beyond what's already been caught - the
   Carnew/Clane pattern alone hid 5 misattributed reviews before the first proper cross-check.
 
-**Search - diagnosed 2026-08-19, not fixed.** Searching a real award-winner's name ('april kelly')
-returns correct hits but they render dead last, under noise matches - the actual bugs:
-- Award-nominee results render below Societies/Shows/Reviews even on an exact full-name hit - should be
-  a layout/ordering fix, not a ranking algorithm change.
-- No phrase search - `app/search.py` ANDs whitespace-split terms anywhere in the text, so "april kelly"
-  matches "in April... Jonathan Kelly" as a false positive.
-- Snippet centers on the earliest matching term, not where terms cluster - shows misleading snippets
-  even on a correct match.
-- Typed quotes break the Shows/Titles search specifically (`LIKE %...%` on the raw string treats them
-  as literal characters) while FTS-backed sections strip them fine.
-- No relevance ranking - reviews sort by season, not match quality. Wants bm25.
+**Search - RESOLVED, entry was stale (verified 2026-08-21).** All five bugs diagnosed 2026-08-19 have
+since been fixed; this entry sat here claiming "not fixed" long after the work landed. Verified against
+real data, not just by reading code - the original failing query ('april kelly') now returns Award
+nominees as the *first* section, 2 genuine April Kelly hits, and zero "Jonathan Kelly" false positives.
+Where each fix lives, for anyone re-checking: phrase search + per-token prefixes in
+`app/search.py`'s `build_phrase_query()`; bm25 relevance ranking in `public.py`'s search route; the
+promote-awards-to-top branch in `search.html` (`awards_exact_match`); cluster-centred snippets in
+`public.py`'s `_review_snippet()`; smart/straight quote stripping via `_QUOTE_CHARS` before any LIKE
+pattern is built. **Lesson worth keeping:** check whether an open ROADMAP item is actually still open
+before scheduling work against it - this one would have wasted a whole session.
 
 **Productions table migration - flagged for Opus specifically**, real architecture decision (`shows`/
 `historical_results`/`historical_reviews` becoming one source of truth via a `productions` table),
