@@ -77,6 +77,21 @@ copy. 12 new tests, full suite 455 green.
   (dashboard, shows_list, reviews_queue, data_quality). Forgetting it doesn't error, it silently
   under-reports; that's how the data-quality test caught it.
 
+**Venues given a real record, 2026-08-22 (`00797c8`), not yet deployed.** Separate workstream from the
+productions migration but built on the same pattern. `venues` + `venue_aliases` + `shows.venue_id`;
+`app/venues_build.py` rebuilds on start and lazily. 177 free-text spellings → 166 venue records (the same
+building was recorded up to 8 ways). Identity is `normalize_venue()` and nothing looser - a rule loose
+enough to merge "Civic Theatre Tallaght"/"Civic Theatre, Tallaght" also merges the Galway, Ballinasloe and
+Claremorris Town Hall Theatres, checked against real data. Anything beyond that is a moderator merge at
+`/admin/venue-directory`. Region seeds from the productions staged there (158 of 177 resolve outright);
+town parses from a comma suffix (67 of 177).
+- **Darragh's scoping call:** structure + location now, spec fields drip-fed. Fields built: capacity,
+  auditorium type, lat/long, website, tech-spec link. Each renders only once set. **Deliberately not
+  built:** orchestra pit, fly tower, box-office phone.
+- **Still to do:** the actual merging (51 venues have a suggestion), and the research to fill capacities.
+  Neither blocks anything - the page works as-is and improves per merge.
+- Old `/venues/<raw name>` URLs 301 to the slug.
+
 **Next, in order (stages 3-4 of the staged cutover):**
 - **Public show/society pages** (`public.py`) - last, highest traffic. `reviews_index()` is the most
   useful worked example in the codebase of the problem this table solves (it unions `shows` and
@@ -208,6 +223,57 @@ priorities have shifted):**
 migration** (backend architecture, flagged for its own Opus session separately) and **review-author
 byline** (a column + small form + template tweak, design questions already resolved - just build it
 directly when its turn comes, doesn't need a big mockup pass).
+
+## Newly raised 2026-08-22, not yet scoped
+
+Darragh's own list, plus two documents Gemini Antigravity dropped in the repo root the same day. Nothing
+here is started. Recorded verbatim enough to pick up cold; triage still to happen.
+
+**Darragh's list, as given:**
+- **Venues** - map, specs, who uses them, upcoming musicals there. (Structure is now built, see above -
+  what's left of this is the map render, the spec research, and the merges.)
+- **FAQ page** - what is AIMS? how do I join a musical society? which ones are near me? (There's already a
+  parked "FAQ page" item further down; this is the same thing with real questions attached, which is what
+  it was missing.)
+- **Show page** - info, credits, and: which societies have staged it recently (they may have costumes/sets
+  to rent), and which are staging it soon (dates, links to each production's page).
+- **Refined nav bar.**
+- **New UI pass - evolve it.**
+- **Reviews page** - a *show* dropdown instead of grouping by season. Darragh's reasoning: he doesn't
+  think people look for a specific season's reviews. Worth checking against `page_views` before rebuilding
+  the default view on an assumption.
+
+**`SHOW_ENRICHMENT_PROPOSAL.md`** (repo root, untracked) - enrich `/titles/<title>` with creative credits,
+notable songs, casting/orchestration specs, and AIMS circuit intelligence. Reviewed 2026-08-22, verdict
+below; not started.
+- **Its Source C (circuit intelligence) is free and works today** - award tally per title, signature
+  categories, regional distribution and revival gap are each one query against `productions` now. Ran all
+  of them against live data while reviewing: JCS 51 wins / 160 records / 2 Best Overall; West Side Story 4
+  Best Overall. This is the part to build first.
+- **Its Source A (Wikidata) is feasible but its SPARQL is wrong as written.** `wdt:P58` is *screenwriter*
+  (verified on Wikidata) - a musical's book author is `wdt:P87` (librettist), whose own docs say exactly
+  that. The query also chains composer/lyricist as mandatory triples, so any musical missing either in
+  Wikidata drops out entirely; they need `OPTIONAL`. Scope is 306 distinct titles, of which only 48 have a
+  `show_links` row - and every one of those 48 is a Wikipedia URL, so those 48 can resolve to a Wikidata
+  item reliably. The other 258 need title matching, which is exactly the fuzzy-matching this repo avoids.
+- **Its Source B (licensing-house specs) is not a pipeline.** MTI/Concord/TRW have no public API, and
+  vocal ranges live in paid perusal materials. Treat as manual data entry, priced accordingly: 113 titles
+  are staged 5+ times, 100 exactly once.
+- **Answers to its three questions:** (1) `notable_songs` should be a normalized `show_songs` table, not
+  JSON in a TEXT column - the site already has FTS5, and a real table makes a song title searchable
+  ("who's done Gethsemane"), which a JSON blob can't. (2) Yes to a seed script for licensing houses, but
+  it's data entry, not import. (3) On the fly, no caching - confirmed by running the queries.
+- Its revival-gap idea needs a floor: the query's top hits are "The Geisha, last staged 1948", which is a
+  dead show, not a revival candidate.
+
+**`DESIGN_AUDIT_AND_PROPOSALS.md`** (repo root, untracked) - nav overhaul, design-system upgrade, and four
+feature proposals. Not reviewed in depth yet. Overlaps heavily with Darragh's own list above (nav bar, UI
+pass) and with already-tracked items (My Season watchlist, Ireland map, On This Day - all already in the
+Gemini audit backlog in `ROADMAP_ARCHIVE.md`). **Its `mockups/` prototypes do exist** (12 files, checked -
+unlike the last time a Gemini doc cited a path). One thing in it is factually settled and should not be
+re-litigated: it says the society head-to-head compare was "explicitly rejected" as against AIMS's
+collaborative ethos - Darragh actually scoped and approved that feature and a mockup exists
+(`a3b6ce5c-1bbc-4eb3-aea9-8f480a51e209`), so that claim is the document's own inference, not a decision.
 
 ## Open items
 
