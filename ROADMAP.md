@@ -11,7 +11,14 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
-## START HERE - Decades + Reviews + Venues built for real 2026-08-21, 2 mockups still waiting on a coding pass
+## START HERE - next session is the productions-table migration (agreed 2026-08-21)
+
+**Next session's job, decided at the end of 2026-08-21: the productions-table migration.** Darragh picked
+it explicitly and switched to Opus for it. It has its own entry in Open items below with the brief's
+location and - importantly - what's changed since that brief was written. Do it in an **isolated
+worktree**, additive-only first pass, staged cutover. Don't start it as a bolt-on to an existing session.
+
+Everything below this line is the previous session's completed work, kept for context.
 
 **Update 2026-08-21: Decades Time Machine, Reviews, and Venues are all live for real** - committed, pushed,
 deployed, and independently verified running in production (not just the `/suggestions` timestamp - actually
@@ -190,12 +197,29 @@ promote-awards-to-top branch in `search.html` (`awards_exact_match`); cluster-ce
 pattern is built. **Lesson worth keeping:** check whether an open ROADMAP item is actually still open
 before scheduling work against it - this one would have wasted a whole session.
 
-**Productions table migration - flagged for Opus specifically**, real architecture decision (`shows`/
-`historical_results`/`historical_reviews` becoming one source of truth via a `productions` table),
-touches most of the app's query surface, high blast radius if got wrong. Full scoping brief (what
-exists today, proposed shape, backfill/verification plan, staged cutover order) is in
-`ROADMAP_ARCHIVE.md` - search for "Scoping brief for the productions-table session". Do it in an
-isolated worktree, additive-only first pass.
+**Productions table migration - NEXT SESSION, agreed 2026-08-21.** Darragh picked this as the next piece
+of work and switched to Opus for it; the plan is a **fresh session** (`/clear` first) in an **isolated
+worktree**, additive-only first pass - not a same-session addition, per the brief's own step 5. Real
+architecture decision (`shows`/`historical_results`/`historical_reviews` becoming one source of truth via
+a `productions` table), touches most of the app's query surface, high blast radius if got wrong.
+
+Full scoping brief (what exists today, proposed shape, backfill/verification plan, staged cutover order)
+is in `ROADMAP_ARCHIVE.md` - search for "Scoping brief for the productions-table session". **Read it, but
+treat its "what exists today" section as dated** - it says so itself, and two things have genuinely moved:
+- `ux_shows_natural_key` **has since gained `COLLATE NOCASE`** (done 2026-08-20, see `schema.sql`'s own
+  comment) - the brief predates that.
+- **Three new features shipped 2026-08-21 that each add query surface over exactly these tables**, and the
+  brief's step-1 inventory won't mention them because they didn't exist yet. All three must be in that
+  inventory: `/stats/trends` (`info.py`'s `stats_trends()` - reads `historical_results` by decade),
+  `/reviews` (`public.py`'s `reviews_index()` - **unions `shows` and `historical_reviews` and reconciles
+  adjudicator identity across both**, which is the productions problem in miniature and probably the single
+  most useful worked example of it in the codebase right now), and `/venues` (`public.py`'s
+  `venues_index()`/`venue_detail()` - groups on free-text `shows.venue`, and is *only* scoped to `shows`
+  because `historical_results` has no venue column at all - a real example of the split forcing a feature
+  to be thinner than the data could support).
+- Re-derive the brief's production counts (it cites 788 skeleton rows / 371 unmatched) against live data
+  rather than trusting those figures - a stale-number correction already bit this file twice this session
+  (the venue gap, and the search entry that claimed "not fixed" long after it was fixed).
 
 **OCR test on a programme photo** - blocked on Darragh sending one. Small once a photo exists (test
 extraction accuracy first, design nothing before seeing real output).
