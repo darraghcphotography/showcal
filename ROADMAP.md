@@ -11,10 +11,17 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
-## START HERE - productions-table migration, stage 1 of 4 done (2026-08-22)
+## START HERE - productions-table migration, stage 1 of 4 LIVE (2026-08-22)
 
-Built in the `worktree-productions-table` worktree (`.claude/worktrees/productions-table`), **not yet
-merged to main and not yet deployed**. Two commits. Full suite 443 green.
+Built in the `worktree-productions-table` worktree, merged to main (`94f0e2f`), **deployed and
+independently verified running in production**. Full suite 443 green.
+
+Verified after the redeploy, not assumed - `aims-web` restarted with the new code present, the table
+built itself on first startup (2,805 productions, 1911-2027, 1,242 shows rows and 4,707 award records
+linked), and `GET /stats` from inside the container returns **2,711 productions / 1,092 reviewed** with
+the folded 1911-1976 row and its note. The freshness check is a genuine no-op in steady state -
+`productions_build_state.built_at` stayed at the startup timestamp across four page loads. Page serves in
+~180ms on the NAS.
 
 **What's done:**
 1. **The table itself** (`productions` in `schema.sql`) - one row per real staging, natural key
@@ -53,9 +60,7 @@ summary row** rather than 51 near-empty ones - see `ARCHIVE_CIRCUIT_START_YEAR` 
 is hidden; the total still includes them.
 
 **Next, in order (stages 2-4 of the staged cutover):**
-- **Merge and deploy stage 1 first**, before starting stage 2 - the point of staging is that each surface
-  gets proven in real use before the next one moves.
-- **Admin dashboard counts** (`admin.py`) - next smallest blast radius.
+- **Admin dashboard counts** (`admin.py`) - next smallest blast radius, and the next thing to do.
 - **Public show/society pages** (`public.py`) - last, highest traffic. `reviews_index()` is the most
   useful worked example in the codebase of the problem this table solves (it unions `shows` and
   `historical_reviews` and reconciles adjudicator identity across both); `venues_index()` is the example
