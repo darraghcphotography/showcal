@@ -25,6 +25,17 @@ AWARD_RESULTS = ["Winner", "Second Place", "Third Place", "Nominee"]
 # must stay below this year to avoid counting/listing a 23/24+ show twice.
 SHOWS_COVERAGE_START_YEAR = 2024
 
+# The oldest season the archive covers as a *circuit* rather than as a few
+# societies' own back catalogues. Everything from 76/77 on runs to 28-37
+# productions a season and comes from the AIMS awards archive proper;
+# everything before it is 98 productions across 51 seasons, 1-4 each, from
+# exactly three societies (Wexford Light Opera, Roscrea, Carrick-on-Suir)
+# whose own production histories were backfilled - real productions that
+# should count, but a row saying "1954: 2 productions" would read as a fact
+# about AIMS rather than about how far three societies' records go. /stats
+# folds everything below this into one labelled summary row instead.
+ARCHIVE_CIRCUIT_START_YEAR = 1976
+
 # Amateur licensing status for show_info.rights_status - deliberately coarse,
 # since this is a moderator's manual read of a rights holder's site (MTI,
 # Concord Theatricals, etc.), not a live/automated availability check.

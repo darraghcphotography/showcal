@@ -493,6 +493,17 @@ CREATE TABLE IF NOT EXISTS productions (
     updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- One row (id is pinned to 1), holding a cheap fingerprint of the source
+-- tables as they were at the last successful rebuild. A page reading the
+-- derived productions table checks this first and rebuilds if the sources
+-- have moved, so a moderator approving a show doesn't have to wait for the
+-- next deploy to see it counted. No row at all = rebuild on next read.
+CREATE TABLE IF NOT EXISTS productions_build_state (
+    id           INTEGER PRIMARY KEY CHECK (id = 1),
+    fingerprint  TEXT NOT NULL,
+    built_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_productions_natural_key
     ON productions(society_key, season_start_year, title_key);
 CREATE INDEX IF NOT EXISTS idx_productions_society_id ON productions(society_id);

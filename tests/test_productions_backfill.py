@@ -1,4 +1,4 @@
-"""The productions table and the build_productions.py backfill that fills it.
+"""The productions table and the rebuild that fills it (app/productions_build.py).
 
 Covers the two things that make the table worth having - one shared identity
 for a staging across shows/historical_results/historical_reviews, and a
@@ -9,7 +9,7 @@ import sqlite3
 
 import pytest
 
-import build_productions
+from app import productions_build
 from app.productions import production_key, society_key
 from conftest import seed_society
 
@@ -44,7 +44,7 @@ def _add_review(db, show_id, season="22/23", show_raw="Oliver!", society_raw="Te
 
 def _build(db):
     db.commit()
-    return build_productions.build(db, quiet=True)
+    return productions_build.build(db)
 
 
 def _productions(db):
@@ -278,6 +278,63 @@ def test_retitling_a_show_moves_it_to_a_new_production(db):
     assert db.execute("SELECT production_id FROM shows WHERE id = ?", (show_id,)).fetchone()[0] == rows[0]["id"]
 
 
+# ---------------------------------------------------------------- staying current
+
+def test_ensure_current_rebuilds_only_when_the_sources_moved(db, monkeypatch):
+    """The table is derived, so a page reading it checks first. That check has
+    to be free when nothing changed - it runs on a page request."""
+    seed_society(db)
+    _add_show(db, season="23/24", show="Oliver!")
+    db.commit()
+
+    assert productions_build.ensure_current(db) is True
+    assert len(_productions(db)) == 1
+    assert productions_build.ensure_current(db) is False
+
+    _add_show(db, season="24/25", show="Cabaret")
+    db.commit()
+    assert productions_build.ensure_current(db) is True
+    assert len(_productions(db)) == 2
+
+
+def test_mark_stale_forces_a_rebuild_the_fingerprint_would_miss(db):
+    """historical_results has no updated_at, so an award record edited in
+    place is invisible to the freshness check - the routes that do that say
+    so explicitly."""
+    seed_society(db)
+    award_id = _add_award(db, year=2024, show="Oliver!")
+    db.commit()
+    productions_build.ensure_current(db)
+    assert [r["title"] for r in _productions(db)] == ["Oliver!"]
+
+    db.execute("UPDATE historical_results SET show = 'Cabaret' WHERE id = ?", (award_id,))
+    db.commit()
+    assert productions_build.ensure_current(db) is False   # the gap this exists to close
+
+    productions_build.mark_stale(db)
+    assert productions_build.ensure_current(db) is True
+    assert [r["title"] for r in _productions(db)] == ["Cabaret"]
+
+
+def test_correcting_a_skeleton_title_in_admin_marks_the_index_stale(client, db):
+    """The title-correction route rewrites shows.show without bumping
+    updated_at, so it has to tell the freshness check itself."""
+    from conftest import seed_user
+
+    seed_society(db)
+    show_id = _add_show(db, season="22/23", show="Olivr!", source="historical")
+    db.commit()
+    productions_build.ensure_current(db)
+    assert [r["title"] for r in _productions(db)] == ["Olivr!"]
+
+    seed_user(db)
+    client.post("/admin/login", data={"username": "mod", "password": "password123"})
+    client.post(f"/admin/historical-shows/{show_id}/apply-title-match", data={"title": "Oliver!"})
+
+    productions_build.ensure_current(db)
+    assert [r["title"] for r in _productions(db)] == ["Oliver!"]
+
+
 # ---------------------------------------------------------------- verification
 
 def test_verification_rejects_a_rebuild_that_did_not_land(db, monkeypatch):
@@ -287,7 +344,7 @@ def test_verification_rejects_a_rebuild_that_did_not_land(db, monkeypatch):
     _add_show(db, season="23/24", show="Oliver!")
     db.commit()
 
-    real_write = build_productions.write
+    real_write = productions_build.write
 
     def sabotaged(conn, productions):
         result = real_write(conn, productions)
@@ -297,9 +354,9 @@ def test_verification_rejects_a_rebuild_that_did_not_land(db, monkeypatch):
         )
         return result
 
-    monkeypatch.setattr(build_productions, "write", sabotaged)
-    with pytest.raises(build_productions.VerificationError) as excinfo:
-        build_productions.build(db, quiet=True)
+    monkeypatch.setattr(productions_build, "write", sabotaged)
+    with pytest.raises(productions_build.VerificationError) as excinfo:
+        productions_build.build(db)
     assert "productions row count" in str(excinfo.value)
     assert "productions with no source row" in str(excinfo.value)
 
@@ -313,7 +370,7 @@ def test_verification_rejects_two_shows_rows_under_one_production(db, monkeypatc
     second = _add_show(db, season="24/25", show="Cabaret")
     db.commit()
 
-    real_write = build_productions.write
+    real_write = productions_build.write
 
     def sabotaged(conn, productions):
         result = real_write(conn, productions)
@@ -321,9 +378,9 @@ def test_verification_rejects_two_shows_rows_under_one_production(db, monkeypatc
         conn.execute("UPDATE shows SET production_id = ? WHERE id = ?", (first, second))
         return result
 
-    monkeypatch.setattr(build_productions, "write", sabotaged)
-    with pytest.raises(build_productions.VerificationError) as excinfo:
-        build_productions.build(db, quiet=True)
+    monkeypatch.setattr(productions_build, "write", sabotaged)
+    with pytest.raises(productions_build.VerificationError) as excinfo:
+        productions_build.build(db)
     assert "more than one shows row" in str(excinfo.value)
 
 

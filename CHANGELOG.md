@@ -1,3 +1,8 @@
+Statistics was reporting nothing at all for every season before 2000/01, despite the same page saying its archive goes back to 1912 - the whole pre-2000 archive is now counted, and the total on record goes from 1,837 productions to 2,711
+Statistics shows the 1911-1976 seasons as a single row rather than fifty-one nearly-empty ones, with a note saying plainly that those 98 productions come from three societies' own production histories, not from a record of everything AIMS staged then
+
+---
+
 Statistics now has a Decades page, showing the most-staged shows, most-nominated societies, and Best Overall Show winners for any decade back to 1912, straight off the awards archive
 New Reviews page: every adjudicator review on the site in one browsable, searchable list - search by show or society matches across every season and tier at once, or narrow by season, tier or adjudicator
 Admin: new Reviews queue tool for pasting in an aims.ie review link for a finished show, one row at a time - same paste-and-save pattern as Society name corrections

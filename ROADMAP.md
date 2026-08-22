@@ -11,14 +11,63 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
-## START HERE - next session is the productions-table migration (agreed 2026-08-21)
+## START HERE - productions-table migration, stage 1 of 4 done (2026-08-22)
 
-**Next session's job, decided at the end of 2026-08-21: the productions-table migration.** Darragh picked
-it explicitly and switched to Opus for it. It has its own entry in Open items below with the brief's
-location and - importantly - what's changed since that brief was written. Do it in an **isolated
-worktree**, additive-only first pass, staged cutover. Don't start it as a bolt-on to an existing session.
+Built in the `worktree-productions-table` worktree (`.claude/worktrees/productions-table`), **not yet
+merged to main and not yet deployed**. Two commits. Full suite 443 green.
 
-Everything below this line is the previous session's completed work, kept for context.
+**What's done:**
+1. **The table itself** (`productions` in `schema.sql`) - one row per real staging, natural key
+   `(society_key, season_start_year, title_key)`. Derived, not authored: `app/productions_build.py` is
+   the only writer, and it upserts on that key so a production keeps its id across rebuilds.
+   `production_id` links added to `shows` / `historical_results` / `historical_reviews`.
+   `app/productions.py` holds the key derivation so the definition can't drift between callers.
+2. **The rebuild** - runs on every app start, and lazily on `/stats` when a cheap fingerprint shows the
+   source tables have moved (so a moderator approving a show doesn't wait for a redeploy). ~700ms cold,
+   ~50ms when there's nothing to do. `build_productions.py` at the repo root is the CLI half (`--dry-run`
+   verifies and rolls back). Every run ends with a verification pass that re-derives the totals from the
+   database and raises rather than trusting its own write.
+3. **Statistics cut over** (`info.py`'s `stats()`) - the first of the four staged surfaces. Five GROUP BY
+   queries merged in Python became one query over `productions`; the region filter became a single
+   equality test instead of the three-way COALESCE fallback join.
+
+**Two century bugs this found, both real and both now fixed by construction:**
+- `historical_results_year()` ('yy/yy' -> 2000+yy+1) can't express an award year before 2001 - 1912 came
+  back as 2012, 2000 as 2100. 75 of the archive's 100 award years didn't round-trip, so **/stats reported
+  0 productions for every season before 00/01** while the same page's own tile said "1912-present". The
+  headline total goes 1,837 -> 2,711.
+- `season_start_year()`'s pivot at 50 assumed the archive starts in 1977. It starts in **1912**, so 9
+  pre-1950 award years filed under a modern season that also exists for real. Both helpers now carry a
+  docstring saying exactly what they're safe for; anything spanning the full archive uses the new
+  `award_year_to_season_start` / `season_label` pair and a four-digit year.
+
+**Real-data verification** (read-only copy of the live db, `scp`'d down): 2,805 productions spanning
+1911-2027 - 1,242 with a shows row, 2,271 with an award record, 708 both; region resolved for all but 18;
+rebuild idempotent (second run: 0 new, 0 changed, 0 removed). Every unlinked source row is one that names
+no production (145 title-TBA placeholders, 172 award records with a blank show column, 74 reviews still in
+the moderation queue). /stats renders in ~35ms against that copy.
+
+**Presentation decision Darragh made this session:** the 1911-1976 seasons (98 productions across 51
+seasons, 1-4 each, from only Wexford Light Opera / Roscrea / Carrick-on-Suir) fold into **one labelled
+summary row** rather than 51 near-empty ones - see `ARCHIVE_CIRCUIT_START_YEAR` in `constants.py`. Nothing
+is hidden; the total still includes them.
+
+**Next, in order (stages 2-4 of the staged cutover):**
+- **Merge and deploy stage 1 first**, before starting stage 2 - the point of staging is that each surface
+  gets proven in real use before the next one moves.
+- **Admin dashboard counts** (`admin.py`) - next smallest blast radius.
+- **Public show/society pages** (`public.py`) - last, highest traffic. `reviews_index()` is the most
+  useful worked example in the codebase of the problem this table solves (it unions `shows` and
+  `historical_reviews` and reconciles adjudicator identity across both); `venues_index()` is the example
+  of the split forcing a feature to be thinner than the data could support.
+- Only after all four: consider making the table **authored** rather than derived (a moderator editing a
+  production directly). Deliberately not part of the additive pass.
+- Two small data findings to act on separately: `'Greenhills Variety Group'` and `'New Lyric Operatic
+  Company, Belfast'` appear in `historical_results` with no `society_id` even though a matching societies
+  row exists; and 13 award-archive productions have no society name at all (they group under a single
+  "Unknown society" bucket).
+
+Everything below this line is earlier context, kept as background.
 
 **Update 2026-08-21: Decades Time Machine, Reviews, and Venues are all live for real** - committed, pushed,
 deployed, and independently verified running in production (not just the `/suggestions` timestamp - actually
@@ -197,29 +246,12 @@ promote-awards-to-top branch in `search.html` (`awards_exact_match`); cluster-ce
 pattern is built. **Lesson worth keeping:** check whether an open ROADMAP item is actually still open
 before scheduling work against it - this one would have wasted a whole session.
 
-**Productions table migration - NEXT SESSION, agreed 2026-08-21.** Darragh picked this as the next piece
-of work and switched to Opus for it; the plan is a **fresh session** (`/clear` first) in an **isolated
-worktree**, additive-only first pass - not a same-session addition, per the brief's own step 5. Real
-architecture decision (`shows`/`historical_results`/`historical_reviews` becoming one source of truth via
-a `productions` table), touches most of the app's query surface, high blast radius if got wrong.
-
-Full scoping brief (what exists today, proposed shape, backfill/verification plan, staged cutover order)
-is in `ROADMAP_ARCHIVE.md` - search for "Scoping brief for the productions-table session". **Read it, but
-treat its "what exists today" section as dated** - it says so itself, and two things have genuinely moved:
-- `ux_shows_natural_key` **has since gained `COLLATE NOCASE`** (done 2026-08-20, see `schema.sql`'s own
-  comment) - the brief predates that.
-- **Three new features shipped 2026-08-21 that each add query surface over exactly these tables**, and the
-  brief's step-1 inventory won't mention them because they didn't exist yet. All three must be in that
-  inventory: `/stats/trends` (`info.py`'s `stats_trends()` - reads `historical_results` by decade),
-  `/reviews` (`public.py`'s `reviews_index()` - **unions `shows` and `historical_reviews` and reconciles
-  adjudicator identity across both**, which is the productions problem in miniature and probably the single
-  most useful worked example of it in the codebase right now), and `/venues` (`public.py`'s
-  `venues_index()`/`venue_detail()` - groups on free-text `shows.venue`, and is *only* scoped to `shows`
-  because `historical_results` has no venue column at all - a real example of the split forcing a feature
-  to be thinner than the data could support).
-- Re-derive the brief's production counts (it cites 788 skeleton rows / 371 unmatched) against live data
-  rather than trusting those figures - a stale-number correction already bit this file twice this session
-  (the venue gap, and the search entry that claimed "not fixed" long after it was fixed).
+**Productions table migration - STAGE 1 DONE 2026-08-22, see START HERE.** Table, rebuild and the
+Statistics cutover are built and verified in the `productions-table` worktree, unmerged. Stages 2-4 (admin
+counts, then public pages) are listed there. The original scoping brief in `ROADMAP_ARCHIVE.md` ("Scoping
+brief for the productions-table session") is now superseded for everything except its cutover ordering -
+its figures were dated as it warned (it cited 788 skeleton rows / 371 unmatched; live data says 784 / 292
+once matched season-aware rather than on society+title alone).
 
 **OCR test on a programme photo** - blocked on Darragh sending one. Small once a photo exists (test
 extraction accuracy first, design nothing before seeing real output).

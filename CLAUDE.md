@@ -45,6 +45,11 @@ docker compose exec aims-web python load_historical_reviews.py --db /data/aims.d
 `export_awards.py` is `import_awards.py`'s inverse (same pattern as `export_csv.py`/`import_csv.py`)
 - run it after a correction made via `/admin/awards`, then pull the file back out (File Station/scp)
 to update the git-tracked copy, same as the CSV export workflow.
+`build_productions.py` rebuilds the derived `productions` table (see `schema.sql`) from
+`shows`/`historical_results`/`historical_reviews`. **Normally you never need to run it** - the app
+rebuilds on every startup and lazily whenever the source tables have moved. Run it by hand only to see
+what a rebuild would do before letting it near production (`--dry-run` verifies and rolls back), or after
+a bulk import script has rewritten rows outside the app.
 `load_historical_reviews.py` is `extract_historical_reviews.py`'s other half - extraction needs
 PyMuPDF and the ShowTimes PDF archive (`E:\showtimes archive`), neither of which exist in the
 container, so extraction always runs locally (`py extract_historical_reviews.py`) into a git-tracked

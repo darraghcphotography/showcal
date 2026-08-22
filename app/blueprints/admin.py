@@ -18,6 +18,7 @@ from ..constants import (
 from ..db import get_db
 from ..dedupe import find_candidates
 from ..invite_words import ADJECTIVES, NOUNS
+from .. import productions_build
 from ..production_credits import suggest_credits, suggest_venue
 from ..rate_limit import limiter
 from ..season import current_season, historical_results_year, next_season, season_range
@@ -1557,6 +1558,9 @@ def _merge_titles(db, canonical, other):
         "DELETE FROM dismissed_duplicate_pairs WHERE title_a IN (?, ?) OR title_b IN (?, ?)",
         (canonical, other, canonical, other),
     )
+    # Retitling rows in place changes which production they belong to, and
+    # historical_results has no updated_at for the freshness check to notice.
+    productions_build.mark_stale(db)
 
 
 def _dismiss_pair(db, title_a, title_b):
@@ -2266,6 +2270,10 @@ def edit_award(award_id):
                 fields["nominee_name"], fields["role"], fields["reason"], award_id,
             ),
         )
+        # An edited year/show/society moves this record to a different
+        # production, and historical_results has no updated_at column for the
+        # productions freshness check to spot the change on its own.
+        productions_build.mark_stale(db)
         db.commit()
         flash("Award result updated.", "success")
         return redirect(url_for("admin.awards_list"))
@@ -3114,7 +3122,11 @@ def apply_show_title_match(show_id):
             "review there instead and removed the duplicate skeleton.", "success",
         )
     else:
+        # No updated_at bump here (deliberately - this is a data correction,
+        # not an edit to the production), so the productions freshness check
+        # is told directly instead.
         db.execute("UPDATE shows SET show = ? WHERE id = ?", (title, show_id))
+        productions_build.mark_stale(db)
         db.commit()
         flash(f'Show title corrected to "{title}".', "success")
     return redirect(url_for("admin.historical_shows_title_check"))

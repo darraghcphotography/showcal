@@ -150,7 +150,7 @@
     </tbody>
   </table>
 
-  {% if productions_by_season_earlier %}
+  {% if productions_by_season_earlier or productions_deep_archive %}
     <details>
       <summary>Show {{ productions_by_season_earlier|length }} earlier season{{ '' if productions_by_season_earlier|length == 1 else 's' }}
         ({{ productions_by_season_earlier[-1]['season'] }}&ndash;{{ productions_by_season_earlier[0]['season'] }},
@@ -162,11 +162,28 @@
               <td>{{ row['season'] }}</td>
               <td>{{ row['productions'] }}</td>
               <td>{{ row['reviewed'] }}</td>
-              <td><a href="{{ url_for('info.season_summary', season=row['season'], region=selected_region) }}">View</a></td>
+              <td>{% if row['has_season_page'] %}<a href="{{ url_for('info.season_summary', season=row['season'], region=selected_region) }}">View</a>{% endif %}</td>
             </tr>
           {% endfor %}
+          {% if productions_deep_archive %}
+            <tr>
+              <td>{{ productions_deep_archive['from_year'] }}&ndash;{{ productions_deep_archive['to_year'] }}</td>
+              <td>{{ productions_deep_archive['productions'] }}</td>
+              <td>{{ productions_deep_archive['reviewed'] }}</td>
+              <td></td>
+            </tr>
+          {% endif %}
         </tbody>
       </table>
+      {% if productions_deep_archive %}
+        <p class="meta">The {{ productions_deep_archive['from_year'] }}&ndash;{{ productions_deep_archive['to_year'] }}
+           row is one line rather than {{ productions_deep_archive['seasons'] }} because
+           the AIMS archive doesn't cover the circuit that far back: those
+           {{ productions_deep_archive['productions'] }} productions come from
+           {{ productions_deep_archive['societies'] }} societ{{ 'y' if productions_deep_archive['societies'] == 1 else 'ies' }}
+           whose own production histories have been added to the database, not from a
+           record of everything AIMS staged in those years.</p>
+      {% endif %}
     </details>
   {% endif %}
 

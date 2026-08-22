@@ -4,6 +4,7 @@ from datetime import date, datetime
 from flask import Blueprint, render_template, request
 
 from ..constants import (
+    ARCHIVE_CIRCUIT_START_YEAR,
     AWARD_CATEGORIES,
     AWARD_CATEGORY_BY_KEY,
     AWARD_RESULTS,
@@ -13,6 +14,7 @@ from ..constants import (
     SHOWS_COVERAGE_START_YEAR,
     SOCIETY_AWARD_CATEGORY_NAMES,
 )
+from .. import productions_build
 from ..db import get_db
 from ..search import fts_match_ids
 from ..season import current_season, historical_results_season, historical_results_year, season_start_year, season_weeks
@@ -25,6 +27,11 @@ TOP_N = 10
 @bp.route("/stats")
 def stats():
     db = get_db()
+    # Every production count below reads the derived productions table, so it
+    # has to be current with the source tables first - otherwise a show
+    # approved since the last deploy simply wouldn't be counted. No-op unless
+    # something actually changed.
+    productions_build.ensure_current(db)
     today = date.today().isoformat()
     region = request.args.get("region", "")
     if region not in REGIONS:
@@ -177,128 +184,104 @@ def stats():
         """
     ).fetchall()
 
-    # Unified "productions on record": shows and historical_results are one
-    # continuous list of productions, split only at the site's own tracked-
-    # data boundary (SHOWS_COVERAGE_START_YEAR) so nothing counts twice -
-    # never three separate populations for a reader to add up themselves
-    # (see 20 Aug's redesign - the old page's split-by-source layout was
-    # undercounting by 371 real productions as a direct result). A
-    # production doesn't need an award record to count - not every show is
-    # nominated for anything, so historical_results is a source here, never
-    # a gate.
-    params = [SHOWS_COVERAGE_START_YEAR]
-    query = f"""
-        SELECT historical_results.year AS year,
-               COUNT(DISTINCT historical_results.show || historical_results.society_name) AS n
-        FROM historical_results {hist_join}
-        WHERE historical_results.year < ?
+    # Unified "productions on record", straight off the productions table -
+    # one row per real staging, whether the site knows it from the live shows
+    # catalogue, the awards archive, a ShowTimes review, or all three (see
+    # schema.sql). This used to be five separate GROUP BY queries merged in
+    # Python across a season-string boundary, and it was wrong twice: it
+    # undercounted by 371 productions until 20 Aug, and by a further 823 -
+    # every season before 00/01, reported as zero - until this table existed,
+    # because the 'yy/yy' round-trip it leaned on can't express an award year
+    # before 2001. A production doesn't need an award record to count; not
+    # every show is nominated for anything.
+    params = [today]
+    happened_production = f"""
+        (EXISTS (SELECT 1 FROM historical_results WHERE production_id = productions.id)
+         OR EXISTS (SELECT 1 FROM shows
+                     WHERE shows.production_id = productions.id
+                       AND shows.moderation_status = 'approved'
+                       AND shows.status IS NOT 'Cancelled'
+                       AND (shows.source = 'historical'
+                            OR COALESCE(shows.closing_date, shows.opening_date) <= ?)))
     """
-    query += hist_region_clause(params)
-    query += " GROUP BY historical_results.year"
-    hist_by_year = {row["year"]: row["n"] for row in db.execute(query, params).fetchall()}
-
-    # A ShowTimes review with no matching award record still creates a real,
-    # countable production (a skeleton show, source='historical') - matched
-    # here by society + title against historical_results so it's never
-    # double-counted when an award record for the same production also
-    # exists.
-    params = []
-    query = """
-        SELECT shows.season AS season, COUNT(*) AS n
-        FROM shows
-        WHERE shows.source = 'historical'
-          AND NOT EXISTS (
-              SELECT 1 FROM historical_results
-              WHERE historical_results.society_id = shows.society_id
-                AND historical_results.show = shows.show
-          )
+    # "Reviewed" is coverage of that same total, never a rival count: a
+    # ShowTimes write-up, or a Published review link on aims.ie (which
+    # replaced ShowTimes in 2023). One idea, both eras.
+    reviewed_production = """
+        (EXISTS (SELECT 1 FROM historical_reviews
+                  WHERE production_id = productions.id AND moderation_status = 'approved')
+         OR EXISTS (SELECT 1 FROM shows
+                     WHERE shows.production_id = productions.id
+                       AND shows.review_status = 'Published'
+                       AND shows.review_url IS NOT NULL AND shows.review_url != ''))
     """
-    query += region_clause(params)
-    query += " GROUP BY shows.season"
-    skeleton_unmatched_by_season = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
-
-    # "Reviewed" is one continuous idea spanning the same 23/24 boundary as
-    # everything else, not a fourth population: a ShowTimes write-up before
-    # 23/24, or a Published review link on aims.ie (which replaced ShowTimes
-    # in 2023) from 23/24 on. Coverage of the productions above, never a
-    # rival count - a review is always a review *of* one of them.
-    params = []
-    query = """
-        SELECT historical_reviews.season AS season, COUNT(DISTINCT historical_reviews.show_id) AS n
-        FROM historical_reviews
-        LEFT JOIN societies ON societies.id = historical_reviews.society_id
-        WHERE historical_reviews.moderation_status = 'approved' AND historical_reviews.show_id IS NOT NULL
-    """
+    # Region resolves once per production when the table is built, so this is
+    # a single equality test rather than the three-way COALESCE fallback join
+    # every historical query used to hand-roll.
+    region_sql = ""
     if region:
-        query += " AND societies.region = ?"
+        region_sql = " AND productions.region = ?"
         params.append(region)
-    query += " GROUP BY historical_reviews.season"
-    reviews_by_season = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
 
-    params = [today]
-    query = f"""
-        SELECT season, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
-    """
-    query += region_clause(params)
-    query += " GROUP BY season"
-    shows_by_season = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
+    season_rows = db.execute(
+        f"""
+        SELECT productions.season_start_year AS start_year, productions.season AS season,
+               COUNT(*) AS productions,
+               SUM(CASE WHEN {reviewed_production} THEN 1 ELSE 0 END) AS reviewed
+          FROM productions
+         WHERE {happened_production}{region_sql}
+         GROUP BY productions.season_start_year
+         ORDER BY productions.season_start_year DESC
+        """,
+        params,
+    ).fetchall()
 
-    params = [today]
-    query = f"""
-        SELECT season, COUNT(*) AS n FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical' AND {happened}
-          AND review_status = 'Published' AND review_url IS NOT NULL AND review_url != ''
-    """
-    query += region_clause(params)
-    query += " GROUP BY season"
-    reviewed_by_season_post = {row["season"]: row["n"] for row in db.execute(query, params).fetchall()}
+    productions_total = sum(row["productions"] for row in season_rows)
+    reviewed_total = sum(row["reviewed"] for row in season_rows)
 
-    # Century-safe throughout (season_start_year, never a plain string
-    # compare) - this table spans 1912-present, so a string sort would
-    # repeat the exact rollover bug already fixed twice elsewhere in this
-    # codebase (Round 25's adjudicator grid, Round 34's 16/17 misfile).
-    pre_seasons = (
-        {historical_results_season(year) for year in hist_by_year}
-        | set(skeleton_unmatched_by_season)
-        | set(reviews_by_season)
-    )
-    all_seasons = pre_seasons | set(shows_by_season) | set(reviewed_by_season_post)
+    # Three bands, each answering a different question honestly:
+    #  - recent: the seasons the live shows catalogue covers, listed plainly.
+    #  - earlier: the awards archive proper, listed season by season but
+    #    collapsed by default so a society backfilling its own back catalogue
+    #    can't make the most complete seasons look like a rounding error.
+    #  - deep: everything before the archive covers the circuit at all, folded
+    #    into one labelled row (see ARCHIVE_CIRCUIT_START_YEAR).
+    # /season only has real content for seasons the shows table covers -
+    # linking out for an older one would land on an empty page.
+    def season_entry(row):
+        return {
+            "season": row["season"],
+            "productions": row["productions"],
+            "reviewed": row["reviewed"],
+            "has_season_page": row["start_year"] >= SHOWS_COVERAGE_START_YEAR - 1,
+        }
 
-    productions_by_season = []
-    for season in sorted(all_seasons, key=season_start_year, reverse=True):
-        is_recent = season_start_year(season) >= SHOWS_COVERAGE_START_YEAR - 1
-        if is_recent:
-            productions = shows_by_season.get(season, 0)
-            reviewed = reviewed_by_season_post.get(season, 0)
-        else:
-            productions = hist_by_year.get(historical_results_year(season), 0) + skeleton_unmatched_by_season.get(season, 0)
-            reviewed = reviews_by_season.get(season, 0)
-        if productions == 0 and reviewed == 0:
-            continue
-        # /season only has real content for seasons the live shows table
-        # covers - linking out for an older season would just land on an
-        # empty page, since shows.source='historical' skeleton rows rarely
-        # carry a real date.
-        productions_by_season.append(
-            {"season": season, "productions": productions, "reviewed": reviewed, "has_season_page": is_recent}
-        )
-
-    productions_total = sum(r["productions"] for r in productions_by_season)
-    reviewed_total = sum(r["reviewed"] for r in productions_by_season)
-
-    # Split at the site's own tracked-data boundary (see SHOWS_COVERAGE_START_YEAR)
-    # rather than an arbitrary "top N" - a society backfilling decades of its own
-    # history via bulk-add is expected/encouraged, but it shouldn't make the
-    # by-far-most-complete recent seasons look like a rounding error in a page-long
-    # list of mostly-1-production seasons. Earlier seasons stay fully visible, just
-    # collapsed behind a <details> disclosure by default.
     productions_by_season_recent = [
-        r for r in productions_by_season if season_start_year(r["season"]) >= SHOWS_COVERAGE_START_YEAR - 1
+        season_entry(r) for r in season_rows if r["start_year"] >= SHOWS_COVERAGE_START_YEAR - 1
     ]
     productions_by_season_earlier = [
-        r for r in productions_by_season if season_start_year(r["season"]) < SHOWS_COVERAGE_START_YEAR - 1
+        season_entry(r) for r in season_rows
+        if ARCHIVE_CIRCUIT_START_YEAR <= r["start_year"] < SHOWS_COVERAGE_START_YEAR - 1
     ]
+    deep_rows = [r for r in season_rows if r["start_year"] < ARCHIVE_CIRCUIT_START_YEAR]
+    productions_deep_archive = None
+    if deep_rows:
+        societies_in_deep = db.execute(
+            f"""
+            SELECT COUNT(DISTINCT COALESCE(productions.society_id, productions.society_key))
+              FROM productions
+             WHERE productions.season_start_year < ? AND {happened_production}{region_sql}
+            """,
+            [ARCHIVE_CIRCUIT_START_YEAR] + params,
+        ).fetchone()[0]
+        productions_deep_archive = {
+            "from_year": deep_rows[-1]["start_year"],
+            "to_year": deep_rows[0]["start_year"] + 1,
+            "seasons": len(deep_rows),
+            "productions": sum(r["productions"] for r in deep_rows),
+            "reviewed": sum(r["reviewed"] for r in deep_rows),
+            "societies": societies_in_deep,
+        }
 
     by_region = db.execute(
         f"""
@@ -382,6 +365,7 @@ def stats():
         reviewed_total=reviewed_total,
         productions_by_season=productions_by_season_recent,
         productions_by_season_earlier=productions_by_season_earlier,
+        productions_deep_archive=productions_deep_archive,
         by_region=by_region,
         by_tier=by_tier,
         award_total_records=award_total_records,

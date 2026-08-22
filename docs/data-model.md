@@ -109,6 +109,55 @@ silently discarded by a future re-run. `reason` holds the adjudicator's own
 free-text note, present on about 1 in 15 records (mostly discretionary
 categories like the Adjudicator's Special Award).
 
+## Productions (the shared definition of "a staging")
+
+`productions` is one row per real staging - one show, by one society, in one
+season - and it's what "how many productions are on record" and "is this
+production reviewed" should be answered from. Before it existed there was no
+shared definition anywhere: each page re-derived its own by unioning `shows`
+with `historical_results` and anti-joining the skeleton rows, and they
+disagreed with each other. That cost 371 productions on `/stats` once, then a
+further 823.
+
+**It's derived, not authored.** `app/productions_build.py` is the only thing
+that writes to it; the three source tables above stay the place data is
+entered and edited, and each carries a nullable `production_id` pointing back.
+The rebuild upserts on the natural key, so a production keeps its id across
+rebuilds. It runs on every app start, and lazily on a page that reads the
+table when a cheap fingerprint shows the sources have moved - so a moderator
+approving a show doesn't have to wait for a redeploy. A route that changes a
+title *in place* without bumping `shows.updated_at` (an award record edited via
+`/admin/awards`, a duplicate-title merge) calls `productions_build.mark_stale()`
+itself, because the fingerprint can't see those. `build_productions.py` at the
+repo root is the command-line half.
+
+**The natural key is `(society_key, season_start_year, title_key)`**, derived in
+`app/productions.py`:
+
+- `society_key` is `id:<societies.id>` when the society matched a real row, and
+  `name:<normalized name>` when it didn't. 71 society names in the awards
+  archive are defunct or renamed and have never matched; they staged real
+  productions and still have to count.
+- `season_start_year` is the real four-digit year the season opened, **never a
+  'yy/yy' string**. The archive runs from 1912, so `'11/12'` names both the 1912
+  award year and the 2011/12 season. `historical_results_year()` (which decodes
+  a season string as `2000+yy+1`) is therefore only safe on a `shows.season`
+  value, and `season_start_year()`'s pivot at 50 only decodes seasons the shows
+  table actually holds. Anything spanning the whole archive uses
+  `award_year_to_season_start()` / `season_label()` and carries a four-digit
+  year. Both older helpers now say so in their docstrings.
+- `title_key` is `normalize_title()` - the same lowercase/strip-punctuation rule
+  used everywhere else, deliberately not fuzzy.
+
+Every rebuild ends with a verification pass that re-derives its totals from the
+database rather than from the dict it just built, and raises rather than
+committing on any disagreement - including the one failure that would matter
+most, two `shows` rows landing under a single production.
+
+Cutover is staged, one surface at a time: `/stats` first (done), then the admin
+dashboard counts, then the public show/society pages. Until a surface is cut
+over it still uses the old `SHOWS_COVERAGE_START_YEAR` split described above.
+
 ## Column migrations
 
 SQLite's `CREATE TABLE IF NOT EXISTS` only creates a table the *first* time -

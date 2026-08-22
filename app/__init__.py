@@ -81,6 +81,15 @@ def create_app(test_config=None):
         from . import analytics
         analytics.purge_excluded_pageviews(db_module.get_db())
 
+        # The productions table is derived from shows/historical_results/
+        # historical_reviews, so a deploy that changes how it's derived - or an
+        # import script that rewrote rows outside the app - has to be picked up
+        # without anyone remembering to run something. Cheap: a rebuild with
+        # nothing to do writes nothing and takes ~50ms at this data's size.
+        from . import productions_build
+        productions_build.build(db_module.get_db())
+        db_module.get_db().commit()
+
         # Publish any new CHANGELOG.md entries - skipped under pytest so a
         # test asserting an empty changelog_entries table isn't broken by
         # whatever happens to be in the real file (see test_suggestions_roadmap.py).
