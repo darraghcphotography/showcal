@@ -1,3 +1,8 @@
+Admin: "Shows missing a review link" was counting 115 when the real number is 29 - it was counting the whole current season, including 86 shows that haven't happened yet. The dashboard counter, the All Shows filter and the Reviews queue now all use one definition and give the same answer
+Admin: the duplicate-productions check was finding nothing because of a date-matching flaw - it now finds 9 real duplicates, bulk-added rows for productions that already have a show on record
+
+---
+
 Statistics was reporting nothing at all for every season before 2000/01, despite the same page saying its archive goes back to 1912 - the whole pre-2000 archive is now counted, and the total on record goes from 1,837 productions to 2,711
 Statistics shows the 1911-1976 seasons as a single row rather than fifty-one nearly-empty ones, with a note saying plainly that those 98 productions come from three societies' own production histories, not from a record of everything AIMS staged then
 

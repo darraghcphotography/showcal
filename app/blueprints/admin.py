@@ -77,6 +77,53 @@ def logout():
     return redirect(url_for("public.index"))
 
 
+# "This production has run, nobody has written it up anywhere, and it isn't
+# marked as deliberately un-adjudicated" - i.e. a review link a moderator can
+# actually go and add.
+#
+# Three places asked this separately and disagreed: the dashboard counter and
+# the shows-list filter behind it both said 115 against real data, while the
+# Reviews queue tool said 29. The queue was the right one - the other two were
+# season-based, so they counted 86 shows that hadn't happened yet. Defined once
+# here, on the queue's terms, so all three agree and can't drift again.
+#
+# The review check goes through production_id rather than show_id. That's the
+# same set today (a production only ever has one shows row, which the rebuild's
+# own verification enforces) - it's written this way because "has this
+# production been reviewed" is the question actually being asked, and it stays
+# right if that ever stops being one row.
+#
+# Takes named params :today and :current_season. A show with no dates at all
+# counts as run only once its season is over - an announced-but-undated show in
+# the current season hasn't happened, but an undated one from 10/11 certainly
+# has, and dropping it would hide real work rather than noise.
+#
+# Reads production_id, so any route using it must call
+# productions_build.ensure_current(db) first (dashboard, shows_list,
+# reviews_queue all do) - otherwise it reads a stale link and silently
+# under-reports.
+NEEDS_REVIEW_WHERE = """
+    shows.moderation_status = 'approved'
+    AND shows.show IS NOT NULL
+    AND shows.source != 'historical'
+    AND shows.status IS NOT 'Cancelled'
+    AND shows.review_status != 'Not adjudicated'
+    AND (shows.review_url IS NULL OR shows.review_url = '')
+    AND (COALESCE(shows.closing_date, shows.opening_date) <= :today
+         OR (COALESCE(shows.closing_date, shows.opening_date) IS NULL
+             AND shows.season < :current_season))
+    AND NOT EXISTS (
+        SELECT 1 FROM historical_reviews
+        WHERE historical_reviews.production_id = shows.production_id
+          AND historical_reviews.moderation_status = 'approved'
+    )
+"""
+
+
+def needs_review_params(db):
+    return {"today": date.today().isoformat(), "current_season": current_season(db)}
+
+
 def _duplicate_historical_rows(db):
     """Bare historical_results rows (no category/result - see
     admin.bulk_historical_productions) that duplicate either a real
@@ -84,28 +131,31 @@ def _duplicate_historical_rows(db):
     find_duplicate_historical_rows.py, which this mirrors - kept as a live
     dashboard check too, not just a one-off script, so a recurrence (a
     future tool bug, a moderator double-pasting a list) surfaces on its own
-    rather than needing someone to remember to run the script again."""
+    rather than needing someone to remember to run the script again.
+
+    Both halves match on production_id now rather than re-deriving "same
+    production" per query. The shows half used to compare the show's opening
+    *calendar year* against the award year, which is only ever true for a
+    spring production and is never true for a skeleton show (no dates at
+    all) - so it found 0 duplicates against real data while 9 sat there,
+    every one a bulk-added row for a production that already had a shows
+    row."""
     return db.execute(
         """
         SELECT h1.id, h1.year, h1.show, h1.society_name
         FROM historical_results h1
         WHERE h1.category_name IS NULL AND h1.result IS NULL
-          AND h1.society_id IS NOT NULL AND h1.show IS NOT NULL
+          AND h1.production_id IS NOT NULL
           AND EXISTS (
             SELECT 1 FROM historical_results h2
-            WHERE h2.year = h1.year AND h2.show = h1.show AND h2.society_id = h1.society_id
-              AND h2.id != h1.id
+            WHERE h2.production_id = h1.production_id AND h2.id != h1.id
           )
         UNION
         SELECT h.id, h.year, h.show, h.society_name
         FROM historical_results h
         WHERE h.category_name IS NULL AND h.result IS NULL
-          AND h.society_id IS NOT NULL AND h.show IS NOT NULL
-          AND EXISTS (
-            SELECT 1 FROM shows s
-            WHERE s.society_id = h.society_id AND s.show = h.show
-              AND substr(s.opening_date, 1, 4) = CAST(h.year AS TEXT)
-          )
+          AND h.production_id IS NOT NULL
+          AND EXISTS (SELECT 1 FROM shows s WHERE s.production_id = h.production_id)
         ORDER BY society_name, year
         """
     ).fetchall()
@@ -137,24 +187,17 @@ def _orphaned_titles(db):
 @login_required
 def dashboard():
     db = get_db()
+    # Several counters below read production_id, so the derived table has to
+    # be current with the source tables first (no-op unless something moved).
+    productions_build.ensure_current(db)
     current = current_season(db)
 
     pending_count = db.execute(
         "SELECT COUNT(*) FROM shows WHERE moderation_status = 'pending'"
     ).fetchone()[0]
 
-    # "Not adjudicated" is excluded - it's a deliberate, permanent state (that
-    # show will never have a review), not a gap waiting to be filled in. A
-    # skeleton show (source='historical') is excluded too - its review lives
-    # in historical_reviews, not review_url, so review_status stays 'None' by
-    # design and would otherwise sit in this count forever, unfixable.
     needs_review_count = db.execute(
-        """
-        SELECT COUNT(*) FROM shows
-        WHERE moderation_status = 'approved' AND show IS NOT NULL AND source != 'historical'
-          AND review_status NOT IN ('Published', 'Not adjudicated') AND season <= ?
-        """,
-        (current,),
+        f"SELECT COUNT(*) FROM shows WHERE {NEEDS_REVIEW_WHERE}", needs_review_params(db)
     ).fetchone()[0]
 
     # Same reasoning as needs_review_count above - a skeleton show is
@@ -221,7 +264,9 @@ def dashboard():
     ).fetchone()
     awards_pending_season = None
     if concluded:
-        award_year = 2000 + int(concluded["season"].split("/")[1])
+        # The shared helper, not its own inline copy of the same sum - this is
+        # a shows-table season, which is what that helper is safe for.
+        award_year = historical_results_year(concluded["season"])
         has_awards = db.execute("SELECT 1 FROM historical_results WHERE year = ?", (award_year,)).fetchone()
         if not has_awards:
             awards_pending_season = concluded["season"]
@@ -297,6 +342,9 @@ def dashboard():
 @login_required
 def data_quality():
     db = get_db()
+    # _duplicate_historical_rows reads production_id (see its docstring), so
+    # the derived table has to be current first.
+    productions_build.ensure_current(db)
     orphaned_info, orphaned_links = _orphaned_titles(db)
     return render_template(
         "admin/data_quality.html",
@@ -378,35 +426,33 @@ def shows_list():
     # "all" = no season filter. Anything else = an exact season match.
     season = request.args.get("season", "")
     current = current_season(db)
+    if needs_review:
+        # This filter reads production_id, so the derived table has to be
+        # current first (no-op unless something moved).
+        productions_build.ensure_current(db)
 
+    # Named params throughout, not positional - NEEDS_REVIEW_WHERE below uses
+    # them, and sqlite3 won't mix the two styles in one statement.
     query = """
         SELECT shows.*, societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.moderation_status = 'approved'
     """
-    params = []
+    params = needs_review_params(db)
     if q:
-        query += " AND (shows.show LIKE ? ESCAPE '\\' OR societies.name LIKE ? ESCAPE '\\')"
+        query += " AND (shows.show LIKE :like ESCAPE '\\' OR societies.name LIKE :like ESCAPE '\\')"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        like = f"%{escaped}%"
-        params += [like, like]
+        params["like"] = f"%{escaped}%"
     if needs_review:
-        # "Not adjudicated" is a deliberate, permanent state - that show will
-        # never have a review, so it's not something a moderator needs to
-        # come back and fix. A skeleton show is excluded too - its review
-        # lives in historical_reviews, not review_url (see needs_review_count).
-        # Excluding both here keeps this filter meaning "still needs a link
-        # added", not "isn't Published for any reason".
-        query += (
-            " AND shows.review_status NOT IN ('Published', 'Not adjudicated')"
-            " AND shows.show IS NOT NULL AND shows.source != 'historical'"
-        )
+        # Exactly the dashboard counter's own definition, so the number on the
+        # card and the number of rows on this page can't disagree - see
+        # NEEDS_REVIEW_WHERE.
+        query += f" AND {NEEDS_REVIEW_WHERE}"
     if season == "":
-        query += " AND shows.season <= ?"
-        params.append(current)
+        query += " AND shows.season <= :current_season"
     elif season != "all":
-        query += " AND shows.season = ?"
-        params.append(season)
+        query += " AND shows.season = :season"
+        params["season"] = season
     query += " ORDER BY shows.season DESC, societies.name"
 
     shows = db.execute(query, params).fetchall()
@@ -1794,36 +1840,23 @@ def apply_society_corrections():
 @login_required
 def reviews_queue():
     db = get_db()
-    today = date.today().isoformat()
+    productions_build.ensure_current(db)
 
-    # "Already finished" (closing_date, opening_date as a fallback for a show
-    # with only one date on record) - unlike the dashboard's own "Shows
-    # missing a review link" count, which is season-based and can include a
-    # not-yet-run show in the current season. "Not adjudicated" is a
-    # deliberate, permanent state, same reasoning as needs_review_count. A
-    # skeleton show (source='historical') is excluded - its review lives in
-    # historical_reviews, not review_url. The NOT EXISTS guards against the
-    # rare case of a non-skeleton show that also has an approved
-    # historical_reviews row (already has a real review, just not via this
-    # field) - shouldn't be nagged about here either.
+    # Same definition as the dashboard's own "Shows missing a review link"
+    # counter and the shows-list filter behind it - see NEEDS_REVIEW_WHERE.
+    # This page's own version was the one that had it right; the shared
+    # fragment is essentially it, with undated-but-past shows no longer
+    # dropped for having no closing_date to test.
     rows = db.execute(
-        """
+        f"""
         SELECT shows.id, shows.show, shows.season, shows.review_status,
                COALESCE(shows.closing_date, shows.opening_date) AS finished_on,
                societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
-        WHERE shows.moderation_status = 'approved'
-          AND shows.show IS NOT NULL AND shows.source != 'historical'
-          AND shows.review_status != 'Not adjudicated'
-          AND (shows.review_url IS NULL OR shows.review_url = '')
-          AND COALESCE(shows.closing_date, shows.opening_date) < ?
-          AND NOT EXISTS (
-              SELECT 1 FROM historical_reviews
-              WHERE historical_reviews.show_id = shows.id AND historical_reviews.moderation_status = 'approved'
-          )
+        WHERE {NEEDS_REVIEW_WHERE}
         ORDER BY finished_on DESC
         """,
-        (today,),
+        needs_review_params(db),
     ).fetchall()
 
     return render_template("admin/reviews_queue.html", rows=rows)

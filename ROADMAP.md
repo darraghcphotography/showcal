@@ -59,8 +59,25 @@ seasons, 1-4 each, from only Wexford Light Opera / Roscrea / Carrick-on-Suir) fo
 summary row** rather than 51 near-empty ones - see `ARCHIVE_CIRCUIT_START_YEAR` in `constants.py`. Nothing
 is hidden; the total still includes them.
 
-**Next, in order (stages 2-4 of the staged cutover):**
-- **Admin dashboard counts** (`admin.py`) - next smallest blast radius, and the next thing to do.
+**Stage 2 done 2026-08-22 (admin counts), not yet deployed.** `NEEDS_REVIEW_WHERE` in `admin.py` is now
+the single definition of "this production has run and nobody has written it up", shared by the dashboard
+counter, the shows-list `needs_review` filter it links to, and the Reviews queue. They disagreed before
+(115 / 115 / 29 against real data) - the queue was the right one, the other two were season-based and so
+counted 86 shows that hadn't happened yet. All three now say 29. `_duplicate_historical_rows` matches on
+`production_id` instead of comparing a show's opening *calendar year* to the award year (never true for an
+autumn production, never true at all for a dateless skeleton row): 0 duplicates found before, **9 real
+ones now** - bulk-added rows for productions that already have a shows row, all from the four backfilled
+societies. `awards_pending_season` uses the shared `historical_results_year()` rather than its own inline
+copy. 12 new tests, full suite 455 green.
+- One thing checked and found NOT to be true, recorded so it isn't re-claimed: reading the review through
+  `production_id` rather than `show_id` returns the identical set today, because a production only ever
+  has one shows row (the rebuild's verification enforces exactly that). It's written that way because it's
+  the question actually being asked, not because it changed a number.
+- Any route reading `production_id` must call `productions_build.ensure_current(db)` first - four do now
+  (dashboard, shows_list, reviews_queue, data_quality). Forgetting it doesn't error, it silently
+  under-reports; that's how the data-quality test caught it.
+
+**Next, in order (stages 3-4 of the staged cutover):**
 - **Public show/society pages** (`public.py`) - last, highest traffic. `reviews_index()` is the most
   useful worked example in the codebase of the problem this table solves (it unions `shows` and
   `historical_reviews` and reconciles adjudicator identity across both); `venues_index()` is the example
