@@ -17,7 +17,7 @@ from ..constants import (
 from .. import productions_build
 from ..db import get_db
 from ..search import fts_match_ids
-from ..season import current_season, historical_results_season, historical_results_year, season_start_year, season_weeks
+from ..season import current_season, season_start_year, season_weeks
 
 bp = Blueprint("info", __name__)
 
