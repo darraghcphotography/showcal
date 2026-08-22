@@ -107,7 +107,12 @@ CREATE TABLE IF NOT EXISTS shows (
     -- further down). Filled in by build_productions.py, not by any form or
     -- import - a NULL here means the row hasn't been through a rebuild yet,
     -- or has no usable title (a "society slotted, title TBA" placeholder).
-    production_id          INTEGER REFERENCES productions(id)
+    production_id          INTEGER REFERENCES productions(id),
+
+    -- The real building `venue` names (see the venues table). Resolved from
+    -- the free-text `venue` above via venue_aliases; NULL when no venue was
+    -- recorded for this production at all.
+    venue_id               INTEGER REFERENCES venues(id)
 );
 
 -- Natural key for upsert-on-reimport. show can be NULL (placeholder "slotted for
@@ -506,6 +511,72 @@ CREATE TABLE IF NOT EXISTS productions_build_state (
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_productions_natural_key
     ON productions(society_key, season_start_year, title_key);
+
+-- One row per real building an AIMS society has staged a production in.
+--
+-- shows.venue is free text typed per production, and it drifts: "Town Hall
+-- Theatre" is spelled 8 different ways across the archive, "National Opera
+-- House" 4, and some entries are a bare town name ("Dublin") or not a venue at
+-- all ("Cork run"). 177 distinct strings stand for roughly 110-130 buildings.
+-- That's fine for recording what someone typed, and useless as something to
+-- hang a capacity or a map pin on - hence a real record, with the raw string
+-- kept exactly as entered and mapped to it through venue_aliases.
+--
+-- Everything below town is optional and drip-fed: a moderator fills a field in
+-- when they have it, and the public page renders each one only when it's set,
+-- rather than showing "not collected" placeholders. Nothing here is required
+-- for the page to work - name, productions, resident societies and stage
+-- history all come from the shows table as they always did.
+CREATE TABLE IF NOT EXISTS venues (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    name             TEXT NOT NULL,          -- canonical display name
+    slug             TEXT NOT NULL UNIQUE,   -- /venues/<slug>
+    name_key         TEXT NOT NULL UNIQUE,   -- normalized name; the identity
+
+    town             TEXT,
+    county           TEXT,
+    -- Seeded from the productions staged here (a show carries its own region
+    -- snapshot), then moderator-correctable. NULL where those disagree with no
+    -- majority - a real "needs a human" state, not an error.
+    region           TEXT CHECK (region IN (
+                          'Eastern', 'Western', 'Northern',
+                          'South-West', 'South-East', 'Midlands'
+                      ) OR region IS NULL),
+
+    capacity         INTEGER,
+    auditorium_type  TEXT,
+    latitude         REAL,
+    longitude        REAL,
+    website_url      TEXT,
+    tech_spec_url    TEXT,
+    notes            TEXT,                   -- moderator-facing, never shown publicly
+
+    created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Every distinct spelling that has ever appeared in shows.venue, pointing at
+-- the venue it means. This is what makes merging safe and re-runnable: the
+-- seeder creates one venue plus one alias per new spelling, a moderator merge
+-- repoints the alias, and a later re-run finds the alias rather than
+-- recreating the venue that was merged away. shows.venue itself is never
+-- rewritten - what someone typed stays what they typed.
+CREATE TABLE IF NOT EXISTS venue_aliases (
+    name_key   TEXT PRIMARY KEY,             -- normalized shows.venue string
+    raw        TEXT NOT NULL,                -- one real spelling, for the admin UI
+    venue_id   INTEGER NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_venue_aliases_venue_id ON venue_aliases(venue_id);
+CREATE INDEX IF NOT EXISTS idx_venues_region ON venues(region);
+
+-- Same one-row change detector as productions_build_state above.
+CREATE TABLE IF NOT EXISTS venues_build_state (
+    id           INTEGER PRIMARY KEY CHECK (id = 1),
+    fingerprint  TEXT NOT NULL,
+    built_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE INDEX IF NOT EXISTS idx_productions_society_id ON productions(society_id);
 CREATE INDEX IF NOT EXISTS idx_productions_season_start_year ON productions(season_start_year);
 CREATE INDEX IF NOT EXISTS idx_productions_title_key ON productions(title_key);

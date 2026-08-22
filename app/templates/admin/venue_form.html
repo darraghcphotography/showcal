@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ venue['name'] }} - DC Show Tracker{% endblock %}
+{% block content %}
+  <p class="meta"><a href="{{ url_for('admin.venue_directory') }}">&larr; Venue directory</a></p>
+  <h1>{{ venue['name'] }}</h1>
+  <p class="meta">Everything below except the name is optional. The public page shows each field only
+     once it has a value - a blank one is simply left out, not shown as "unknown".</p>
+
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>Name
+      <input type="text" name="name" value="{{ form['name'] or '' }}" required>
+    </label>
+    <p class="meta">The canonical name. Individual shows keep whatever venue text was typed on them;
+       this is what the public page displays.</p>
+
+    <label>Town
+      <input type="text" name="town" value="{{ form['town'] or '' }}">
+    </label>
+    <label>County
+      <input type="text" name="county" value="{{ form['county'] or '' }}">
+    </label>
+    <label>Region
+      <select name="region">
+        <option value="">Not set</option>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if form['region'] == r %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="meta">Region is filled in automatically from the productions staged here, and left
+       blank when those disagree. Correct it if it's wrong.</p>
+
+    <label>Seating capacity
+      <input type="number" name="capacity" min="1" value="{{ form['capacity'] if form['capacity'] is not none else '' }}">
+    </label>
+    <label>Auditorium type
+      <select name="auditorium_type">
+        <option value="">Not set</option>
+        {% for t in auditorium_types %}
+          <option value="{{ t }}" {% if form['auditorium_type'] == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Latitude
+      <input type="text" name="latitude" value="{{ form['latitude'] if form['latitude'] is not none else '' }}"
+             placeholder="53.3498">
+    </label>
+    <label>Longitude
+      <input type="text" name="longitude" value="{{ form['longitude'] if form['longitude'] is not none else '' }}"
+             placeholder="-6.2603">
+    </label>
+    <p class="meta">Both together put the venue on the map. One on its own does nothing.</p>
+
+    <label>Website
+      <input type="url" name="website_url" value="{{ form['website_url'] or '' }}" placeholder="https://...">
+    </label>
+    <label>Technical spec link
+      <input type="url" name="tech_spec_url" value="{{ form['tech_spec_url'] or '' }}" placeholder="https://...">
+    </label>
+    <p class="meta">A link to the venue's own spec sheet, rather than copying stage dimensions in
+       here - the venue keeps theirs up to date, and this way there's nothing to go stale.</p>
+
+    <label>Notes
+      <textarea name="notes" rows="3">{{ form['notes'] or '' }}</textarea>
+    </label>
+    <p class="meta">Moderator-facing only. Never shown on the public page.</p>
+
+    <button type="submit">Save venue</button>
+  </form>
+{% endblock %}

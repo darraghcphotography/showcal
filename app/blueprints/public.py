@@ -6,7 +6,7 @@ from urllib.parse import quote_plus
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
-from .. import notify
+from .. import notify, venues_build
 from ..auth import current_user
 from ..calendar_links import google_calendar_url
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
@@ -16,6 +16,7 @@ from ..search import build_phrase_query, fts_match_ids
 from ..season import current_season, historical_results_year, season_has_ended, season_range, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
+from ..venues import normalize_venue
 
 bp = Blueprint("public", __name__)
 
@@ -1203,40 +1204,54 @@ def title_detail(title):
 @bp.route("/venues")
 def venues_index():
     db = get_db()
+    venues_build.ensure_current(db)
     q = request.args.get("q", "").strip()
+    region = request.args.get("region", "")
+    if region not in REGIONS:
+        region = ""
 
-    # Exact string match on shows.venue, same "not fuzzy" policy as title
-    # matching elsewhere on this site (similarity.normalize_title's own
-    # docstring) - a near-duplicate spelling of the same real venue is a
-    # data-quality question for later, not something to silently merge here.
-    # historical_results has no venue column at all, so this is necessarily
-    # scoped to the shows table (05/06 on), not the full awards archive.
+    # Reads the venues table rather than grouping the free-text shows.venue
+    # column: the same building is typed several different ways across the
+    # archive ("Town Hall Theatre" eight ways), which used to split one venue
+    # across several rows. A venue's spellings are mapped to it through
+    # venue_aliases, and merging two of them is a moderator decision (see
+    # /admin/venue-directory). historical_results has no venue column at all,
+    # so this is still necessarily scoped to the shows table (05/06 on).
     query = """
-        SELECT shows.venue AS venue, COUNT(*) AS n, COUNT(DISTINCT shows.society_id) AS soc_n
-        FROM shows JOIN societies ON societies.id = shows.society_id
-        WHERE shows.venue IS NOT NULL AND shows.venue != ''
-          AND shows.moderation_status = 'approved' AND NOT societies.hidden
+        SELECT venues.*,
+               COUNT(shows.id) AS n,
+               COUNT(DISTINCT shows.society_id) AS soc_n,
+               MIN(shows.season) AS first_season, MAX(shows.season) AS last_season
+          FROM venues
+          JOIN shows ON shows.venue_id = venues.id
+          JOIN societies ON societies.id = shows.society_id
+         WHERE shows.moderation_status = 'approved' AND NOT societies.hidden
     """
     params = []
     if q:
-        query += " AND shows.venue LIKE ? ESCAPE '\\'"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        params.append(f"%{escaped}%")
-    # Most-used first, not alphabetical - the free-text venue field has real
-    # noise (data-entry slips like an anniversary note where a venue name
-    # should be, near-duplicate spellings of the same real venue) and
-    # alphabetical order put exactly that noise at the very top. Sorting by
-    # production count instead means the real, recognizable venues lead the
-    # list; the noise is still all there, just no longer first impression.
-    query += " GROUP BY shows.venue ORDER BY n DESC, shows.venue COLLATE NOCASE"
+        query += (" AND (venues.name LIKE ? ESCAPE '\\' OR venues.town LIKE ? ESCAPE '\\'"
+                  " OR venues.county LIKE ? ESCAPE '\\')")
+        params += [f"%{escaped}%"] * 3
+    if region:
+        query += " AND venues.region = ?"
+        params.append(region)
+    # Most-used first, not alphabetical - the venue field still has real noise
+    # in it (an anniversary note where a venue name should be, a bare county
+    # name), and alphabetical order put exactly that at the very top. Sorting
+    # by production count means the real, recognizable venues lead; the noise
+    # is all still there, just no longer the first impression.
+    query += " GROUP BY venues.id ORDER BY n DESC, venues.name COLLATE NOCASE"
     venues = db.execute(query, params).fetchall()
 
     total = len(venues)
     per_page, page, total_pages = paginate_args(total)
     venues = venues[(page - 1) * per_page:page * per_page]
 
+    mapped = [v for v in venues if v["latitude"] is not None and v["longitude"] is not None]
     return render_template(
-        "venues_list.html", venues=venues, q=q,
+        "venues_list.html", venues=venues, q=q, regions=REGIONS, selected_region=region,
+        mapped_count=len(mapped),
         page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=LIST_PAGE_SIZES,
     )
 
@@ -1244,14 +1259,30 @@ def venues_index():
 @bp.route("/venues/<path:venue>")
 def venue_detail(venue):
     db = get_db()
+    venues_build.ensure_current(db)
+    # `venue` is a slug now, but every previously-published /venues/<name> URL
+    # used the raw venue string - those are still live links (and indexed), so
+    # a name that resolves through venue_aliases redirects to its slug rather
+    # than 404ing.
+    row = db.execute("SELECT * FROM venues WHERE slug = ?", (venue,)).fetchone()
+    if row is None:
+        alias = db.execute(
+            "SELECT venues.slug FROM venue_aliases JOIN venues ON venues.id = venue_aliases.venue_id "
+            "WHERE venue_aliases.name_key = ?",
+            (normalize_venue(venue),),
+        ).fetchone()
+        if alias is None:
+            abort(404)
+        return redirect(url_for("public.venue_detail", venue=alias["slug"]), code=301)
+
     shows = db.execute(
         """
         SELECT shows.*, societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
-        WHERE shows.venue = ? AND shows.moderation_status = 'approved' AND NOT societies.hidden
+        WHERE shows.venue_id = ? AND shows.moderation_status = 'approved' AND NOT societies.hidden
         ORDER BY shows.season DESC, shows.opening_date DESC
         """,
-        (venue,),
+        (row["id"],),
     ).fetchall()
     if not shows:
         abort(404)
@@ -1273,9 +1304,19 @@ def venue_detail(venue):
     latest = max(seasons_seen, key=season_start_year)
     span = earliest if earliest == latest else f"{earliest}–{latest}"
 
+    # Every spelling this venue has been recorded under, so a page for a venue
+    # whose name was corrected or merged still says what people will recognise.
+    spellings = [
+        r["venue"] for r in db.execute(
+            "SELECT DISTINCT venue FROM shows WHERE venue_id = ? AND venue IS NOT NULL "
+            "AND venue != ? ORDER BY venue",
+            (row["id"], row["name"]),
+        )
+    ]
     return render_template(
-        "venue_detail.html", venue=venue, upcoming=upcoming, past=past,
+        "venue_detail.html", venue=row, upcoming=upcoming, past=past, spellings=spellings,
         resident_societies=resident_societies, production_count=len(shows), span=span,
+        seasons=len({s["season"] for s in shows}),
     )
 
 

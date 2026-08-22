@@ -86,8 +86,9 @@ def create_app(test_config=None):
         # import script that rewrote rows outside the app - has to be picked up
         # without anyone remembering to run something. Cheap: a rebuild with
         # nothing to do writes nothing and takes ~50ms at this data's size.
-        from . import productions_build
+        from . import productions_build, venues_build
         productions_build.build(db_module.get_db())
+        venues_build.build(db_module.get_db())
         db_module.get_db().commit()
 
         # Publish any new CHANGELOG.md entries - skipped under pytest so a

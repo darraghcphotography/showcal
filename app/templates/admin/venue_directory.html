@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Venue directory - DC Show Tracker{% endblock %}
+
+{% macro venue_row(entry) %}
+  <tr>
+    <td>
+      <a href="{{ url_for('admin.edit_venue_record', venue_id=entry['id']) }}">{{ entry['name'] }}</a>
+      {% if entry['unresolved'] %}
+        <span class="tag" title="Recorded as a town, a county, or a note about the run - not a building">Not a building?</span>
+      {% endif %}
+      {% if entry['spellings'] and ',' in entry['spellings'] %}
+        <div class="meta">Recorded as: {{ entry['spellings'] }}</div>
+      {% endif %}
+    </td>
+    <td>{{ entry['town'] or '' }}{% if entry['county'] %}, {{ entry['county'] }}{% endif %}</td>
+    <td>{{ entry['region'] or '&mdash;'|safe }}</td>
+    <td>{{ entry['productions'] }}</td>
+    <td>{{ entry['detail_filled'] }}/8</td>
+    <td>
+      {% if entry['suggestions'] %}
+        {% for other in entry['suggestions'] %}
+          <form method="post" action="{{ url_for('admin.merge_venue_records') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="source_id" value="{{ entry['id'] }}">
+            <input type="hidden" name="target_id" value="{{ other['id'] }}">
+            <button type="submit">Merge into &ldquo;{{ other['name'] }}&rdquo;</button>
+          </form>
+        {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+{% endmacro %}
+
+{% block content %}
+  <h1>Venue directory</h1>
+  <p class="meta">{{ total }} venues, built from the venue typed on each show. This is the record
+     the public <a href="{{ url_for('public.venues_index') }}">Venues</a> page is built on, and the
+     thing a capacity, a map pin or a website link hangs off - separate from
+     <a href="{{ url_for('admin.venues') }}">Backfill default venues</a>, which sets one usual venue
+     per society.</p>
+  <p class="meta">Every detail field is optional and safe to leave blank; the public page shows each
+     one only once it's filled in. Nothing here is required for a venue to work.</p>
+
+  <h2>Possible duplicates ({{ duplicates|length }})</h2>
+  <p class="meta">Venues that might be the same building recorded under different spellings - the
+     actual clearable job on this page. <strong>These are suggestions, not findings</strong>: the
+     rule that spots them is loose enough to propose the Galway, Ballinasloe and Claremorris Town
+     Hall Theatres as one venue, and they're three different buildings. Read the name before
+     merging.</p>
+  {% if duplicates %}
+    <table class="data-table">
+      <thead><tr><th>Venue</th><th>Town</th><th>Region</th><th>Productions</th><th>Details</th><th></th></tr></thead>
+      <tbody>
+        {% for entry in duplicates %}{{ venue_row(entry) }}{% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="meta">Nothing waiting - no venue looks like a duplicate of another.</p>
+  {% endif %}
+
+  <h2>Settled ({{ settled|length }})</h2>
+  <table class="data-table">
+    <thead><tr><th>Venue</th><th>Town</th><th>Region</th><th>Productions</th><th>Details</th><th></th></tr></thead>
+    <tbody>
+      {% for entry in settled %}{{ venue_row(entry) }}{% endfor %}
+    </tbody>
+  </table>
+
+  {% if place_names %}
+    <h2>Recorded as a place, not a venue ({{ place_names|length }})</h2>
+    <p class="meta">These entries are a town, a county, or a note about the run - whoever filled the
+       form in didn't have a venue name to give. Kept separate because most of them are
+       <strong>not clearable</strong>: a show recorded only as "Cork" can't be traced to a building
+       without evidence that doesn't exist anywhere. Worth a look only where you happen to know the
+       answer - and safe to ignore otherwise, rather than sitting at the top of the list forever.</p>
+    <table class="data-table">
+      <thead><tr><th>Venue</th><th>Town</th><th>Region</th><th>Productions</th><th>Details</th><th></th></tr></thead>
+      <tbody>
+        {% for entry in place_names %}{{ venue_row(entry) }}{% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

@@ -1,9 +1,9 @@
-"""/venues and /venues/<venue> - deliberately thin: name, resident
-societies, and stage history only, computed live from shows.venue. No
-capacity/type/map fields - that structured data doesn't exist anywhere in
-the schema (see ROADMAP.md's Venues Explorer scoping, 2026-08-21). Exact
-string match on venue name, same "not fuzzy" policy as title matching
-elsewhere on the site - see public.py's venues_index()/venue_detail()."""
+"""/venues and /venues/<slug> - now backed by the venues table rather than
+grouping the free-text shows.venue column (see schema.sql and app/venues.py).
+Spellings that normalize the same are one venue; anything looser is a
+moderator merge, never inferred. Capacity, auditorium type, map coordinates
+and links are optional and drip-fed - the page shows each only once it's set.
+See public.py's venues_index()/venue_detail()."""
 from conftest import seed_society
 
 
@@ -49,15 +49,42 @@ def test_search_filters_by_venue_name(client, db):
     assert "dlr Mill Theatre" not in body
 
 
-def test_venue_name_matching_is_exact_not_fuzzy(client, db):
-    """A casing/spelling variant of the same real venue stays a separate
-    entry - deliberate, matches the site's title-matching policy."""
+def test_casing_and_punctuation_variants_are_one_venue(client, db):
+    """"Civic Theatre Tallaght" and "Civic Theatre, Tallaght" are one
+    building. Splitting them across two cards was the main thing wrong with
+    reading the free-text column directly - eight spellings of Town Hall
+    Theatre in the live archive."""
     society_id = seed_society(db)
-    add_show(db, society_id, "Oliver!", "Gorey Little Theatre", season="24/25")
-    add_show(db, society_id, "Oklahoma!", "gorey little theatre", season="23/24")
+    add_show(db, society_id, "Oliver!", "Civic Theatre Tallaght", season="24/25")
+    add_show(db, society_id, "Oklahoma!", "Civic Theatre, Tallaght", season="23/24")
 
     body = client.get("/venues").get_data(as_text=True)
-    assert "<strong>1</strong> production" in body  # each venue string is its own card
+    assert "<strong>2</strong> productions" in body
+
+
+def test_venue_matching_is_still_not_fuzzy(client, db):
+    """Loose enough to merge two spellings of one theatre is also loose
+    enough to merge three different Town Hall Theatres - which is why
+    anything beyond normalization is a moderator decision, not inferred."""
+    society_id = seed_society(db)
+    add_show(db, society_id, "Oliver!", "Town Hall Theatre, Galway", season="24/25")
+    add_show(db, society_id, "Oklahoma!", "Town Hall Theatre, Claremorris", season="23/24")
+
+    body = client.get("/venues").get_data(as_text=True)
+    assert "Town Hall Theatre, Galway" in body
+    assert "Town Hall Theatre, Claremorris" in body
+    assert "<strong>2</strong> productions" not in body
+
+
+def test_an_old_venue_url_still_works(client, db):
+    """Every /venues/<raw name> URL published before this table existed is a
+    live, indexed link - it redirects to the venue's slug rather than 404ing."""
+    society_id = seed_society(db)
+    add_show(db, society_id, "Oliver!", "Gorey Little Theatre")
+
+    resp = client.get("/venues/Gorey Little Theatre")
+    assert resp.status_code == 301
+    assert resp.headers["Location"].endswith("/venues/gorey-little-theatre")
 
 
 def test_hidden_society_excluded(client, db):
@@ -90,7 +117,7 @@ def test_detail_shows_resident_societies_with_counts(client, db):
     add_show(db, a, "Oklahoma!", "The Venue", season="22/23")
     add_show(db, b, "Chicago", "The Venue", season="21/22")
 
-    body = client.get("/venues/The Venue").get_data(as_text=True)
+    body = client.get("/venues/The Venue", follow_redirects=True).get_data(as_text=True)
     assert "Frequent Flyers" in body
     assert "2 productions here" in body
     assert "One Timer" in body
@@ -104,7 +131,7 @@ def test_detail_splits_upcoming_and_past(client, db):
     add_show(db, society_id, "Future Show", "The Venue", season="26/27",
              opening_date="2099-01-01", closing_date="2099-01-05")
 
-    body = client.get("/venues/The Venue").get_data(as_text=True)
+    body = client.get("/venues/The Venue", follow_redirects=True).get_data(as_text=True)
     upcoming_section = body.split("Upcoming here")[1].split("Stage history")[0]
     history_section = body.split("Stage history")[1]
     assert "Future Show" in upcoming_section
@@ -118,7 +145,7 @@ def test_cancelled_upcoming_show_treated_as_not_upcoming(client, db):
     add_show(db, society_id, "Cancelled Show", "The Venue", season="26/27",
              opening_date="2099-01-01", closing_date="2099-01-05", status="Cancelled")
 
-    body = client.get("/venues/The Venue").get_data(as_text=True)
+    body = client.get("/venues/The Venue", follow_redirects=True).get_data(as_text=True)
     assert "Upcoming here" not in body
 
 
@@ -126,7 +153,7 @@ def test_span_shows_single_season_without_a_dash_when_theres_only_one(client, db
     society_id = seed_society(db)
     add_show(db, society_id, "Only Show", "One Season Venue", season="23/24")
 
-    body = client.get("/venues/One Season Venue").get_data(as_text=True)
+    body = client.get("/venues/One Season Venue", follow_redirects=True).get_data(as_text=True)
     assert '<span class="stat-value">23/24</span>' in body
     assert "23/24–23/24" not in body
 

@@ -1,15 +1,42 @@
 {% extends "base.html" %}
-{% block title %}{{ venue }} - DC Show Tracker{% endblock %}
-{% block og_description %}{{ production_count }} AIMS production{{ '' if production_count == 1 else 's' }} staged at {{ venue }}.{% endblock %}
+{% block title %}{{ venue['name'] }} - DC Show Tracker{% endblock %}
+{% block og_description %}{{ production_count }} AIMS production{{ '' if production_count == 1 else 's' }} staged at {{ venue['name'] }}.{% endblock %}
 {% block content %}
   <p class="meta"><a href="{{ url_for('public.venues_index') }}">&larr; All venues</a></p>
-  <h1>{{ venue }}</h1>
+  <h1>{{ venue['name'] }}</h1>
+
+  {% set place = [venue['town'], venue['county']]|select|join(', ') %}
+  {% if place or venue['region'] %}
+    <p class="meta">{{ place }}{% if place and venue['region'] %} &middot; {% endif %}{% if venue['region'] %}{{ venue['region'] }} region{% endif %}</p>
+  {% endif %}
+
+  {# Each detail is shown only once it has been filled in - a venue with none
+     simply doesn't get this block, rather than a list of "unknown"s. #}
+  {% set has_details = venue['capacity'] or venue['auditorium_type'] or venue['website_url'] or venue['tech_spec_url'] %}
+  {% if has_details %}
+    <dl class="detail-list">
+      {% if venue['capacity'] %}<dt>Seating capacity</dt><dd>{{ venue['capacity'] }}</dd>{% endif %}
+      {% if venue['auditorium_type'] %}<dt>Auditorium type</dt><dd>{{ venue['auditorium_type'] }}</dd>{% endif %}
+      {% if venue['website_url'] %}<dt>Website</dt><dd><a href="{{ venue['website_url'] }}" rel="noopener nofollow">{{ venue['website_url'] }}</a></dd>{% endif %}
+      {% if venue['tech_spec_url'] %}<dt>Technical spec</dt><dd><a href="{{ venue['tech_spec_url'] }}" rel="noopener nofollow">From the venue's own site</a></dd>{% endif %}
+    </dl>
+  {% endif %}
+
+  {% if venue['latitude'] is not none and venue['longitude'] is not none %}
+    <p class="meta"><a href="https://www.openstreetmap.org/?mlat={{ venue['latitude'] }}&amp;mlon={{ venue['longitude'] }}#map=16/{{ venue['latitude'] }}/{{ venue['longitude'] }}"
+                       rel="noopener nofollow">See {{ venue['name'] }} on a map</a></p>
+  {% endif %}
 
   <div class="stat-tiles">
     <div class="stat-tile"><span class="stat-value">{{ production_count }}</span><span class="stat-label">AIMS productions on record</span></div>
     <div class="stat-tile"><span class="stat-value">{{ resident_societies|length }}</span><span class="stat-label">Resident societ{{ 'y' if resident_societies|length == 1 else 'ies' }}</span></div>
-    <div class="stat-tile"><span class="stat-value">{{ span }}</span><span class="stat-label">Seasons on record</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ seasons }}</span><span class="stat-label">Season{{ '' if seasons == 1 else 's' }} on record</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ span }}</span><span class="stat-label">Span</span></div>
   </div>
+
+  {% if spellings %}
+    <p class="meta">Also recorded as {{ spellings|join(', ') }}.</p>
+  {% endif %}
 
   <h2>Resident societies</h2>
   <div class="resident-list">

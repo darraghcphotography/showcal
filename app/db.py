@@ -88,6 +88,9 @@ COLUMN_MIGRATIONS = [
         "historical_reviews", "production_id",
         "ALTER TABLE historical_reviews ADD COLUMN production_id INTEGER REFERENCES productions(id)",
     ),
+    # Links a production's free-text venue to the real building it names (see
+    # the venues table in schema.sql). Populated by app/venues_build.py.
+    ("shows", "venue_id", "ALTER TABLE shows ADD COLUMN venue_id INTEGER REFERENCES venues(id)"),
 ]
 
 
@@ -107,6 +110,7 @@ MIGRATED_COLUMN_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_shows_production_id ON shows(production_id)",
     "CREATE INDEX IF NOT EXISTS idx_historical_results_production_id ON historical_results(production_id)",
     "CREATE INDEX IF NOT EXISTS idx_historical_reviews_production_id ON historical_reviews(production_id)",
+    "CREATE INDEX IF NOT EXISTS idx_shows_venue_id ON shows(venue_id)",
 ]
 
 

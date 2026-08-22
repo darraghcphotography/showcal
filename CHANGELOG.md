@@ -1,3 +1,7 @@
+Venues is now built on real venue records rather than whatever text was typed on each show - the same building recorded two ways ("Civic Theatre Tallaght" and "Civic Theatre, Tallaght") is now one venue with one count, not two half-empty cards
+Venues can now be filtered by region, and searched by town or county as well as by name
+Each venue can now carry a seating capacity, auditorium type, website, technical spec link and map location - each one appears on the page only once it's been filled in, so the page grows as the detail is gathered rather than showing a wall of "unknown"
+Admin: new Venue directory tool for merging duplicate venue spellings and filling in venue detail
 Admin: "Shows missing a review link" was counting 115 when the real number is 29 - it was counting the whole current season, including 86 shows that haven't happened yet. The dashboard counter, the All Shows filter and the Reviews queue now all use one definition and give the same answer
 Admin: the duplicate-productions check was finding nothing because of a date-matching flaw - it now finds 9 real duplicates, bulk-added rows for productions that already have a show on record
 
