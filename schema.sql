@@ -101,7 +101,13 @@ CREATE TABLE IF NOT EXISTS shows (
     moderated_at           TEXT,
 
     created_at             TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
+    updated_at             TEXT NOT NULL DEFAULT (datetime('now')),
+
+    -- The production this staging belongs to (see the productions table
+    -- further down). Filled in by build_productions.py, not by any form or
+    -- import - a NULL here means the row hasn't been through a rebuild yet,
+    -- or has no usable title (a "society slotted, title TBA" placeholder).
+    production_id          INTEGER REFERENCES productions(id)
 );
 
 -- Natural key for upsert-on-reimport. show can be NULL (placeholder "slotted for
@@ -242,13 +248,23 @@ CREATE TABLE IF NOT EXISTS historical_results (
     nominee_name        TEXT,                 -- person, for individual-award categories
     role                TEXT,
     reason              TEXT,                 -- adjudicator's free-text note, mostly on discretionary awards
-    source              TEXT NOT NULL DEFAULT 'import' CHECK (source IN ('import', 'manual'))
+    source              TEXT NOT NULL DEFAULT 'import' CHECK (source IN ('import', 'manual')),
                                               -- 'import' rows are wiped/reloaded by import_awards.py on every
                                               -- run; 'manual' rows (added via /admin/awards) never are
+
+    -- The production this award record is about - many rows per production
+    -- (one show with 5 category results is 5 rows). Filled in by
+    -- build_productions.py; NULL for a row with no usable show title, which
+    -- names no production at all.
+    production_id       INTEGER REFERENCES productions(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_historical_results_show ON historical_results(show);
 CREATE INDEX IF NOT EXISTS idx_historical_results_society_id ON historical_results(society_id);
+-- NOTE: the index on production_id is created in app/db.py, not here - on a
+-- database that predates the column, schema.sql runs before COLUMN_MIGRATIONS
+-- adds it, so a CREATE INDEX here would fail with "no such column". Same for
+-- shows.production_id and historical_reviews.production_id.
 
 -- Remembers "these two titles are NOT the same show" decisions from the
 -- duplicate-title finder (/admin/duplicate-titles), so a legitimately
@@ -404,12 +420,84 @@ CREATE TABLE IF NOT EXISTS historical_reviews (
     -- moderator via Edit Show, for a review that exists but was never in
     -- the archive - show_detail.html cites these differently (no "Originally
     -- published in AIMS ShowTimes..." line, since that would be false).
-    source          TEXT NOT NULL DEFAULT 'showtimes' CHECK (source IN ('showtimes', 'manual'))
+    source          TEXT NOT NULL DEFAULT 'showtimes' CHECK (source IN ('showtimes', 'manual')),
+
+    -- The production this review is of. Reached via show_id (a review is
+    -- always attached to a shows row before it can be approved), so an
+    -- unmatched/pending review has NULL here - same state as show_id IS NULL.
+    production_id   INTEGER REFERENCES productions(id)
 );
 
+-- (production_id's index lives in app/db.py - see the note by historical_results.)
 CREATE INDEX IF NOT EXISTS idx_historical_reviews_show_id ON historical_reviews(show_id);
 CREATE INDEX IF NOT EXISTS idx_historical_reviews_moderation_status ON historical_reviews(moderation_status);
 CREATE INDEX IF NOT EXISTS idx_historical_reviews_season_tier ON historical_reviews(season, tier);
+
+-- One row per real staging: one show, by one society, in one season. This is
+-- the thing every "how many productions are on record" / "is this production
+-- reviewed" question on the site is actually about, and until this table
+-- existed there was no shared definition of it anywhere - each page re-derived
+-- its own by unioning shows with historical_results and anti-joining the
+-- skeleton rows, and they disagreed with each other (see ROADMAP: a 371-
+-- production undercount on /stats, then an 823-production one, both caused by
+-- exactly that).
+--
+-- DERIVED, NOT AUTHORED (first pass). Nothing writes here except
+-- build_productions.py, which rebuilds the whole table from shows /
+-- historical_results / historical_reviews and is safe to re-run - it upserts
+-- on the natural key, so a production keeps its id across rebuilds. Those
+-- three tables stay the place data is entered and edited; this one is the
+-- index over them. Making it authored (a moderator editing a production
+-- directly) is a later step, deliberately not part of the additive first cut.
+--
+-- season_start_year, not season, is identity. A 'yy/yy' string cannot
+-- identify a season across this archive's real 1912-2028 span: '11/12' names
+-- both the 1912 award year and the 2011/12 season, and the app's own
+-- historical_results_year() helper ('yy/yy' -> 2000+yy+1) silently sent every
+-- pre-2001 award year to a year that doesn't exist (1912 -> 2012, 2000 ->
+-- 2100). Storing the real four-digit start year makes that class of bug
+-- impossible rather than merely fixed. season is kept alongside purely as the
+-- display string.
+--
+-- society_key is how a production is identified when its society isn't in the
+-- societies table at all - 71 society names in the awards archive are
+-- defunct/renamed and have never matched a current row, and they still stage
+-- real productions that have to count. 'id:<societies.id>' when matched,
+-- 'name:<normalized name>' when not, so the natural key works either way and
+-- can never collide between the two forms.
+CREATE TABLE IF NOT EXISTS productions (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    -- identity (see ux_productions_natural_key below)
+    season_start_year  INTEGER NOT NULL,
+    society_key        TEXT NOT NULL,
+    title_key          TEXT NOT NULL,       -- app.similarity.normalize_title(title)
+
+    -- display values, resolved once here instead of re-derived per query
+    season             TEXT NOT NULL,       -- 'yy/yy', derived from season_start_year
+    society_id         INTEGER REFERENCES societies(id),   -- NULL = never matched
+    society_name       TEXT NOT NULL,       -- always populated, even when society_id is NULL
+    title              TEXT NOT NULL,
+
+    -- Region resolves once per production rather than through the three-way
+    -- COALESCE(shows.region, societies.region, historical_society_regions.
+    -- confirmed_region) fallback every historical query hand-rolls today.
+    -- NULL = a defunct society with no confirmed region guess, which is a real
+    -- state, not an error.
+    region             TEXT CHECK (region IN (
+                            'Eastern', 'Western', 'Northern',
+                            'South-West', 'South-East', 'Midlands'
+                        ) OR region IS NULL),
+
+    created_at         TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_productions_natural_key
+    ON productions(society_key, season_start_year, title_key);
+CREATE INDEX IF NOT EXISTS idx_productions_society_id ON productions(society_id);
+CREATE INDEX IF NOT EXISTS idx_productions_season_start_year ON productions(season_start_year);
+CREATE INDEX IF NOT EXISTS idx_productions_title_key ON productions(title_key);
 
 -- Full-text search indexes (SQLite FTS5, built in - no extra dependency).
 -- External-content tables: the FTS index stores only the tokenized text, the

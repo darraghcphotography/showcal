@@ -75,6 +75,19 @@ COLUMN_MIGRATIONS = [
         "CHECK (source IN ('showtimes', 'manual'))",
     ),
     ("adjudicators", "photo_filename", "ALTER TABLE adjudicators ADD COLUMN photo_filename TEXT"),
+    # Links into the productions table (see schema.sql). Populated only by
+    # build_productions.py - adding the column here is safe on an existing
+    # database because every one of them is nullable and nothing reads them
+    # until that script has run.
+    ("shows", "production_id", "ALTER TABLE shows ADD COLUMN production_id INTEGER REFERENCES productions(id)"),
+    (
+        "historical_results", "production_id",
+        "ALTER TABLE historical_results ADD COLUMN production_id INTEGER REFERENCES productions(id)",
+    ),
+    (
+        "historical_reviews", "production_id",
+        "ALTER TABLE historical_reviews ADD COLUMN production_id INTEGER REFERENCES productions(id)",
+    ),
 ]
 
 
@@ -83,6 +96,23 @@ def _apply_column_migrations(db):
         existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
         if column not in existing:
             db.execute(ddl)
+
+
+# Indexes on columns that COLUMN_MIGRATIONS adds. These deliberately can't
+# live in schema.sql: on a database created before the column existed,
+# schema.sql runs first, so a CREATE INDEX there would hit "no such column"
+# before the ALTER TABLE ever ran. Applied straight after the column
+# migrations instead, when the column is guaranteed to exist either way.
+MIGRATED_COLUMN_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_shows_production_id ON shows(production_id)",
+    "CREATE INDEX IF NOT EXISTS idx_historical_results_production_id ON historical_results(production_id)",
+    "CREATE INDEX IF NOT EXISTS idx_historical_reviews_production_id ON historical_reviews(production_id)",
+]
+
+
+def _create_migrated_column_indexes(db):
+    for ddl in MIGRATED_COLUMN_INDEXES:
+        db.execute(ddl)
 
 
 def _migrate_adjudicator_assignments_table(db):
@@ -262,6 +292,7 @@ def init_schema():
     _migrate_shows_source_check(db)
     _migrate_shows_natural_key_collation(db)
     _apply_column_migrations(db)
+    _create_migrated_column_indexes(db)
     db.commit()
 
     # Deliberately a separate transaction from the schema/column changes above -

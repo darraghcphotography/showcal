@@ -93,14 +93,44 @@ def historical_results_year(season):
     the other plausible one) that it's the *second* calendar year of the
     season string ('10/11' -> 2011, matching when that season's awards
     ceremony/the ShowTimes issue reporting on it actually happened), not
-    the first."""
+    the first.
+
+    ONLY safe for a season string that came from the shows table (05/06
+    onward). It hard-codes the 2000s and cannot express an award year before
+    2001 - '99/00' comes back as 2100, and the awards archive really does
+    reach back to 1912. Anything spanning the full archive must use
+    award_year_to_season_start / season_start_to_award_year below and carry a
+    four-digit year, never a 'yy/yy' string. See the productions table in
+    schema.sql for why this distinction has teeth: routing pre-2001 award
+    years through here is what hid 823 real productions from /stats."""
     return 2000 + int(season[:2]) + 1
 
 
 def historical_results_season(year):
     """Inverse of historical_results_year - the 'yy/yy' season string a given
-    historical_results.year belongs to."""
+    historical_results.year belongs to. Lossy for the same reason: 1912 and
+    2012 both come back as '11/12'. Display only."""
     return f"{(year - 1) % 100:02d}/{year % 100:02d}"
+
+
+def award_year_to_season_start(year):
+    """historical_results.year -> the real four-digit year that season opened
+    (2024 -> 2023, 1912 -> 1911). Exact and unambiguous in both directions,
+    unlike anything that round-trips through a two-digit season string."""
+    return year - 1
+
+
+def season_start_to_award_year(start_year):
+    """Inverse of award_year_to_season_start."""
+    return start_year + 1
+
+
+def season_label(start_year):
+    """Display 'yy/yy' for a real four-digit season start year (2023 ->
+    '23/24', 1911 -> '11/12'). One-way on purpose: two seasons a century
+    apart share a label, so a label is never an identity - see the
+    productions table."""
+    return f"{start_year % 100:02d}/{(start_year + 1) % 100:02d}"
 
 
 def season_start_year(season):
@@ -109,8 +139,12 @@ def season_start_year(season):
     unsafe once the archive reaches back past 2000 - '76/77' sorts *after*
     '09/10' as text despite being 33 years earlier, which is exactly the bug
     that silently duplicated every season in the adjudicator grid (Round 25).
-    The pivot suits this dataset's real range (the awards archive starts 1977,
-    shows run to 2027) and stays correct until 2050."""
+
+    The pivot at 50 fits the shows table's real range (05/06 to 27/28) and
+    stays correct until 2050, but it is NOT a general decoder for the awards
+    archive: that starts in 1912, so '11/12' is genuinely ambiguous and this
+    resolves it to 2011. Use it on a shows.season value; for anything derived
+    from historical_results.year, carry the four-digit year instead."""
     yy = int(season[:2])
     return (1900 + yy) if yy >= 50 else (2000 + yy)
 
