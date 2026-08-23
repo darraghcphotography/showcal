@@ -4,7 +4,7 @@ from ... import venues_build
 from ...auth import login_required
 from ...constants import REGIONS
 from ...db import get_db
-from ...venues import looks_unresolved, merge_candidates
+from ...venues import looks_unresolved, merge_candidates, merge_venue_into
 from . import bp
 from ._shared import URL_RE
 
@@ -158,35 +158,19 @@ def edit_venue_record(venue_id):
 @login_required
 def merge_venue_records():
     """Fold one venue into another: the same building recorded under two
-    spellings. Every alias and every show move to the target, and the source
-    row goes. Deliberately a moderator action - the suggestion that surfaced
-    the pair is loose enough to propose three different Town Hall Theatres as
-    one venue (see app/venues.py)."""
+    spellings. The merge itself is merge_venue_into() in app/venues.py, shared
+    with enrich_venues.py so a merge means the same thing however it's applied;
+    this route is the moderator's confirmation of a pair the suggestion queue
+    only guessed at."""
     db = get_db()
     source_id = request.form.get("source_id", type=int)
     target_id = request.form.get("target_id", type=int)
     if not source_id or not target_id or source_id == target_id:
         abort(400)
-    source = db.execute("SELECT * FROM venues WHERE id = ?", (source_id,)).fetchone()
-    target = db.execute("SELECT * FROM venues WHERE id = ?", (target_id,)).fetchone()
-    if source is None or target is None:
+    try:
+        source_name, target_name = merge_venue_into(db, source_id, target_id)
+    except LookupError:
         abort(404)
-
-    # Anything the moderator filled in on the source but not the target is
-    # carried across rather than dropped - a capacity researched under the
-    # other spelling is still that building's capacity.
-    carried = {
-        f: source[f] for f in ("town", "county", "region", "capacity", "auditorium_type",
-                               "latitude", "longitude", "website_url", "tech_spec_url")
-        if target[f] is None and source[f] is not None
-    }
-    if carried:
-        assignments = ", ".join(f"{f} = :{f}" for f in carried)
-        db.execute(f"UPDATE venues SET {assignments} WHERE id = :id", dict(carried, id=target_id))
-
-    db.execute("UPDATE venue_aliases SET venue_id = ? WHERE venue_id = ?", (target_id, source_id))
-    db.execute("UPDATE shows SET venue_id = ? WHERE venue_id = ?", (target_id, source_id))
-    db.execute("DELETE FROM venues WHERE id = ?", (source_id,))
     db.commit()
-    flash(f'Merged "{source["name"]}" into "{target["name"]}".', "success")
+    flash(f'Merged "{source_name}" into "{target_name}".', "success")
     return redirect(url_for("admin.venue_directory"))

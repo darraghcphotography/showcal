@@ -12,8 +12,8 @@ overwrite what a person put there. It only ever:
     edited (an edited one is kept; deleting a researched capacity because the
     last show using that spelling was retitled would be a bad trade).
 
-Merging two venues is a moderator action, not something inferred here - see
-app/blueprints/admin.py. The auto-merge that would be needed to do it here was
+Merging two venues is a confirmed action, not something inferred here - see
+merge_venue_into() in app/venues.py. The auto-merge that would be needed here was
 tested against the real archive and wrongly fused the Galway, Ballinasloe and
 Claremorris Town Hall Theatres, which are three different buildings.
 """

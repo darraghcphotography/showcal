@@ -1,3 +1,9 @@
+Venue pages have started filling in - the 30 venues AIMS societies play most now carry a seating capacity, a website, a county and a pin you can open on a map, where before every venue page had none of it
+Galway's Town Hall Theatre was split across two spellings, so its 17 productions read as 11 and 6 on separate pages - that and four other split venues are now one venue each
+Venues can now actually be searched by county, which the search box has been offering all along against no county data at all
+
+---
+
 Admin: "Shows missing a date" said 30 on the dashboard but listed 812 rows on the page it links to - the counter left out archive skeleton rows that can never have dates, the page didn't. Both now use one definition and give the same answer
 
 ---

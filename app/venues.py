@@ -123,6 +123,45 @@ def merge_candidates(venues):
     return suggestions
 
 
+def merge_venue_into(db, source_id, target_id):
+    """Fold one venue into another: the same building recorded under two
+    spellings. Every alias and every show move to the target, and the source
+    row goes.
+
+    Deliberately never inferred - merge_candidates() above is loose enough to
+    propose three different Town Hall Theatres as one venue, so something has
+    to confirm each pair. Today that's a moderator in /admin/venue-directory
+    or a reviewed pair written into enrich_venues.py; both go through here so
+    a merge means the same thing either way.
+
+    Does not commit - the caller does, so a script can apply a whole batch as
+    one transaction. Returns (source_name, target_name).
+    """
+    source = db.execute("SELECT * FROM venues WHERE id = ?", (source_id,)).fetchone()
+    target = db.execute("SELECT * FROM venues WHERE id = ?", (target_id,)).fetchone()
+    if source is None or target is None:
+        raise LookupError("both venues must exist")
+    if source_id == target_id:
+        raise ValueError("a venue can't be merged into itself")
+
+    # Anything filled in on the source but not the target is carried across
+    # rather than dropped - a capacity researched under the other spelling is
+    # still that building's capacity.
+    carried = {
+        f: source[f] for f in ("town", "county", "region", "capacity", "auditorium_type",
+                               "latitude", "longitude", "website_url", "tech_spec_url")
+        if target[f] is None and source[f] is not None
+    }
+    if carried:
+        assignments = ", ".join(f"{f} = :{f}" for f in carried)
+        db.execute(f"UPDATE venues SET {assignments} WHERE id = :id", dict(carried, id=target_id))
+
+    db.execute("UPDATE venue_aliases SET venue_id = ? WHERE venue_id = ?", (target_id, source_id))
+    db.execute("UPDATE shows SET venue_id = ? WHERE venue_id = ?", (target_id, source_id))
+    db.execute("DELETE FROM venues WHERE id = ?", (source_id,))
+    return source["name"], target["name"]
+
+
 def town_from_name(name):
     """The town a venue string names after its last comma, if it has one -
     "Theatre Royal, Waterford" -> "Waterford". Returns None rather than

@@ -15,11 +15,25 @@ again.
 
 ## START HERE - where things stand (2026-08-23)
 
-**One small fix is pushed but not yet deployed** - the admin "Shows missing a date" counter/page
-mismatch (30 vs 812), fixed via a shared `MISSING_DATES_WHERE` in `admin/_shared.py`. Suite 582 green.
-It only affects the moderator dashboard, so nothing public is waiting on the redeploy; verify the
-counter and the "Fix dates" page agree once it goes out. Everything before it is deployed and verified
-live - see below.
+**Two things are pushed and waiting on a redeploy.** Suite 589 green.
+
+1. **Venue content pass** - `enrich_venues.py` fills town/county/capacity/website/tech-spec/map pin for
+   the 30 venues with 5+ productions (~70% of venue-attributed shows), and folds away 5 duplicate
+   spellings. **The script has NOT been run against production yet** - deploying the code changes
+   nothing on its own. After the redeploy, run:
+   `docker compose exec aims-web python enrich_venues.py --db /data/aims.db`
+   Then check `/venues/town-hall-theatre-galway` reads 17 productions (it reads 11 and 6 on two pages
+   today) and shows its capacity, website and map link. Verified locally against a production copy: 145
+   venues become 140, 17 gain a capacity, 24 gain a pin, and a rebuild preserves all of it.
+2. **Admin "Shows missing a date"** counter/page mismatch (30 vs 812), fixed via a shared
+   `MISSING_DATES_WHERE` in `admin/_shared.py`. Moderator-only; nothing public waits on it.
+
+Everything before those is deployed and verified live - see below.
+
+**One venue question needs Darragh.** The bare `Town Hall Theatre` record holds 6 productions from four
+different buildings - Ballinasloe (3), Claremorris (1), Galway University (1), Twin Productions (1).
+Five are unambiguous from the society's own town and can be fixed by correcting `shows.venue`; **which
+town hall Twin Productions played is the open one.** Deliberately not guessed.
 
 **Productions-table migration stages 3-4 - DEPLOYED and verified live 2026-08-23 evening.** All four
 public surfaces now count real stagings; stage 4 was decided against (the table stays derived, with the
@@ -57,9 +71,11 @@ and fixed) - see the archive for the detail if a specific fix needs re-checking.
   Source A (Wikidata) has a real bug in its proposed query (`wdt:P58` should be `wdt:P87`) and only
   reliably resolves 48 of 306 titles without fuzzy title-matching, which this repo avoids - fix the
   query before building. Source B (licensing-house specs) isn't a pipeline, it's manual data entry.
-- **Venue capacity/type/website/map research** - the fields exist and render already; 0 of 147 venues
-  have any of it filled in. Real-world research, not a coding task - a WebSearch pass against the
-  highest-traffic venues would be the way to start.
+- **Venue research, the long tail** - the 30 venues with 5+ productions were done 2026-08-23
+  (`enrich_venues.py`); ~110 venues with 1-4 productions still have nothing. Same script, extend its
+  `DATA` table. Lower value per venue, so only worth doing if the first pass proves itself. Six of the
+  30 also still have no map pin (Arklow, Castlerea, Leixlip, Kilcock, Clane, Loughrea) - none has an
+  OpenStreetMap entry findable by name, so they need a different source, not another search.
 - **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are near
   me). Smallest self-contained new page on the list.
 - **Merge duplicate/near-duplicate titles the A-Z now shows** (`/admin/duplicate-titles`) - 7 spelling

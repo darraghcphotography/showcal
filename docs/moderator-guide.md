@@ -157,6 +157,36 @@ to merge **permanently renames every occurrence** of the other spelling,
 across both current shows and the awards archive, with a confirmation
 prompt first since there's no undo.
 
+## Venue directory
+
+`/admin/venue-directory` is where a venue stops being a piece of text somebody
+typed and becomes a record. Two jobs live there.
+
+**Merging spellings.** The queue up front suggests pairs that might be the same
+building. They are only suggestions, and the rule behind them is deliberately
+loose - it will happily propose the Galway, Ballinasloe and Claremorris Town
+Hall Theatres as one venue, and they are three different buildings. Check who
+actually played there before merging; the society is usually the giveaway. A
+merge moves every show and every spelling to the venue you keep, and carries
+across anything filled in on the one you're folding away.
+
+The queue also flags entries that name no building at all - "TBA", "Various",
+or a bare county like "Tipperary". Those aren't merges. If you can work out
+which venue was meant, fix the venue on the show itself and the directory
+catches up on its own.
+
+**Filling in the detail.** Each venue can carry a town, county, seating
+capacity, auditorium type, website, technical spec link and map coordinates.
+Every one of them is optional and appears on the public page only once it's
+set, so a half-filled venue never looks broken - it just shows less. Leave a
+field blank rather than guessing: a wrong capacity is worse than a missing one,
+because nobody can see that it's wrong.
+
+The venues with 5 or more productions were researched and filled in during
+August 2026 by `enrich_venues.py` (its docstring records where each figure came
+from and what was deliberately left blank). Anything you add by hand survives
+the nightly rebuild and is never overwritten by it.
+
 ## Show info
 
 Each title's own page can show a synopsis and amateur rights/licensing
