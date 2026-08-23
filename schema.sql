@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS shows (
                                 'Published', 'Scheduled', 'Not adjudicated', 'None'
                             )),
     review_url             TEXT,
+    review_author          TEXT,                 -- byline for review_url; moderator-entered, never inferred
     ticket_url             TEXT,                 -- optional link to buy tickets, member-submitted
     poster_filename         TEXT,                 -- filename under the uploads dir, not a user path
 

@@ -91,6 +91,7 @@ COLUMN_MIGRATIONS = [
     # Links a production's free-text venue to the real building it names (see
     # the venues table in schema.sql). Populated by app/venues_build.py.
     ("shows", "venue_id", "ALTER TABLE shows ADD COLUMN venue_id INTEGER REFERENCES venues(id)"),
+    ("shows", "review_author", "ALTER TABLE shows ADD COLUMN review_author TEXT"),
 ]
 
 

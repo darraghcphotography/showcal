@@ -1,3 +1,7 @@
+A review link on a show page can now carry a byline - "reviewed by [name]" - entered by a moderator rather than guessed, and it can be added or backfilled onto a review link that's already saved
+
+---
+
 22 shows across venue pages (National Opera House Wexford, UCD Astra Hall, St. Michael's Theatre New Ross and others) were showing productions from unrelated societies - a handful of rows had the wrong venue typed against them in the archive, which the venue merge silently trusted. Cleared the bad values rather than guessing a replacement, same as any other unconfirmed venue
 
 ---

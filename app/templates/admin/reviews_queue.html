@@ -19,6 +19,7 @@
           <form method="post" action="{{ url_for('admin.save_review_link', show_id=r['id']) }}" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="url" name="review_url" placeholder="https://www.aims.ie/post/review-..." size="40">
+            <input type="text" name="review_author" placeholder="Reviewed by (optional)" size="20">
             <button type="submit">Save</button>
           </form>
           <form method="post" action="{{ url_for('admin.mark_review_not_adjudicated', show_id=r['id']) }}"

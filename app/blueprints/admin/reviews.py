@@ -37,10 +37,12 @@ def reviews_queue():
 @login_required
 def save_review_link(show_id):
     url = request.form.get("review_url", "").strip()
+    author = request.form.get("review_author", "").strip() or None
     if url and URL_RE.match(url):
         get_db().execute(
-            "UPDATE shows SET review_url = ?, review_status = 'Published', updated_at = datetime('now') WHERE id = ?",
-            (url, show_id),
+            "UPDATE shows SET review_url = ?, review_author = ?, review_status = 'Published', "
+            "updated_at = datetime('now') WHERE id = ?",
+            (url, author, show_id),
         )
         get_db().commit()
         flash("Review link saved.", "success")

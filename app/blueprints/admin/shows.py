@@ -315,6 +315,7 @@ def edit_show(show_id):
         musical_director = request.form.get("musical_director", "").strip() or None
         choreographer = request.form.get("choreographer", "").strip() or None
         review_url = request.form.get("review_url", "").strip() or None
+        review_author = request.form.get("review_author", "").strip() or None
         review_status = request.form.get("review_status", "None")
         ticket_url = request.form.get("ticket_url", "").strip() or None
         cancelled = bool(request.form.get("cancelled"))
@@ -363,16 +364,16 @@ def edit_show(show_id):
                 season = ?, region = ?, section = ?, show = ?,
                 opening_date = ?, closing_date = ?, adjudication_date = ?,
                 venue = ?, director = ?, musical_director = ?, choreographer = ?,
-                review_url = ?, review_status = ?, ticket_url = ?, poster_filename = ?, status = ?,
-                updated_at = ?
+                review_url = ?, review_author = ?, review_status = ?, ticket_url = ?, poster_filename = ?,
+                status = ?, updated_at = ?
             WHERE id = ?
             """,
             (
                 season, region, section, show_title,
                 opening_date, closing_date, adjudication_date,
                 venue, director, musical_director, choreographer,
-                review_url, review_status, ticket_url, poster_filename, "Cancelled" if cancelled else None,
-                datetime.utcnow().isoformat(), show_id,
+                review_url, review_author, review_status, ticket_url, poster_filename,
+                "Cancelled" if cancelled else None, datetime.utcnow().isoformat(), show_id,
             ),
         )
         db.commit()

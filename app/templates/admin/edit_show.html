@@ -131,6 +131,10 @@
         Review URL <span class="hint">(setting this flips the status to Published)</span>
         <input type="url" name="review_url" value="{{ show['review_url'] or '' }}">
       </label>
+      <label>
+        Review author <span class="hint">(optional byline for the link above, e.g. the adjudicator's name)</span>
+        <input type="text" name="review_author" value="{{ show['review_author'] or '' }}">
+      </label>
 
       {% if existing_review %}
         <p class="hint">
