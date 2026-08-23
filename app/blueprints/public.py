@@ -6,9 +6,13 @@ from urllib.parse import quote_plus
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
-from .. import notify, venues_build
+from .. import notify, productions_build, venues_build
 from ..auth import current_user
 from ..calendar_links import google_calendar_url
+from ..circuit_intelligence import (
+    award_tally, best_overall_show_wins, production_ids_for_title,
+    regional_distribution, revival_candidate, signature_categories,
+)
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
 from ..rate_limit import limiter
@@ -1155,6 +1159,7 @@ def titles_list():
 @bp.route("/titles/<path:title>")
 def title_detail(title):
     db = get_db()
+    productions_build.ensure_current(db)
     shows = db.execute(
         """
         SELECT shows.*, societies.name AS society_name
@@ -1196,8 +1201,27 @@ def title_detail(title):
     else:
         debut_label = None
 
+    # Gated on real award-archive engagement, not just "this title exists" -
+    # a just-announced show with a shows row and no adjudication yet has
+    # nothing a circuit-intelligence panel could say.
+    prod_ids = production_ids_for_title(db, title)
+    circuit = None
+    tally = award_tally(db, prod_ids)
+    if tally["nominations"]:
+        regions, regions_unknown = regional_distribution(db, prod_ids)
+        circuit = {
+            "tally": tally,
+            "best_overall_wins": best_overall_show_wins(db, prod_ids),
+            "signature": signature_categories(db, prod_ids),
+            "regions": regions,
+            "regions_unknown": regions_unknown,
+            "regions_total": sum(r["n"] for r in regions) + regions_unknown,
+            "revival": revival_candidate(db, prod_ids, date.today().year),
+        }
+
     return render_template(
-        "title_detail.html", title=title, shows=shows, historical=historical, info=info, debut_label=debut_label
+        "title_detail.html", title=title, shows=shows, historical=historical, info=info,
+        debut_label=debut_label, circuit=circuit,
     )
 
 

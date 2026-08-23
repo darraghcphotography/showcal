@@ -32,6 +32,59 @@
     {% endif %}
   {% endif %}
 
+  {# Circuit intelligence - free-to-compute facts read straight off the
+     productions/award archive (Source C, SHOW_ENRICHMENT_PROPOSAL.md). Placed
+     before the detail tables below, not after - a title with a long staging
+     history (JCS: 57 rows in "Earlier history" alone) would otherwise bury
+     the summary under a scroll of raw rows, backwards from "summary before
+     detail". Every sub-block is independently gated so a title with thin
+     award history still gets whatever parts genuinely apply, rather than an
+     all-or-nothing panel. #}
+  {% if circuit %}
+    <h2>Circuit intelligence</h2>
+
+    {% if circuit.tally.nominations %}
+      <div class="stat-tiles">
+        <div class="stat-tile stat-tile-gold"><span class="stat-value">{{ circuit.tally.wins }}</span><span class="stat-label">Award wins</span></div>
+        <div class="stat-tile"><span class="stat-value">{{ circuit.tally.nominations }}</span><span class="stat-label">Nominations</span></div>
+      </div>
+    {% endif %}
+
+    {% if circuit.best_overall_wins %}
+      <div class="trophy-case">
+        {% for w in circuit.best_overall_wins %}
+          <span class="tag tag-gold">Best Overall Show {{ w['year'] }} &middot; {{ w['society_name'] }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if circuit.signature %}
+      <p class="meta">
+        Signature categor{{ 'y' if circuit.signature|length == 1 else 'ies' }}:
+        {% for c in circuit.signature %}{{ c['category'] }} ({{ c['wins'] }}&times;){% if not loop.last %}, {% endif %}{% endfor %}
+      </p>
+    {% endif %}
+
+    {% if circuit.regions_total %}
+      <p class="meta">Staged across the AIMS circuit:</p>
+      <div class="chip-strip">
+        {% for row in circuit.regions %}
+          <div class="chip"><span class="chip-n">{{ row['n'] }}</span><span class="chip-label">{{ row['region'] }}</span></div>
+        {% endfor %}
+        {% if circuit.regions_unknown %}
+          <div class="chip"><span class="chip-n">{{ circuit.regions_unknown }}</span><span class="chip-label">Unknown region</span></div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if circuit.revival %}
+      <div class="site-notice">
+        <p>Last staged in {{ circuit.revival.last_year }} ({{ circuit.revival.gap_years }} years ago), after
+           {{ circuit.revival.production_count }} AIMS productions - a candidate for a society to bring back.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+
   {% if shows %}
     <h2>Since 23/24 (full detail)</h2>
     <table class="data-table">
