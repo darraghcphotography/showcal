@@ -15,14 +15,17 @@ again.
 
 ## START HERE - where things stand (2026-08-23)
 
-**Merged to `main`, NOT yet deployed:** productions-table migration stages 3-4 - all four public
-surfaces cut over, stage 4 decided against (keep the table derived). Merged 2026-08-23 as `e9f6679`,
-suite 579 green on main, the §7.1 real-data comparison run and read. **Two things outstanding: the
-Portainer redeploy, and the §7.3 live checks** in `docs/productions-stage-3-4-plan.md` - in particular
-`/stats` must still read **2,709** afterwards, and `/titles/Fame:%20The%20Musical` should render
-rather than 404. The same redeploy also carries the review-author byline (`87ab288`), which has been
-sitting undeployed since earlier that day. Detail and numbers in `ROADMAP_ARCHIVE.md` under
-"Productions-table migration, stages 3-4".
+**Nothing is sitting unmerged or undeployed.** `main` is clean, suite 579 green, and the last deploy
+(2026-08-23 evening) is verified live - see below. Next session can start on new work.
+
+**Productions-table migration stages 3-4 - DEPLOYED and verified live 2026-08-23 evening.** All four
+public surfaces now count real stagings; stage 4 was decided against (the table stays derived, with the
+reasoning and the trigger conditions in `schema.sql` and `docs/data-model.md`). Verified on the live
+site, not assumed: `/stats` still reads **2,709** (the invariant that proves stage 1's numbers didn't
+move), `/titles/Fame:%20The%20Musical` returns 200 where it used to 404, the A-Z's most-performed
+column reads real production counts (Oklahoma! 83, Fiddler 81, JCS 78 - it said 152 for JCS before),
+and `review_author` exists in the production schema, confirming the byline shipped in the same deploy.
+Full detail and numbers in `ROADMAP_ARCHIVE.md` under "Productions-table migration, stages 3-4".
 
 Live and confirmed deployed: the productions table (stats cut over), the real venues table (147 venues,
 merge queue mostly worked), the header nav restructure + polish + mobile fix, Decades/Reviews pages,
