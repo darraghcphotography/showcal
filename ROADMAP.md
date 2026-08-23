@@ -101,6 +101,15 @@ town parses from a comma suffix (67 of 177).
   real venues on record at all, and Gemini's research names more than one candidate for each.
 - **Still to do:** capacity/type/website/map research (0 of 146 venues have any of it filled in - the
   fields render already, nobody's entered data yet).
+- **Mockup built 2026-08-23**, alongside a Show enrichment (circuit intelligence) mockup on the same
+  page: https://claude.ai/code/artifact/cbe72116-066d-4594-96a8-94a99b2500fd - a fully-enriched venue
+  page (National Opera House, Wexford: capacity/type/website/map clearly flagged as illustrative
+  placeholders, everything else - productions, residents, stage history - real) and a title's "About
+  this show" circuit-intelligence panel (Jesus Christ Superstar: 51 wins/97 nominations/2 Best Overall,
+  signature category, regional distribution, all real queries against `productions`/`historical_results`
+  - this is Source C from `SHOW_ENRICHMENT_PROPOSAL.md`, free and buildable now) plus a revival-watch
+  aside using a genuine example (Show Boat, 25 productions 1976-2013, none since) rather than the
+  proposal's own "Geisha, last staged 1948" dead-show trap. Neither applied to real templates/routes yet.
 - Old `/venues/<raw name>` URLs 301 to the slug.
 
 **Next, in order (stages 3-4 of the staged cutover):**
