@@ -136,18 +136,54 @@ body {
 .site-header nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.6rem;
   align-items: center;
 }
+
+/* Content nav (Home, Explore/History menus, search) and account nav (Society
+   login, Admin, Log out, theme toggle) are visually two different concerns -
+   grouped with their own tighter internal gap and a wider gap between the two
+   groups, so the eye reads them as clusters rather than one flat row where
+   everything gets identical spacing regardless of what it's related to. */
+.nav-content, .nav-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.nav-account { gap: 0.55rem; }
 
 .site-header nav a { color: var(--accent); text-decoration: none; }
 .site-header nav a:hover { text-decoration: underline; }
 
-.site-header nav a.nav-admin {
+/* One pill language for every account-cluster control (My society/Society
+   login, Admin, Log out) instead of three different affordances (a bare
+   link, a bordered box, a circle) sitting side by side. .nav-admin layers on
+   top for the one moderator-only item, which is worth staying visually
+   distinct (gold) - same color it already had, just the same shape as its
+   neighbours now instead of the only boxed item in the row. */
+.site-header .nav-pill {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.86rem;
+  background: none;
+  text-decoration: none;
+}
+.site-header .nav-pill:hover {
+  border-color: var(--accent);
+  background: var(--row-alt);
+  text-decoration: none;
+}
+.site-header .nav-pill.nav-admin {
   color: var(--gold);
-  border: 1px solid var(--gold);
-  border-radius: 4px;
-  padding: 0.15rem 0.55rem;
+  border-color: var(--gold);
+}
+.site-header .nav-pill.nav-admin:hover {
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
 }
 
 /* Grouped header menus (see base.html). Native <details>, so they work with
