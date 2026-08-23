@@ -11,6 +11,47 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
+## Full public-site UX audit, 2026-08-23 - READ THIS BEFORE PLANNING NEW FEATURES
+
+Darragh asked for a step-back walkthrough of the whole public site as (a) a society committee member
+and (b) an ordinary musical-theatre fan. Non-technical write-up with mockups, published as an Artifact:
+**https://claude.ai/code/artifact/a546fc7e-ef6e-42c3-b6e5-400634708318**
+
+**The headline finding, and the thing most future work should be sequenced around: the site's
+infrastructure is far ahead of its content.** Every one of these fields already exists, already renders
+the moment it's filled, and is already editable by societies themselves - nobody has been asked:
+
+| Supported field | Filled in |
+|---|---|
+| Society "about" blurb | 1 of 194 |
+| Society website link | 0 of 194 |
+| Society Facebook / Instagram / TikTok | 2 / 3 / 3 |
+| Society logo | 7 of 194 |
+| Venue capacity / map pin | 0 of 147 each |
+| Ticket link on an upcoming show | 7 of 50 |
+| Poster on an upcoming show | 9 of 50 |
+| Society login codes ever issued | 14 (of 143 active societies) |
+
+**Verified broken journeys** (all re-confirmed against the live site 2026-08-23, not inferred):
+- A show page contains **zero** links to its own venue page (checked shows 415/369/403) - it links to
+  Google Maps instead. Society pages the same. The venue pages exist and nothing points at them.
+- **"Submit a show" is unreachable on desktop** - linked only from `/more`, which is linked only from
+  the mobile bottom tab bar.
+- **Adjudicator names on `/reviews` aren't links**, though `/adjudicators/<id>` exists.
+- **`sitemap.xml` omits** `/titles`, `/venues`, `/awards`, `/reviews`, `/stats/trends`, `/about` and
+  every title/venue/adjudicator detail page - only shows, societies, stats, season, adjudicators, root.
+- `/reviews` is a **362KB single page** (all 1,086 reviews, no pagination); `/season` is 123KB.
+- **Gilbert/Sullivan is explained only on `/about`** but used as a filter label on 5+ pages.
+
+The audit's four bigger bets (each mocked up): homepage leads with what's on; the society page
+empty-vs-filled side-by-side (doubles as the recruitment pitch for getting societies to fill theirs in);
+the show page as the shared front door; and "what's on near me" - which **cannot be built until venue
+coordinates exist** (0 of 147 today), and is written up as a decision to make, not a feature to queue.
+
+Section 5 of the audit is a non-technical outreach plan (nudge on their own page, fill 2-3 exemplar
+societies, ask for posters/ticket links first, a draft message to send a committee, and a "claim your
+page" route). That track is Darragh's lever, not a coding task.
+
 ## START HERE - productions-table migration, stage 1 of 4 LIVE (2026-08-22)
 
 Built in the `worktree-productions-table` worktree, merged to main (`94f0e2f`), **deployed and
