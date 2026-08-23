@@ -1,3 +1,11 @@
+All Shows was counting award nominations rather than productions, so a show nominated in five categories counted five times - Jesus Christ Superstar read 152 when 78 societies have actually staged it. Every "times performed" figure on the site now counts real stagings, and the number on All Shows finally agrees with the show's own page
+16 shows that were missing from All Shows entirely now appear, including Michael Collins, Songs For A New World, She Loves Me and Summer Holiday
+Society pages were listing recent productions twice - once in Show history and again in the archive below it. Each production now appears once, and Show history gained an Awards column so nothing loses its award badges
+"Active since" on a society page was showing the year of their first award win, not the first year they're on record - 82 societies now show an earlier, correct year, and 35 that showed nothing now show one
+"Last performed" on All Shows now uses the same year convention for every era, so archive-era shows read one year earlier than before
+
+---
+
 A review link on a show page can now carry a byline - "reviewed by [name]" - entered by a moderator rather than guessed, and it can be added or backfilled onto a review link that's already saved
 
 ---

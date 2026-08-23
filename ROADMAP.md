@@ -15,6 +15,12 @@ again.
 
 ## START HERE - where things stand (2026-08-23)
 
+**Built but NOT yet merged or deployed:** productions-table migration stages 3-4 - all four public
+surfaces cut over, stage 4 decided against (keep the table derived). Five commits in a worktree, suite
+579 green, the §7.1 real-data comparison run and read. What's outstanding is the merge, the redeploy,
+and the §7.3 live checks in `docs/productions-stage-3-4-plan.md`; the detail and the numbers are in
+`ROADMAP_ARCHIVE.md` under "Productions-table migration, stages 3-4".
+
 Live and confirmed deployed: the productions table (stats cut over), the real venues table (147 venues,
 merge queue mostly worked), the header nav restructure + polish + mobile fix, Decades/Reviews pages,
 show circuit intelligence on `/titles/<title>`, two rounds of UX-audit quick wins (venue/adjudicator
@@ -47,13 +53,12 @@ and fixed) - see the archive for the detail if a specific fix needs re-checking.
   highest-traffic venues would be the way to start.
 - **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are near
   me). Smallest self-contained new page on the list.
-- **Productions-table migration, stages 3-4** - public show/society pages, the last of the four staged
-  cutover surfaces. **A full execution plan now exists: `docs/productions-stage-3-4-plan.md`** (written
-  by Opus 2026-08-23, numbers re-verified against a real prod snapshot). Start there, not from scratch.
-  Headline: this is a bugfix, not a refactor - Shows A-Z counts award *nominations* rather than
-  stagings, so it overstates the circuit by 1.67x (4,677 vs 2,805); society pages list every 2024+
-  production twice; ~16 real titles have no page at all. Stage 4's recommendation is "keep the table
-  derived, don't build the authored version" with the reasoning and the trigger conditions written down.
+- **Merge duplicate/near-duplicate titles the A-Z now shows** (`/admin/duplicate-titles`) - 7 spelling
+  variants of titles already on the list became visible when the productions cutover stopped hiding
+  them: `Annie - The Musical`, `Big The Musical`, `Elf - The Musical`, `Fame: The Musical`, `Shrek`,
+  `Peter Pan, A Musical Adventure`, `Sugar The Musical - Some Like It Hot`. Real merge work, deliberately
+  kept out of the cutover (Darragh's call 2026-08-23) so the migration wasn't blocked behind a manual
+  title pass. The other 9 new titles are genuinely distinct shows and want no action.
 
 ## Data-accuracy follow-ups (from the 2026-08-23 report check), need Darragh's input or real research
 

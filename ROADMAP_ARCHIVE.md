@@ -3181,8 +3181,75 @@ needs_review filter, and the Reviews queue - they disagreed before (115 / 115 / 
 right. _duplicate_historical_rows matches on production_id instead of comparing calendar years: 0
 duplicates found before, 9 real ones now. 12 new tests, full suite 455 green.
 
-(Stages 3-4 - public show/society pages, then considering an authored-not-derived table - carried
-forward into the live ROADMAP.md as the current "next" item.)
+## Productions-table migration, stages 3-4 (2026-08-23)
+
+Built in an isolated worktree against `docs/productions-stage-3-4-plan.md`, which was written and
+re-verified against a current production snapshot before any code was written. Five commits, one per
+plan step, suite green after each: 541 before, **579 after** (38 new tests, `tests/
+test_public_productions_cutover.py`). Not yet merged or deployed at time of writing - the §7.3 live
+checks are still outstanding.
+
+**What shipped.**
+1. `ON_RECORD_PRODUCTION` in `app/productions.py` - the one filter every public surface applies, next to
+   the key derivation, because `productions_build.collect()` reads `shows` with no `moderation_status`
+   filter, so a pending or rejected submission has a production row. Plus the missing
+   `productions_build.ensure_current()` calls on `titles_list`, `search`, `society_detail`,
+   `show_detail` and `sitemap_xml` (only `title_detail` had one).
+2. Shows A-Z, `/search`'s Shows section and `/sitemap.xml` count real stagings instead of award
+   *nomination* rows.
+3. `/titles/<title>` joins both its tables through productions and splits them on "is there a show page
+   to link to", not on an era.
+4. `/societies/<id>` stops listing 2024+ productions twice, and its "Show history" table gains an awards
+   column (built in the same step, Darragh's call, so nothing regressed mid-cutover) rendering through a
+   macro the archive table now shares. Century Club, Golden Jubilee and "Active since" read productions.
+5. `/shows/<id>` matches award records on `production_id` instead of a hand-rolled join on (society,
+   decoded year, normalized title).
+
+**Measured on the 2026-08-23 production snapshot (1,385 shows / 4,879 award records / 2,802
+productions), old vs new:**
+- A-Z: 287 titles summing to 4,677 "times performed" -> **303 titles summing to 2,802**. 1.67x
+  overstatement gone. Jesus Christ Superstar 152->78, Fiddler 143->81, West Side Story 100->48,
+  Oklahoma! 128->83, Oliver! 95->66.
+- 16 titles gain an A-Z row and a sitemap entry; **0 titles disappear**; 26 counts go up, none by more
+  than 2 (all `source='historical'` skeleton rows with no award record, which neither branch of the old
+  union counted - the same shape as the 371 productions /stats was missing).
+- 190 productions were being listed twice on society pages (195 (year, show, society) combinations).
+- `/stats` **unchanged**: 2,709 productions on record, 1,090 reviewed, 101 seasons, digest
+  `d16f999adc8426e1...`. Stage 3 touches no /stats query; verified rather than assumed.
+- Trap #1 (unmoderated submissions leaking onto a public page): **0 such productions exist today**, so
+  neither real data nor an accidental test could catch a missing filter. Guarded by tests that seed a
+  pending show explicitly.
+- Title-spelling collisions: 1 (`Ghost the Musical` / `Ghost: The Musical`, genuinely one show, one
+  production). 0 `show_links`/`show_info` rows affected, so no Wikipedia link reverts.
+- `reviews_index()` overlap (§8.5) and undecodable `shows.season` values: both 0.
+
+**Where the plan was wrong, and the code/data won.** §1 said 16 titles "have no page at all" today.
+Only **one** does - `Fame: The Musical` (25/26, Leixlip, award records only, 2026). The other 15 already
+rendered fine: `title_detail()` matched `shows` with no `source` filter, so a `source='historical'`
+skeleton row gave them a working page. What they were actually missing was an A-Z row and a sitemap
+entry, because `titles_list()` excluded `source='historical'` from its shows branch. Same fix, same 16
+titles gained - but only one page was ever a 404. Checked the reverse too: 0 titles that rendered before
+would 404 now.
+
+**Two visible display changes to expect**, both fixes, both noticeable: "Last performed" on the A-Z is
+now `season_start_year` for every era (archive-derived values read one lower, 2014 -> 2013), and "Active
+since" on a society page is the first year on record rather than the year of their first *win* - it
+moves earlier on 82 society pages and appears for the first time on 35 more. No page loses it. A third,
+smaller one: "AIMS debut" on a title page is a four-digit year for every era rather than "23/24 season".
+
+**One existing test changed**, deliberately: `test_trophy_case.py::test_trophy_case_counts` asserted
+`Active since 2021` on a fixture whose earliest record is a 2017 nomination - it was pinning the
+first-win bug §4.3 exists to fix. Its award rows now carry a `show` (so they name productions at all)
+and it asserts 2017.
+
+**Stage 4: decided, not built.** Keep `productions` derived. Recorded in `schema.sql`'s productions
+comment and `docs/data-model.md` with the reasoning and the four trigger conditions that would reopen
+it, so a future session doesn't re-litigate from scratch. The cheap fix for the natural key's weakest
+point - the ~71 unmatched historical society names - is already an open ROADMAP item and is strictly
+better value than a merge UI.
+
+(The 7 near-duplicate titles the A-Z gained are real `/admin/duplicate-titles` work, carried forward
+into the live ROADMAP.md rather than folded into this cutover.)
 
 ## Venues given a real record (2026-08-22) through capacity-research still open (2026-08-23)
 

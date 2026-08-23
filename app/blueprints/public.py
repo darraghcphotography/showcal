@@ -13,12 +13,12 @@ from ..circuit_intelligence import (
     award_tally, best_overall_show_wins, production_ids_for_title,
     regional_distribution, revival_candidate, signature_categories,
 )
-from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
+from ..constants import REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
 from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
 from ..search import build_phrase_query, fts_match_ids
-from ..season import current_season, historical_results_year, season_has_ended, season_range, season_start_year
+from ..season import current_season, season_has_ended, season_range, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
 from ..venues import normalize_venue

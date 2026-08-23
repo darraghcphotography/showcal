@@ -448,13 +448,27 @@ CREATE INDEX IF NOT EXISTS idx_historical_reviews_season_tier ON historical_revi
 -- production undercount on /stats, then an 823-production one, both caused by
 -- exactly that).
 --
--- DERIVED, NOT AUTHORED (first pass). Nothing writes here except
+-- DERIVED, NOT AUTHORED - and staying that way. Nothing writes here except
 -- build_productions.py, which rebuilds the whole table from shows /
 -- historical_results / historical_reviews and is safe to re-run - it upserts
 -- on the natural key, so a production keeps its id across rebuilds. Those
 -- three tables stay the place data is entered and edited; this one is the
--- index over them. Making it authored (a moderator editing a production
--- directly) is a later step, deliberately not part of the additive first cut.
+-- index over them.
+--
+-- Making it authored (a moderator editing a production directly) was scoped as
+-- a later step and was decided against on 2026-08-23, after all four public
+-- surfaces were cut over. Every way a production can be wrong today traces to a
+-- source row being wrong, and each of those already has an editing surface that
+-- fixes the production *and* the page the data actually lives on; editing the
+-- production instead would fix the index and leave the source wrong, which is
+-- the exact disagreement this table exists to end. Authored rows would also
+-- cost the property that makes the table trustworthy - it is a pure function of
+-- its sources, which is why the rebuild can verify itself by re-deriving every
+-- total from the database and refusing to commit on disagreement. Revisit only
+-- if a correction is needed that cannot be expressed as an edit to shows /
+-- historical_results / historical_reviews, if the verification pass starts
+-- failing on real data, or if the unmatched historical society names are worked
+-- down and productions still split wrongly. See docs/data-model.md.
 --
 -- season_start_year, not season, is identity. A 'yy/yy' string cannot
 -- identify a season across this archive's real 1912-2028 span: '11/12' names
