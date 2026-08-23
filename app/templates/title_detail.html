@@ -5,7 +5,7 @@
   <p><a href="{{ url_for('info.stats') }}">&larr; Back to statistics</a></p>
   <h1>{{ title }}</h1>
   <p>{{ shows|length + historical|length }} production{{ '' if (shows|length + historical|length) == 1 else 's' }}
-     on record{% if historical %}, including {{ historical|length }} from the AIMS awards history before 23/24{% endif %}.</p>
+     on record{% if historical %}, including {{ historical|length }} known only from the AIMS awards archive{% endif %}.</p>
 
   <p class="meta">
     {% if info and info['premiere_year'] %}
@@ -86,7 +86,12 @@
   {% endif %}
 
   {% if shows %}
-    <h2>Since 23/24 (full detail)</h2>
+    {# The split is "does this staging have a show page to link to", not an
+       era - a skeleton shows row from 12/13 belongs up here because it has a
+       real page. Two tables rather than one merged timeline deliberately:
+       merging them is a visual redesign, and this repo is mockup-first for
+       anything visual. #}
+    <h2>Productions with full detail</h2>
     <table class="data-table">
       <thead>
         <tr><th>Season</th><th>Society</th><th>Region</th><th>Dates</th></tr>
@@ -110,7 +115,7 @@
   {% endif %}
 
   {% if historical %}
-    <h2>Earlier history (AIMS awards archive)</h2>
+    <h2>Also on record (awards archive)</h2>
     <table class="data-table">
       <thead><tr><th>Year</th><th>Society</th></tr></thead>
       <tbody>

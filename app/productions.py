@@ -30,6 +30,31 @@ from .season import award_year_to_season_start, season_label, season_start_year
 from .similarity import normalize_title
 
 
+# A production the public site may count or list. The productions table is built
+# from every shows row regardless of moderation_status (see productions_build.
+# collect), so a pending or rejected submission has a production row too -
+# filtering that out is the caller's job, and every public surface has to do it
+# the same way or they will disagree again, which is the whole reason this table
+# exists.
+#
+# An award record needs no status check: historical_results has no moderation
+# gate, and a row only exists because AIMS published the result.
+#
+# "On record", not "has already happened". /titles has always counted an
+# announced future show, and info.py's own happened_production predicate asks
+# the narrower question (it takes a :today parameter). Deliberately two
+# predicates, not one - don't merge them.
+#
+# Callers must refer to the table as `productions` (not an alias).
+ON_RECORD_PRODUCTION = """
+    (EXISTS (SELECT 1 FROM shows
+              WHERE shows.production_id = productions.id
+                AND shows.moderation_status = 'approved')
+     OR EXISTS (SELECT 1 FROM historical_results
+                 WHERE historical_results.production_id = productions.id))
+"""
+
+
 def society_key(society_id, society_name):
     """The society half of a production's identity. society_id wins whenever
     it's set; the normalized name is the fallback for an unmatched historical

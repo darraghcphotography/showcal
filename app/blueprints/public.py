@@ -13,11 +13,12 @@ from ..circuit_intelligence import (
     award_tally, best_overall_show_wins, production_ids_for_title,
     regional_distribution, revival_candidate, signature_categories,
 )
-from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
+from ..constants import REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
+from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
 from ..search import build_phrase_query, fts_match_ids
-from ..season import current_season, historical_results_year, season_has_ended, season_range, season_start_year
+from ..season import current_season, season_has_ended, season_range, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
 from ..venues import normalize_venue
@@ -216,6 +217,7 @@ def _review_snippet(review_text, q):
 def search():
     q = request.args.get("q", "").strip()
     db = get_db()
+    productions_build.ensure_current(db)
     societies = []
     titles = []
     reviews = []
@@ -240,22 +242,21 @@ def search():
                 (f"%{escaped}%", SEARCH_RESULT_LIMIT),
             ).fetchall()
 
-        # Every matching title from either the current shows table or the
-        # older awards archive, same shape as titles_list()'s own query -
-        # deliberately one "Shows" result kind rather than a separate "Award"
+        # Every matching title on record, with its real staging count - the
+        # same productions query titles_list() runs, so the number here can
+        # never disagree with the one on the A-Z. Deliberately one "Shows"
+        # result kind rather than a separate "Award"
         # one, since /titles/<title> already surfaces both a show's
         # production history and its awards together.
         titles = db.execute(
-            """
-            SELECT show, COUNT(*) AS n FROM (
-                SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
-                UNION ALL
-                SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
-            )
-            WHERE show LIKE ? ESCAPE '\\'
-            GROUP BY show ORDER BY show LIMIT ?
+            f"""
+            SELECT MIN(title) AS show, COUNT(*) AS n
+            FROM productions
+            WHERE {ON_RECORD_PRODUCTION}
+              AND title LIKE ? ESCAPE '\\'
+            GROUP BY title_key ORDER BY show LIMIT ?
             """,
-            (SHOWS_COVERAGE_START_YEAR, f"%{escaped}%", SEARCH_RESULT_LIMIT),
+            (f"%{escaped}%", SEARCH_RESULT_LIMIT),
         ).fetchall()
 
         # Reviews, searched over their full text - this is the only index
@@ -699,30 +700,24 @@ def _consecutive_year_streak(years):
 def _society_badges(db, society_id):
     """Milestone badges for a society's profile page - each only ever
     appears once earned, same as the trophy case above it (nothing renders
-    for a society with none). Built entirely from historical_results (the
-    one results table spanning every season - see SHOWS_COVERAGE_START_YEAR)
-    plus shows for the current-era production count and active-years set.
-    Gilbert Grandmaster (3+ Best Overall Show wins in the Gilbert tier) was
-    considered and parked, not built - Darragh's call, can activate later."""
+    for a society with none). The two "how many productions / which years"
+    badges read the productions table; the five award badges read
+    historical_results, which is a different question (an award record is a
+    fact about a category, and there's nothing in shows to double-count it
+    against). Gilbert Grandmaster (3+ Best Overall Show wins in the Gilbert
+    tier) was considered and parked, not built - Darragh's call, can
+    activate later."""
     badges = []
 
-    # Production count mirrors info.py's "Unified productions on record"
-    # logic (built for the 20 Aug stats rebuild after a real 371-production
-    # undercounting bug) at reduced precision: skips that logic's
-    # skeleton-show-with-no-award-record reconciliation, since being off by
-    # one or two productions at a threshold is low-stakes for a decorative
-    # badge in a way it wasn't for the stats page itself.
-    pre_2024_productions = db.execute(
-        "SELECT COUNT(*) FROM (SELECT DISTINCT year, show FROM historical_results "
-        "WHERE society_id = ? AND year < ? AND show IS NOT NULL)",
-        (society_id, SHOWS_COVERAGE_START_YEAR),
-    ).fetchone()[0]
-    recent_productions = db.execute(
-        "SELECT COUNT(*) FROM shows WHERE society_id = ? AND show IS NOT NULL "
-        "AND moderation_status = 'approved' AND source != 'historical'",
+    # One query, and exactly the same definition /stats and the A-Z use. The
+    # two-query version this replaced admitted in its own comment that it was
+    # imprecise (it skipped the skeleton-show reconciliation, and it split the
+    # eras at SHOWS_COVERAGE_START_YEAR); the precise answer is now cheaper
+    # than the approximate one was.
+    total_productions = db.execute(
+        f"SELECT COUNT(*) FROM productions WHERE society_id = ? AND {ON_RECORD_PRODUCTION}",
         (society_id,),
     ).fetchone()[0]
-    total_productions = pre_2024_productions + recent_productions
     if total_productions >= BADGE_CENTURY_MIN:
         badges.append({
             "icon": "🌟", "cls": "b-century", "label": "Century Club",
@@ -756,14 +751,16 @@ def _society_badges(db, society_id):
             "tooltip": "8 or more award nominations across every category in a single year.",
         })
 
+    # Every year this society has a production on record, in one convention.
+    # The old version mixed award years with historical_results_year() decoding
+    # a season string as 2000+yy+1, which can't express a season before 00/01;
+    # season_start_year is every element of the old set shifted by exactly -1,
+    # so streak lengths are unchanged and the century bug is gone.
     years = {r[0] for r in db.execute(
-        "SELECT DISTINCT year FROM historical_results WHERE society_id = ? AND show IS NOT NULL", (society_id,)
-    )}
-    for r in db.execute(
-        "SELECT DISTINCT season FROM shows WHERE society_id = ? AND show IS NOT NULL AND moderation_status = 'approved'",
+        f"SELECT DISTINCT season_start_year FROM productions "
+        f"WHERE society_id = ? AND {ON_RECORD_PRODUCTION}",
         (society_id,),
-    ):
-        years.add(historical_results_year(r[0]))
+    )}
     streak = _consecutive_year_streak(years)
     if streak >= BADGE_JUBILEE_MIN:
         badges.append({
@@ -819,6 +816,7 @@ def _society_badges(db, society_id):
 @bp.route("/societies/<int:society_id>")
 def society_detail(society_id):
     db = get_db()
+    productions_build.ensure_current(db)
     society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
     if society is None:
         abort(404)
@@ -874,53 +872,78 @@ def society_detail(society_id):
     future_shows = [s for s in shows if s["season"] > current and s["show"] is not None]
     shows = [s for s in shows if s["season"] <= current]
 
-    # Pre-2024 award/nomination history from the AIMS awards archive - one row
-    # per category (so a single production can appear several times, once per
-    # category it was up for). show can be NULL here (person-level awards like
-    # the Mary Kelly/Unsung Hero Award aren't tied to a specific production) -
-    # those have nothing to group onto, so they're kept as their own list
-    # rather than folded into the per-production timeline below. A row with
-    # no category/result at all isn't an award record - it's a bare "this
-    # production happened" entry (see admin.bulk_historical_productions) -
-    # still gets its own timeline row, just with an empty awards list rather
-    # than being split into a separate table (see ROADMAP, 20 Aug 2026 -
-    # "integrate award wins/nominations into the show-history rows instead
-    # of a separate table below").
-    historical_rows = db.execute(
+    # Every award/nomination record for this society, keyed on the production
+    # it belongs to - one row per category, so a single production can have
+    # several. Grouped once here and handed to both tables below, so a
+    # production's awards render the same way whether or not it has a show
+    # page of its own.
+    awards_by_production = defaultdict(list)
+    for r in db.execute(
         """
-        SELECT year, tier, category_name, result, show, nominee_name, role, reason
+        SELECT production_id, year, tier, category_name, result, show, nominee_name, role, reason
         FROM historical_results
-        WHERE society_id = ?
+        WHERE society_id = ? AND production_id IS NOT NULL
         ORDER BY year DESC, show, category_name
         """,
         (society_id,),
-    ).fetchall()
-    person_awards = [r for r in historical_rows if r["show"] is None]
-
-    productions = {}
-    for r in historical_rows:
-        if r["show"] is None:
-            continue
-        key = (r["year"], r["show"])
-        production = productions.setdefault(key, {"year": r["year"], "tier": r["tier"], "show": r["show"], "awards": []})
-        if not production["tier"]:
-            production["tier"] = r["tier"]
+    ):
+        # A row with no category and no result isn't an award - it's a bare
+        # "this production happened" entry (see
+        # admin.bulk_historical_productions). It still puts the production on
+        # the timeline below; it just isn't a badge.
         if r["category_name"] is not None or r["result"] is not None:
-            production["awards"].append(r)
-    historical_timeline = sorted(productions.values(), key=lambda p: (-p["year"], p["show"] or ""))
+            awards_by_production[r["production_id"]].append(r)
 
-    # A compact "trophy case" summary - total wins, Best Overall Show wins
-    # specifically, and the earliest year on record (from the awards archive,
-    # falling back to the earliest season in shows if there's no archive
-    # history at all).
-    award_totals = db.execute(
+    awards_by_show = {
+        r["id"]: awards_by_production.get(r["production_id"], [])
+        for r in shows if r["production_id"]
+    }
+
+    # This society's other productions: the ones with no show page of their
+    # own. Split on that rather than on an era - the old query had no year
+    # filter at all despite a heading that promised "pre-23/24", so every
+    # 2024+ award record was listed here *and* in the show history above it
+    # (195 duplicated lines across the site on current production data).
+    historical_timeline = [
+        dict(r) | {"awards": awards_by_production.get(r["id"], [])}
+        for r in db.execute(
+            f"""
+            SELECT productions.id, productions.season_start_year + 1 AS year, productions.title AS show,
+                   (SELECT tier FROM historical_results
+                     WHERE production_id = productions.id AND tier IS NOT NULL LIMIT 1) AS tier
+            FROM productions
+            WHERE productions.society_id = ? AND {ON_RECORD_PRODUCTION}
+              AND NOT EXISTS (SELECT 1 FROM shows
+                               WHERE shows.production_id = productions.id
+                                 AND shows.moderation_status = 'approved')
+            ORDER BY year DESC, show
+            """,
+            (society_id,),
+        )
+    ]
+
+    # Person-level awards (the Mary Kelly/Unsung Hero class) have no show and
+    # so no production by definition - production_key() returns None for a
+    # blank title - which is why they can't come through the path above.
+    person_awards = db.execute(
         """
-        SELECT COUNT(*), SUM(CASE WHEN category_name = 'Best Overall Show' THEN 1 ELSE 0 END), MIN(year)
+        SELECT year, tier, category_name, result, show, nominee_name, role, reason
+        FROM historical_results
+        WHERE society_id = ? AND show IS NULL
+        ORDER BY year DESC, category_name
+        """,
+        (society_id,),
+    ).fetchall()
+
+    # A compact "trophy case" summary - total wins, and Best Overall Show wins
+    # specifically.
+    total_wins, best_show_wins = db.execute(
+        """
+        SELECT COUNT(*), SUM(CASE WHEN category_name = 'Best Overall Show' THEN 1 ELSE 0 END)
         FROM historical_results WHERE society_id = ? AND result = 'Winner'
         """,
         (society_id,),
     ).fetchone()
-    total_wins, best_show_wins, earliest_award_year = award_totals
 
     # Runner-up finishes for Best Overall Show specifically - a separate
     # query rather than folding into award_totals above, since that one's
@@ -937,16 +960,23 @@ def society_detail(society_id):
         (society_id,),
     ).fetchone()
 
-    earliest_season = db.execute(
-        "SELECT MIN(season) FROM shows WHERE society_id = ? AND show IS NOT NULL", (society_id,)
+    # The first year this society is on record at all. The old version took
+    # MIN(year) from a query scoped to result = 'Winner', so it was really the
+    # year of their first *win* - and fell back to a hard-coded 2000 + yy
+    # pivot on a season string, the same century assumption that has cost this
+    # migration two rounds already.
+    active_since = db.execute(
+        f"SELECT MIN(season_start_year) + 1 FROM productions "
+        f"WHERE society_id = ? AND {ON_RECORD_PRODUCTION}",
+        (society_id,),
     ).fetchone()[0]
-    active_since = earliest_award_year or (2000 + int(earliest_season[:2]) if earliest_season else None)
 
     badges = _society_badges(db, society_id)
 
     return render_template(
         "society_detail.html", society=society, shows=shows, future_shows=future_shows,
         historical_timeline=historical_timeline, person_awards=person_awards,
+        awards_by_show=awards_by_show,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
         society_login_url=society_login_url, badges=badges, current_season=current,
@@ -957,6 +987,7 @@ def society_detail(society_id):
 def show_detail(show_id):
     db = get_db()
     venues_build.ensure_current(db)
+    productions_build.ensure_current(db)
     show = db.execute(
         """
         SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug
@@ -1043,32 +1074,29 @@ def show_detail(show_id):
         (show_id,),
     ).fetchone()
 
-    # Pre-2024 award/nomination history for this exact production, from the
-    # older AIMS awards archive (historical_results) - a separate table with
-    # no foreign key to shows (it predates this site), so matched here by
-    # (society, year, title) rather than joined directly. year is
-    # historical_results' own year column, not season - see
-    # historical_results_year. Exact-normalized match only (case/punctuation,
-    # same as normalize_title everywhere else) - deliberately not fuzzy on a
-    # public page; a genuine title mismatch belongs in the admin queue's own
-    # history_match review step (see admin.categorize_pending_reviews),
-    # which is exactly what that step exists to catch before a show ever
-    # gets this far.
+    # AIMS award/nomination history for this exact production, from the awards
+    # archive (historical_results). Read straight off production_id - the
+    # foreign key that exists precisely to express "same staging" - rather
+    # than the hand-rolled join on (society, decoded year, normalized title)
+    # this replaced. That join decoded the season with historical_results_year,
+    # which returns 2000 + yy + 1 and so cannot express an award year before
+    # 2001: latent while shows holds 09/10 onward, live the moment anyone bulk
+    # -creates an older row. A titleless placeholder row has no production.
+    #
+    # The category/result filter is deliberate: it's what stops a bare "this
+    # production happened" row (see admin.bulk_historical_productions) from
+    # rendering as if it were an award.
     award_history = []
-    if show["show"] and show["season"]:
-        target_norm = normalize_title(show["show"])
-        candidate_rows = db.execute(
+    if show["production_id"]:
+        award_history = db.execute(
             """
             SELECT show, tier, category_name, result, nominee_name, role, reason
             FROM historical_results
-            WHERE society_id = ? AND year = ? AND show IS NOT NULL
+            WHERE production_id = ?
+              AND (category_name IS NOT NULL OR result IS NOT NULL)
             """,
-            (show["society_id"], historical_results_year(show["season"])),
+            (show["production_id"],),
         ).fetchall()
-        award_history = [
-            r for r in candidate_rows
-            if normalize_title(r["show"]) == target_norm and (r["category_name"] is not None or r["result"] is not None)
-        ]
 
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
@@ -1083,58 +1111,50 @@ TITLES_SORT_OPTIONS = {
     "most": "n DESC, show COLLATE NOCASE",
     "least": "n ASC, show COLLATE NOCASE",
 }
-# "stale" isn't a SQL ORDER BY - last-performed year comes from a separate
-# lookup (see last_performed below), so it's sorted in Python after the fact.
+# "stale" isn't one of these - it needs titles with no year on record to sort
+# last rather than first, which SQLite's NULL ordering won't do, so it's
+# applied in Python after the fact (see below).
 TITLES_SORT_CHOICES = set(TITLES_SORT_OPTIONS) | {"stale"}
 
 
 @bp.route("/titles")
 def titles_list():
     db = get_db()
+    productions_build.ensure_current(db)
     q = request.args.get("q", "").strip()
     sort = request.args.get("sort", "title")
     if sort not in TITLES_SORT_CHOICES:
         sort = "title"
 
-    query = """
-        SELECT show, COUNT(*) AS n FROM (
-            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
-            UNION ALL
-            SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
-        )
+    # One row per real staging, straight off the productions table. The old
+    # union counted historical_results rows, which are one per award
+    # *category*, so a production nominated five times counted five times -
+    # the whole A-Z overstated the circuit by ~1.67x. MIN(title) rather than a
+    # bare column because GROUP BY title_key would otherwise pick an arbitrary
+    # row's spelling; aliasing it `show` keeps TITLES_SORT_OPTIONS and the
+    # template working unchanged.
+    query = f"""
+        SELECT title_key, MIN(title) AS show, COUNT(*) AS n, MAX(season_start_year) AS last_year
+        FROM productions
+        WHERE {ON_RECORD_PRODUCTION}
     """
-    params = [SHOWS_COVERAGE_START_YEAR]
+    params = []
     if q:
-        query += " WHERE show LIKE ? ESCAPE '\\'"
+        query += " AND title LIKE ? ESCAPE '\\'"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         params.append(f"%{escaped}%")
-    query += f" GROUP BY show ORDER BY {TITLES_SORT_OPTIONS[sort if sort != 'stale' else 'title']}"
+    query += f" GROUP BY title_key ORDER BY {TITLES_SORT_OPTIONS[sort if sort != 'stale' else 'title']}"
 
     rows = db.execute(query, params).fetchall()
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
     has_info = {r[0] for r in db.execute("SELECT show FROM show_info").fetchall()}
-    # Last performed - the true most recent year on record for a title from
-    # either source, unfiltered by SHOWS_COVERAGE_START_YEAR (that filter
-    # only exists above to avoid double-counting a production in both
-    # tables; a recency question has no such double-counting problem).
-    last_performed = dict(db.execute(
-        """
-        SELECT show, MAX(year) FROM (
-            SELECT show, CAST(substr(opening_date, 1, 4) AS INTEGER) AS year
-            FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND opening_date IS NOT NULL
-            UNION ALL
-            SELECT show, year FROM historical_results WHERE show IS NOT NULL
-        )
-        GROUP BY show
-        """
-    ).fetchall())
 
     shows = [
         {
             "title": r["show"],
             "count": r["n"],
-            "last_year": last_performed.get(r["show"]),
+            "last_year": r["last_year"],
             "url": manual_links.get(r["show"]),
             "is_manual": r["show"] in manual_links,
             "has_info": r["show"] in has_info,
@@ -1146,9 +1166,9 @@ def titles_list():
     if sort == "stale":
         shows.sort(key=lambda s: (s["last_year"] is None, s["last_year"] or 0))
 
-    # Paged in Python rather than SQL: the "stale" sort above can only be
-    # applied after last_performed is joined in, so the full list has to be
-    # built either way. Same page-size/param convention as /awards.
+    # Paged in Python rather than SQL: the "stale" sort above reorders the
+    # whole list after the query, so it has to be built in full either way.
+    # Same page-size/param convention as /awards.
     total = len(shows)
     per_page, page, total_pages = paginate_args(total)
     shows = shows[(page - 1) * per_page:page * per_page]
@@ -1164,27 +1184,44 @@ def titles_list():
 def title_detail(title):
     db = get_db()
     productions_build.ensure_current(db)
+    title_key = normalize_title(title)
+
+    # Joined through productions rather than matched on the raw title text, so
+    # two spellings of one show land on one page, and ordered on a real
+    # four-digit year rather than on 'yy/yy' as text (which sorts '76/77' after
+    # '09/10' - the Round 25 bug).
     shows = db.execute(
         """
         SELECT shows.*, societies.name AS society_name
-        FROM shows JOIN societies ON societies.id = shows.society_id
-        WHERE shows.show = ? AND shows.moderation_status = 'approved'
-        ORDER BY shows.season DESC, societies.name
+        FROM shows
+        JOIN societies ON societies.id = shows.society_id
+        JOIN productions ON productions.id = shows.production_id
+        WHERE productions.title_key = ? AND shows.moderation_status = 'approved'
+        ORDER BY productions.season_start_year DESC, societies.name
         """,
-        (title,),
+        (title_key,),
     ).fetchall()
 
-    # Distinct (year, society) before 23/24 - historical_results has one row
-    # per award category, not per production, so this collapses back to one
-    # row per actual staging. Stops before SHOWS_COVERAGE_START_YEAR so a
-    # 23/24+ production already listed above under "full detail" doesn't
-    # also show up a second time down here.
+    # The rest of this title's stagings: the ones with no show page of their
+    # own to link to. Split on that, not on an era - a skeleton shows row from
+    # 12/13 belongs in the table above because it has a real page, and a
+    # production known only from a 2025 award record belongs here rather than
+    # being filtered out of existence (which is what the old year < 23/24 cut
+    # did, 404ing 16 real titles). season_start_year + 1 is historical_results'
+    # own year column exactly - the rebuild's verification pass asserts that
+    # relationship for every linked award record - so the displayed years are
+    # unchanged from what this table showed before.
     historical = db.execute(
-        """
-        SELECT DISTINCT year, society_name FROM historical_results
-        WHERE show = ? AND year < ? ORDER BY year DESC
+        f"""
+        SELECT productions.season_start_year + 1 AS year, productions.society_name, productions.society_id
+        FROM productions
+        WHERE productions.title_key = ? AND {ON_RECORD_PRODUCTION}
+          AND NOT EXISTS (SELECT 1 FROM shows
+                           WHERE shows.production_id = productions.id
+                             AND shows.moderation_status = 'approved')
+        ORDER BY productions.season_start_year DESC
         """,
-        (title, SHOWS_COVERAGE_START_YEAR),
+        (title_key,),
     ).fetchall()
 
     if not shows and not historical:
@@ -1192,18 +1229,18 @@ def title_detail(title):
 
     info = db.execute("SELECT * FROM show_info WHERE show = ?", (title,)).fetchone()
 
-    # AIMS debut - earliest record of this title, whichever source it comes
-    # from. historical is already the pre-23/24 archive, so if it has any
-    # rows its earliest (last, since it's sorted DESC) year always predates
-    # anything in shows. Otherwise fall back to the earliest season string
-    # among shows - lexical comparison matches chronological order for this
-    # site's YY/YY+1 seasons, same assumption all_seasons sorting relies on.
-    if historical:
-        debut_label = str(historical[-1]["year"])
-    elif shows:
-        debut_label = f"{min(s['season'] for s in shows)} season"
-    else:
-        debut_label = None
+    # AIMS debut - the earliest production on record, whichever source it came
+    # from, as a four-digit year. Taken off productions rather than compared
+    # across two conventions (an award year on one side, a 'yy/yy' string
+    # compared lexically on the other, which put a 1976 debut after a 2009
+    # one). Stated as the season's ending year, the same convention the
+    # archive table above and the awards archive itself use.
+    debut_year = db.execute(
+        f"SELECT MIN(season_start_year) + 1 FROM productions "
+        f"WHERE title_key = ? AND {ON_RECORD_PRODUCTION}",
+        (title_key,),
+    ).fetchone()[0]
+    debut_label = str(debut_year) if debut_year is not None else None
 
     # Gated on real award-archive engagement, not just "this title exists" -
     # a just-announced show with a shows row and no adjudication yet has

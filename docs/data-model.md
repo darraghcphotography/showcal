@@ -119,7 +119,8 @@ with `historical_results` and anti-joining the skeleton rows, and they
 disagreed with each other. That cost 371 productions on `/stats` once, then a
 further 823.
 
-**It's derived, not authored.** `app/productions_build.py` is the only thing
+**It's derived, not authored - and that's a settled decision, not a stage.**
+`app/productions_build.py` is the only thing
 that writes to it; the three source tables above stay the place data is
 entered and edited, and each carries a nullable `production_id` pointing back.
 The rebuild upserts on the natural key, so a production keeps its id across
@@ -154,9 +155,53 @@ database rather than from the dict it just built, and raises rather than
 committing on any disagreement - including the one failure that would matter
 most, two `shows` rows landing under a single production.
 
-Cutover is staged, one surface at a time: `/stats` first (done), then the admin
-dashboard counts, then the public show/society pages. Until a surface is cut
-over it still uses the old `SHOWS_COVERAGE_START_YEAR` split described above.
+Letting a moderator edit a production directly was scoped as a possible later
+stage and was **decided against on 2026-08-23**, once all four surfaces were
+cut over. The reasoning, so a future session doesn't re-litigate it: every way
+a production can be wrong today traces to a source row being wrong (a title
+spelled two ways, a society name that never matched, an award year mis-entered),
+and each of those already has an editing surface - `/admin/awards`, the
+duplicate-title merge, Edit Show - that fixes the production *and* the page the
+data actually lives on. Editing the production instead would fix the index and
+leave the source wrong, which is the exact disagreement between surfaces this
+table was built to end. It would also cost the property that makes the rebuild
+safe to run at any time: it's a pure function of its sources, so it can verify
+itself by re-deriving every total from the database and refusing to commit on
+disagreement. Authored rows would need an override layer the rebuild respects,
+a merge/alias table the link-rewriting pass consults, and a verification pass
+that can tell "a human said so" from "the data changed underneath you".
+
+**Revisit that decision if**, and only if, one of these becomes true:
+
+- a correction is needed that *cannot* be expressed as an edit to `shows`,
+  `historical_results` or `historical_reviews` (none has come up);
+- the rebuild's verification pass starts failing on real data, or two genuinely
+  distinct stagings are found merged under one key;
+- the ~71 unmatched historical society names are worked down (ROADMAP already
+  carries that item, and it's the cheaper fix for the natural key's weakest
+  point) and productions *still* split wrongly;
+- a moderator needs a production that no source row implies. Today that's what
+  `admin.bulk_historical_productions` is for - it writes a bare
+  `historical_results` row and the production follows.
+
+**Every public surface is cut over** as of 2026-08-23: `/stats`, the admin
+dashboard counts, the Shows A-Z (plus `/search`'s Shows section and
+`/sitemap.xml`), `/titles/<title>`, `/societies/<id>` and `/shows/<id>`. The one
+shared filter they all apply is `ON_RECORD_PRODUCTION` in `app/productions.py` -
+the table is built from every `shows` row regardless of `moderation_status`, so
+a pending or rejected submission has a production row and each public query has
+to exclude it the same way.
+
+Some queries deliberately still read the old tables, and should stay that way:
+anything showing award-*category* detail rather than a staging count. An award
+record is a fact about a category, and there is nothing in `shows` to
+double-count it against - so `/awards`, `/stats/trends`, `/stats`'s award
+leaderboard and `wins_by_region`, a society's trophy case and its five award
+badges, `search()`'s award-nominee section, and `app/similarity.py`'s
+`find_award_record_match()` (a write-path check that runs *before* there is a
+production to key on) all read `historical_results` unfiltered. The review lists
+(`reviews_index()`, the adjudicator pages) count reviews, not stagings, and are
+left alone for the same reason.
 
 ## Column migrations
 

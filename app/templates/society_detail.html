@@ -6,6 +6,17 @@
     <meta property="og:image" content="{{ url_for('public.uploaded_file', filename=society['logo_filename'], _external=True) }}">
   {% endif %}
 {% endblock %}
+{# One badge style for a production's awards, wherever on this page it's
+   listed. A production with both a show page and award records is only in the
+   "Show history" table now, so if that table rendered awards differently (or
+   not at all) the cutover would have quietly lost information. #}
+{% macro award_badges(awards) %}
+  {% for a in awards %}
+    <span class="tag {{ 'tag-gold' if a['result'] == 'Winner' else 'tag-past' }}" title="{{ a['reason']|destub or '' }}">
+      {{ a['category_name'] or '—' }}{% if a['result'] and a['result'] != 'Winner' %} ({{ a['result'] }}){% endif %}{% if a['nominee_name']|destub %} - {{ a['nominee_name']|destub }}{% endif %}
+    </span>
+  {% endfor %}
+{% endmacro %}
 {% block content %}
   <p><a href="{{ url_for('public.societies_list') }}">&larr; Back to browse</a></p>
   {% if society['logo_filename'] %}
@@ -99,7 +110,7 @@
   <h2>Show history</h2>
   <table class="data-table table-wide">
     <thead>
-      <tr><th>Season</th><th>Show</th><th>Section</th><th>Dates</th><th>Review</th>{% if current_user %}<th></th>{% endif %}</tr>
+      <tr><th>Season</th><th>Show</th><th>Section</th><th>Dates</th><th>Review</th><th>Awards</th>{% if current_user %}<th></th>{% endif %}</tr>
     </thead>
     <tbody>
       {% for show in shows %}
@@ -126,10 +137,13 @@
               {{ show['review_status'] }}
             {% endif %}
           </td>
+          <td class="award-badges">
+            {% if awards_by_show.get(show['id']) %}{{ award_badges(awards_by_show[show['id']]) }}{% else %}—{% endif %}
+          </td>
           {% if current_user %}<td><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit</a></td>{% endif %}
         </tr>
       {% else %}
-        <tr><td colspan="6">No shows on record yet.</td></tr>
+        <tr><td colspan="{{ 7 if current_user else 6 }}">No shows on record yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -159,6 +173,9 @@
             {% endif %}
           </span>
         </div>
+        {% if awards_by_show.get(show['id']) %}
+          <div class="award-badges" style="margin-top: 0.4rem;">{{ award_badges(awards_by_show[show['id']]) }}</div>
+        {% endif %}
         {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit &rarr;</a></p>{% endif %}
       </div>
     {% else %}
@@ -167,10 +184,10 @@
   </div>
 
   {% if historical_timeline %}
-    <h2>Show history (pre-23/24 archive)</h2>
+    <h2>Also on record (awards archive)</h2>
     <p class="meta">{{ historical_timeline|length }} production{{ '' if historical_timeline|length == 1 else 's' }}
-       on record, {{ historical_timeline[-1]['year'] }}&ndash;{{ historical_timeline[0]['year'] }} - most never
-       won or were nominated for anything, which is normal; the awards on record for each are shown inline.</p>
+       with no show page of its own, {{ historical_timeline[-1]['year'] }}&ndash;{{ historical_timeline[0]['year'] }} -
+       most never won or were nominated for anything, which is normal; the awards on record for each are shown inline.</p>
     <table class="data-table table-wide">
       <thead><tr><th>Year</th><th>Show</th><th>Section</th><th>Awards</th></tr></thead>
       <tbody>
@@ -186,13 +203,7 @@
             </td>
             <td>{{ prod['tier'] or '—' }}</td>
             <td class="award-badges">
-              {% for a in prod['awards'] %}
-                <span class="tag {{ 'tag-gold' if a['result'] == 'Winner' else 'tag-past' }}" title="{{ a['reason']|destub or '' }}">
-                  {{ a['category_name'] or '—' }}{% if a['result'] and a['result'] != 'Winner' %} ({{ a['result'] }}){% endif %}{% if a['nominee_name']|destub %} - {{ a['nominee_name']|destub }}{% endif %}
-                </span>
-              {% else %}
-                <span class="meta">No award record</span>
-              {% endfor %}
+              {% if prod['awards'] %}{{ award_badges(prod['awards']) }}{% else %}<span class="meta">No award record</span>{% endif %}
             </td>
           </tr>
         {% endfor %}
@@ -214,13 +225,7 @@
             <span>&middot; {{ prod['tier'] or '—' }}</span>
           </div>
           <div class="award-badges" style="margin-top: 0.4rem;">
-            {% for a in prod['awards'] %}
-              <span class="tag {{ 'tag-gold' if a['result'] == 'Winner' else 'tag-past' }}">
-                {{ a['category_name'] or '—' }}{% if a['result'] and a['result'] != 'Winner' %} ({{ a['result'] }}){% endif %}{% if a['nominee_name']|destub %} - {{ a['nominee_name']|destub }}{% endif %}
-              </span>
-            {% else %}
-              <span class="meta">No award record</span>
-            {% endfor %}
+            {% if prod['awards'] %}{{ award_badges(prod['awards']) }}{% else %}<span class="meta">No award record</span>{% endif %}
           </div>
         </div>
       {% endfor %}
