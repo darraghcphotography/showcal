@@ -15,7 +15,30 @@ again.
 
 ## START HERE - where things stand (2026-08-23)
 
-**Two things are pushed and waiting on a redeploy.** Suite 589 green.
+## DEPLOY QUEUE (2026-08-24) - everything below is pushed, none of it is live
+
+Suite 607 green. Redeploy through Portainer, then run **two** scripts in the container -
+the code deploy alone changes no data:
+
+```bash
+docker exec aims-web python enrich_venues.py --db /data/aims.db
+docker exec aims-web python backfill_default_venues.py --db /data/aims.db
+```
+(`docker compose exec` needs the compose directory; `docker exec` works from anywhere.)
+
+Both are idempotent, and `enrich_venues.py` has already run once against prod - the second
+run adds 15 venues and one merge. Then check: the homepage leads with "What's on" grouped by
+month, `/reviews` is a page at a time with a pager, an upcoming show page no longer shows the
+adjudication cut-off to a logged-out visitor, and a venue page offers "Get directions".
+
+Shipped in this batch: the homepage rebuild (audit bet 1 + findings 02/04), the adjudication
+cut-off audience fix (finding 07), `/reviews` pagination and full-text search (finding 12),
+the "No region" option for historical societies, Google Maps directions on venue pages, and
+the Gemini venue-mapping adoption (84 default venues, 15 more venues enriched).
+
+---
+
+**Two earlier things, also waiting on the same redeploy.** Suite 589 green at the time.
 
 1. **Venue content pass** - `enrich_venues.py` fills town/county/capacity/website/tech-spec/map pin for
    the 30 venues with 5+ productions (~70% of venue-attributed shows), folds away 6 duplicate
