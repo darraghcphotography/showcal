@@ -64,14 +64,24 @@ contradicting each other in public.
 - **Society pages list recent productions twice.** `society_detail()`'s archive query
   has no year filter at all, despite the template heading reading "Show history
   (pre-23/24 archive)". Any 2024+ award record appears both in the "Show history" table
-  (from `shows`) and again in the archive timeline below it. On the stale local copy
-  that's 198 (year, show, society) combinations from 2024 on, 178 of which also have a
-  `shows` row.
-- **Some real productions have no page at all.** `title_detail()` 404s when there's
-  neither a `shows` row nor a pre-2024 award record. A title first staged in 24/25 or
-  later that reached the site only through the awards archive therefore 404s - invisible
-  on the A-Z, absent from the sitemap. **16 titles as of 2026-08-23**, splitting into two
-  kinds - and the distinction matters when you show Darragh the list:
+  (from `shows`) and again in the archive timeline below it. **195 (year, show, society)
+  combinations from 2024 on, of which 190 are genuinely rendered twice today** (verified
+  during execution, not estimated).
+- **16 real productions are missing from the A-Z and the sitemap.**
+  `titles_list()` excludes `source='historical'` from its shows branch and filters the
+  archive branch to pre-2024, so a title known only from a skeleton row or a 2024+ award
+  record never gets a row on Shows A-Z or an entry in `sitemap.xml`.
+
+  > **Corrected 2026-08-23 during execution.** An earlier draft of this plan claimed all
+  > 16 of these titles *404ed*. That was wrong, and it was checked rather than assumed:
+  > only **one** actually 404s (`Fame: The Musical`, Leixlip 25/26, award records only).
+  > The other 15 already render, because `title_detail()` matches `shows` with **no**
+  > `source` filter - a skeleton row is enough to give them a working page. Same fix and
+  > the same 16 titles gained either way, but the defect is "invisible in the index",
+  > not "no page exists". For §7.3's "page that used to 404" check, use
+  > `/titles/Fame:%20The%20Musical` specifically.
+
+  The 16 split into two kinds, and the distinction matters when you show Darragh the list:
   - **Genuinely missing** (9): `Michael Collins` (2 productions), `Songs For A New World`
     (2), `Miss Saigon (School Edition)` (2), `Bad Girls`, `Cinderella`, `Disco Inferno`,
     `Miracle on 34th Street`, `She Loves Me`, `Summer Holiday`.
