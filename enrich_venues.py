@@ -97,6 +97,10 @@ MERGES = [
     ("Kilcock GAA Clubhouse / St. Joseph's Hall", "Kilcock GAA",
      "Darragh confirmed 2026-08-24 that Kilcock perform at Kilcock GAA. Held back on "
      "the first pass because a slash-joined name normally means two buildings."),
+    ("Pavilion Theatre, Dún Laoghaire", "Pavillion Theatre",
+     "One building under two spellings, and ours is the typo. Folded into the record "
+     "that carries the productions and the researched detail; the display name still "
+     "wants correcting by hand in /admin/venue-directory."),
 ]
 
 # Shows whose venue was typed as something ambiguous. Correcting the text is the
@@ -282,6 +286,97 @@ DATA = {
         "latitude": 53.3305956, "longitude": -8.2249983,
     },
     "Town Hall Theatre, Claremorris": {"town": "Claremorris", "county": "Mayo"},
+    # ---- Second pass, 2026-08-24, from GOOGLE_MAPS_INTEGRATION_PROPOSAL.md ----
+    #
+    # That document supplied the shortlist: venues our archive uses that nobody
+    # had researched yet. Its capacities check out where the venue publishes one
+    # - Watergate 328, Hawk's Well 340, Lime Tree 510, Backstage 212 all
+    # confirmed exactly against the venues' own pages - so they're taken as
+    # given here.
+    #
+    # Its coordinates are not taken. They were spot-checked against OSM and are
+    # right for some venues and badly out for others: Backstage Theatre by 1.8km,
+    # Dunboyne GAA by 1.2km, Ballinrobe by 700m, glór by 380m. Every coordinate
+    # below is OSM's own, looked up per venue, with the proposal's value used
+    # only as the prompt to go and look. Where OSM has no record, there's no pin
+    # - same rule as the first pass.
+    #
+    # Capacities are left off the schools, GAA halls and community centres it
+    # lists. Those publish no figure, and its numbers for them are round
+    # (300, 300, 250, 180...) in a way its arts-centre figures are not.
+    "Grand Opera House, Belfast": {
+        "town": "Belfast", "county": "Antrim", "capacity": 1058,
+        "auditorium_type": "Proscenium", "website_url": "https://www.goh.co.uk/",
+        "latitude": 54.5953336, "longitude": -5.9351922,
+    },
+    "The Helix, Dublin": {
+        "town": "Dublin", "county": "Dublin", "capacity": 1050,
+        "auditorium_type": "Proscenium", "website_url": "https://thehelix.ie/",
+        "latitude": 53.3864895, "longitude": -6.2592607,
+    },
+    "Watergate Theatre, Kilkenny": {
+        "town": "Kilkenny", "county": "Kilkenny", "capacity": 328,
+        "auditorium_type": "Proscenium", "website_url": "https://watergatetheatre.com/",
+        "latitude": 52.6552640, "longitude": -7.2545853,
+    },
+    "Hawk's Well Theatre, Sligo": {
+        "town": "Sligo", "county": "Sligo", "capacity": 340,
+        "auditorium_type": "Proscenium", "website_url": "https://www.hawkswell.com/",
+        "latitude": 54.2688590, "longitude": -8.4771140,
+    },
+    "Lime Tree Theatre, Limerick": {
+        "town": "Limerick", "county": "Limerick", "capacity": 510,
+        "auditorium_type": "Proscenium", "website_url": "https://limetreetheatre.ie/",
+        "latitude": 52.6535316, "longitude": -8.6422575,
+    },
+    "Backstage Theatre, Longford": {
+        "town": "Longford", "county": "Longford", "capacity": 212,
+        "auditorium_type": "Proscenium", "website_url": "https://backstage.ie/",
+        "latitude": 53.7155902, "longitude": -7.8001114,
+    },
+    "Dunamaise Arts Centre, Portlaoise": {
+        "town": "Portlaoise", "county": "Laois", "capacity": 240,
+        "auditorium_type": "Proscenium", "website_url": "https://www.dunamaise.ie/",
+        "latitude": 53.0344802, "longitude": -7.2997520,
+    },
+    "Mermaid Arts Centre, Bray": {
+        "town": "Bray", "county": "Wicklow", "capacity": 242,
+        "auditorium_type": "Proscenium", "website_url": "https://www.mermaidartscentre.ie/",
+        "latitude": 53.2015930, "longitude": -6.1091051,
+    },
+    "glór, Ennis": {
+        "town": "Ennis", "county": "Clare", "capacity": 485,
+        "auditorium_type": "Proscenium", "website_url": "https://glor.ie/",
+        "latitude": 52.8446512, "longitude": -8.9770509,
+    },
+    "Esker Arts Centre, Tullamore": {
+        "town": "Tullamore", "county": "Offaly", "capacity": 228,
+        "auditorium_type": "Proscenium", "website_url": "https://eskerarts.ie/",
+        "latitude": 53.2734911, "longitude": -7.4940266,
+    },
+    "The Venue Theatre, Ratoath": {
+        "town": "Ratoath", "county": "Meath", "capacity": 230,
+        "auditorium_type": "Proscenium", "website_url": "https://venuetheatre.ie/",
+        "latitude": 53.5074501, "longitude": -6.4628350,
+    },
+    "White Memorial Theatre, Clonmel": {
+        "town": "Clonmel", "county": "Tipperary",
+        "latitude": 52.3533915, "longitude": -7.7061769,
+    },
+    "Ballinrobe Community School": {
+        "town": "Ballinrobe", "county": "Mayo",
+        "latitude": 53.6230631, "longitude": -9.2134073,
+    },
+    "Dunboyne GAA Hall": {
+        "town": "Dunboyne", "county": "Meath",
+        "latitude": 53.4102744, "longitude": -6.4731824,
+    },
+    "Gleneagle Arena, Killarney": {
+        "town": "Killarney", "county": "Kerry",
+        "website_url": "https://www.gleneaglearena.com/",
+        # The Gleneagle complex's own OSM point - the arena sits inside it.
+        "latitude": 52.0439227, "longitude": -9.5014985,
+    },
     "St. Mary's College Arklow": {"town": "Arklow", "county": "Wicklow"},
     "Temperance Hall, Loughrea": {"town": "Loughrea", "county": "Galway"},
     "Leixlip GAA": {

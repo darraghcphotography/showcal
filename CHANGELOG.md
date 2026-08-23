@@ -1,3 +1,9 @@
+84 more societies now have a default venue on record - 123 of 194, up from 39. It prefills when a society adds a show, so there's one less field to fill in, and it puts a real building behind entries that previously read just "Roscommon" or "Donegal"
+15 more venues filled in, including the Grand Opera House Belfast, The Helix, Hawk's Well Sligo, Lime Tree Limerick, glór Ennis, Watergate Kilkenny, Mermaid Bray, Dunamaise Portlaoise and Backstage Longford - 28 venues now carry a seating capacity and 43 have a map pin
+Dún Laoghaire's Pavilion Theatre was on record twice under two spellings; it's one venue now
+
+---
+
 Venue pages now offer "Get directions" - on a phone that opens your own Maps app and starts navigation, rather than showing a map you then have to copy the address out of. It works for every venue, not just the ones with a map pin on record
 
 ---
