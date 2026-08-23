@@ -2,6 +2,12 @@ __pycache__/
 *.pyc
 .env
 aims.db
+# WAL mode leaves two sidecar files beside the database, and the bare
+# "aims.db" line above does not match them - they showed up as untracked
+# in git status. They hold recent transaction data, so on a dev database
+# restored from a production copy they carry real member/login data too.
+aims.db-wal
+aims.db-shm
 data/
 uploads/
 
