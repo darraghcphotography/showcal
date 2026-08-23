@@ -272,6 +272,13 @@ for All Shows and Seasons as well. `/more` regrouped under the same headings.
   views because they're in the nav, so citing those numbers to decide what belongs in the nav is
   circular. It was used in the first draft of this work and withdrawn. The only honest signal in it
   is that footer-only pages are invisible.
+- **Polish pass 2026-08-23**: Darragh called it "a bit sketchy" - not the dropdown mechanism, but
+  mismatched button styles and flat spacing in the account cluster (Society login/Admin/Log out/theme
+  toggle sat as three different affordances - plain link, bordered box, plain link - in the same flat
+  row as the content nav). Split into `.nav-content`/`.nav-account` with a wider gap between them and
+  one shared `.nav-pill` shape for every account control, Admin keeping its gold color as the one
+  moderator-only distinction. Checked signed-out/signed-in, light/dark, and a narrow width via headless
+  Edge screenshots before shipping. No change to the dropdown/chevron styling.
 - Deferred deliberately, still wanted: the type/palette pass (needs a self-hosted display font) and
   the per-page component pass. Both wait on **posters** - 41 exist in total, 13 for 25/26 onward
   against 193 shows, so a poster-led design would be mostly empty frames. Gathering artwork from
