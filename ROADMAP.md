@@ -251,11 +251,12 @@ for All Shows and Seasons as well. `/more` regrouped under the same headings.
 Real numbers, not impressions. Nothing here is urgent; the first two are the ones that will actually
 bite.
 
-1. **`app/blueprints/admin.py` is 3,325 lines** (next biggest is `public.py` at 1,422). The Gemini
-   audit flagged splitting it into a package months ago and it's grown ~400 lines since, most of them
-   mine this week. **Wants its own session.** Mechanical but wide: route registration, imports, and a
-   silent breakage would only show up in admin, which nobody exercises daily. The 491-test suite is
-   the thing that makes it safe to attempt.
+1. **DONE 2026-08-23.** `app/blueprints/admin.py` (3,325 lines) is now `app/blueprints/admin/`, a
+   package split by concern (auth, dashboard, shows, invite_codes, societies, venues, misc, duplicates,
+   reviews, awards, adjudicators, historical_reviews - plus a `_shared.py` for cross-cutting helpers).
+   Pure structural move, no endpoint names or route logic changed. Full suite green (491) both inside
+   the split's own worktree and again after merging to main. Next biggest file is now `public.py` at
+   1,422 lines - not touched, not urgent.
 2. **`ensure_current()` is a call site you have to remember.** 8 of them now across `admin.py`,
    `info.py` and `public.py`. Any route reading `production_id` or `venue_id` must call it first;
    forgetting doesn't error, it silently under-reports - which is exactly how the data-quality page
@@ -271,7 +272,9 @@ bite.
 5. **`page_views` is keyed on path only**, so no query-string question can ever be answered from it
    (`/reviews?season=X` collapses into `/reviews`). Fine as a popularity counter, useless as
    analytics. Only worth changing if a real question needs it.
-6. **The test suite takes ~2m20s** for 491 tests. Not a problem yet; worth watching.
+6. **DONE 2026-08-23.** The test suite took ~2m15s for 491 tests, serially - no individual test was slow,
+   just per-test fixture overhead (fresh app + sqlite file) on an idle 16-core box. `pytest-xdist` +
+   `addopts = -n auto` in `pytest.ini` cuts it to ~40s, confirmed stable across several runs.
 7. **Four untracked `.md` files sit in the repo root** (`DESIGN_AUDIT_AND_PROPOSALS.md`,
    `FEATURE_IDEAS.md`, `SHOW_ENRICHMENT_PROPOSAL.md`, `venues_report.md`). They're source documents,
    not repo content, and they've been deliberately left untracked - but they show up in every `git
