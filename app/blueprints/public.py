@@ -216,6 +216,7 @@ def _review_snippet(review_text, q):
 def search():
     q = request.args.get("q", "").strip()
     db = get_db()
+    productions_build.ensure_current(db)
     societies = []
     titles = []
     reviews = []
@@ -819,6 +820,7 @@ def _society_badges(db, society_id):
 @bp.route("/societies/<int:society_id>")
 def society_detail(society_id):
     db = get_db()
+    productions_build.ensure_current(db)
     society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
     if society is None:
         abort(404)
@@ -957,6 +959,7 @@ def society_detail(society_id):
 def show_detail(show_id):
     db = get_db()
     venues_build.ensure_current(db)
+    productions_build.ensure_current(db)
     show = db.execute(
         """
         SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug
@@ -1091,6 +1094,7 @@ TITLES_SORT_CHOICES = set(TITLES_SORT_OPTIONS) | {"stale"}
 @bp.route("/titles")
 def titles_list():
     db = get_db()
+    productions_build.ensure_current(db)
     q = request.args.get("q", "").strip()
     sort = request.args.get("sort", "title")
     if sort not in TITLES_SORT_CHOICES:
