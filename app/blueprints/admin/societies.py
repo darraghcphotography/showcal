@@ -158,6 +158,27 @@ def edit_society(society_id):
                 profile_fields["other_label"], hidden, society_id,
             ),
         )
+
+        # shows.section is a deliberate snapshot (schema.sql), not a live
+        # mirror - so this cascade is scoped tightly to the one season this
+        # edit actually claims to speak for (section_as_of), and only to
+        # shows that haven't happened yet. A show that's already run keeps
+        # the section it actually ran under; a re-tiering discovered after
+        # the fact (this one: 23 shows across 23 societies, all season
+        # 26/27, all still to come) shouldn't rewrite settled history.
+        if section != society["section"] and section_as_of:
+            updated = db.execute(
+                """
+                UPDATE shows SET section = ?
+                 WHERE society_id = ? AND season = ? AND section IS NOT NULL AND section != ?
+                   AND (opening_date IS NULL OR opening_date >= date('now'))
+                """,
+                (section, society_id, section_as_of, section),
+            ).rowcount
+            if updated:
+                flash(f"Also updated {updated} not-yet-run show{'s' if updated != 1 else ''} "
+                      f"for {section_as_of} to match.", "success")
+
         db.commit()
         flash("Society updated.", "success")
         return redirect(url_for("admin.societies_list"))
