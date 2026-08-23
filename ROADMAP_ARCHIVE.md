@@ -3289,6 +3289,24 @@ into the live ROADMAP.md.)
   shown when exactly one adjudicator covered that season/tier); falls back to the inferred credit,
   then to no byline at all, if neither is set. 9 new tests in `tests/test_review_author_byline.py`,
   full suite 541 passed.
+- Junk skeleton-show-title fresh sweep - DONE 2026-08-23, against a fresh prod snapshot (784
+  `source='historical'` shows with an approved linked review checked, same methodology as the original
+  8-title fix). Title-not-in-own-review-text check re-run (154 misses, all confirmed false positives on
+  manual review - real titles just not quoted verbatim in the prose, no lowercase-start or
+  sentence-fragment shapes found). Went further than the original sweep and also checked for the
+  *sibling* bug (same review extracted 2-3 times with progressively more of its opening line missing,
+  same root cause as the Addams Family fix) via `SequenceMatcher` over same-`source_issue` review pairs
+  - found 2 more instances, both fixed directly on production via SSH (data, not code, so not in git):
+  show 1963 "Sweet" deleted as a truncated duplicate of show 1904 "Sweet Charity" (Muse Productions,
+  22/23, reviews 936 kept vs 998 deleted, texts identical from "Charity was energetic..." onward,
+  936 has the 6 extra leading chars "Sweet "); show 1925 "which" (Coolmine Musical Society, 19/20)
+  retitled to "Made in Dagenham" - confirmed via its own review text ("...Christmas offerings. Made
+  in Dagenham was succinctly directed by Sharon") - and its truncated duplicate show 1961 (same
+  society/season/section, already correctly titled but missing the review's opening ~40 characters)
+  deleted, review 1000 deleted with it. Verified no other table has an FK into `shows.id` besides
+  `historical_reviews.show_id` (`historical_results`/`productions` link via `production_id`/derived
+  keys, not `shows.id`) before deleting. Confirmed live post-fix: `/shows/1925` renders "Made in
+  Dagenham", `/shows/1961` and `/shows/1963` both 404. 1387 -> 1385 shows, 878 -> 876 historical_reviews.
 
 ## Working agreements (from the 2026-08-03 process review)
 - `/clear` (or a fresh session) between genuinely distinct workstreams -

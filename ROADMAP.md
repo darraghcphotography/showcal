@@ -20,8 +20,9 @@ merge queue mostly worked), the header nav restructure + polish + mobile fix, De
 show circuit intelligence on `/titles/<title>`, two rounds of UX-audit quick wins (venue/adjudicator
 linking, sitemap coverage, wording fixes, Gilbert/Sullivan explainers), and the review-author byline
 (`review_author` column, admin edit form + reviews-queue quick save, explicit-beats-inferred credit on
-the public show page). A large batch of venue-data and society-section data fixes also went out today -
-see the archive for the detail if a specific fix needs re-checking.
+the public show page). A large batch of venue-data and society-section data fixes also went out today,
+plus a fresh full-archive sweep for the truncated-extraction garbled-title bug (2 more instances found
+and fixed) - see the archive for the detail if a specific fix needs re-checking.
 
 **Two open reference documents worth knowing about before starting anything new:**
 - **Full public-site UX audit** (non-technical, mockups included):
@@ -35,9 +36,6 @@ see the archive for the detail if a specific fix needs re-checking.
 
 ## Next feasible things, roughly in order
 
-- **Junk skeleton-show-title cleanup sweep** - 8 garbled titles were fixed from a known
-  truncated-extraction bug pattern; a fresh full-archive sweep for more instances was flagged as worth
-  doing and never run. Mechanical, low risk.
 - **`/reviews` + `/season` page weight** - 362KB/123KB, no pagination. Flagged in the UX audit as the
   one remaining quick win too big/risky to bundle into the two batches already shipped.
 - **Show/title enrichment, Source C follow-ups** - Source C (circuit intelligence) shipped 2026-08-23.
