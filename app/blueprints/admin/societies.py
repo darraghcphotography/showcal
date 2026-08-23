@@ -10,6 +10,11 @@ from . import bp
 from ._shared import URL_RE
 from .auth import _generate_invite_code, admin_required
 
+# The historical-regions form's third answer, alongside a real region and
+# leaving it on skip. Can't collide with a region name or with the empty string
+# that means skip.
+NO_REGION = "__none__"
+
 PROFILE_URL_FIELDS = (
     ("Website", "website_url"), ("Facebook", "facebook_url"),
     ("Instagram", "instagram_url"), ("TikTok", "tiktok_url"),
@@ -215,7 +220,7 @@ def historical_societies():
                COUNT(hr.id) AS record_count
         FROM historical_society_regions hsr
         LEFT JOIN historical_results hr ON hr.society_name = hsr.society_name
-        WHERE hsr.confirmed_region IS NULL
+        WHERE hsr.confirmed_region IS NULL AND hsr.no_region = 0
         GROUP BY hsr.society_name
         ORDER BY record_count DESC, hsr.society_name
         """
@@ -223,8 +228,13 @@ def historical_societies():
     confirmed_count = db.execute(
         "SELECT COUNT(*) FROM historical_society_regions WHERE confirmed_region IS NOT NULL"
     ).fetchone()[0]
+    no_region_count = db.execute(
+        "SELECT COUNT(*) FROM historical_society_regions WHERE no_region = 1"
+    ).fetchone()[0]
     return render_template(
-        "admin/historical_societies.html", rows=rows, regions=REGIONS, confirmed_count=confirmed_count
+        "admin/historical_societies.html", rows=rows, regions=REGIONS,
+        confirmed_count=confirmed_count, no_region_count=no_region_count,
+        no_region_value=NO_REGION,
     )
 
 
@@ -233,11 +243,22 @@ def historical_societies():
 def bulk_historical_societies():
     db = get_db()
     confirmed = 0
+    marked_none = 0
     i = 0
     while f"name_{i}" in request.form:
         name = request.form.get(f"name_{i}", "").strip()
         region = request.form.get(f"region_{i}", "").strip()
-        if name and region in REGIONS:
+        if name and region == NO_REGION:
+            # Not a region, and not a skip: a settled answer of "there isn't
+            # one". Leaves confirmed_region NULL so nothing downstream starts
+            # treating it as a region - see schema.sql.
+            db.execute(
+                "UPDATE historical_society_regions SET no_region = 1, updated_at = datetime('now') "
+                "WHERE society_name = ?",
+                (name,),
+            )
+            marked_none += 1
+        elif name and region in REGIONS:
             db.execute(
                 "UPDATE historical_society_regions SET confirmed_region = ?, updated_at = datetime('now') "
                 "WHERE society_name = ?",
@@ -246,8 +267,13 @@ def bulk_historical_societies():
             confirmed += 1
         i += 1
     db.commit()
+    parts = []
     if confirmed:
-        flash(f"Confirmed a region for {confirmed} society name(s).", "success")
+        parts.append(f"confirmed a region for {confirmed} society name(s)")
+    if marked_none:
+        parts.append(f"marked {marked_none} as having no region")
+    if parts:
+        flash(f"Done - {', '.join(parts)}.", "success")
     else:
         flash("No changes selected.", "warning")
     return redirect(url_for("admin.historical_societies"))

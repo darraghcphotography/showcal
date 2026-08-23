@@ -345,6 +345,15 @@ CREATE TABLE IF NOT EXISTS historical_society_regions (
                             'South-West', 'South-East', 'Midlands'
                         ) OR confirmed_region IS NULL),
     note                 TEXT,   -- why this region was guessed, e.g. "name references Waterford"
+    -- Settled as having no region at all, rather than a region nobody has
+    -- confirmed yet. AIMS itself is the clear case (a national body, not a
+    -- society); the rest are defunct names with no location clue anywhere, so
+    -- leaving them in the queue asks a question that has no answer.
+    -- Deliberately separate from confirmed_region rather than a sentinel value
+    -- in it: that column feeds the /stats region breakdown and
+    -- productions.region, so "Unknown" in there would show up publicly as if
+    -- it were a region.
+    no_region            INTEGER NOT NULL DEFAULT 0,
     updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -1,3 +1,7 @@
+Admin: historical society regions can now be answered "No region" - AIMS itself is a national body rather than a society, and some defunct names give no location clue anywhere, so that queue can now reach zero instead of holding four questions that have no answer
+
+---
+
 Venue pages have started filling in - the 30 venues AIMS societies play most now carry a seating capacity, a website, a county and a pin you can open on a map, where before every venue page had none of it
 Galway's Town Hall Theatre was split across two spellings, so its productions read as 11 and 6 on separate pages - that and five other split venues are now one venue each, and Galway's page reads 19
 Six productions were filed under a bare "Town Hall Theatre" that was really four different buildings - they now sit under the Ballinasloe, Claremorris and Galway town halls they actually played

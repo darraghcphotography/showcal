@@ -112,8 +112,12 @@ def dashboard():
         "SELECT COUNT(*) FROM historical_results WHERE society_name IS NOT NULL AND society_id IS NULL"
     ).fetchone()[0]
 
+    # no_region = 1 is a settled answer ("there isn't one"), not an unanswered
+    # question - same reason source='historical' is excluded from the counters
+    # above. Without it AIMS itself would sit here forever.
     historical_regions_pending_count = db.execute(
-        "SELECT COUNT(*) FROM historical_society_regions WHERE confirmed_region IS NULL"
+        "SELECT COUNT(*) FROM historical_society_regions "
+        "WHERE confirmed_region IS NULL AND no_region = 0"
     ).fetchone()[0]
 
     missing_venue_count = db.execute(

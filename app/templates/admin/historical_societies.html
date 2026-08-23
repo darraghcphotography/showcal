@@ -5,7 +5,12 @@
   <p class="meta">These are award-archive society names that never matched a current society (defunct, renamed,
      or never re-registered), so they're missing from region-based statistics. Each row shows a best guess -
      from the society's own name, or a web search where the name gave no location clue - review, change if
-     needed, and submit. Leave a row on "Skip" to decide later. {{ confirmed_count }} already confirmed so far.</p>
+     needed, and submit. Leave a row on "Skip" to decide later. {{ confirmed_count }} already confirmed so far{% if no_region_count %},
+     and {{ no_region_count }} settled as having no region{% endif %}.</p>
+  <p class="meta">Some names have no region and never will - AIMS itself is a national body rather than a
+     society, and a few defunct touring names give no location clue anywhere. Pick <strong>No region</strong>
+     for those: it takes the row off this list for good without inventing a region for it, and without
+     affecting any region statistic.</p>
 
   {% if rows %}
     <form method="post" action="{{ url_for('admin.bulk_historical_societies') }}">
@@ -26,6 +31,7 @@
                   {% for r in regions %}
                     <option value="{{ r }}" {% if r == row['suggested_region'] %}selected{% endif %}>{{ r }}</option>
                   {% endfor %}
+                  <option value="{{ no_region_value }}">No region (and never will have)</option>
                 </select>
               </td>
             </tr>

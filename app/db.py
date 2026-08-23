@@ -92,6 +92,16 @@ COLUMN_MIGRATIONS = [
     # the venues table in schema.sql). Populated by app/venues_build.py.
     ("shows", "venue_id", "ALTER TABLE shows ADD COLUMN venue_id INTEGER REFERENCES venues(id)"),
     ("shows", "review_author", "ALTER TABLE shows ADD COLUMN review_author TEXT"),
+    # "This name has no region, and asking again won't change that" - AIMS
+    # itself is a national body rather than a society, and a few defunct
+    # touring names give no location clue anywhere. Deliberately NOT a sentinel
+    # value in confirmed_region: that column feeds the /stats region breakdown
+    # and productions.region, so an "Unknown" in it would surface publicly as a
+    # region. This just takes the row out of the moderator queue.
+    (
+        "historical_society_regions", "no_region",
+        "ALTER TABLE historical_society_regions ADD COLUMN no_region INTEGER NOT NULL DEFAULT 0",
+    ),
 ]
 
 
