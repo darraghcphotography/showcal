@@ -48,8 +48,12 @@ and fixed) - see the archive for the detail if a specific fix needs re-checking.
 - **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are near
   me). Smallest self-contained new page on the list.
 - **Productions-table migration, stages 3-4** - public show/society pages, the last of the four staged
-  cutover surfaces. `reviews_index()` is the best worked example in the codebase of the problem the
-  table solves.
+  cutover surfaces. **A full execution plan now exists: `docs/productions-stage-3-4-plan.md`** (written
+  by Opus 2026-08-23, numbers re-verified against a real prod snapshot). Start there, not from scratch.
+  Headline: this is a bugfix, not a refactor - Shows A-Z counts award *nominations* rather than
+  stagings, so it overstates the circuit by 1.67x (4,677 vs 2,805); society pages list every 2024+
+  production twice; ~16 real titles have no page at all. Stage 4's recommendation is "keep the table
+  derived, don't build the authored version" with the reasoning and the trigger conditions written down.
 
 ## Data-accuracy follow-ups (from the 2026-08-23 report check), need Darragh's input or real research
 
