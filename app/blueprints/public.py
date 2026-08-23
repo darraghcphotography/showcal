@@ -15,6 +15,7 @@ from ..circuit_intelligence import (
 )
 from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
+from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
 from ..search import build_phrase_query, fts_match_ids
 from ..season import current_season, historical_results_year, season_has_ended, season_range, season_start_year
@@ -241,22 +242,21 @@ def search():
                 (f"%{escaped}%", SEARCH_RESULT_LIMIT),
             ).fetchall()
 
-        # Every matching title from either the current shows table or the
-        # older awards archive, same shape as titles_list()'s own query -
-        # deliberately one "Shows" result kind rather than a separate "Award"
+        # Every matching title on record, with its real staging count - the
+        # same productions query titles_list() runs, so the number here can
+        # never disagree with the one on the A-Z. Deliberately one "Shows"
+        # result kind rather than a separate "Award"
         # one, since /titles/<title> already surfaces both a show's
         # production history and its awards together.
         titles = db.execute(
-            """
-            SELECT show, COUNT(*) AS n FROM (
-                SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
-                UNION ALL
-                SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
-            )
-            WHERE show LIKE ? ESCAPE '\\'
-            GROUP BY show ORDER BY show LIMIT ?
+            f"""
+            SELECT MIN(title) AS show, COUNT(*) AS n
+            FROM productions
+            WHERE {ON_RECORD_PRODUCTION}
+              AND title LIKE ? ESCAPE '\\'
+            GROUP BY title_key ORDER BY show LIMIT ?
             """,
-            (SHOWS_COVERAGE_START_YEAR, f"%{escaped}%", SEARCH_RESULT_LIMIT),
+            (f"%{escaped}%", SEARCH_RESULT_LIMIT),
         ).fetchall()
 
         # Reviews, searched over their full text - this is the only index
@@ -1086,8 +1086,9 @@ TITLES_SORT_OPTIONS = {
     "most": "n DESC, show COLLATE NOCASE",
     "least": "n ASC, show COLLATE NOCASE",
 }
-# "stale" isn't a SQL ORDER BY - last-performed year comes from a separate
-# lookup (see last_performed below), so it's sorted in Python after the fact.
+# "stale" isn't one of these - it needs titles with no year on record to sort
+# last rather than first, which SQLite's NULL ordering won't do, so it's
+# applied in Python after the fact (see below).
 TITLES_SORT_CHOICES = set(TITLES_SORT_OPTIONS) | {"stale"}
 
 
@@ -1100,45 +1101,35 @@ def titles_list():
     if sort not in TITLES_SORT_CHOICES:
         sort = "title"
 
-    query = """
-        SELECT show, COUNT(*) AS n FROM (
-            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
-            UNION ALL
-            SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
-        )
+    # One row per real staging, straight off the productions table. The old
+    # union counted historical_results rows, which are one per award
+    # *category*, so a production nominated five times counted five times -
+    # the whole A-Z overstated the circuit by ~1.67x. MIN(title) rather than a
+    # bare column because GROUP BY title_key would otherwise pick an arbitrary
+    # row's spelling; aliasing it `show` keeps TITLES_SORT_OPTIONS and the
+    # template working unchanged.
+    query = f"""
+        SELECT title_key, MIN(title) AS show, COUNT(*) AS n, MAX(season_start_year) AS last_year
+        FROM productions
+        WHERE {ON_RECORD_PRODUCTION}
     """
-    params = [SHOWS_COVERAGE_START_YEAR]
+    params = []
     if q:
-        query += " WHERE show LIKE ? ESCAPE '\\'"
+        query += " AND title LIKE ? ESCAPE '\\'"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         params.append(f"%{escaped}%")
-    query += f" GROUP BY show ORDER BY {TITLES_SORT_OPTIONS[sort if sort != 'stale' else 'title']}"
+    query += f" GROUP BY title_key ORDER BY {TITLES_SORT_OPTIONS[sort if sort != 'stale' else 'title']}"
 
     rows = db.execute(query, params).fetchall()
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
     has_info = {r[0] for r in db.execute("SELECT show FROM show_info").fetchall()}
-    # Last performed - the true most recent year on record for a title from
-    # either source, unfiltered by SHOWS_COVERAGE_START_YEAR (that filter
-    # only exists above to avoid double-counting a production in both
-    # tables; a recency question has no such double-counting problem).
-    last_performed = dict(db.execute(
-        """
-        SELECT show, MAX(year) FROM (
-            SELECT show, CAST(substr(opening_date, 1, 4) AS INTEGER) AS year
-            FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND opening_date IS NOT NULL
-            UNION ALL
-            SELECT show, year FROM historical_results WHERE show IS NOT NULL
-        )
-        GROUP BY show
-        """
-    ).fetchall())
 
     shows = [
         {
             "title": r["show"],
             "count": r["n"],
-            "last_year": last_performed.get(r["show"]),
+            "last_year": r["last_year"],
             "url": manual_links.get(r["show"]),
             "is_manual": r["show"] in manual_links,
             "has_info": r["show"] in has_info,
@@ -1150,9 +1141,9 @@ def titles_list():
     if sort == "stale":
         shows.sort(key=lambda s: (s["last_year"] is None, s["last_year"] or 0))
 
-    # Paged in Python rather than SQL: the "stale" sort above can only be
-    # applied after last_performed is joined in, so the full list has to be
-    # built either way. Same page-size/param convention as /awards.
+    # Paged in Python rather than SQL: the "stale" sort above reorders the
+    # whole list after the query, so it has to be built in full either way.
+    # Same page-size/param convention as /awards.
     total = len(shows)
     per_page, page, total_pages = paginate_args(total)
     shows = shows[(page - 1) * per_page:page * per_page]

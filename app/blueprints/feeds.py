@@ -5,8 +5,10 @@ from datetime import date, datetime, timedelta
 
 from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
 
-from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR
+from .. import productions_build
+from ..constants import REGIONS
 from ..db import get_db
+from ..productions import ON_RECORD_PRODUCTION
 
 bp = Blueprint("feeds", __name__)
 
@@ -167,6 +169,7 @@ def robots_txt():
 @bp.route("/sitemap.xml")
 def sitemap_xml():
     db = get_db()
+    productions_build.ensure_current(db)
     today = date.today().isoformat()
 
     urls = [(url_for("public.index", _external=True), today)]
@@ -192,19 +195,18 @@ def sitemap_xml():
         lastmod = (row["updated_at"] or today)[:10]
         urls.append((url_for("public.show_detail", show_id=row["id"], _external=True), lastmod))
 
-    # One entry per distinct title, matching titles_list()'s own definition
-    # of "a title on record" (current shows plus the pre-23/24 archive) -
-    # these are some of the site's best, most-searched pages and were
-    # entirely absent from the sitemap before.
+    # One entry per distinct title, matching titles_list()'s own definition of
+    # "a title on record" - these are some of the site's best, most-searched
+    # pages and were entirely absent from the sitemap before. Read off
+    # productions for the same reason the A-Z is: the old union's year filter
+    # hid every title known only from a 2024+ award record, so those title
+    # pages were missing from the sitemap as well as from the A-Z.
     for row in db.execute(
+        f"""
+        SELECT MIN(title) AS show FROM productions
+        WHERE {ON_RECORD_PRODUCTION}
+        GROUP BY title_key
         """
-        SELECT DISTINCT show FROM (
-            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
-            UNION ALL
-            SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
-        )
-        """,
-        (SHOWS_COVERAGE_START_YEAR,),
     ).fetchall():
         urls.append((url_for("public.title_detail", title=row["show"], _external=True), today))
 
