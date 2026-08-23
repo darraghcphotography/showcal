@@ -88,6 +88,15 @@ freshly-added show, same `ensure_current()` gotcha as everywhere else. 18 new/up
 - **Still open, genuinely**: `/reviews`+`/season` page weight (362KB/123KB, no pagination) - the one
   remaining quick win, bigger/riskier than the others so held back rather than rushed into this batch.
 
+**Mobile nav bug fixed 2026-08-23** (`82617ae`) - Darragh caught it live on his phone, screenshot and
+all: the Explore menu ran off the left edge of the screen, unreadable. Root cause: the narrow-viewport
+fix from the nav restructure (`right: -0.6rem`) was written for History, which sits near the right of
+the row - the same anchor pushed Explore's menu (near the left) off the opposite edge. Fixed properly
+rather than just flipping the anchor for one trigger: below 40rem the menu is now a normal full-width
+block under whichever trigger opened it (`flex-basis: 100%` on the open `<details>`), so neither
+trigger's menu can overflow either edge. Verified locally at 390px with the menu force-opened (headless
+screenshots can't click) for both Explore and History.
+
 Section 5 of the audit is a non-technical outreach plan (nudge on their own page, fill 2-3 exemplar
 societies, ask for posters/ticket links first, a draft message to send a committee, and a "claim your
 page" route). That track is Darragh's lever, not a coding task.
