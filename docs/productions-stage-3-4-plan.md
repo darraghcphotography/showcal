@@ -78,9 +78,10 @@ contradicting each other in public.
   - **Spelling variants of a title already on the A-Z** (7): `Annie - The Musical`,
     `Big The Musical`, `Elf - The Musical`, `Fame: The Musical`, `Shrek`,
     `Peter Pan, A Musical Adventure`, `Sugar The Musical - Some Like It Hot`. These are
-    real `/admin/duplicate-titles` work, not a bug in this cutover - but the A-Z visibly
-    gaining near-duplicate rows will look like a regression if it isn't flagged first.
-    See §7.1b.
+    real `/admin/duplicate-titles` work, not a bug in this cutover. **Decided 2026-08-23:
+    ship the cutover and clean these up separately** - do not block the migration behind a
+    manual title-merge pass, and do not fold the merges into this work. Hand Darragh the
+    list at merge time (§7.1b) so the new rows are expected rather than discovered.
 - **`show_detail()`'s award history carries a century bug.** It matches award records
   via `historical_results_year(show["season"])`, the helper whose own docstring says it
   "cannot express an award year before 2001". Latent today (the `shows` table holds
@@ -335,14 +336,18 @@ can't come through the productions path.
 show page of their own", not an era. Something like "Earlier productions (awards
 archive)".
 
-**Accept and flag one trade-off.** A production that has both a `shows` row and award
-records currently shows its award badges in the archive table. After this change it
-appears only in the "Show history" table, which has no awards column - so those badges
-stop rendering on the society page. The awards are still on the production's own show
-page (`show_detail()`'s award history, §4.4), which is where the detail belongs. If
-Darragh wants them back on the society page, that's a *separate, small* follow-up step:
-one extra query keyed by `shows.production_id` and one extra cell. Sequence it after the
-dedupe lands, never bundled with it.
+**Keep the award badges - decided 2026-08-23, do not re-open.** A production that has
+both a `shows` row and award records currently shows its award badges in the archive
+table. Deduping would leave it only in the "Show history" table, which has no awards
+column, so those badges would stop rendering. Darragh's call was to **build the awards
+column in this same step** rather than accept a temporary regression: no society page
+should lose information at any point in the cutover.
+
+So step 4 also adds, to the "Show history" table: one query keyed on
+`shows.production_id` returning that production's award records, and one extra cell in
+`society_detail.html` rendering the same badge markup the archive table already uses.
+Reuse the existing markup rather than inventing a second badge style - a society page
+must not show one production's awards one way and another's a different way.
 
 **Badges** (`_society_badges()`, ~line 699):
 
@@ -534,8 +539,9 @@ before changing it. Commit.
 **Step 5 - `/shows/<id>`** (§4.4). Test: award history resolves for a show whose season
 predates 2001, which the old arithmetic could not express. Commit.
 
-**Step 6 - optional, only if Darragh asks:** award badges back on the society "Show
-history" table (§4.3's trade-off). Separate commit, separate decision.
+**Step 6 - (folded into step 4).** The society "Show history" awards column was
+originally sequenced here as an optional follow-up; Darragh decided on 2026-08-23 to
+build it as part of step 4 instead, so nothing regresses mid-cutover. Nothing to do here.
 
 **Step 7 - paperwork.** Drop the dead imports (§4.5). Update `docs/data-model.md`: the
 line "Cutover is staged, one surface at a time: `/stats` first (done), then the admin
