@@ -45,6 +45,13 @@ and fixed) - see the archive for the detail if a specific fix needs re-checking.
 
 ## Next feasible things, roughly in order
 
+- **Admin: "Shows missing a date" counter disagrees with the page it links to** - the dashboard counter
+  (`dashboard.py`) excludes `source='historical'` skeleton rows, because they can never have real dates;
+  `fix_dates()`'s `missing=1` filter (`admin/misc.py`) has no such exclusion. **Measured on real data
+  2026-08-23: the counter says 30, the page lists 812** - so a moderator clicks "30" and meets 782 rows
+  they can never action. Exactly the shape of the already-fixed 115-vs-29 review-link bug, and the fix
+  is the same: one shared definition rather than two WHERE clauses (`_shared.py` holds
+  `NEEDS_REVIEW_WHERE` as the worked precedent). Small, mechanical, verified.
 - **`/reviews` + `/season` page weight** - 362KB/123KB, no pagination. Flagged in the UX audit as the
   one remaining quick win too big/risky to bundle into the two batches already shipped.
 - **Show/title enrichment, Source C follow-ups** - Source C (circuit intelligence) shipped 2026-08-23.
