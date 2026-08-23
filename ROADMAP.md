@@ -11,6 +11,60 @@ verbatim in `ROADMAP_ARCHIVE.md` - nothing was deleted, just moved out of the fi
 session. This file now holds only: the current phase, and a flat list of items that are genuinely still
 open (not started, explicitly parked, or blocked on something).
 
+## DATA_ACCURACY_AND_CORRECTIONS_REPORT.md checked against reality, 2026-08-23
+
+Darragh dropped a Gemini-generated audit (`DATA_ACCURACY_AND_CORRECTIONS_REPORT.md`, repo root,
+untracked) and asked me to check it. Verified every section against a fresh prod snapshot rather than
+trusting it - same discipline as `venues_report.md` earlier. Also separately caught, cross-referencing
+this report: **St. Marys MS Navan's Evita venue mismatch, found in an earlier session today but never
+actually applied** - the report re-surfaced it.
+
+**Applied (`e4a3685`):**
+- 6 of the report's 20 claimed "venue column shift" rows were genuinely still wrong (LOST/JCS, Naas
+  MS/Young Frankenstein, Portlaoise MS/Guys and Dolls, Shannon MS/Cry-Baby, St. Michael's Theatre
+  MS/Witches of Eastwick, St. Marys Navan/Evita) - confirmed via each society's own other venues, same
+  standard as every other venue fix today, and blanked (not the report's specific claimed replacement -
+  see below on why).
+- Linked 75 `historical_results` rows to two societies that already had a matching `societies` row and
+  simply weren't connected (Greenhills Variety Group, New Lyric Operatic Company Belfast) - this was
+  already flagged as a known issue in an earlier session's notes, confirmed safe, applied.
+
+**Already resolved before I even checked, report is stale on these:**
+- 14 of the 20 "venue column shift" rows - already fixed earlier this session (same rows, different
+  investigation method).
+- Show 195 (Oyster Lane/A Christmas Carol) - already correct; the report claimed it was currently wrong
+  and named the exact value already on record as the "fix".
+- All 4 "venue punctuation drift" examples (St. Michael's Theatre New Ross, National Opera House
+  Wexford, Town Hall Theatre Galway, Garter Lane) - already merged in today's earlier venue
+  merge-queue work.
+- The claimed duplicate award row (46140/46164) - both ids no longer exist; already resolved, unclear
+  when.
+- The 81-shows-missing-a-26/27-venue figure - real number now 34, already worked down via
+  `venues_report.md`'s CONFLICTS review earlier today.
+
+**One clear lesson worth keeping**: the report is a good lead generator, not a source of truth - it got
+at least one claim stale (195) and its counts drift from current reality on several others (144 vs 154
+NULL-category rows, 647 vs 645 unmapped societies, 26 vs 28 orphaned societies) even where the
+underlying finding is real. Every specific replacement value it proposed for the venue fixes was left
+unwritten - blanked instead, same "don't guess" policy as everything else, since the one claim I could
+fully verify (195) turned out wrong.
+
+**Real findings, NOT auto-fixed, need Darragh's input or real research:**
+- **11 shows with `review_status='Published'` and no `review_url`** (report listed 10, actual sitewide
+  count is 11) - the page already guards against a broken link (falls back to just showing the word
+  "Published" with no href, not a dead link), but it's still wrong/confusing wording. Each one needs a
+  real judgment call - was it actually reviewed and just missing the link, or never adjudicated at all -
+  not a bulk guess.
+- **154 `historical_results` rows (1983-2000) with `category_name IS NULL`** - the report only proposed
+  categories for 6 sample rows, not all 154. Needs real historical AIMS awards-programme research, not
+  something to bulk-assign from a report's small sample.
+- **~10 more unmapped historical societies with no existing `societies` row** (Bangor Operatic Society,
+  De La Salle Musical Society Waterford, and others) - creating new historical society records (region,
+  section, spelling) is a structural decision, not a data-quality bugfix. Report's own "Option A"
+  proposes this; needs Darragh's call, not autonomous execution.
+- **28 orphaned Inactive societies with zero shows/awards** - retain or remove is a judgment call, no
+  urgency signal.
+
 ## Full public-site UX audit, 2026-08-23 - READ THIS BEFORE PLANNING NEW FEATURES
 
 Darragh asked for a step-back walkthrough of the whole public site as (a) a society committee member
