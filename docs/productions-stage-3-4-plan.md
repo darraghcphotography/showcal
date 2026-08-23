@@ -35,24 +35,24 @@ SELECT show, COUNT(*) AS n FROM (
 GROUP BY show
 ```
 
-A production nominated in five categories counts five times. **Measured against a real
-production snapshot (2026-08-23, 1,387 shows / 4,879 award records / archive from 1912):**
+A production nominated in five categories counts five times. **Measured 2026-08-23
+against current production data (1,385 shows / 4,879 award records / archive from 1912):**
 
 | Title | Shows A-Z says | Real productions |
 |---|---|---|
 | Jesus Christ Superstar | 152 | 78 |
 | Fiddler on the Roof | 143 | 81 |
 | Oliver! | 95 | 66 |
-| West Side Story | 100 | 49 |
+| West Side Story | 100 | 48 |
 | Les Miserables | 22 | 14 |
 
 Summed across the whole A-Z, the "Times performed" column adds up to **4,677 against
-2,805 real productions** - the page overstates the circuit by roughly **1.67x**, and the
+2,802 real productions** - the page overstates the circuit by roughly **1.67x**, and the
 same query backs the "Shows" section of `/search`.
 
-(An earlier draft of this plan quoted smaller figures taken from the repo-root `aims.db`,
-which is a stale dev copy. The numbers above replace them. Re-measure again anyway - see
-§6 - because production moves daily.)
+Re-measure anyway before you ship (§7.1) - production moves daily. The script that
+produced these numbers is worth re-running rather than rewriting; it lives in the
+session scratchpad as `replan_numbers.py` and is reproduced by §7.1a/b.
 
 The same page's own detail view already gets it right: `title_detail()`'s archive table
 does `SELECT DISTINCT year, society_name`, so `/titles/Jesus Christ Superstar` lists 57
@@ -70,17 +70,17 @@ contradicting each other in public.
 - **Some real productions have no page at all.** `title_detail()` 404s when there's
   neither a `shows` row nor a pre-2024 award record. A title first staged in 24/25 or
   later that reached the site only through the awards archive therefore 404s - invisible
-  on the A-Z, absent from the sitemap. **18 titles on the 2026-08-23 snapshot**, of which
-  two (`Sweet`, `which`) were garbled-extraction artefacts already deleted from production
-  later that day, so expect ~16. The rest split into two kinds, and the distinction
-  matters when you show Darragh the list:
-  - **Genuinely missing**: `Michael Collins`, `Songs For A New World`, `Disco Inferno`,
-    `She Loves Me`, `Summer Holiday`, `Bad Girls`, `Miracle on 34th Street`.
-  - **Spelling variants of a title already on the A-Z**: `Annie - The Musical`,
-    `Shrek`, `Fame: The Musical`, `Elf - The Musical`, `Big The Musical`,
-    `Sugar The Musical - Some Like It Hot`. These are real `/admin/duplicate-titles`
-    work, not a bug in this cutover - but the A-Z visibly gaining near-duplicate rows
-    will look like a regression if it isn't flagged first. See §7.1b.
+  on the A-Z, absent from the sitemap. **16 titles as of 2026-08-23**, splitting into two
+  kinds - and the distinction matters when you show Darragh the list:
+  - **Genuinely missing** (9): `Michael Collins` (2 productions), `Songs For A New World`
+    (2), `Miss Saigon (School Edition)` (2), `Bad Girls`, `Cinderella`, `Disco Inferno`,
+    `Miracle on 34th Street`, `She Loves Me`, `Summer Holiday`.
+  - **Spelling variants of a title already on the A-Z** (7): `Annie - The Musical`,
+    `Big The Musical`, `Elf - The Musical`, `Fame: The Musical`, `Shrek`,
+    `Peter Pan, A Musical Adventure`, `Sugar The Musical - Some Like It Hot`. These are
+    real `/admin/duplicate-titles` work, not a bug in this cutover - but the A-Z visibly
+    gaining near-duplicate rows will look like a regression if it isn't flagged first.
+    See §7.1b.
 - **`show_detail()`'s award history carries a century bug.** It matches award records
   via `historical_results_year(show["season"])`, the helper whose own docstring says it
   "cannot express an award year before 2001". Latent today (the `shows` table holds
@@ -480,20 +480,25 @@ Each step is independently verifiable and independently committable. Stop safely
 between any two.
 
 **Step 0 - set up.** `EnterWorktree`. Confirm a clean tree and a green baseline
-(`py -m pytest`, expect 541). Pull a fresh read-only production snapshot into the
-scratch directory (never into the repo):
+(`py -m pytest`, expect 541).
+
+**On which database to measure against.** The repo-root `aims.db` was replaced with a
+current production copy on 2026-08-23 (1,385 shows, archive from 1912, `productions`
+already built), so unlike previous sessions it is a valid basis for the §7.1 comparison.
+Check that it still is before relying on it - `SELECT COUNT(*) FROM shows` should be in
+the high 1,300s and `SELECT MIN(year) FROM historical_results` should be 1912, not 1977.
+If it has drifted, or if you want a guaranteed-untouched basis, pull a read-only snapshot
+into the scratch directory instead (never into the repo):
 
 ```bash
 scp -i ~/.ssh/claudeshowcal_ed25519 \
   claudeshowcal@dc-qnap-2:/share/CACHEDEV1_DATA/Data/config/aims-web/aims.db \
-  "$SCRATCH/prod-2026-08-24.db"
+  "$SCRATCH/prod-check.db"
 ```
 
-**The repo-root `aims.db` is a stale dev copy - do not use it as your check.** At the
-time of writing it holds 570 shows against production's ~1,385, one skeleton row against
-~788, and an awards archive starting in 1977 against production's 1912. The §1 numbers
-have been re-measured against a real snapshot and are sound as of 2026-08-23, but
-production moves daily - re-run the §7.1 comparison rather than quoting them.
+Either way, open it read-only for measurement (`?mode=ro`) - the local copy is now a
+working dev database that the app writes to, and a comparison run must not be the thing
+that changes it.
 
 Then confirm the snapshot's derived table is current before you compare anything to it:
 
@@ -563,15 +568,15 @@ Fiddler, West Side Story) and a small set of new titles. **A title whose count g
 by more than a handful deserves an explanation before you ship.**
 
 **b. New titles.** List every `title_key` in the new set that isn't in the old. Expect
-~16 (18 on the 2026-08-23 snapshot, two of which were deleted from production later that
-day), split between genuinely-missing titles and spelling variants of a title already
-listed - the §1 list names both kinds. The variants are real `/admin/duplicate-titles`
-work, not a bug in this cutover, but **hand Darragh the list before shipping**, because
-the A-Z visibly gaining near-duplicate rows will otherwise look like a regression.
+**16**, split 9 genuinely-missing / 7 spelling variants - the §1 list names both kinds,
+so a material difference from that list means something moved and is worth understanding.
+The variants are real `/admin/duplicate-titles` work, not a bug in this cutover, but
+**hand Darragh the list before shipping**, because the A-Z visibly gaining near-duplicate
+rows will otherwise look like a regression.
 
 **c. Society double-listing.** Count `(year, show, society_id)` combinations in
 `historical_results` with `year >= 2024` that also have a `shows` row - that's the number
-of duplicate lines this removes from society pages. 178 on the stale copy.
+of duplicate lines this removes from society pages. **195 on current production data.**
 
 **d. `/stats` invariant.** Run the season-by-season query from `info.py`'s `stats()`
 against the snapshot before and after. **It must be byte-identical.** Stage 3 must not
@@ -635,9 +640,11 @@ stage 3-4 surfaces.
 1. **`productions` contains rows for unmoderated shows.** `collect()` reads `shows` with
    no `moderation_status` filter. Any public query that reads `productions` without
    `ON_RECORD_PRODUCTION` will leak a pending or rejected submission onto a public page.
-   This is the single most likely way to break something user-visible in stage 3. On the
-   stale copy there are currently 0 such productions, so tests will not catch it by
-   accident - write one that seeds a pending show explicitly.
+   This is the single most likely way to break something user-visible in stage 3.
+   **Measured on current production data: 0 such productions exist today**, so neither
+   the real data nor an accidental test will catch a missing filter - the bug would sit
+   latent until the next pending submission and then leak it onto a public page. Write a
+   test that seeds a pending show explicitly, and treat that test as the guard.
 2. **`historical_results_year()` in `public.py`.** Two call sites (`_society_badges()`,
    `show_detail()`), both removed by this plan. It returns `2000 + yy + 1`: `'99/00'`
    gives 2100, `'87/88'` gives 2088. Safe only on a `shows.season` value from this
