@@ -109,7 +109,8 @@ town parses from a comma suffix (67 of 177).
   signature category, regional distribution, all real queries against `productions`/`historical_results`
   - this is Source C from `SHOW_ENRICHMENT_PROPOSAL.md`, free and buildable now) plus a revival-watch
   aside using a genuine example (Show Boat, 25 productions 1976-2013, none since) rather than the
-  proposal's own "Geisha, last staged 1948" dead-show trap. Neither applied to real templates/routes yet.
+  proposal's own "Geisha, last staged 1948" dead-show trap. **Darragh approved the mockup 2026-08-23.**
+  Neither applied to real templates/routes yet - next session should build one or both for real.
 - Old `/venues/<raw name>` URLs 301 to the slug.
 
 **Next, in order (stages 3-4 of the staged cutover):**
