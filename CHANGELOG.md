@@ -1,4 +1,4 @@
-14 shows across 12 venue pages (National Opera House Wexford, UCD Astra Hall, St. Michael's Theatre New Ross and 9 others) were showing productions from unrelated societies - a handful of rows had the wrong venue typed against them in the archive, which the venue merge silently trusted. Cleared the bad values rather than guessing a replacement, same as any other unconfirmed venue
+22 shows across venue pages (National Opera House Wexford, UCD Astra Hall, St. Michael's Theatre New Ross and others) were showing productions from unrelated societies - a handful of rows had the wrong venue typed against them in the archive, which the venue merge silently trusted. Cleared the bad values rather than guessing a replacement, same as any other unconfirmed venue
 
 ---
 
