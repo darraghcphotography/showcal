@@ -364,3 +364,122 @@ def test_a_title_with_nothing_on_record_still_404s(client, db):
     db.commit()
 
     assert client.get("/titles/Nothing At All").status_code == 404
+
+
+# ---------------------------------------------------------- /societies/<id>
+
+def test_a_2024_award_record_is_not_listed_twice_on_a_society_page(client, db):
+    """The archive query had no year filter at all, despite a heading reading
+    "pre-23/24 archive" - so any 2024+ award record appeared both in the show
+    history table and again in the timeline below it. 195 duplicated lines."""
+    seed_society(db)
+    _add_show(db, "24/25", "Chicago")
+    _add_award(db, 2025, "Chicago")
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    # Twice per rendering site-wide by design (desktop table + mobile cards),
+    # so four occurrences would be the duplicate this removes.
+    assert body.count(">Chicago</a>") == 2
+
+
+def test_a_production_with_a_show_page_keeps_its_award_badges(client, db):
+    """It used to get them from the archive table it was wrongly listed in.
+    Deduping without an awards column on the show history table would have
+    silently dropped them - hence the column."""
+    seed_society(db)
+    _add_show(db, "24/25", "Chicago")
+    _add_award(db, 2025, "Chicago", category_name="Best Director", result="Winner")
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "Best Director" in body
+    assert "Also on record (awards archive)" not in body
+
+
+def test_a_production_with_no_show_page_is_still_listed(client, db):
+    seed_society(db)
+    _add_award(db, 1999, "Ham")
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "Also on record (awards archive)" in body
+    assert "Ham" in body
+
+
+def test_a_pending_submission_is_not_listed_on_a_society_page(client, db):
+    """It has a production row, and nothing but ON_RECORD_PRODUCTION keeps it
+    out of the archive timeline (the show history table filters on
+    moderation_status itself)."""
+    seed_society(db)
+    _add_show(db, "26/27", "Secret Submission", moderation_status="pending", source="submission")
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "Secret Submission" not in body
+
+
+def test_active_since_is_the_first_year_on_record_not_the_first_win(client, db):
+    seed_society(db)
+    _add_award(db, 2001, "Carousel", result="Nominee")
+    _add_award(db, 2019, "Chess", result="Winner")
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "Active since 2001" in body
+
+
+def test_active_since_can_express_a_year_before_2001(client, db):
+    """The fallback it replaced was 2000 + int(season[:2]) - a hard-coded
+    century pivot, the same shape of bug that cost this migration two rounds."""
+    seed_society(db)
+    _add_award(db, 1954, "The Mikado")
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "Active since 1954" in body
+
+
+def test_the_century_club_count_is_one_production_per_staging(client, db):
+    """The old count summed a DISTINCT (year, show) over the archive with a
+    plain shows count, which double-counted a production present in both."""
+    seed_society(db)
+    for i in range(99):
+        _add_award(db, 2000, "Show %d" % i)
+    _add_show(db, "23/24", "Chicago")
+    _add_award(db, 2024, "Chicago")
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "100 productions on record" in body
+    assert "Century Club" in body
+
+
+def test_the_jubilee_streak_spans_the_century_boundary(client, db):
+    """The years set used to mix award years with historical_results_year()
+    decoding a season as 2000 + yy + 1, which can't express a season before
+    00/01 - so a streak running through 1999 was broken by the arithmetic
+    rather than by the data."""
+    seed_society(db)
+    for year in range(1970, 2027):
+        _add_award(db, year, "Show %d" % year)
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "Golden Jubilee Society" in body
+    assert "57 consecutive years active" in body
+
+
+def test_person_awards_still_have_their_own_table(client, db):
+    """They have no show, so no production - they can't come through the
+    productions path at all and need their own query."""
+    seed_society(db)
+    db.execute(
+        "INSERT INTO historical_results (year, category_name, result, nominee_name, society_id, source) "
+        "VALUES (2019, 'Unsung Hero Award', 'Winner', 'Jane Doe', 1, 'manual')"
+    )
+    db.commit()
+
+    body = client.get("/societies/1").get_data(as_text=True)
+    assert "Person &amp; company awards" in body
+    assert "Jane Doe" in body
