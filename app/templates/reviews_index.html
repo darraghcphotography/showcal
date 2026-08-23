@@ -82,8 +82,11 @@
       <a href="{{ url_for('public.reviews_index') }}">Clear</a>
     {% endif %}
   </form>
-  <p class="hint" style="margin-bottom: 1.5rem;">A show/society search matches across every season and tier by
+  <p class="hint">A show/society search matches across every season and tier by
     default - the dropdowns narrow it further, they don't scope it.</p>
+  <p class="hint" style="margin-bottom: 1.5rem;">Gilbert and Sullivan are AIMS's two adjudication tiers, each
+    with its own adjudicator - see <a href="{{ url_for('public.about') }}">About</a> for how societies are
+    split between them.</p>
 
   {% if q %}
     <p class="meta">{{ result_count }} result{{ '' if result_count == 1 else 's' }} for &ldquo;{{ q }}&rdquo;</p>

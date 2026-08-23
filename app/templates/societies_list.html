@@ -39,6 +39,8 @@
       <a href="{{ url_for('public.societies_list') }}">Clear</a>
     {% endif %}
   </form>
+  <p class="hint">Gilbert and Sullivan are AIMS's two adjudication tiers, each with its own adjudicator -
+    see <a href="{{ url_for('public.about') }}">About</a> for how societies are split between them.</p>
 
   <p>{{ total }} societ{{ 'y' if total == 1 else 'ies' }} found{% if total_pages > 1 %} - showing page
      {{ page }} of {{ total_pages }}{% endif %}.</p>
