@@ -40,14 +40,52 @@
         <span class="byline">a project by Darragh C</span>
       </span>
     </a>
-    <nav>
-      <a href="{{ url_for('public.index') }}">Upcoming shows</a>
-      <a href="{{ url_for('public.societies_list') }}">Societies</a>
-      <a href="{{ url_for('public.titles_list') }}">Shows A-Z</a>
-      <a href="{{ url_for('info.awards') }}">Awards</a>
-      <a href="{{ url_for('info.stats') }}">Statistics</a>
-      <a href="{{ url_for('info.season_summary') }}">Seasons</a>
-      <a href="{{ url_for('public.reviews_index') }}">Reviews</a>
+    {#
+      Home plus two grouped menus, rather than one row of seven links. The flat
+      version was 7 content links plus search, login and the theme toggle - 12
+      items with a moderator signed in - which wrapped onto two lines at
+      ordinary widths, and still had no room for Venues or Adjudicators, so
+      both were footer-only and effectively invisible on desktop.
+
+      Built on <details>/<summary>, the same native disclosure already used on
+      /stats and /season, so the menus open and close with no JavaScript at
+      all. The script further down only adds close-on-outside-click and
+      close-on-Escape; with JS off or still loading the nav is fully usable.
+
+      Home is a direct link and deliberately has no "Upcoming shows" twin in a
+      menu - "/" IS the upcoming-productions list, and the brand logo already
+      points there, so a third link to the same page earns nothing.
+    #}
+    {% set nav_menus = [
+      ('Explore', [
+        ('public.societies_list',   'Societies',    'All member societies by region'),
+        ('public.venues_index',     'Venues',       'Every stage a society has played'),
+        ('public.reviews_index',    'Reviews',      'Every adjudicator review on file'),
+        ('public.adjudicators_list','Adjudicators', 'Who judged which season'),
+      ]),
+      ('History', [
+        ('info.awards',       'Awards',     'The AIMS archive, 1912-present'),
+        ('info.stats_trends', 'Decades',    'How tastes changed, decade by decade'),
+        ('info.stats',        'Statistics', 'Records, leaderboards and totals'),
+      ]),
+    ] %}
+    <nav aria-label="Main">
+      <a href="{{ url_for('public.index') }}" {% if request.endpoint == 'public.index' %}class="nav-current" aria-current="page"{% endif %}>Home</a>
+      {% for label, links in nav_menus %}
+        <details class="nav-group" name="nav-group">
+          <summary class="nav-group-trigger{{ ' nav-current' if request.endpoint in links|map(attribute=0)|list }}">
+            {{ label }}<span class="nav-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="nav-group-menu">
+            {% for endpoint, name, hint in links %}
+              <a href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint %} aria-current="page"{% endif %}>
+                <span class="nav-link-name">{{ name }}</span>
+                <span class="nav-link-hint">{{ hint }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        </details>
+      {% endfor %}
       <form class="site-search" method="get" action="{{ url_for('public.search') }}" role="search">
         <input type="search" name="q" placeholder="Search" aria-label="Search societies and shows" value="{{ request.args.get('q', '') if request.endpoint == 'public.search' else '' }}">
       </form>
@@ -92,9 +130,10 @@
       DC Show Tracker &middot; a project by Darragh C &middot;
       <a href="{{ url_for('public.about') }}">About</a> &middot;
       <a href="https://linktr.ee/darraghc" rel="noopener" target="_blank">Get in touch</a> &middot;
-      <a href="{{ url_for('public.titles_list') }}">Shows A-Z</a> &middot;
-      <a href="{{ url_for('public.adjudicators_list') }}">Adjudicators</a> &middot;
-      <a href="{{ url_for('public.venues_index') }}">Venues</a> &middot;
+      {# All Shows and Seasons live here rather than in the header - Adjudicators
+         and Venues moved the other way, into the Explore menu. #}
+      <a href="{{ url_for('public.titles_list') }}">All Shows</a> &middot;
+      <a href="{{ url_for('info.season_summary') }}">Seasons</a> &middot;
       <a href="{{ url_for('public.suggest') }}">Suggest a feature</a> &middot;
       <a href="{{ url_for('public.suggestions_board') }}">Roadmap</a>
       {% if not current_user %}
@@ -221,6 +260,44 @@
         localStorage.setItem('theme', next);
         document.documentElement.setAttribute('data-theme', next);
         render();
+      });
+    })();
+  </script>
+  <script nonce="{{ csp_nonce }}">
+    // Two niceties on top of the header's native <details> menus: close on a
+    // click outside, and close on Escape. Everything else about them - opening,
+    // closing, keyboard focus - is the browser's own behaviour, so the nav is
+    // fully usable with this script blocked or still loading.
+    (function() {
+      var groups = document.querySelectorAll('.site-header .nav-group');
+      if (!groups.length) return;
+
+      function closeAll(except) {
+        groups.forEach(function(group) {
+          if (group !== except) group.removeAttribute('open');
+        });
+      }
+
+      document.addEventListener('click', function(event) {
+        var inside = null;
+        groups.forEach(function(group) {
+          if (group.contains(event.target)) inside = group;
+        });
+        closeAll(inside);
+      });
+
+      document.addEventListener('keydown', function(event) {
+        if (event.key !== 'Escape') return;
+        var open = null;
+        groups.forEach(function(group) {
+          if (group.hasAttribute('open')) open = group;
+        });
+        if (!open) return;
+        open.removeAttribute('open');
+        // Send focus back to the trigger, rather than leaving it orphaned
+        // inside a menu that just disappeared.
+        var trigger = open.querySelector('summary');
+        if (trigger) trigger.focus();
       });
     })();
   </script>

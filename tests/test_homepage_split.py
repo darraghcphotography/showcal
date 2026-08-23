@@ -91,12 +91,34 @@ def test_submit_cta_shown_for_logged_in_society_and_points_to_own_dashboard(clie
 
 
 def test_nav_matches_new_arrangement(client):
+    """The header is Home plus two grouped menus (23 Aug 2026). The flat row
+    of seven links wrapped at ordinary widths and had no room for Venues or
+    Adjudicators, which is why both were footer-only and nobody found them."""
     body = client.get("/").get_data(as_text=True)
     header = body.split("</header>")[0]
     footer = body.split("<footer")[1]
 
-    for label in ["Upcoming shows", "Societies", "Shows A-Z", "Awards", "Statistics", "Seasons"]:
+    assert ">Home</a>" in header
+    # The menu triggers, specifically - not just the words appearing somewhere.
+    for label in ["Explore", "History"]:
+        assert '{}<span class="nav-chevron"'.format(label) in header
+
+    # Promoted out of the footer and into Explore.
+    for label in ["Societies", "Venues", "Reviews", "Adjudicators"]:
         assert label in header
+    for label in ["Awards", "Decades", "Statistics"]:
+        assert label in header
+
+    # Demoted to the footer, Darragh's call - the header carries what people
+    # arrive looking for, the footer keeps everything reachable.
+    for label in ["All Shows", "Seasons"]:
+        assert label not in header
+        assert label in footer
+
+    # "/" IS the upcoming-productions list, and the brand logo already links
+    # there - a third link to the same page earns nothing.
+    assert "Upcoming shows" not in header
+    assert "Upcoming Productions" not in header
 
     # "Submit a show" is deliberately not a standalone nav destination anymore
     assert "Submit a show" not in header
@@ -106,13 +128,33 @@ def test_nav_matches_new_arrangement(client):
     # read as opposite meanings for the same page - one name everywhere now.
     assert "Season Archive" not in header
 
-    # Shows A-Z was promoted into the main nav (still in the footer too,
-    # same as Awards/Statistics/Seasons - a footer sitemap link isn't
-    # removed just because the header also has one).
     assert "Suggest a feature" not in header
-    assert "Shows A-Z" in footer
     assert "Suggest a feature" in footer
     assert "Roadmap" in footer
+
+
+def test_every_public_destination_is_still_reachable(client):
+    """Regrouping the nav must not quietly strip a destination. Each of these
+    was reachable from the chrome before the restructure and has to stay so,
+    from the header, the footer, or /more."""
+    chrome = client.get("/").get_data(as_text=True) + client.get("/more").get_data(as_text=True)
+    for path in [
+        "/", "/societies", "/titles", "/awards", "/stats", "/stats/trends",
+        "/season", "/reviews", "/venues", "/adjudicators", "/about",
+        "/suggest", "/suggestions",
+    ]:
+        assert 'href="{}"'.format(path) in chrome, "{} is no longer linked anywhere".format(path)
+
+
+def test_the_menus_work_without_javascript(client):
+    """The menus are native <details>, so they open and close on their own.
+    The script only adds close-on-outside-click and Escape - if that's the
+    only thing holding the nav together, the nav is broken for anyone whose
+    JS hasn't loaded."""
+    nav = client.get("/").get_data(as_text=True).split('<nav aria-label="Main">')[1].split("</nav>")[0]
+    assert nav.count("<details") == 2
+    assert "<summary" in nav
+    assert "<script" not in nav
 
 
 def test_site_is_rebranded(client):

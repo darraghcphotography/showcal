@@ -224,6 +224,28 @@ migration** (backend architecture, flagged for its own Opus session separately) 
 byline** (a column + small form + template tweak, design questions already resolved - just build it
 directly when its turn comes, doesn't need a big mockup pass).
 
+**Header nav restructured 2026-08-23, not yet deployed.** Mockup-first (interactive drag-and-drop
+builder, `https://claude.ai/code/artifact/7a1c3f2c-f360-4ba2-a674-d9b79f79e9a9` - Darragh arranged it
+himself rather than picking from options). Final shape, his call: **Home** as a direct link, then
+**Explore** (Societies, Venues, Reviews, Adjudicators) and **History** (Awards, Decades, Statistics).
+All Shows and Seasons moved to the footer; "Shows A-Z" renamed "All Shows" throughout. `/more`
+regrouped under the same headings.
+- Native `<details>`, the same disclosure used on /stats and /season, so the menus need no JS. The
+  nonce'd script only adds close-on-outside-click and Escape. No new dependency, no CSP change.
+- Venues and Adjudicators are in the header for the first time - they were footer-only, which is why
+  they had 6 and 52 views.
+- "Upcoming shows" is gone as a nav item: `/` **is** that page and the logo already links there.
+- 3 tests including one asserting every pre-existing destination is still linked from the chrome, so
+  a future regrouping can't silently drop one. Full suite 491 green.
+- **Traffic can't be used to justify nav decisions** - Darragh's catch, and he's right: pages get
+  views because they're in the nav, so citing those numbers to decide what belongs in the nav is
+  circular. It was used in the first draft of this work and withdrawn. The only honest signal in it
+  is that footer-only pages are invisible.
+- Deferred deliberately, still wanted: the type/palette pass (needs a self-hosted display font) and
+  the per-page component pass. Both wait on **posters** - 41 exist in total, 13 for 25/26 onward
+  against 193 shows, so a poster-led design would be mostly empty frames. Gathering artwork from
+  societies is the real bottleneck on the site looking better.
+
 ## Newly raised 2026-08-22, not yet scoped
 
 Darragh's own list, plus two documents Gemini Antigravity dropped in the repo root the same day. Nothing

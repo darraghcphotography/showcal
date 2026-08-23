@@ -150,6 +150,79 @@ body {
   padding: 0.15rem 0.55rem;
 }
 
+/* Grouped header menus (see base.html). Native <details>, so they work with
+   no JavaScript - the script in base.html only closes them on an outside
+   click or Escape. The `name` attribute makes them mutually exclusive where
+   the browser supports it; where it doesn't, two can be open at once, which
+   is untidy rather than broken. */
+.nav-group { position: relative; }
+
+.nav-group-trigger {
+  list-style: none;
+  cursor: pointer;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.1rem;
+  border-radius: 4px;
+  user-select: none;
+}
+.nav-group-trigger::-webkit-details-marker { display: none; }
+.nav-group-trigger:hover { text-decoration: underline; }
+
+/* The current section, on both a direct link and a menu trigger. */
+.site-header nav .nav-current { color: var(--fg); font-weight: 700; text-decoration: none; }
+
+.nav-chevron {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform 0.12s ease;
+}
+.nav-group[open] .nav-chevron { transform: rotate(-135deg) translate(-2px, -2px); }
+@media (prefers-reduced-motion: reduce) { .nav-chevron { transition: none; } }
+
+.nav-group-menu {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  left: -0.6rem;
+  z-index: 30;
+  min-width: 17rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+}
+
+.nav-group-menu a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.nav-group-menu a:hover { background: var(--row-alt); text-decoration: none; }
+.nav-group-menu a[aria-current="page"] { background: var(--row-alt); }
+
+.nav-link-name { color: var(--accent); font-weight: 600; font-size: 0.94rem; }
+.nav-group-menu a[aria-current="page"] .nav-link-name { color: var(--fg); }
+.nav-link-hint { color: var(--muted); font-size: 0.78rem; }
+
+/* On a narrow viewport the header wraps and an absolutely-positioned menu can
+   overflow the right edge. Anchoring right instead keeps it on screen. The
+   mobile tab bar covers primary navigation below this width anyway. */
+@media (max-width: 40rem) {
+  .nav-group-menu { left: auto; right: -0.6rem; min-width: 14rem; }
+}
+
 .assignment-slot {
   display: flex;
   flex-direction: column;
@@ -185,6 +258,16 @@ body {
   font-size: 0.95rem;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+
+/* Section headings on /more, matching the header's own menu grouping. */
+.more-group-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 1.5rem 0 0.5rem;
+}
+.more-group-label:first-of-type { margin-top: 1rem; }
 
 .site-footer {
   text-align: center;

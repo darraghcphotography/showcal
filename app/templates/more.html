@@ -2,15 +2,15 @@
 {% block title %}More - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>More</h1>
+  {# Grouped under the same headings as the desktop header's menus, so the two
+     navigations tell the same story. Everything the bottom tab bar doesn't
+     cover lives here. #}
 
-  <a class="queue-item" href="{{ url_for('public.titles_list') }}">
-    <span class="primary">Shows A-Z</span>
-    <p class="meta">Has anyone done this show? Every title on record</p>
-  </a>
+  <h2 class="more-group-label">Explore</h2>
 
-  <a class="queue-item" href="{{ url_for('info.awards') }}">
-    <span class="primary">Awards</span>
-    <p class="meta">Full AIMS awards archive</p>
+  <a class="queue-item" href="{{ url_for('public.venues_index') }}">
+    <span class="primary">Venues</span>
+    <p class="meta">Every venue an AIMS society has staged a production in</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('public.reviews_index') }}">
@@ -18,24 +18,38 @@
     <p class="meta">Every adjudicator review archived on the site, browsable by show or society</p>
   </a>
 
-  <a class="queue-item" href="{{ url_for('public.venues_index') }}">
-    <span class="primary">Venues</span>
-    <p class="meta">Every venue an AIMS society has staged a production in</p>
-  </a>
-
   <a class="queue-item" href="{{ url_for('public.adjudicators_list') }}">
     <span class="primary">Adjudicators</span>
     <p class="meta">Who judged each season, and their published reviews</p>
   </a>
 
+  <a class="queue-item" href="{{ url_for('public.titles_list') }}">
+    <span class="primary">All Shows</span>
+    <p class="meta">Has anyone done this show? Every title on record</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('info.season_summary') }}">
+    <span class="primary">Seasons</span>
+    <p class="meta">Any season week by week, with the busy weekends flagged</p>
+  </a>
+
+  <h2 class="more-group-label">History</h2>
+
+  <a class="queue-item" href="{{ url_for('info.awards') }}">
+    <span class="primary">Awards</span>
+    <p class="meta">Full AIMS awards archive</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('info.stats_trends') }}">
+    <span class="primary">Decades</span>
+    <p class="meta">How Irish musical theatre tastes changed, decade by decade</p>
+  </a>
+
+  <h2 class="more-group-label">Your society</h2>
+
   <a class="queue-item" href="{{ url_for('submit.unlock') }}">
     <span class="primary">Submit a show</span>
     <p class="meta">Add your society's production</p>
-  </a>
-
-  <a class="queue-item" href="{{ url_for('public.suggest') }}">
-    <span class="primary">Suggest a feature</span>
-    <p class="meta">Ideas, bug reports, data corrections</p>
   </a>
 
   {% if society_session %}
@@ -50,6 +64,18 @@
     </a>
   {% endif %}
 
+  <h2 class="more-group-label">About this site</h2>
+
+  <a class="queue-item" href="{{ url_for('public.about') }}">
+    <span class="primary">About</span>
+    <p class="meta">What this site is, and why it exists</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('public.suggest') }}">
+    <span class="primary">Suggest a feature</span>
+    <p class="meta">Ideas, bug reports, data corrections</p>
+  </a>
+
   {% if current_user %}
     <a class="queue-item" href="{{ url_for('admin.dashboard') }}">
       <span class="primary">Admin</span>
@@ -61,9 +87,4 @@
       <p class="meta">Admin access</p>
     </a>
   {% endif %}
-
-  <a class="queue-item" href="{{ url_for('public.about') }}">
-    <span class="primary">About</span>
-    <p class="meta">What this site is, and why it exists</p>
-  </a>
 {% endblock %}

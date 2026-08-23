@@ -1,3 +1,9 @@
+The header nav is now Home plus two menus, Explore and History, instead of a row of seven links that wrapped onto two lines - and Venues and Adjudicators are finally in it, rather than hidden in the footer where nobody found them
+"Shows A-Z" is now called "All Shows"
+The More page on mobile is now grouped under the same headings as the header, instead of one long list
+
+---
+
 Venues is now built on real venue records rather than whatever text was typed on each show - the same building recorded two ways ("Civic Theatre Tallaght" and "Civic Theatre, Tallaght") is now one venue with one count, not two half-empty cards
 Venues can now be filtered by region, and searched by town or county as well as by name
 Each venue can now carry a seating capacity, auditorium type, website, technical spec link and map location - each one appears on the page only once it's been filled in, so the page grows as the detail is gathered rather than showing a wall of "unknown"
