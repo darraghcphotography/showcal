@@ -1,12 +1,15 @@
-"""Round 3: the homepage keeps its poster gallery + Upcoming Shows content
-(explicitly NOT replaced by a teaser - see index.html), "Browse societies"
-moves out to its own /societies page, the nav is rebuilt around what
-users actually asked for, and the site is rebranded to "DC Show Tracker".
+"""The homepage leads with what's on, "Browse societies" lives on its own
+/societies page, the nav is grouped rather than a flat row, and the site is
+branded "DC Show Tracker".
 
-"Submit a show" is deliberately absent from the nav/homepage for anonymous
-visitors - it only appears once a society is logged in, pointing straight
-at their own live add-show page, not the separate one-off/moderation-queue
-flow (see base.html/index.html for why)."""
+Rebuilt 24 Aug 2026 around the site audit's bet 1: productions grouped by month
+with their poster inline, the housekeeping notices moved below them, and the
+whole page answering "what's on, where, when" before it explains itself.
+
+"Submit a show" is still not a header destination for anonymous visitors - the
+in-page CTA only appears once a society is logged in, pointing at their own live
+add-show page rather than the one-off moderation-queue flow. It is in the
+footer, though; see test_nav_matches_new_arrangement for why that changed."""
 from conftest import seed_invite_code, seed_society
 
 
@@ -15,14 +18,22 @@ def unlock_society(client, code_id):
         sess["society_code_id"] = code_id
 
 
-def test_suggestions_banner_appears_near_the_top(client):
-    """19 Aug 2026 feedback: the "please suggest it" prompt used to be the
-    very last thing on the page, below Upcoming Shows and Recently
-    Shipped - easy to miss. Moved up next to the existing top banner."""
+def test_housekeeping_notices_sit_below_the_listings_but_not_last(client):
+    """Both notices used to sit above the site's own title, so a first-time
+    visitor read two pieces of admin before seeing a single production (site
+    audit, finding 04). They're now below the listings.
+
+    Deliberately a middle position, not a revert: 19 Aug 2026 feedback was that
+    the "please suggest it" prompt was easy to miss as the very last thing on
+    the page, so it still sits above "Recently shipped" rather than going back
+    to the bottom."""
     body = client.get("/").get_data(as_text=True)
+    listings_pos = body.index("<h1>What's on</h1>")
     suggest_pos = body.index("Please suggest it")
-    heading_pos = body.index("<h1>DC Show Tracker</h1>")
-    assert suggest_pos < heading_pos
+    login_ask_pos = body.index("he'll issue you a login code")
+
+    assert listings_pos < login_ask_pos
+    assert listings_pos < suggest_pos
 
 
 def test_societies_page_lists_and_filters_societies(client, db):
@@ -50,20 +61,57 @@ def test_homepage_no_longer_lists_societies(client, db):
     assert "Browse all societies" in body  # link out instead
 
 
-def test_homepage_keeps_upcoming_shows_and_poster_gallery(client, db):
+def test_homepage_lists_upcoming_shows_with_their_poster_inline(client, db):
+    """The separate poster strip above the listings became a thumbnail on the
+    production's own row (site audit, bet 1). The image is decorative there -
+    the show's name is already a link to the same place right beside it - so it
+    carries an empty alt rather than repeating the title to a screen reader."""
     society_id = seed_society(db, id=1, name="Test Soc", region="Eastern")
     db.execute(
         "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, poster_filename) "
-        "VALUES (?, '26/27', 'Eastern', 'Chicago', '2026-09-01', '2026-09-05', 'poster.jpg')",
+        "VALUES (?, '26/27', 'Eastern', 'Chicago', '2099-09-01', '2099-09-05', 'poster.jpg')",
         (society_id,),
     )
     db.commit()
 
-    resp = client.get("/")
-    body = resp.get_data(as_text=True)
-    assert "Upcoming shows" in body
+    body = client.get("/").get_data(as_text=True)
+    assert "What's on" in body
     assert "Chicago" in body
-    assert 'alt="Chicago poster"' in body
+    assert "poster.jpg" in body
+    assert 'class="whatson-poster"' in body
+
+
+def test_a_show_without_a_poster_still_renders_a_full_row(client, db):
+    """Only a handful of upcoming shows have a poster, so no poster is the
+    normal case - the row must not look like it's missing something."""
+    society_id = seed_society(db, id=1, name="Test Soc", region="Eastern")
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date) "
+        "VALUES (?, '26/27', 'Eastern', 'Chess', '2099-09-01', '2099-09-05')",
+        (society_id,),
+    )
+    db.commit()
+
+    body = client.get("/").get_data(as_text=True)
+    assert "Chess" in body
+    assert "Test Soc" in body
+    assert 'class="whatson-poster"' not in body
+
+
+def test_listings_are_grouped_by_month(client, db):
+    society_id = seed_society(db, id=1, name="Test Soc", region="Eastern")
+    for show, opening in (("Chicago", "2099-09-01"), ("Chess", "2099-10-04")):
+        db.execute(
+            "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date) "
+            "VALUES (?, '26/27', 'Eastern', ?, ?, ?)",
+            (society_id, show, opening, opening),
+        )
+    db.commit()
+
+    body = client.get("/").get_data(as_text=True)
+    assert "September 2099" in body
+    assert "October 2099" in body
+    assert body.index("September 2099") < body.index("October 2099")
 
 
 def test_homepage_shows_changelog_teaser(client, db):
@@ -118,9 +166,16 @@ def test_nav_matches_new_arrangement(client):
     assert "Upcoming shows" not in header
     assert "Upcoming Productions" not in header
 
-    # "Submit a show" is deliberately not a standalone nav destination anymore
+    # "Submit a show" stays out of the header, but is back in the footer as of
+    # 24 Aug 2026. It had been removed from both on the reasoning that an
+    # anonymous visitor shouldn't be pushed at the invite-code flow - but the
+    # site audit (finding 02) found the consequence: /more is linked only from
+    # the mobile bottom bar, so on a desktop browser there was no path to it at
+    # all, and the main thing a committee is meant to do here was invisible on a
+    # laptop. The unlock page itself says how to get a code, so it's a
+    # reasonable landing point rather than a dead end. Darragh's call, 24 Aug.
     assert "Submit a show" not in header
-    assert "Submit a show" not in footer
+    assert "Submit a show" in footer
 
     # 19 Aug 2026: "Season Archive" (header) vs "This season" (mobile tab bar)
     # read as opposite meanings for the same page - one name everywhere now.

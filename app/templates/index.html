@@ -1,88 +1,53 @@
 {% extends "base.html" %}
 {% block title %}DC Show Tracker{% endblock %}
 
-{% macro upcoming_rows(shows) %}
-  {% for show in shows %}
-    <tr>
-      <td>
+{# One production, as it appears in the month lists. The poster is optional and
+   the row has to look deliberate without one - only a handful of upcoming shows
+   have had one uploaded, so a missing poster is the normal case, not a gap. #}
+{% macro upcoming_entry(show) %}
+  <li class="whatson-item">
+    {% if show['poster_filename'] %}
+      <a class="whatson-poster" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
+        <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="" loading="lazy">
+      </a>
+    {% endif %}
+    <div class="whatson-body">
+      <div class="whatson-title">
         <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+        {% if show['ticket_url'] %}
+          <a class="whatson-tickets" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Tickets</a>
+        {% endif %}
+      </div>
+      <p class="meta">
+        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
+        &middot; {{ show['opening_date']|date_range(show['closing_date']) }}
+      </p>
+      <p class="meta">
         {% if show['venue'] %}
+          {# Both links stay: the on-site one answers "what else is on there",
+             the map one answers "where is it" (site audit, finding 01). #}
           {% if show['venue_slug'] %}
-            <a class="venue-link" href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">📍 {{ show['venue'] }}</a>
+            <a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
             <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">(map)</a>
           {% else %}
-            <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+            <a href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">{{ show['venue'] }}</a>
           {% endif %}
+          &middot;
         {% endif %}
-      </td>
-      <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
-      <td>{{ show['region'] }}</td>
-      <td>{{ show['opening_date']|date_range(show['closing_date']) }}</td>
-      <td>
-        {% if show['ticket_url'] %}
-          <a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a>
-        {% else %}
-          Not listed
-        {% endif %}
-      </td>
-    </tr>
-  {% endfor %}
-{% endmacro %}
-
-{% macro upcoming_cards(shows) %}
-  {% for show in shows %}
-    <div class="queue-item">
-      <div class="primary"><a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a></div>
-      {% if show['venue'] %}
-        {% if show['venue_slug'] %}
-          <a class="venue-link" href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">📍 {{ show['venue'] }}</a>
-          <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">(map)</a>
-        {% else %}
-          <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
-        {% endif %}
-      {% endif %}
-      <div class="meta-chips">
-        <span><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></span>
-        <span>&middot; {{ show['region'] }}</span>
-        <span>&middot; {{ show['opening_date']|date_range(show['closing_date']) }}</span>
-        <span>&middot;
-          {% if show['ticket_url'] %}
-            <a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a>
-          {% else %}
-            Not listed
-          {% endif %}
-        </span>
-      </div>
+        {{ show['region'] }}
+      </p>
     </div>
-  {% endfor %}
+  </li>
 {% endmacro %}
 
 {% block content %}
-  <div class="site-notice">
-    <p>Want to help update your society's history, add past shows, or fix any missing information?
-       Get in touch with Darragh (contact details in the footer) and he'll issue you a login code so
-       you can manage your own society's page directly.</p>
-  </div>
-
-  <div class="site-notice">
-    <p>Anything you think might be a good addition? <a href="{{ url_for('public.suggest') }}">Please suggest it</a>
-       - I'm open to ideas!</p>
-  </div>
-
-  <h1>DC Show Tracker</h1>
-  <p>Show history, upcoming productions, and the AIMS awards archive for every AIMS member society.</p>
-
-  {% if poster_gallery %}
-    <div class="poster-gallery">
-      {% for show in poster_gallery %}
-        <a href="{{ url_for('public.show_detail', show_id=show['id']) }}" class="poster-gallery-item" title="{{ show['show'] }} - {{ show['society_name'] }}">
-          <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
-        </a>
-      {% endfor %}
-    </div>
+  <h1>What's on</h1>
+  {% if upcoming_total %}
+    <p>{{ upcoming_total }} production{{ '' if upcoming_total == 1 else 's' }} announced
+       {%- if upcoming_region %} in {{ upcoming_region }}{% else %} across Ireland{% endif %},
+       by AIMS member societies.</p>
   {% endif %}
 
-  <h2>Upcoming shows</h2>
   <form method="get" class="filter-form">
     <label>
       Region
@@ -95,36 +60,55 @@
     </label>
     <noscript><button type="submit">Filter</button></noscript>
   </form>
-  <p class="meta">
-    Subscribe in your calendar app:
-    <a href="{{ url_for('feeds.calendar_ics') }}">All shows</a>
-    <br>By tier:
-    <a href="{{ url_for('feeds.calendar_ics', section='Gilbert') }}">Gilbert only</a> &middot;
-    <a href="{{ url_for('feeds.calendar_ics', section='Sullivan') }}">Sullivan only</a>
-    <br>By region:
-    {% for r in regions %}
-      <a href="{{ url_for('feeds.calendar_ics', region=r) }}">{{ r }}</a>{% if not loop.last %} &middot; {% endif %}
-    {% endfor %}
-    <br>In Google Calendar: Other calendars &rarr; + &rarr; From URL, then paste the link. It'll keep itself up to date from there.
-  </p>
 
-  {% if upcoming %}
-    <table class="data-table table-wide">
-      <thead>
-        <tr><th>Show</th><th>Society</th><th>Region</th><th>Dates</th><th>Tickets</th></tr>
-      </thead>
-      <tbody>{{ upcoming_rows(upcoming) }}</tbody>
-    </table>
-    <div class="table-cards">{{ upcoming_cards(upcoming) }}</div>
+  {% if upcoming_months %}
+    {% for month, shows in upcoming_months %}
+      <h2 class="whatson-month">{{ month|month_label }}</h2>
+      <ul class="whatson-list">
+        {% for show in shows %}{{ upcoming_entry(show) }}{% endfor %}
+      </ul>
+    {% endfor %}
+    <p><a href="{{ url_for('info.season_summary') }}" class="edit-callout">See the full season, week by week &rarr;</a></p>
   {% else %}
     <p>No upcoming shows{% if upcoming_region %} in {{ upcoming_region }} right now{% endif %}.</p>
+    <p class="meta"><a href="{{ url_for('info.season_summary') }}">Browse the season archive &rarr;</a></p>
   {% endif %}
-
-  <p class="meta"><a href="{{ url_for('info.season_summary') }}">See the full season, week by week &rarr;</a></p>
 
   {% if society_session %}
     <p><a href="{{ url_for('society.new_show') }}" class="edit-callout">Don't see your show listed? Add it &rarr;</a></p>
   {% endif %}
+
+  <h2>DC Show Tracker</h2>
+  <p>Show history, upcoming productions, and the AIMS awards archive for every AIMS member society.
+     <a href="{{ url_for('public.societies_list') }}">Browse all societies &rarr;</a></p>
+
+  <details class="calendar-subscribe">
+    <summary>Subscribe to these listings in your calendar app</summary>
+    <p class="meta">
+      All shows: <a href="{{ url_for('feeds.calendar_ics') }}">calendar feed</a>
+      <br>By tier:
+      <a href="{{ url_for('feeds.calendar_ics', section='Gilbert') }}">Gilbert only</a> &middot;
+      <a href="{{ url_for('feeds.calendar_ics', section='Sullivan') }}">Sullivan only</a>
+      <br>By region:
+      {% for r in regions %}
+        <a href="{{ url_for('feeds.calendar_ics', region=r) }}">{{ r }}</a>{% if not loop.last %} &middot; {% endif %}
+      {% endfor %}
+      <br>In Google Calendar: Other calendars &rarr; + &rarr; From URL, then paste the link. It'll keep itself up to date from there.
+    </p>
+  </details>
+
+  {# Housekeeping, deliberately below the listings - a first-time visitor should
+     meet a production before they meet an admin notice (site audit, finding 04). #}
+  <div class="site-notice">
+    <p>Want to help update your society's history, add past shows, or fix any missing information?
+       Get in touch with Darragh (contact details in the footer) and he'll issue you a login code so
+       you can manage your own society's page directly.</p>
+  </div>
+
+  <div class="site-notice">
+    <p>Anything you think might be a good addition? <a href="{{ url_for('public.suggest') }}">Please suggest it</a>
+       - I'm open to ideas!</p>
+  </div>
 
   {% if changelog_teaser %}
     <h2>Recently shipped</h2>
@@ -133,6 +117,4 @@
     {% endfor %}
     <p class="meta"><a href="{{ url_for('public.suggestions_board') }}">Full roadmap &rarr;</a></p>
   {% endif %}
-
-  <p><a href="{{ url_for('public.societies_list') }}" class="edit-callout">Browse all societies &rarr;</a></p>
 {% endblock %}

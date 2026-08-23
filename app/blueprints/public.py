@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
 from .. import notify, productions_build, venues_build
-from ..auth import current_user
+from ..auth import active_society_code, current_user
 from ..calendar_links import google_calendar_url
 from ..circuit_intelligence import (
     award_tally, best_overall_show_wins, production_ids_for_title,
@@ -25,7 +25,11 @@ from ..venues import normalize_venue
 
 bp = Blueprint("public", __name__)
 
-UPCOMING_LIMIT = 6
+# Enough that the homepage reads as a calendar with a few months on it rather
+# than a teaser - the site audit's finding 05 was that six shows and no way to
+# see the rest is a dead end. The "see the full season" link below the list
+# still carries the remainder.
+UPCOMING_LIMIT = 12
 CHANGELOG_TEASER_LIMIT = 3
 
 # Same sizes and ?page=/?per_page= convention the awards archive already uses,
@@ -67,15 +71,30 @@ def index():
     if upcoming_region in REGIONS:
         upcoming_query += " AND shows.region = ?"
         upcoming_params.append(upcoming_region)
+    # How many there really are, before the limit - so the page can say "50
+    # announced" and mean it, rather than implying the handful it shows is all
+    # there is. Same WHERE, same params, so the two can't disagree.
+    upcoming_total = db.execute(
+        upcoming_query.replace(
+            "SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug",
+            "SELECT COUNT(*)", 1,
+        ),
+        upcoming_params,
+    ).fetchone()[0]
+
     upcoming_query += " ORDER BY shows.opening_date LIMIT ?"
     upcoming_params.append(UPCOMING_LIMIT)
     upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
 
-    # Whichever of the upcoming shows above happen to have a poster - same
-    # list, same region filter, same order, not a separate query. Keeps the
-    # gallery honest: it can never show a show that isn't actually in the
-    # "Upcoming shows" table right below it.
-    poster_gallery = [show for show in upcoming if show["poster_filename"]]
+    # Grouped into months so the page reads like a calendar rather than a
+    # spreadsheet. itertools.groupby is safe here precisely because the query
+    # is already ORDER BY opening_date - the groups can't fragment.
+    upcoming_months = [
+        (month, list(shows))
+        for month, shows in itertools.groupby(
+            upcoming, key=lambda s: s["opening_date"][:7]
+        )
+    ]
 
     changelog_teaser = db.execute(
         "SELECT entry, date(created_at) AS entry_date FROM changelog_entries ORDER BY created_at DESC LIMIT ?",
@@ -85,7 +104,8 @@ def index():
     return render_template(
         "index.html",
         upcoming=upcoming,
-        poster_gallery=poster_gallery,
+        upcoming_months=upcoming_months,
+        upcoming_total=upcoming_total,
         regions=REGIONS,
         upcoming_region=upcoming_region,
         changelog_teaser=changelog_teaser,
@@ -983,6 +1003,16 @@ def society_detail(society_id):
     )
 
 
+def _may_see_own_show_admin(show):
+    """True for the society whose show this is, logged in with their own code,
+    or for any moderator. Gates the housekeeping detail on a show page that's
+    for the people staging it rather than for the public."""
+    code = active_society_code()
+    if code and code["society_id"] == show["society_id"]:
+        return True
+    return current_user() is not None
+
+
 @bp.route("/shows/<int:show_id>")
 def show_detail(show_id):
     db = get_db()
@@ -1012,9 +1042,13 @@ def show_detail(show_id):
     # see society.edit_show().)
     gcal_show_url = None
     # Just opening_date minus 6 weeks (AIMS's real application deadline) -
-    # unlike the actual scheduled adjudication_date, this is fine to show
-    # publicly since it's only ever arithmetic on a date the page already
-    # displays, never AIMS's own internal scheduling info.
+    # arithmetic on a date the page already displays, never AIMS's own internal
+    # scheduling info, so it leaks nothing.
+    #
+    # Shown only to the society whose show it is, or to a moderator. It's a
+    # deadline for the people staging the show and noise to everybody else, and
+    # the show page is the one most likely to be shared publicly - the site
+    # audit's finding 07. Not a secret, just the wrong audience.
     adjudication_cutoff = None
     if is_upcoming:
         opening = date.fromisoformat(show["opening_date"])
@@ -1026,7 +1060,7 @@ def show_detail(show_id):
             details=f"AIMS production - {url_for('public.show_detail', show_id=show['id'], _external=True)}",
             location=show["venue"] or "",
         )
-        if show["review_status"] != "Not adjudicated":
+        if show["review_status"] != "Not adjudicated" and _may_see_own_show_admin(show):
             adjudication_cutoff = (opening - timedelta(weeks=6)).isoformat()
 
     # AIMS assigns one adjudicator per tier per season, not per show - so a

@@ -1,3 +1,10 @@
+The homepage now leads with what's on. Productions are grouped by month with their poster beside them, the venue links straight to its own page, and the two housekeeping notices have moved below the listings - a first-time visitor used to read two pieces of admin before seeing a single show
+The homepage shows twelve upcoming productions rather than six, and says how many there are in total
+"Submit a show" is now in the footer. It was only reachable from the More page, which is only linked from the mobile bottom bar - so on a laptop there was no way to find it at all
+The adjudication submission cut-off is no longer shown to the public. It's a deadline for the society staging the show, and the show page is the one most likely to be shared around - the society sees it on their own show, and so do moderators
+
+---
+
 Admin: historical society regions can now be answered "No region" - AIMS itself is a national body rather than a society, and some defunct names give no location clue anywhere, so that queue can now reach zero instead of holding four questions that have no answer
 
 ---

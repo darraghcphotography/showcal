@@ -140,6 +140,11 @@
          footer link isn't removed just because the header has one. #}
       <a href="{{ url_for('public.titles_list') }}">All Shows</a> &middot;
       <a href="{{ url_for('info.season_summary') }}">Seasons</a> &middot;
+      {# The only path to this on a desktop browser. It used to be reachable
+         solely from the More page, which is itself only linked from the mobile
+         bottom bar - so the main thing a committee is meant to do here was
+         invisible on a laptop (site audit, finding 02). #}
+      <a href="{{ url_for('submit.unlock') }}">Submit a show</a> &middot;
       <a href="{{ url_for('public.suggest') }}">Suggest a feature</a> &middot;
       <a href="{{ url_for('public.suggestions_board') }}">Roadmap</a>
       {% if not current_user %}

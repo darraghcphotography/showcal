@@ -83,6 +83,21 @@ def destub(value):
     return value
 
 
+def month_label(value):
+    """'2026-09' -> 'September 2026', for the homepage's month headings.
+
+    Same lenient fallback as irish_date: anything that isn't a clean yyyy-mm
+    comes back untouched rather than raising, because this only ever runs on
+    values already on their way to the page.
+    """
+    if not value:
+        return value
+    try:
+        return datetime.strptime(value, "%Y-%m").strftime("%B %Y")
+    except ValueError:
+        return value
+
+
 def maps_search_url(venue):
     """Google's free "Maps URL" text-search scheme - no API key or billing
     account needed (unlike the Maps Embed/Static/Geocoding APIs), and works
@@ -94,5 +109,6 @@ def register(app):
     app.jinja_env.filters["irish_date"] = irish_date
     app.jinja_env.filters["irish_datetime"] = irish_datetime
     app.jinja_env.filters["date_range"] = date_range
+    app.jinja_env.filters["month_label"] = month_label
     app.jinja_env.filters["maps_search_url"] = maps_search_url
     app.jinja_env.filters["destub"] = destub

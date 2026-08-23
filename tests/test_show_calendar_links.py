@@ -1,11 +1,16 @@
-"""Show page "Add to Google Calendar" link + the public "Adjudication
-submission cut-off" date field - see public.show_detail(). The interactive
+"""Show page "Add to Google Calendar" link + the "Adjudication submission
+cut-off" date field - see public.show_detail(). That field stopped being public
+on 24 Aug 2026 (site audit, finding 07): it's a deadline for the society staging
+the show and noise to everyone else, and the show page is the one most likely to
+be shared publicly. Who sees it is covered by
+test_adjudication_cutoff_audience.py; this file covers the arithmetic. The
+interactive
 "remind me to check forms were submitted" calendar link moved to the
 society's own edit-show page (see test_society_adjudication_reminder.py) -
 only useful to that show's committee, not a random visitor."""
 from datetime import date, timedelta
 
-from conftest import seed_society
+from conftest import seed_invite_code, seed_society
 
 
 def _insert_show(db, society_id, opening_date, closing_date=None, review_status="None"):
@@ -32,6 +37,15 @@ def test_adjudication_cutoff_is_exactly_6_weeks_before_opening(client, db):
     society_id = seed_society(db)
     opening = date(2026, 11, 10)
     show_id = _insert_show(db, society_id, opening.isoformat())
+    # Shown to the society whose show it is, not the public - see
+    # test_adjudication_cutoff_audience.py. The arithmetic is what's under test
+    # here, so log in rather than assert on a page that no longer shows it.
+    seed_invite_code(db, code="AIMS-TEST01", society_id=society_id)
+    code_id = db.execute(
+        "SELECT id FROM invite_codes WHERE code = 'AIMS-TEST01'"
+    ).fetchone()["id"]
+    with client.session_transaction() as sess:
+        sess["society_code_id"] = code_id
 
     body = client.get(f"/shows/{show_id}").get_data(as_text=True)
     cutoff = opening - timedelta(weeks=6)
