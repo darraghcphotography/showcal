@@ -101,6 +101,16 @@ town parses from a comma suffix (67 of 177).
   real venues on record at all, and Gemini's research names more than one candidate for each.
 - **Still to do:** capacity/type/website/map research (0 of 146 venues have any of it filled in - the
   fields render already, nobody's entered data yet).
+- **Waterford Musical Society's bad `default_venue` fixed 2026-08-23** - Darragh spotted Gorey Little
+  Theatre showing wrong productions; root cause was `societies.default_venue` (id 125) wrongly set to
+  `'Gorey Little Theatre'`, which had fed 10 bulk-created historical show rows (all one 2026-08-19
+  import batch). Cleared both the `default_venue` and the 10 rows' `venue`/`venue_id`, plus one
+  unrelated single-row case on the same venue (Headford Musical Society, uncorroborated, blanked
+  rather than guessed). Confirmed live - neither society appears on `/venues/gorey-little-theatre`
+  any more. Swept every other society's `default_venue` against its own shows for the same bug
+  pattern; found no other confirmed instances. **Follow-up, not done here:** research Waterford
+  Musical Society's actual venue (Theatre Royal, Waterford is a plausible real-world candidate but
+  wasn't confirmed against data, so nothing was written in).
 - **Mockup built 2026-08-23**, alongside a Show enrichment (circuit intelligence) mockup on the same
   page: https://claude.ai/code/artifact/cbe72116-066d-4594-96a8-94a99b2500fd - a fully-enriched venue
   page (National Opera House, Wexford: capacity/type/website/map clearly flagged as illustrative
