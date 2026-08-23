@@ -62,10 +62,31 @@ freshly-added show, same `ensure_current()` gotcha as everywhere else. 18 new/up
   footer, and `ROADMAP_ARCHIVE.md` confirms Darragh removed it from the nav/footer on purpose (prefers
   the logged-in society flow; shares the one-off form only via a direct link). Caught before
   implementing, not after.
-- **Still open from the quick-wins list**: Gilbert/Sullivan unexplained inline, homepage notices above
-  the fold, no "see full season" link, TBA-for-past-shows wording, public adjudication-cutoff display,
-  random Award Explorer default, missing empty states (`/titles`, one-off productions), blank Nominee
-  cells, stale About-page promise, `/reviews`+`/season` page weight.
+- **Quick-win batch 2 shipped 2026-08-23** (`590e1f4`, `74dc693`, `f8d1041`, `d20f9be`): "Not recorded"
+  replaces "TBA" for a past show with no date on `society_detail.html`/`venue_detail.html` (extends the
+  2026-08-19 fix that only covered `season.html`/`show_detail.html`); the stale "before the end of
+  August" promise removed from `/about`; a "see the full season" link added under the homepage's
+  6-show table; empty-state messages added to `/titles` search and `/stats`' one-off productions; a
+  short Gilbert/Sullivan explainer added under the filter form on Awards, Reviews, Season and
+  Societies, linking to `/about` rather than re-explaining inline (and deliberately not claiming it's
+  about production size - checked `/about`'s real text first, it's a workload-driven adjudicator split
+  on nomination history). 13 new tests, full suite 527 green.
+- **Three audit findings turned out to be deliberate decisions, not bugs - caught before implementing,
+  not after, by checking git history/comments rather than trusting the audit's own read:**
+  - "Homepage notices above the fold" - Darragh explicitly asked for this placement
+    (`39f7276`, 19 Aug: "I'd like people to submit ideas"). Left alone.
+  - "Public adjudication-cutoff display" - added on purpose (`31ae512`, commit title literally "add
+    public cut-off date"), and the code comment already reasons why it's fine (pure arithmetic on a
+    date already shown, not real AIMS scheduling data). Left alone.
+  - "Random Award Explorer default" - documented in-line in `info.py`: deliberately avoids the
+    Explorer's default view becoming a fixed "who's won the most" leaderboard for one category. Left
+    alone.
+  - Also nearly shipped a bad "fix" for `/awards`' blank Nominee cells - the cell isn't blank by
+    oversight, `nominee_name` for a society-level category literally duplicates the Society column
+    (verified against real data: both columns read "Boyle Musical Society"). Reverted before
+    committing.
+- **Still open, genuinely**: `/reviews`+`/season` page weight (362KB/123KB, no pagination) - the one
+  remaining quick win, bigger/riskier than the others so held back rather than rushed into this batch.
 
 Section 5 of the audit is a non-technical outreach plan (nudge on their own page, fill 2-3 exemplar
 societies, ask for posters/ticket links first, a draft message to send a committee, and a "claim your
