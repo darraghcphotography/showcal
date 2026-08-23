@@ -120,7 +120,19 @@ town parses from a comma suffix (67 of 177).
   - this is Source C from `SHOW_ENRICHMENT_PROPOSAL.md`, free and buildable now) plus a revival-watch
   aside using a genuine example (Show Boat, 25 productions 1976-2013, none since) rather than the
   proposal's own "Geisha, last staged 1948" dead-show trap. **Darragh approved the mockup 2026-08-23.**
-  Neither applied to real templates/routes yet - next session should build one or both for real.
+- **Show circuit intelligence: BUILT AND SHIPPED 2026-08-23** (`app/circuit_intelligence.py`,
+  `public.py`'s `title_detail()`, `title_detail.html`) - award tally, Best Overall Show wins, signature
+  category (folded through `AWARD_CATEGORIES`'s renamed-category groups), regional distribution across
+  all 6 regions, and a per-title revival flag (`>=8` productions, 10-30 year gap, checked against the
+  real archive). One real deviation from the mockup: the revival aside runs against the page's own
+  title, not a different illustrative one - a title talks about itself. Caught via an actual screenshot
+  during the build: the panel was originally placed after the "Since 23/24"/"Earlier history" tables per
+  the plan's literal instruction, which buries it below 50+ rows on a long-running title like JCS -
+  moved before those tables, matching how the mockup had it laid out in the first place. No new CSS -
+  every element reuses existing site classes. 15 new tests, full suite 506 green. Verified against real
+  local data (JCS renders the full panel; a zero-award title renders the page with no panel, not an
+  empty one). Venue enrichment (the mockup's other half) stays parked - needs real capacity/coordinate
+  research first, which isn't a coding task.
 - Old `/venues/<raw name>` URLs 301 to the slug.
 
 **Next, in order (stages 3-4 of the staged cutover):**
