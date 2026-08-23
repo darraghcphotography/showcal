@@ -1159,27 +1159,44 @@ def titles_list():
 def title_detail(title):
     db = get_db()
     productions_build.ensure_current(db)
+    title_key = normalize_title(title)
+
+    # Joined through productions rather than matched on the raw title text, so
+    # two spellings of one show land on one page, and ordered on a real
+    # four-digit year rather than on 'yy/yy' as text (which sorts '76/77' after
+    # '09/10' - the Round 25 bug).
     shows = db.execute(
         """
         SELECT shows.*, societies.name AS society_name
-        FROM shows JOIN societies ON societies.id = shows.society_id
-        WHERE shows.show = ? AND shows.moderation_status = 'approved'
-        ORDER BY shows.season DESC, societies.name
+        FROM shows
+        JOIN societies ON societies.id = shows.society_id
+        JOIN productions ON productions.id = shows.production_id
+        WHERE productions.title_key = ? AND shows.moderation_status = 'approved'
+        ORDER BY productions.season_start_year DESC, societies.name
         """,
-        (title,),
+        (title_key,),
     ).fetchall()
 
-    # Distinct (year, society) before 23/24 - historical_results has one row
-    # per award category, not per production, so this collapses back to one
-    # row per actual staging. Stops before SHOWS_COVERAGE_START_YEAR so a
-    # 23/24+ production already listed above under "full detail" doesn't
-    # also show up a second time down here.
+    # The rest of this title's stagings: the ones with no show page of their
+    # own to link to. Split on that, not on an era - a skeleton shows row from
+    # 12/13 belongs in the table above because it has a real page, and a
+    # production known only from a 2025 award record belongs here rather than
+    # being filtered out of existence (which is what the old year < 23/24 cut
+    # did, 404ing 16 real titles). season_start_year + 1 is historical_results'
+    # own year column exactly - the rebuild's verification pass asserts that
+    # relationship for every linked award record - so the displayed years are
+    # unchanged from what this table showed before.
     historical = db.execute(
-        """
-        SELECT DISTINCT year, society_name FROM historical_results
-        WHERE show = ? AND year < ? ORDER BY year DESC
+        f"""
+        SELECT productions.season_start_year + 1 AS year, productions.society_name, productions.society_id
+        FROM productions
+        WHERE productions.title_key = ? AND {ON_RECORD_PRODUCTION}
+          AND NOT EXISTS (SELECT 1 FROM shows
+                           WHERE shows.production_id = productions.id
+                             AND shows.moderation_status = 'approved')
+        ORDER BY productions.season_start_year DESC
         """,
-        (title, SHOWS_COVERAGE_START_YEAR),
+        (title_key,),
     ).fetchall()
 
     if not shows and not historical:
@@ -1187,18 +1204,18 @@ def title_detail(title):
 
     info = db.execute("SELECT * FROM show_info WHERE show = ?", (title,)).fetchone()
 
-    # AIMS debut - earliest record of this title, whichever source it comes
-    # from. historical is already the pre-23/24 archive, so if it has any
-    # rows its earliest (last, since it's sorted DESC) year always predates
-    # anything in shows. Otherwise fall back to the earliest season string
-    # among shows - lexical comparison matches chronological order for this
-    # site's YY/YY+1 seasons, same assumption all_seasons sorting relies on.
-    if historical:
-        debut_label = str(historical[-1]["year"])
-    elif shows:
-        debut_label = f"{min(s['season'] for s in shows)} season"
-    else:
-        debut_label = None
+    # AIMS debut - the earliest production on record, whichever source it came
+    # from, as a four-digit year. Taken off productions rather than compared
+    # across two conventions (an award year on one side, a 'yy/yy' string
+    # compared lexically on the other, which put a 1976 debut after a 2009
+    # one). Stated as the season's ending year, the same convention the
+    # archive table above and the awards archive itself use.
+    debut_year = db.execute(
+        f"SELECT MIN(season_start_year) + 1 FROM productions "
+        f"WHERE title_key = ? AND {ON_RECORD_PRODUCTION}",
+        (title_key,),
+    ).fetchone()[0]
+    debut_label = str(debut_year) if debut_year is not None else None
 
     # Gated on real award-archive engagement, not just "this title exists" -
     # a just-announced show with a shows row and no adjudication yet has

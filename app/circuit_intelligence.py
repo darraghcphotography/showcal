@@ -15,6 +15,7 @@ title identity on its own.
 """
 
 from .constants import AWARD_CATEGORIES, REGIONS
+from .productions import ON_RECORD_PRODUCTION
 from .similarity import normalize_title
 
 # category_name -> canonical AWARD_CATEGORIES key, folding a confirmed rename
@@ -35,13 +36,19 @@ SIGNATURE_MIN_WINS = 2
 
 
 def production_ids_for_title(db, title):
-    """Every production of this title, by its normalized identity - the same
-    title_key productions_build.py itself groups on, so this can never
-    disagree with what the productions table calls the same show."""
+    """Every publicly-on-record production of this title, by its normalized
+    identity - the same title_key productions_build.py itself groups on, so
+    this can never disagree with what the productions table calls the same
+    show. ON_RECORD_PRODUCTION because the table is built from every shows row
+    regardless of moderation_status: without it a pending or rejected
+    submission would inflate the regional-distribution chips and the revival
+    panel's production_count above the count printed directly over them."""
     key = normalize_title(title)
     if not key:
         return []
-    return [r["id"] for r in db.execute("SELECT id FROM productions WHERE title_key = ?", (key,))]
+    return [r["id"] for r in db.execute(
+        f"SELECT id FROM productions WHERE title_key = ? AND {ON_RECORD_PRODUCTION}", (key,)
+    )]
 
 
 def award_tally(db, production_ids):

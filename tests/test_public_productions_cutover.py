@@ -40,6 +40,12 @@ def _add_show(db, season, show, society_id=1, moderation_status="approved",
     )
 
 
+def _squish(body):
+    """Collapse whitespace so an assertion can span the template's own line
+    breaks (the production count and the words after it are on two lines)."""
+    return " ".join(body.split())
+
+
 def _az_count(body, title):
     """The "Times performed" cell for `title` on /titles."""
     import re
@@ -232,3 +238,129 @@ def test_the_sitemap_lists_a_title_only_the_recent_archive_knows(client, db):
 
     body = client.get("/sitemap.xml").get_data(as_text=True)
     assert "Michael%20Collins" in body or "Michael Collins" in body
+
+
+# ------------------------------------------------------------ /titles/<title>
+
+def test_a_title_only_a_2024_award_record_knows_has_a_page(client, db):
+    """It used to 404: title_detail() needed either a shows row or a pre-23/24
+    award record, so a title first staged in 24/25 that reached the site only
+    through the awards archive had no page and no sitemap entry."""
+    seed_society(db)
+    _add_award(db, 2025, "Michael Collins")
+    db.commit()
+
+    resp = client.get("/titles/Michael Collins")
+    assert resp.status_code == 200
+    body = _squish(resp.get_data(as_text=True))
+    assert "1 production on record" in body
+    assert "<td>2025</td>" in body
+
+
+def test_a_skeleton_show_with_an_award_record_is_listed_once(client, db):
+    """The archive table is now "productions with no show page of their own",
+    so a staging that has both a shows row and award records appears in the
+    detail table only - not in both."""
+    seed_society(db)
+    _add_show(db, "18/19", "Cabaret", source="historical")
+    _add_award(db, 2019, "Cabaret")
+    db.commit()
+
+    body = _squish(client.get("/titles/Cabaret").get_data(as_text=True))
+    assert "1 production on record" in body
+    assert "Also on record (awards archive)" not in body
+
+
+def test_a_pre_2024_skeleton_show_is_listed_with_full_detail_not_as_archive(client, db):
+    """The split is "is there a show page to link to", not an era."""
+    seed_society(db)
+    _add_show(db, "12/13", "Cabaret", source="historical")
+    db.commit()
+
+    body = client.get("/titles/Cabaret").get_data(as_text=True)
+    assert "Productions with full detail" in body
+    assert "Also on record (awards archive)" not in body
+
+
+def test_the_opening_count_matches_the_rows_below_it(client, db):
+    """The A-Z said 148 for Jesus Christ Superstar while its own detail page
+    listed 57 rows. Both now come from the same definition."""
+    seed_society(db, id=1, name="First Society")
+    seed_society(db, id=2, name="Second Society")
+    for category in ("Best Overall Show", "Best Director", "Best Sets"):
+        _add_award(db, 2019, "Chess", society_id=1, society_name="First Society", category_name=category)
+    _add_award(db, 2021, "Chess", society_id=2, society_name="Second Society")
+    db.commit()
+
+    az = _az_count(client.get("/titles").get_data(as_text=True), "Chess")
+    body = _squish(client.get("/titles/Chess").get_data(as_text=True))
+    assert az == 2
+    assert "2 productions on record" in body
+
+
+def test_the_archive_years_are_unchanged_by_the_cutover(client, db):
+    """season_start_year + 1 reproduces historical_results.year exactly - the
+    rebuild's verification asserts that relationship - so the only visible
+    difference on this page is which rows appear, never a year shifting."""
+    seed_society(db)
+    _add_award(db, 1994, "Chess")
+    db.commit()
+
+    body = client.get("/titles/Chess").get_data(as_text=True)
+    assert "<td>1994</td>" in body
+    assert "AIMS debut: 1994" in body
+
+
+def test_two_spellings_of_one_title_land_on_one_page(client, db):
+    """title_key, not raw text - the archive really does carry "Ghost the
+    Musical" and "Ghost: The Musical" for the same show."""
+    seed_society(db, id=1, name="First Society")
+    seed_society(db, id=2, name="Second Society")
+    _add_award(db, 2015, "Ghost the Musical", society_id=1, society_name="First Society")
+    _add_award(db, 2017, "Ghost: The Musical", society_id=2, society_name="Second Society")
+    db.commit()
+
+    for url in ("/titles/Ghost the Musical", "/titles/Ghost: The Musical"):
+        body = _squish(client.get(url).get_data(as_text=True))
+        assert "2 productions on record" in body
+
+
+def test_a_pending_submission_does_not_appear_on_a_title_page(client, db):
+    seed_society(db)
+    _add_award(db, 2019, "Chess")
+    _add_show(db, "26/27", "Chess", moderation_status="pending", source="submission")
+    db.commit()
+
+    body = _squish(client.get("/titles/Chess").get_data(as_text=True))
+    assert "1 production on record" in body
+
+
+def test_a_pending_submission_does_not_inflate_the_circuit_panel(client, db):
+    """production_ids_for_title() feeds the regional chips and the revival
+    panel's production_count, which sit directly under the count above."""
+    seed_society(db)
+    _add_award(db, 2019, "Chess", category_name="Best Overall Show", result="Winner")
+    _add_show(db, "26/27", "Chess", moderation_status="pending", source="submission", region="Western")
+    db.commit()
+
+    client.get("/titles/Chess")
+    from app.circuit_intelligence import production_ids_for_title
+    assert len(production_ids_for_title(db, "Chess")) == 1
+
+
+def test_the_detail_table_is_ordered_by_a_real_year_not_a_season_string(client, db):
+    """ORDER BY shows.season DESC is a text sort: '76/77' sorts after '09/10'."""
+    seed_society(db)
+    _add_show(db, "09/10", "Chess", source="historical")
+    _add_show(db, "23/24", "Chess", source="historical")
+    db.commit()
+
+    body = client.get("/titles/Chess").get_data(as_text=True)
+    assert body.index("23/24") < body.index("09/10")
+
+
+def test_a_title_with_nothing_on_record_still_404s(client, db):
+    seed_society(db)
+    db.commit()
+
+    assert client.get("/titles/Nothing At All").status_code == 404
