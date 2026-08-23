@@ -3016,6 +3016,272 @@ Before announcing this to AIMS societies/fans at large:
   `onsubmit` handlers), real image-content validation for poster uploads
   (would need Pillow).
 
+---
+
+# 2026-08-21 through 2026-08-23 session block
+
+Everything below was live content in ROADMAP.md through 2026-08-23, archived on that date because it's
+shipped, deployed, and confirmed live (or otherwise fully resolved/superseded). Nothing here needs
+action - genuinely open items that were mixed in below were carried forward into the lean ROADMAP.md
+separately.
+
+## DATA_ACCURACY_AND_CORRECTIONS_REPORT.md checked against reality, 2026-08-23
+
+Darragh dropped a Gemini-generated audit (DATA_ACCURACY_AND_CORRECTIONS_REPORT.md, repo root,
+untracked) and asked me to check it. Verified every section against a fresh prod snapshot rather than
+trusting it - same discipline as venues_report.md earlier. Also separately caught, cross-referencing
+this report: St. Marys MS Navan's Evita venue mismatch, found in an earlier session today but never
+actually applied - the report re-surfaced it.
+
+Applied (e4a3685):
+- 6 of the report's 20 claimed "venue column shift" rows were genuinely still wrong (LOST/JCS, Naas
+  MS/Young Frankenstein, Portlaoise MS/Guys and Dolls, Shannon MS/Cry-Baby, St. Michael's Theatre
+  MS/Witches of Eastwick, St. Marys Navan/Evita) - confirmed via each society's own other venues, same
+  standard as every other venue fix today, and blanked (not the report's specific claimed replacement -
+  see below on why).
+- Linked 75 historical_results rows to two societies that already had a matching societies row and
+  simply weren't connected (Greenhills Variety Group, New Lyric Operatic Company Belfast) - already
+  flagged as a known issue in an earlier session's notes, confirmed safe, applied.
+
+Already resolved before I even checked, report is stale on these:
+- 14 of the 20 "venue column shift" rows - already fixed earlier this session (same rows, different
+  investigation method).
+- Show 195 (Oyster Lane/A Christmas Carol) - already correct; the report claimed it was currently wrong
+  and named the exact value already on record as the "fix".
+- All 4 "venue punctuation drift" examples (St. Michael's Theatre New Ross, National Opera House
+  Wexford, Town Hall Theatre Galway, Garter Lane) - already merged in the same day's earlier venue
+  merge-queue work.
+- The claimed duplicate award row (46140/46164) - both ids no longer exist; already resolved, unclear
+  when.
+- The 81-shows-missing-a-26/27-venue figure - real number now 34, already worked down via
+  venues_report.md's CONFLICTS review earlier the same day.
+
+One clear lesson worth keeping: the report is a good lead generator, not a source of truth - it got at
+least one claim stale (195) and its counts drift from current reality on several others (144 vs 154
+NULL-category rows, 647 vs 645 unmapped societies, 26 vs 28 orphaned societies) even where the
+underlying finding is real. Every specific replacement value it proposed for the venue fixes was left
+unwritten - blanked instead, same "don't guess" policy as everything else, since the one claim fully
+verifiable (195) turned out wrong.
+
+(The report's remaining un-auto-fixed findings - 11 shows Published with no review URL, 154
+NULL-category historical rows, ~10 more unmapped historical societies needing new records, 28 orphaned
+Inactive societies - carried forward into the live ROADMAP.md as genuinely open items, condensed.)
+
+## Full public-site UX audit, 2026-08-23
+
+Darragh asked for a step-back walkthrough of the whole public site as (a) a society committee member
+and (b) an ordinary musical-theatre fan. Non-technical write-up with mockups, published as an Artifact:
+https://claude.ai/code/artifact/a546fc7e-ef6e-42c3-b6e5-400634708318
+
+The headline finding: the site's infrastructure is far ahead of its content. Every one of these fields
+already exists, already renders the moment it's filled, and is already editable by societies themselves
+- nobody has been asked:
+
+Society about blurb 1 of 194; society website link 0 of 194; society Facebook/Instagram/TikTok 2/3/3;
+society logo 7 of 194; venue capacity/map pin 0 of 147 each; ticket link on an upcoming show 7 of 50;
+poster on an upcoming show 9 of 50; society login codes ever issued 14 of 143 active societies.
+
+Verified broken journeys, all re-confirmed against the live site 2026-08-23:
+- A show page contained zero links to its own venue page - linked to Google Maps instead. Society pages
+  the same.
+- "Submit a show" unreachable on desktop - linked only from /more, itself mobile-tab-bar-only.
+- Adjudicator names on /reviews weren't links, though /adjudicators/<id> existed.
+- sitemap.xml omitted /titles, /venues, /awards, /reviews, /stats/trends, /about and every
+  title/venue/adjudicator detail page.
+- /reviews was a 362KB single page (all 1,086 reviews, no pagination); /season was 123KB.
+- Gilbert/Sullivan was explained only on /about but used as a filter label on 5+ pages.
+
+Quick-win batch 1 shipped 2026-08-23 (b729565): venue text on the show page and homepage links to
+/venues/<slug> (Maps link kept alongside - different questions); adjudicator names on /reviews link to
+/adjudicators/<id> (needed restructuring review_row from one big <a> wrapping the whole row into a <div>
+with the show title carrying the row's original destination, since a link can't nest inside a link);
+sitemap.xml gained /titles, /venues, /awards, /reviews, /stats/trends, /about, and every individual
+title/venue/adjudicator page. show_detail()/index() now call venues_build.ensure_current(db) themselves.
+18 new/updated tests, full suite 514 green.
+- Deliberately dropped from the batch: "Submit a show unreachable on desktop" is factually true but not
+  a bug - test_homepage_split.py already asserts it must NOT be in the footer, and this archive
+  confirms Darragh removed it from the nav/footer on purpose (prefers the logged-in society flow;
+  shares the one-off form only via a direct link). Caught before implementing, not after.
+
+Quick-win batch 2 shipped 2026-08-23 (590e1f4, 74dc693, f8d1041, d20f9be): "Not recorded" replaces "TBA"
+for a past show with no date on society_detail.html/venue_detail.html (extends a 2026-08-19 fix that
+only covered season.html/show_detail.html); the stale "before the end of August" promise removed from
+/about; a "see the full season" link added under the homepage's 6-show table; empty-state messages
+added to /titles search and /stats' one-off productions; a short Gilbert/Sullivan explainer added under
+the filter form on Awards, Reviews, Season and Societies, linking to /about rather than re-explaining
+inline (checked /about's real text first - it's a workload-driven adjudicator split on nomination
+history, not about production size). 13 new tests, full suite 527 green.
+- Three audit findings turned out to be deliberate decisions, not bugs - caught before implementing, not
+  after, by checking git history/comments rather than trusting the audit's own read:
+  - "Homepage notices above the fold" - Darragh explicitly asked for this placement (39f7276, 19 Aug:
+    "I'd like people to submit ideas"). Left alone.
+  - "Public adjudication-cutoff display" - added on purpose (31ae512, commit title literally "add
+    public cut-off date"), and the code comment already reasons why it's fine (pure arithmetic on a
+    date already shown, not real AIMS scheduling data). Left alone.
+  - "Random Award Explorer default" - documented in-line in info.py: deliberately avoids the Explorer's
+    default view becoming a fixed "who's won the most" leaderboard for one category. Left alone.
+  - Also nearly shipped a bad "fix" for /awards' blank Nominee cells - the cell isn't blank by
+    oversight, nominee_name for a society-level category literally duplicates the Society column
+    (verified against real data). Reverted before committing.
+
+Mobile nav bug fixed 2026-08-23 (82617ae) - Darragh caught it live on his phone, screenshot and all: the
+Explore menu ran off the left edge of the screen, unreadable. Root cause: the narrow-viewport fix from
+the nav restructure (right: -0.6rem) was written for History, which sits near the right of the row - the
+same anchor pushed Explore's menu (near the left) off the opposite edge. Fixed properly rather than just
+flipping the anchor for one trigger: below 40rem the menu is now a normal full-width block under
+whichever trigger opened it (flex-basis: 100% on the open <details>), so neither trigger's menu can
+overflow either edge. Verified locally at 390px with the menu force-opened for both Explore and History.
+
+(The audit's four bigger bets - homepage reorder, society page empty-vs-filled, show page as front door,
+"what's on near me" - and its outreach/onboarding track are still open; carried forward into the live
+ROADMAP.md, condensed, with the artifact link.)
+
+## Productions-table migration, stages 1-2 (2026-08-22)
+
+Built in the worktree-productions-table worktree, merged to main (94f0e2f), deployed and independently
+verified running in production. Full suite 443 green.
+
+Verified after the redeploy, not assumed - aims-web restarted with the new code present, the table
+built itself on first startup (2,805 productions, 1911-2027, 1,242 shows rows and 4,707 award records
+linked), and GET /stats from inside the container returned 2,711 productions / 1,092 reviewed with the
+folded 1911-1976 row and its note. Page serves in ~180ms on the NAS.
+
+What's done:
+1. The table itself (productions in schema.sql) - one row per real staging, natural key
+   (society_key, season_start_year, title_key). Derived, not authored: app/productions_build.py is the
+   only writer, and it upserts on that key so a production keeps its id across rebuilds. production_id
+   links added to shows / historical_results / historical_reviews. app/productions.py holds the key
+   derivation so the definition can't drift between callers.
+2. The rebuild - runs on every app start, and lazily on /stats when a cheap fingerprint shows the source
+   tables have moved. ~700ms cold, ~50ms when there's nothing to do. build_productions.py at the repo
+   root is the CLI half (--dry-run verifies and rolls back). Every run ends with a verification pass
+   that re-derives the totals from the database and raises rather than trusting its own write.
+3. Statistics cut over (info.py's stats()) - the first of the four staged surfaces. Five GROUP BY
+   queries merged in Python became one query over productions; the region filter became a single
+   equality test instead of the three-way COALESCE fallback join.
+
+Two century bugs this found, both real and both now fixed by construction:
+- historical_results_year() ('yy/yy' -> 2000+yy+1) couldn't express an award year before 2001 - 1912
+  came back as 2012, 2000 as 2100. 75 of the archive's 100 award years didn't round-trip, so /stats
+  reported 0 productions for every season before 00/01 while the same page's own tile said
+  "1912-present". The headline total goes 1,837 -> 2,711.
+- season_start_year()'s pivot at 50 assumed the archive starts in 1977. It starts in 1912, so 9
+  pre-1950 award years filed under a modern season that also exists for real.
+
+Real-data verification: 2,805 productions spanning 1911-2027 - 1,242 with a shows row, 2,271 with an
+award record, 708 both; region resolved for all but 18; rebuild idempotent.
+
+Presentation decision Darragh made this session: the 1911-1976 seasons (98 productions across 51
+seasons, from only Wexford Light Opera / Roscrea / Carrick-on-Suir) fold into one labelled summary row
+rather than 51 near-empty ones - see ARCHIVE_CIRCUIT_START_YEAR in constants.py.
+
+Stage 2 done 2026-08-22 (admin counts). NEEDS_REVIEW_WHERE is now the single definition of "this
+production has run and nobody has written it up", shared by the dashboard counter, the shows-list
+needs_review filter, and the Reviews queue - they disagreed before (115 / 115 / 29), the queue was
+right. _duplicate_historical_rows matches on production_id instead of comparing calendar years: 0
+duplicates found before, 9 real ones now. 12 new tests, full suite 455 green.
+
+(Stages 3-4 - public show/society pages, then considering an authored-not-derived table - carried
+forward into the live ROADMAP.md as the current "next" item.)
+
+## Venues given a real record (2026-08-22) through capacity-research still open (2026-08-23)
+
+Separate workstream from the productions migration but built on the same pattern. venues +
+venue_aliases + shows.venue_id; app/venues_build.py rebuilds on start and lazily. 177 free-text
+spellings -> 166 venue records at launch. Identity is normalize_venue() and nothing looser - a rule
+loose enough to merge "Civic Theatre Tallaght"/"Civic Theatre, Tallaght" also merges the Galway,
+Ballinasloe and Claremorris Town Hall Theatres, checked against real data. Region seeds from the
+productions staged there (158 of 177 resolved outright); town parses from a comma suffix (67 of 177).
+- Darragh's scoping call: structure + location now, spec fields drip-fed. Fields built: capacity,
+  auditorium type, lat/long, website, tech-spec link. Deliberately not built: orchestra pit, fly tower,
+  box-office phone.
+- Merge queue worked 2026-08-23: 28 unique suggested pairs triaged (15 confident + 4 more that
+  merge_candidates() itself never surfaces). 15 merges applied directly to prod (161 venues -> 146). 8
+  pairs left genuinely distinct (the "Town Hall Theatre" cluster still conflates Galway/
+  Ballinasloe/Claremorris - real, not a bug) and 5 left unsure.
+- Waterford Musical Society's bad default_venue fixed 2026-08-23 - Darragh spotted Gorey Little Theatre
+  showing wrong productions; root cause was societies.default_venue (id 125) wrongly set to 'Gorey
+  Little Theatre', feeding 10 bulk-created historical show rows. Cleared, plus one unrelated single-row
+  case. Swept every other society's default_venue for the same bug pattern; found no other instances.
+- Mockup built and approved 2026-08-23: https://claude.ai/code/artifact/cbe72116-066d-4594-96a8-94a99b2500fd
+  - a fully-enriched venue page and a title's circuit-intelligence panel.
+- Show circuit intelligence: BUILT AND SHIPPED 2026-08-23 (app/circuit_intelligence.py, public.py's
+  title_detail(), title_detail.html) - award tally, Best Overall Show wins, signature category (folded
+  through AWARD_CATEGORIES' renamed-category groups), regional distribution across all 6 regions, and a
+  per-title revival flag (>=8 productions, 10-30 year gap, checked against the real archive). Deviation
+  from the mockup: the revival aside runs against the page's own title, not a different illustrative
+  one. Caught via an actual screenshot during the build: the panel was originally placed after the
+  detail tables per the plan's literal instruction, burying it below 50+ rows on a long-running title
+  like JCS - moved before those tables. No new CSS. 15 new tests, full suite 506 green.
+- Old /venues/<raw name> URLs 301 to the slug.
+
+(Capacity/type/website/map research - 0 of 146 venues have any of it filled in - carried forward into
+the live ROADMAP.md as a genuinely open item, since it's real-world research, not a coding task.)
+
+## Decades Time Machine, Reviews, and Venues (thin version) - all live for real, 2026-08-21
+
+Committed, pushed, deployed, and independently verified running in production.
+
+Decades Time Machine (/stats/trends) - grounded in the awards archive (historical_results,
+1912-2026), not the thinner shows catalogue. A decade-scrubber pill row (GET ?decade=1980, no JS) picks
+one decade; its era card shows top 5 most-staged shows, top 5 most-nominated societies, and every Best
+Overall Show winner that decade. 10 tests.
+
+Reviews (public /reviews + admin /admin/reviews-queue) - merges two eras into one list (AIMS's own
+aims.ie link-out reviews and the extracted ShowTimes archive full text). A show/society search matches
+across every season and tier by default. Adjudicator credit is direct for a full-text review, inferred
+via adjudicator_assignments for a link-out one (only when exactly one adjudicator covered that
+season/tier). 14 + 12 tests. Full suite 392 tests, all green.
+
+Venues fixed twice post-launch, 2026-08-21 - Darragh caught both from the real deployed page within
+minutes: linked from the mobile-only /more page only, no desktop path; index sorted alphabetically,
+putting free-text noise at the top - now sorts by production count. 2 new tests, full suite 406 green.
+
+Venues (thin version, since superseded by the real venues table above) - deliberately the thin version
+per Darragh's explicit call: no capacity/type/map fields. Computed everything live from shows.venue. 12
+tests. Full suite 404 tests, all green.
+
+## Header nav restructured (2026-08-23) through mobile-bug-fixed - shipped, deployed, confirmed live
+
+Mockup-first (interactive drag-and-drop builder,
+https://claude.ai/code/artifact/7a1c3f2c-f360-4ba2-a674-d9b79f79e9a9 - Darragh arranged it himself).
+Final shape, his call: Home as a direct link, then Explore (All Shows, Seasons, Societies, Venues,
+Reviews, Adjudicators) and History (Awards, Decades, Statistics). "Shows A-Z" renamed "All Shows".
+- Native <details>, no JS needed for the menus themselves. Venues and Adjudicators are in the header for
+  the first time - they were footer-only (6 and 52 views).
+- "Upcoming shows" is gone as a nav item: / is that page and the logo already links there.
+- Traffic can't be used to justify nav decisions - Darragh's catch: pages get views because they're in
+  the nav, so citing those numbers to decide what belongs in the nav is circular.
+- Polish pass 2026-08-23: Darragh called it "a bit sketchy" - mismatched button styles and flat spacing
+  in the account cluster. Split into .nav-content/.nav-account with a wider gap between them and one
+  shared .nav-pill shape for every account control.
+- Mobile nav bug fixed 2026-08-23 (82617ae) - see the UX-audit section above for full detail; Darragh
+  caught it live on his phone.
+
+(The deferred type/palette pass and per-page component pass, both waiting on posters, carried forward
+into the live ROADMAP.md.)
+
+## Technical debt items resolved 2026-08-23
+
+1. app/blueprints/admin.py (3,325 lines) split into app/blueprints/admin/, a package by concern. Pure
+   structural move, no endpoint names or route logic changed. Full suite green (491).
+2. Test suite parallelized. Took ~2m15s for 491 tests serially, no individual test slow - just per-test
+   fixture overhead. pytest-xdist + addopts = -n auto cuts it to ~40s.
+
+## Older shipped items (through 2026-08-20/21), fully resolved
+
+- Season calendar UX feedback - SHIPPED 2026-08-20. <details> disclosure, grouped Future/Current/Past
+  season dropdown, past-season copy switched to past tense.
+- Reviews page, both public-facing and admin-side - SHIPPED 2026-08-21.
+- Society misattribution follow-ups (from the 43-fix session, 2026-08-20) - 6 of 8 remaining cases
+  resolved and applied live 2026-08-20. 2 explicitly skipped as Darragh's call (review 367 The Real
+  Theatre Company, review 366 National Youth Musical Theatre) - parked, not pursued further.
+- Search - RESOLVED, verified 2026-08-21. All five bugs diagnosed 2026-08-19 confirmed fixed against
+  real data.
+- Skeleton-show fill-in and double-count check - SHIPPED 2026-08-20.
+- Society milestone badges - SHIPPED 2026-08-20. 7 live badges in _society_badges(), rendered on
+  /societies/<id>. Gilbert Grandmaster parked, not built.
+
 ## Working agreements (from the 2026-08-03 process review)
 - `/clear` (or a fresh session) between genuinely distinct workstreams -
   don't chain unrelated incidents/features/audits in one long thread.
