@@ -64,6 +64,45 @@ and fixed) - see the archive for the detail if a specific fix needs re-checking.
   listed below. Treat any *new* Gemini-sourced report the same way before acting on it: verify against a
   fresh prod snapshot first, don't trust its specific claims - it got at least one flat wrong this round.
 
+## `GOOGLE_MAPS_INTEGRATION_PROPOSAL.md` - assessed 2026-08-24, mostly adopt
+
+Gemini-generated, three sections. **Section 1 (Google Maps directions) is shipped.** Sections 2
+and 3 are worth adopting, but field by field rather than pasted whole - the two carry very
+different confidence, and the measurements below say which is which.
+
+**Section 2, `default_venue` for 140 societies - strong, adopt after the auto-check.**
+Cross-checked every claim against the venue our own archive says that society most often plays:
+**90 of the 112 judgeable claims agree (80%)** - 61 exact, 29 the same venue under a different
+spelling. Only 22 genuinely differ, and **on inspection most of those are our data being wrong,
+not the proposal**: our archive has Boyle Musical Society at "Roscommon", Ennistymon Choral at
+"Clare", Ballyshannon at "Donegal", Castlebar at "Castelbar", Trim at "40th Anniversary (March
+run)". Those are exactly the `looks_unresolved()` junk entries (53 of them) the merge queue
+flags and can't fix by itself. **This list is the missing half of that problem** - it names the
+real building behind the bare county. It also gives the correct spelling for venues we hold
+under a typo ("Pavillion Theatre" -> Pavilion Theatre, Dún Laoghaire).
+
+Worth verifying individually before applying: `Mandela Hall, Belfast` closed in 2018 and the
+building was demolished in January 2020 (the name was reused in the new QUB student centre, so
+it's ambiguous rather than simply wrong). `default_venue` prefills the venue on a society's own
+submission, so a wrong one mis-tags future shows quietly. 39 of 194 societies have one today.
+
+**Section 3, the 109-venue `DATA` dict - the venue list is valuable, the coordinates need
+verifying first.** 54 of the 109 name venues we have no record of at all (Barbican Drogheda,
+Hawk's Well, Lime Tree, Everyman, Millennium Forum, An Grianán...) - a genuinely useful
+to-research list for the long tail. But the coordinates can't go in unchecked: 26 are
+byte-identical to `enrich_venues.py`, and of the 83 new ones **76 are rounded to ≤4 decimal
+places on both axes, against 1 of 28 in the OSM/Wikipedia-sourced set**. Spot-checking the three
+venues this repo deliberately left unpinned because every candidate was a town-centre point: the
+proposal's "The Abbey Clane" is **170m from Clane's town centre**, its "Temperance Hall,
+Loughrea" **85m from Loughrea's**. Same for capacities on buildings that publish none (300, 300,
+180, 400...).
+
+**The adoption path for section 3 is mechanical, not manual:** geocode each proposed venue
+against OSM and accept the coordinates where the two agree within a couple of hundred metres,
+flag where they don't. That turns the list into verified data instead of discarding it. Also
+drop its `region` key - `venues.region` is derived from the productions staged there and
+moderator-corrected, so it isn't a field to set from a list.
+
 ## Next feasible things, roughly in order
 
 - **`/reviews` + `/season` page weight** - 362KB/123KB, no pagination. Flagged in the UX audit as the
