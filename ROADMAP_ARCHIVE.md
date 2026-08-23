@@ -7,6 +7,18 @@ out to still be open, it was carried forward into ROADMAP.md's Open Items list s
 
 ---
 
+## Admin: "Shows missing a date" counter mismatch - FIXED 2026-08-23 (late session)
+
+Second instance of the same bug shape as the 115-vs-29 review-link counter. The dashboard counter
+(`dashboard.py`) excluded `source='historical'` skeleton rows, which can never have real dates;
+`fix_dates()`'s `missing=1` filter (`admin/misc.py`) didn't. Measured on real data: counter said 30,
+page listed 812, so a moderator clicking "30" met 782 unactionable rows. Fixed the same way as the
+precedent - one shared `MISSING_DATES_WHERE` in `admin/_shared.py`, used by both sides, with the
+history in the comment above it. Three tests in `tests/test_missing_dates_filter.py`, mirroring
+`test_needs_review_filter.py`; suite 582 green.
+
+---
+
 # Roadmap
 
 ## START HERE - fix_society_misattributions.py ready to run, NOT yet applied (2026-08-20, later session)

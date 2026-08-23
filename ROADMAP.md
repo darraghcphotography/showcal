@@ -15,8 +15,11 @@ again.
 
 ## START HERE - where things stand (2026-08-23)
 
-**Nothing is sitting unmerged or undeployed.** `main` is clean, suite 579 green, and the last deploy
-(2026-08-23 evening) is verified live - see below. Next session can start on new work.
+**One small fix is pushed but not yet deployed** - the admin "Shows missing a date" counter/page
+mismatch (30 vs 812), fixed via a shared `MISSING_DATES_WHERE` in `admin/_shared.py`. Suite 582 green.
+It only affects the moderator dashboard, so nothing public is waiting on the redeploy; verify the
+counter and the "Fix dates" page agree once it goes out. Everything before it is deployed and verified
+live - see below.
 
 **Productions-table migration stages 3-4 - DEPLOYED and verified live 2026-08-23 evening.** All four
 public surfaces now count real stagings; stage 4 was decided against (the table stays derived, with the
@@ -48,13 +51,6 @@ and fixed) - see the archive for the detail if a specific fix needs re-checking.
 
 ## Next feasible things, roughly in order
 
-- **Admin: "Shows missing a date" counter disagrees with the page it links to** - the dashboard counter
-  (`dashboard.py`) excludes `source='historical'` skeleton rows, because they can never have real dates;
-  `fix_dates()`'s `missing=1` filter (`admin/misc.py`) has no such exclusion. **Measured on real data
-  2026-08-23: the counter says 30, the page lists 812** - so a moderator clicks "30" and meets 782 rows
-  they can never action. Exactly the shape of the already-fixed 115-vs-29 review-link bug, and the fix
-  is the same: one shared definition rather than two WHERE clauses (`_shared.py` holds
-  `NEEDS_REVIEW_WHERE` as the worked precedent). Small, mechanical, verified.
 - **`/reviews` + `/season` page weight** - 362KB/123KB, no pagination. Flagged in the UX audit as the
   one remaining quick win too big/risky to bundle into the two batches already shipped.
 - **Show/title enrichment, Source C follow-ups** - Source C (circuit intelligence) shipped 2026-08-23.

@@ -8,7 +8,7 @@ from ...db import get_db
 from ...dedupe import find_candidates
 from ...season import current_season, historical_results_year
 from . import bp
-from ._shared import NEEDS_REVIEW_WHERE, needs_review_params
+from ._shared import MISSING_DATES_WHERE, NEEDS_REVIEW_WHERE, needs_review_params
 from .historical_reviews import find_mismatched_skeleton_shows
 
 
@@ -88,16 +88,10 @@ def dashboard():
         f"SELECT COUNT(*) FROM shows WHERE {NEEDS_REVIEW_WHERE}", needs_review_params(db)
     ).fetchone()[0]
 
-    # Same reasoning as needs_review_count above - a skeleton show is
-    # deliberately minimal (show/society/season/tier only) and will never
-    # have real dates on record, so it's excluded rather than sitting in this
-    # count forever unfixable.
+    # Shared with the "Fix dates" page this counter links to - see
+    # MISSING_DATES_WHERE.
     missing_dates_count = db.execute(
-        """
-        SELECT COUNT(*) FROM shows
-        WHERE moderation_status = 'approved' AND show IS NOT NULL AND source != 'historical'
-          AND (opening_date IS NULL OR closing_date IS NULL)
-        """
+        f"SELECT COUNT(*) FROM shows WHERE {MISSING_DATES_WHERE}"
     ).fetchone()[0]
 
     titles = {

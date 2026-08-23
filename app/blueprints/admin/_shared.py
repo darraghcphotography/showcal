@@ -57,5 +57,23 @@ NEEDS_REVIEW_WHERE = """
 """
 
 
+# "This show is missing at least one date a moderator could actually go and
+# fill in."
+#
+# Same shape of bug as NEEDS_REVIEW_WHERE above, found the same way: the
+# dashboard counter said 30 against real data while the "Fix dates" page it
+# links to listed 812, because only the counter excluded source='historical'.
+# A skeleton historical row is deliberately minimal (show/society/season/tier
+# only) and will never have real dates on record, so it belongs in neither -
+# a moderator clicking "30" was meeting 782 rows they could never action.
+# Defined once here so the two can't drift apart again.
+MISSING_DATES_WHERE = """
+    shows.moderation_status = 'approved'
+    AND shows.show IS NOT NULL
+    AND shows.source != 'historical'
+    AND (shows.opening_date IS NULL OR shows.closing_date IS NULL)
+"""
+
+
 def needs_review_params(db):
     return {"today": date.today().isoformat(), "current_season": current_season(db)}

@@ -6,7 +6,7 @@ from ...auth import login_required
 from ...constants import REGIONS, SUGGESTION_CATEGORIES, SUGGESTION_STATUSES
 from ...db import get_db
 from . import bp
-from ._shared import DATE_RE
+from ._shared import DATE_RE, MISSING_DATES_WHERE
 
 
 @bp.route("/shows/dates", methods=("GET", "POST"))
@@ -77,7 +77,9 @@ def fix_dates():
         query += " AND shows.region = ?"
         params.append(region)
     if missing:
-        query += " AND (shows.opening_date IS NULL OR shows.closing_date IS NULL)"
+        # Same definition the dashboard counter that links here uses, so the
+        # number on the dashboard matches the rows listed - MISSING_DATES_WHERE.
+        query += f" AND {MISSING_DATES_WHERE}"
     query += " ORDER BY shows.season DESC, societies.name"
     shows = db.execute(query, params).fetchall()
 

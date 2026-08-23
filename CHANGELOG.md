@@ -1,3 +1,7 @@
+Admin: "Shows missing a date" said 30 on the dashboard but listed 812 rows on the page it links to - the counter left out archive skeleton rows that can never have dates, the page didn't. Both now use one definition and give the same answer
+
+---
+
 All Shows was counting award nominations rather than productions, so a show nominated in five categories counted five times - Jesus Christ Superstar read 152 when 78 societies have actually staged it. Every "times performed" figure on the site now counts real stagings, and the number on All Shows finally agrees with the show's own page
 16 shows that were missing from All Shows entirely now appear, including Michael Collins, Songs For A New World, She Loves Me and Summer Holiday
 Society pages were listing recent productions twice - once in Show history and again in the archive below it. Each production now appears once, and Show history gained an Awards column so nothing loses its award badges
