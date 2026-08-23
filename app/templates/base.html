@@ -58,6 +58,8 @@
     #}
     {% set nav_menus = [
       ('Explore', [
+        ('public.titles_list',      'All Shows',    'Every title staged on the circuit'),
+        ('info.season_summary',     'Seasons',      'Any season week by week'),
         ('public.societies_list',   'Societies',    'All member societies by region'),
         ('public.venues_index',     'Venues',       'Every stage a society has played'),
         ('public.reviews_index',    'Reviews',      'Every adjudicator review on file'),
@@ -130,8 +132,8 @@
       DC Show Tracker &middot; a project by Darragh C &middot;
       <a href="{{ url_for('public.about') }}">About</a> &middot;
       <a href="https://linktr.ee/darraghc" rel="noopener" target="_blank">Get in touch</a> &middot;
-      {# All Shows and Seasons live here rather than in the header - Adjudicators
-         and Venues moved the other way, into the Explore menu. #}
+      {# Kept as sitemap links even though Explore now carries them too - a
+         footer link isn't removed just because the header has one. #}
       <a href="{{ url_for('public.titles_list') }}">All Shows</a> &middot;
       <a href="{{ url_for('info.season_summary') }}">Seasons</a> &middot;
       <a href="{{ url_for('public.suggest') }}">Suggest a feature</a> &middot;

@@ -103,16 +103,14 @@ def test_nav_matches_new_arrangement(client):
     for label in ["Explore", "History"]:
         assert '{}<span class="nav-chevron"'.format(label) in header
 
-    # Promoted out of the footer and into Explore.
-    for label in ["Societies", "Venues", "Reviews", "Adjudicators"]:
+    # Explore, including Venues and Adjudicators, which were footer-only.
+    for label in ["All Shows", "Seasons", "Societies", "Venues", "Reviews", "Adjudicators"]:
         assert label in header
     for label in ["Awards", "Decades", "Statistics"]:
         assert label in header
 
-    # Demoted to the footer, Darragh's call - the header carries what people
-    # arrive looking for, the footer keeps everything reachable.
+    # The footer keeps its sitemap links even where the header duplicates them.
     for label in ["All Shows", "Seasons"]:
-        assert label not in header
         assert label in footer
 
     # "/" IS the upcoming-productions list, and the brand logo already links

@@ -227,9 +227,9 @@ directly when its turn comes, doesn't need a big mockup pass).
 **Header nav restructured 2026-08-23, not yet deployed.** Mockup-first (interactive drag-and-drop
 builder, `https://claude.ai/code/artifact/7a1c3f2c-f360-4ba2-a674-d9b79f79e9a9` - Darragh arranged it
 himself rather than picking from options). Final shape, his call: **Home** as a direct link, then
-**Explore** (Societies, Venues, Reviews, Adjudicators) and **History** (Awards, Decades, Statistics).
-All Shows and Seasons moved to the footer; "Shows A-Z" renamed "All Shows" throughout. `/more`
-regrouped under the same headings.
+**Explore** (All Shows, Seasons, Societies, Venues, Reviews, Adjudicators) and **History** (Awards,
+Decades, Statistics). "Shows A-Z" renamed "All Shows" throughout; the footer keeps its sitemap links
+for All Shows and Seasons as well. `/more` regrouped under the same headings.
 - Native `<details>`, the same disclosure used on /stats and /season, so the menus need no JS. The
   nonce'd script only adds close-on-outside-click and Escape. No new dependency, no CSP change.
 - Venues and Adjudicators are in the header for the first time - they were footer-only, which is why
@@ -245,6 +245,56 @@ regrouped under the same headings.
   the per-page component pass. Both wait on **posters** - 41 exist in total, 13 for 25/26 onward
   against 193 shows, so a poster-led design would be mostly empty frames. Gathering artwork from
   societies is the real bottleneck on the site looking better.
+
+## Technical debt, measured 2026-08-23
+
+Real numbers, not impressions. Nothing here is urgent; the first two are the ones that will actually
+bite.
+
+1. **`app/blueprints/admin.py` is 3,325 lines** (next biggest is `public.py` at 1,422). The Gemini
+   audit flagged splitting it into a package months ago and it's grown ~400 lines since, most of them
+   mine this week. **Wants its own session.** Mechanical but wide: route registration, imports, and a
+   silent breakage would only show up in admin, which nobody exercises daily. The 491-test suite is
+   the thing that makes it safe to attempt.
+2. **`ensure_current()` is a call site you have to remember.** 8 of them now across `admin.py`,
+   `info.py` and `public.py`. Any route reading `production_id` or `venue_id` must call it first;
+   forgetting doesn't error, it silently under-reports - which is exactly how the data-quality page
+   shipped wrong for ten minutes. Worth replacing with a `before_request` on the blueprint, or a
+   decorator, so it can't be forgotten. Small change, real payoff.
+3. **`productions_build.py` and `venues_build.py` duplicate the same freshness machinery** -
+   `FINGERPRINT_SQL`, `fingerprint()`, `mark_stale()`, `ensure_current()` and a one-row
+   `*_build_state` table, written twice with different table names. A third derived table would make
+   it three. Worth folding into one small shared helper, and it pairs naturally with item 2.
+4. **FTS indexes rebuild on every startup.** Known, deliberate, and documented in `db.py` - the
+   obvious `COUNT(*)` guard doesn't work on an external-content FTS5 table. Left alone on purpose;
+   noted here so it isn't "discovered" again.
+5. **`page_views` is keyed on path only**, so no query-string question can ever be answered from it
+   (`/reviews?season=X` collapses into `/reviews`). Fine as a popularity counter, useless as
+   analytics. Only worth changing if a real question needs it.
+6. **The test suite takes ~2m20s** for 491 tests. Not a problem yet; worth watching.
+7. **Four untracked `.md` files sit in the repo root** (`DESIGN_AUDIT_AND_PROPOSALS.md`,
+   `FEATURE_IDEAS.md`, `SHOW_ENRICHMENT_PROPOSAL.md`, `venues_report.md`). They're source documents,
+   not repo content, and they've been deliberately left untracked - but they show up in every `git
+   status`. Either commit them to a `docs/proposals/` folder or add them to `.gitignore`, rather than
+   leaving them in limbo. (`mockups/` is already gitignored.)
+
+## What's left, roughly in the order it makes sense
+
+- **Deploy the nav** (and the venues work, if it hasn't gone out).
+- **Venues finishing**: work the 51-venue merge queue in `/admin/venue-directory`, then research
+  capacities. No code needed for either - and the page improves with each merge.
+- **Productions stages 3-4**: public show and society pages. `reviews_index()` is the best worked
+  example of the problem in the codebase; `venues_index()` no longer is, now that venues has its own
+  table.
+- **Show/title enrichment** - `SHOW_ENRICHMENT_PROPOSAL.md`. Source C first; it's free and works
+  today. Fix the `P58` -> `P87` error before touching the Wikidata half.
+- **FAQ page** - smallest self-contained thing on the list.
+- **Posters** - Darragh's, not Claude's. 41 exist against 193 current-era shows, and this gates the
+  whole visual redesign.
+- **Type/palette pass, then per-page components** - Phases B and C of the nav plan, waiting on
+  posters.
+- **Reviews page: a show dropdown instead of season grouping.** Note the traffic data can't settle
+  this (see `page_views` above) - it's a judgement call.
 
 ## Newly raised 2026-08-22, not yet scoped
 
