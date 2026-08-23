@@ -88,8 +88,19 @@ town parses from a comma suffix (67 of 177).
 - **Darragh's scoping call:** structure + location now, spec fields drip-fed. Fields built: capacity,
   auditorium type, lat/long, website, tech-spec link. Each renders only once set. **Deliberately not
   built:** orchestra pit, fly tower, box-office phone.
-- **Still to do:** the actual merging (51 venues have a suggestion), and the research to fill capacities.
-  Neither blocks anything - the page works as-is and improves per merge.
+- **Merge queue worked 2026-08-23**: 28 unique suggested pairs triaged (15 confident + 4 more that
+  `merge_candidates()` itself never surfaces - it skips a pair outright when the two names strip to
+  *exactly* equal distinctive words, which hid "An Táin Arts"/"An Táin Arts Centre" and similar). 15
+  merges applied directly to prod (161 venues -> 146), each carrying forward any curated field the
+  losing spelling had. 8 pairs left genuinely distinct (the "Town Hall Theatre" cluster still
+  conflates Galway/Ballinasloe/Claremorris - real, not a bug) and 5 unsure, not applied. Also applied:
+  2 of the 4 `backfill_2627_venues.py` CONFLICTS rows that don't collide with a merge just made
+  (Thurles' Premier Hall, Leixlip's St. Mary's GAA Club Hall); 2 more skipped on purpose (An Táin/
+  O'Reilly Belvedere text switches would have re-fragmented the venue just consolidated); 2 of the 16
+  CONFLICTS still need Darragh directly - Bellvue's "Cork run" and Trim's "40th Anniversary" aren't
+  real venues on record at all, and Gemini's research names more than one candidate for each.
+- **Still to do:** capacity/type/website/map research (0 of 146 venues have any of it filled in - the
+  fields render already, nobody's entered data yet).
 - Old `/venues/<raw name>` URLs 301 to the slug.
 
 **Next, in order (stages 3-4 of the staged cutover):**
