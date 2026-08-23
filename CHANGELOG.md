@@ -1,3 +1,8 @@
+The Reviews page now loads a page at a time instead of all 1,086 reviews at once - it went from 460KB to 67KB, which is the difference between a slow page and an instant one on mobile data
+The search box on the Reviews page now searches the words inside a review, not just show and society names - searching "standing ovation" finds the reviews that say it. The notice telling you to go and use a different search box for that is gone
+
+---
+
 The homepage now leads with what's on. Productions are grouped by month with their poster beside them, the venue links straight to its own page, and the two housekeeping notices have moved below the listings - a first-time visitor used to read two pieces of admin before seeing a single show
 The homepage shows twelve upcoming productions rather than six, and says how many there are in total
 "Submit a show" is now in the footer. It was only reachable from the More page, which is only linked from the mobile bottom bar - so on a laptop there was no way to find it at all

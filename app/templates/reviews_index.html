@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_pagination.html" as pg %}
 {% block title %}Reviews - DC Show Tracker{% endblock %}
 {% block og_description %}Every adjudicator review archived on the site, browsable by show, society, season and tier.{% endblock %}
 
@@ -35,12 +36,6 @@
     adjudicator below.
   </p>
 
-  <div class="site-notice">
-    <p><strong>Looking for a word or phrase inside a review?</strong> This page is for browsing - try
-      <a href="{{ url_for('public.search') }}">Search</a> instead for full-text search across every review's
-      actual wording.</p>
-  </div>
-
   <div class="stat-tiles">
     <div class="stat-tile"><span class="stat-value">{{ stats['total'] }}</span><span class="stat-label">Reviews on the site</span></div>
     <div class="stat-tile"><span class="stat-value">{{ stats['full_text'] }}</span><span class="stat-label">Full ShowTimes text</span></div>
@@ -51,8 +46,8 @@
   </div>
 
   <form method="get" class="filter-form">
-    <label>Show or society
-      <input type="search" name="q" value="{{ q }}" placeholder="e.g. Oklahoma!, Tullyvin...">
+    <label>Show, society or wording
+      <input type="search" name="q" value="{{ q }}" placeholder="e.g. Oklahoma!, Tullyvin, standing ovation...">
     </label>
     <label>Season
       <select name="season">
@@ -82,8 +77,8 @@
       <a href="{{ url_for('public.reviews_index') }}">Clear</a>
     {% endif %}
   </form>
-  <p class="hint">A show/society search matches across every season and tier by
-    default - the dropdowns narrow it further, they don't scope it.</p>
+  <p class="hint">Search matches the show, the society, and the wording inside an archive review -
+    across every season and tier by default. The dropdowns narrow it further, they don't scope it.</p>
   <p class="hint" style="margin-bottom: 1.5rem;">Gilbert and Sullivan are AIMS's two adjudication tiers, each
     with its own adjudicator - see <a href="{{ url_for('public.about') }}">About</a> for how societies are
     split between them.</p>
@@ -94,6 +89,7 @@
       <div class="review-list">
         {% for r in flat_reviews %}{{ review_row(r, show_season=true) }}{% endfor %}
       </div>
+      {{ pg.pager('public.reviews_index', page, total_pages) }}
     {% else %}
       <p>No reviews match.</p>
     {% endif %}
@@ -109,6 +105,7 @@
         </div>
       </details>
     {% endfor %}
+    {{ pg.pager('public.reviews_index', page, total_pages) }}
   {% else %}
     <p>No reviews match those filters.</p>
   {% endif %}

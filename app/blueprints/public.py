@@ -1,4 +1,5 @@
 import itertools
+import math
 import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
@@ -31,6 +32,11 @@ bp = Blueprint("public", __name__)
 # still carries the remainder.
 UPCOMING_LIMIT = 12
 CHANGELOG_TEASER_LIMIT = 3
+
+# /reviews used to render all 1,086 reviews on every visit - 362KB for a page
+# you read a screenful of at a time. Big enough that browsing a season rarely
+# needs a second page, small enough that the page is a normal weight.
+REVIEWS_PER_PAGE = 100
 
 # Same sizes and ?page=/?per_page= convention the awards archive already uses,
 # so a habit learned on one long list transfers to the others.
@@ -612,7 +618,8 @@ def reviews_index():
         """
         SELECT shows.id AS show_id, shows.show AS show, shows.season AS season,
                shows.section AS tier, shows.review_url AS review_url,
-               societies.name AS society_name, NULL AS direct_adjudicator_id, 'link' AS source
+               societies.name AS society_name, NULL AS direct_adjudicator_id, 'link' AS source,
+               NULL AS review_id
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.review_status = 'Published' AND shows.review_url IS NOT NULL
           AND shows.review_url != '' AND shows.moderation_status = 'approved' AND NOT societies.hidden
@@ -622,7 +629,7 @@ def reviews_index():
         SELECT shows.id AS show_id, shows.show AS show, historical_reviews.season AS season,
                historical_reviews.tier AS tier, NULL AS review_url,
                societies.name AS society_name, historical_reviews.adjudicator_id AS direct_adjudicator_id,
-               'full_text' AS source
+               'full_text' AS source, historical_reviews.id AS review_id
         FROM historical_reviews
         JOIN shows ON shows.id = historical_reviews.show_id
         JOIN societies ON societies.id = shows.society_id
@@ -642,6 +649,7 @@ def reviews_index():
             "show_id": r["show_id"], "show": r["show"], "season": r["season"], "tier": r["tier"],
             "society_name": r["society_name"], "source": r["source"], "review_url": r["review_url"],
             "adjudicator_id": adj_id, "adjudicator_name": adjudicator_names.get(adj_id),
+            "review_id": r["review_id"],
         })
     all_reviews.sort(key=lambda r: (-season_start_year(r["season"]), (r["show"] or "").lower()))
 
@@ -657,9 +665,22 @@ def reviews_index():
     reviews = all_reviews
     if q:
         needle = q.lower()
+        # Searches the review's actual wording as well as the show and society
+        # name. Before this the page carried a notice telling you to go and use
+        # the other search box for that, which is the site apologising for a
+        # split the visitor never needed to know about (site audit, finding 12).
+        #
+        # Only archive reviews have text here - a link-out row is a URL on
+        # aims.ie, so there's nothing on this site to match. fts_match_ids
+        # returns None if the index couldn't answer, in which case this quietly
+        # falls back to the name-only match rather than failing the search.
+        text_matches = fts_match_ids(db, "historical_reviews_fts", q)
+        text_match_ids = set(text_matches) if text_matches else set()
         reviews = [
             r for r in reviews
-            if needle in (r["show"] or "").lower() or needle in (r["society_name"] or "").lower()
+            if needle in (r["show"] or "").lower()
+            or needle in (r["society_name"] or "").lower()
+            or (r["review_id"] is not None and r["review_id"] in text_match_ids)
         ]
     if season:
         reviews = [r for r in reviews if r["season"] == season]
@@ -668,10 +689,21 @@ def reviews_index():
     if adjudicator_id:
         reviews = [r for r in reviews if r["adjudicator_id"] == adjudicator_id]
 
+    # Every matching review still decides the count and the paging; only one
+    # page of them is ever rendered. The whole list used to go out at once -
+    # 1,086 rows and 362KB on every visit, on a page you can only read a
+    # screenful of anyway (site audit, finding 12).
+    result_count = len(reviews)
+    total_pages = max(1, math.ceil(result_count / REVIEWS_PER_PAGE))
+    page = min(max(request.args.get("page", 1, type=int) or 1, 1), total_pages)
+    reviews = reviews[(page - 1) * REVIEWS_PER_PAGE:page * REVIEWS_PER_PAGE]
+
     # Grouped by season for plain browsing (no search text) - matches
     # adjudicator_detail() above; only meaningful once a search narrows the
     # list to something that could reasonably cross seasons/tiers on its own,
-    # so a search result stays a single flat list instead.
+    # so a search result stays a single flat list instead. Grouping the page's
+    # own slice, not the whole list, so a season heading appears wherever the
+    # boundary happens to fall rather than promising rows that aren't here.
     season_groups = []
     if not q:
         groups_by_season = {}
@@ -689,7 +721,8 @@ def reviews_index():
         "reviews_index.html",
         q=q, selected_season=season, selected_tier=tier, selected_adjudicator=adjudicator_id,
         seasons=season_range(db), adjudicators=adjudicators,
-        stats=stats, result_count=len(reviews),
+        stats=stats, result_count=result_count,
+        page=page, total_pages=total_pages, per_page=REVIEWS_PER_PAGE,
         season_groups=season_groups, flat_reviews=reviews if q else [],
     )
 
