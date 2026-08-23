@@ -115,7 +115,7 @@
           </td>
           <td>{{ show['section'] or '—' }}</td>
           <td>
-            {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}
+            {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ 'Not recorded' if show['season'] < current_season else 'TBA' }}{% endif %}
           </td>
           <td>
             {% if show['review_status'] == 'Published' and show['review_url'] %}
@@ -148,7 +148,7 @@
         <div class="meta-chips">
           <span>{{ show['season'] }}</span>
           <span>&middot; {{ show['section'] or '—' }}</span>
-          <span>&middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}</span>
+          <span>&middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ 'Not recorded' if show['season'] < current_season else 'TBA' }}{% endif %}</span>
           <span>&middot;
             {% if show['review_status'] == 'Published' and show['review_url'] %}
               <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>

@@ -949,7 +949,7 @@ def society_detail(society_id):
         historical_timeline=historical_timeline, person_awards=person_awards,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
-        society_login_url=society_login_url, badges=badges,
+        society_login_url=society_login_url, badges=badges, current_season=current,
     )
 
 

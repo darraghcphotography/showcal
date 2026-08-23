@@ -73,7 +73,7 @@
         {% for s in past %}
           <tr>
             <td>{{ s['season'] }}</td>
-            <td><a href="{{ url_for('public.show_detail', show_id=s['id']) }}">{{ s['show'] or 'TBA' }}</a></td>
+            <td><a href="{{ url_for('public.show_detail', show_id=s['id']) }}">{{ s['show'] or 'Not recorded' }}</a></td>
             <td><a href="{{ url_for('public.society_detail', society_id=s['society_id']) }}">{{ s['society_name'] }}</a></td>
           </tr>
         {% endfor %}
