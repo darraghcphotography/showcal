@@ -483,3 +483,54 @@ def test_person_awards_still_have_their_own_table(client, db):
     body = client.get("/societies/1").get_data(as_text=True)
     assert "Person &amp; company awards" in body
     assert "Jane Doe" in body
+
+
+# ------------------------------------------------------------- /shows/<id>
+
+def test_award_history_resolves_for_a_season_before_2001(client, db):
+    """The old match decoded shows.season with historical_results_year, which
+    returns 2000 + yy + 1: '95/96' gave 2096, so this show's own award record
+    could never be found. Latent while shows holds 09/10 onward, live the
+    moment anyone bulk-creates an older row."""
+    seed_society(db)
+    _add_show(db, "95/96", "Chess", source="historical")
+    _add_award(db, 1996, "Chess", category_name="Best Director", result="Winner")
+    db.commit()
+
+    body = client.get("/shows/1").get_data(as_text=True)
+    assert "Best Director" in body
+
+
+def test_award_history_still_resolves_for_a_modern_season(client, db):
+    seed_society(db)
+    _add_show(db, "23/24", "Chicago")
+    _add_award(db, 2024, "Chicago", category_name="Best Choreography", result="Nominee")
+    db.commit()
+
+    body = client.get("/shows/1").get_data(as_text=True)
+    assert "Best Choreography" in body
+
+
+def test_a_bare_production_row_is_not_rendered_as_an_award(client, db):
+    """admin.bulk_historical_productions writes a historical_results row with
+    no category and no result - it says the production happened, not that it
+    was nominated for anything."""
+    seed_society(db)
+    _add_show(db, "18/19", "Cabaret", source="historical")
+    _add_award(db, 2019, "Cabaret", category_name=None, result=None)
+    db.commit()
+
+    body = client.get("/shows/1").get_data(as_text=True)
+    assert "Awards &amp; nominations" not in body
+
+
+def test_another_societys_award_record_is_not_borrowed(client, db):
+    seed_society(db, id=1, name="First Society")
+    seed_society(db, id=2, name="Second Society")
+    _add_show(db, "18/19", "Cabaret", society_id=1, source="historical")
+    _add_award(db, 2019, "Cabaret", society_id=2, society_name="Second Society",
+               category_name="Best Director", result="Winner")
+    db.commit()
+
+    body = client.get("/shows/1").get_data(as_text=True)
+    assert "Best Director" not in body

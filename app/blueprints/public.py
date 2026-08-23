@@ -1074,32 +1074,29 @@ def show_detail(show_id):
         (show_id,),
     ).fetchone()
 
-    # Pre-2024 award/nomination history for this exact production, from the
-    # older AIMS awards archive (historical_results) - a separate table with
-    # no foreign key to shows (it predates this site), so matched here by
-    # (society, year, title) rather than joined directly. year is
-    # historical_results' own year column, not season - see
-    # historical_results_year. Exact-normalized match only (case/punctuation,
-    # same as normalize_title everywhere else) - deliberately not fuzzy on a
-    # public page; a genuine title mismatch belongs in the admin queue's own
-    # history_match review step (see admin.categorize_pending_reviews),
-    # which is exactly what that step exists to catch before a show ever
-    # gets this far.
+    # AIMS award/nomination history for this exact production, from the awards
+    # archive (historical_results). Read straight off production_id - the
+    # foreign key that exists precisely to express "same staging" - rather
+    # than the hand-rolled join on (society, decoded year, normalized title)
+    # this replaced. That join decoded the season with historical_results_year,
+    # which returns 2000 + yy + 1 and so cannot express an award year before
+    # 2001: latent while shows holds 09/10 onward, live the moment anyone bulk
+    # -creates an older row. A titleless placeholder row has no production.
+    #
+    # The category/result filter is deliberate: it's what stops a bare "this
+    # production happened" row (see admin.bulk_historical_productions) from
+    # rendering as if it were an award.
     award_history = []
-    if show["show"] and show["season"]:
-        target_norm = normalize_title(show["show"])
-        candidate_rows = db.execute(
+    if show["production_id"]:
+        award_history = db.execute(
             """
             SELECT show, tier, category_name, result, nominee_name, role, reason
             FROM historical_results
-            WHERE society_id = ? AND year = ? AND show IS NOT NULL
+            WHERE production_id = ?
+              AND (category_name IS NOT NULL OR result IS NOT NULL)
             """,
-            (show["society_id"], historical_results_year(show["season"])),
+            (show["production_id"],),
         ).fetchall()
-        award_history = [
-            r for r in candidate_rows
-            if normalize_title(r["show"]) == target_norm and (r["category_name"] is not None or r["result"] is not None)
-        ]
 
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
