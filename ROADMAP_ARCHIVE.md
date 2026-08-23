@@ -3281,6 +3281,14 @@ into the live ROADMAP.md.)
 - Skeleton-show fill-in and double-count check - SHIPPED 2026-08-20.
 - Society milestone badges - SHIPPED 2026-08-20. 7 live badges in _society_badges(), rendered on
   /societies/<id>. Gilbert Grandmaster parked, not built.
+- Review-author byline - SHIPPED 2026-08-23 (commit 87ab288). New `review_author TEXT` column on
+  `shows`, added via `COLUMN_MIGRATIONS` in `app/db.py`. Editable on the admin edit-show form and on
+  the reviews-queue's quick paste-and-save form (`save_review_link()`); backfillable onto a review
+  that's already published, not forward-only. On the public show page, an explicit `review_author`
+  takes precedence over the existing inferred credit (matched via `adjudicator_assignments`, only
+  shown when exactly one adjudicator covered that season/tier); falls back to the inferred credit,
+  then to no byline at all, if neither is set. 9 new tests in `tests/test_review_author_byline.py`,
+  full suite 541 passed.
 
 ## Working agreements (from the 2026-08-03 process review)
 - `/clear` (or a fresh session) between genuinely distinct workstreams -

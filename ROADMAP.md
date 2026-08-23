@@ -17,10 +17,11 @@ again.
 
 Live and confirmed deployed: the productions table (stats cut over), the real venues table (147 venues,
 merge queue mostly worked), the header nav restructure + polish + mobile fix, Decades/Reviews pages,
-show circuit intelligence on `/titles/<title>`, and two rounds of UX-audit quick wins (venue/adjudicator
-linking, sitemap coverage, wording fixes, Gilbert/Sullivan explainers). A large batch of venue-data and
-society-section data fixes also went out today - see the archive for the detail if a specific fix needs
-re-checking.
+show circuit intelligence on `/titles/<title>`, two rounds of UX-audit quick wins (venue/adjudicator
+linking, sitemap coverage, wording fixes, Gilbert/Sullivan explainers), and the review-author byline
+(`review_author` column, admin edit form + reviews-queue quick save, explicit-beats-inferred credit on
+the public show page). A large batch of venue-data and society-section data fixes also went out today -
+see the archive for the detail if a specific fix needs re-checking.
 
 **Two open reference documents worth knowing about before starting anything new:**
 - **Full public-site UX audit** (non-technical, mockups included):
@@ -34,9 +35,6 @@ re-checking.
 
 ## Next feasible things, roughly in order
 
-- **Review-author byline** - a `review_author` column + admin form + template change. Both design
-  questions that were blocking it are already resolved (backfill existing reviews, authorship is
-  per-person). Small, well-scoped, just needs building.
 - **Junk skeleton-show-title cleanup sweep** - 8 garbled titles were fixed from a known
   truncated-extraction bug pattern; a fresh full-archive sweep for more instances was flagged as worth
   doing and never run. Mechanical, low risk.
