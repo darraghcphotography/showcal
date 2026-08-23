@@ -77,7 +77,7 @@ copy. 12 new tests, full suite 455 green.
   (dashboard, shows_list, reviews_queue, data_quality). Forgetting it doesn't error, it silently
   under-reports; that's how the data-quality test caught it.
 
-**Venues given a real record, 2026-08-22 (`00797c8`), not yet deployed.** Separate workstream from the
+**Venues given a real record, 2026-08-22 (`00797c8`), deployed and confirmed live.** Separate workstream from the
 productions migration but built on the same pattern. `venues` + `venue_aliases` + `shows.venue_id`;
 `app/venues_build.py` rebuilds on start and lazily. 177 free-text spellings → 166 venue records (the same
 building was recorded up to 8 ways). Identity is `normalize_venue()` and nothing looser - a rule loose
@@ -224,7 +224,7 @@ migration** (backend architecture, flagged for its own Opus session separately) 
 byline** (a column + small form + template tweak, design questions already resolved - just build it
 directly when its turn comes, doesn't need a big mockup pass).
 
-**Header nav restructured 2026-08-23, not yet deployed.** Mockup-first (interactive drag-and-drop
+**Header nav restructured 2026-08-23, deployed and confirmed live.** Mockup-first (interactive drag-and-drop
 builder, `https://claude.ai/code/artifact/7a1c3f2c-f360-4ba2-a674-d9b79f79e9a9` - Darragh arranged it
 himself rather than picking from options). Final shape, his call: **Home** as a direct link, then
 **Explore** (All Shows, Seasons, Societies, Venues, Reviews, Adjudicators) and **History** (Awards,
