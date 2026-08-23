@@ -1,5 +1,12 @@
 # Productions-table migration, stages 3 and 4
 
+> **SHIPPED 2026-08-23 - this plan is history, not pending work.** All of stage 3 is
+> merged, deployed and verified on the live site; stage 4 was decided against (the table
+> stays derived, §9), with the decision and its trigger conditions recorded in
+> `schema.sql` and `docs/data-model.md`. What actually shipped, with the real numbers, is
+> in `ROADMAP_ARCHIVE.md` under "Productions-table migration, stages 3-4". Kept here for
+> the reasoning behind each decision - don't execute it again.
+
 Written 2026-08-23 as a handoff. Stages 1 (`/stats`) and 2 (admin counts) are live and
 have been since 2026-08-22 - see `ROADMAP_ARCHIVE.md`, "Productions-table migration,
 stages 1-2". This plan covers the last two stages: cutting the public show/society

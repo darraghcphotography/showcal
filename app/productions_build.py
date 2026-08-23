@@ -443,7 +443,3 @@ def build(db, report=None):
         report(f"  skipped {unkeyed['shows']} shows rows and {unkeyed['awards']} award records "
                f"with no usable title")
     return productions
-
-
-if __name__ == "__main__":
-    sys.exit(main())
