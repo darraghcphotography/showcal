@@ -48,6 +48,25 @@ empty-vs-filled side-by-side (doubles as the recruitment pitch for getting socie
 the show page as the shared front door; and "what's on near me" - which **cannot be built until venue
 coordinates exist** (0 of 147 today), and is written up as a decision to make, not a feature to queue.
 
+**Quick-win batch 1 shipped 2026-08-23** (`b729565`): venue text on the show page and homepage is now a
+link to `/venues/<slug>` (Maps link kept alongside on the homepage - different questions); adjudicator
+names on `/reviews` link to `/adjudicators/<id>` (needed restructuring `review_row` from one big `<a>`
+wrapping the whole row - can't nest a link inside a link - into a `<div>` with the show title carrying
+the row's original destination); `sitemap.xml` gains `/titles`, `/venues`, `/awards`, `/reviews`,
+`/stats/trends`, `/about`, and every individual title/venue/adjudicator page. `show_detail()`/`index()`
+now call `venues_build.ensure_current(db)` themselves - needed for the venue link to ever appear on a
+freshly-added show, same `ensure_current()` gotcha as everywhere else. 18 new/updated tests, full suite
+514 green.
+- **Deliberately dropped from the batch**: the audit's "Submit a show is unreachable on desktop" finding
+  is factually true but not a bug - `test_homepage_split.py` already asserts it must NOT be in the
+  footer, and `ROADMAP_ARCHIVE.md` confirms Darragh removed it from the nav/footer on purpose (prefers
+  the logged-in society flow; shares the one-off form only via a direct link). Caught before
+  implementing, not after.
+- **Still open from the quick-wins list**: Gilbert/Sullivan unexplained inline, homepage notices above
+  the fold, no "see full season" link, TBA-for-past-shows wording, public adjudication-cutoff display,
+  random Award Explorer default, missing empty states (`/titles`, one-off productions), blank Nominee
+  cells, stale About-page promise, `/reviews`+`/season` page weight.
+
 Section 5 of the audit is a non-technical outreach plan (nudge on their own page, fill 2-3 exemplar
 societies, ask for posters/ticket links first, a draft message to send a committee, and a "claim your
 page" route). That track is Darragh's lever, not a coding task.
