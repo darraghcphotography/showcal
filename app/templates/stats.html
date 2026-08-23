@@ -193,11 +193,15 @@
        circuit in the data on record (including the historical archive) - a nice list of shows worth a
        revival. A title with an upcoming or still-TBA production announced won't count until it opens, so
        it can still appear here even with more than one production on the way.</p>
-    <ul class="plain-list">
-      {% for row in one_offs %}
-        <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>
-      {% endfor %}
-    </ul>
+    {% if one_offs %}
+      <ul class="plain-list">
+        {% for row in one_offs %}
+          <li><a href="{{ url_for('public.title_detail', title=row['show']) }}">{{ row['show'] }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No one-off productions on record{% if selected_region %} for {{ selected_region }}{% endif %}.</p>
+    {% endif %}
   </div>
 
   {% if not selected_region %}

@@ -69,6 +69,8 @@
             </td>
           {% endif %}
         </tr>
+      {% else %}
+        <tr><td colspan="{{ 5 if current_user else 4 }}">No shows match{% if q %} "{{ q }}"{% endif %}.</td></tr>
       {% endfor %}
     </tbody>
   </table>

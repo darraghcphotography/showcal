@@ -120,6 +120,8 @@
     <p>No upcoming shows{% if upcoming_region %} in {{ upcoming_region }} right now{% endif %}.</p>
   {% endif %}
 
+  <p class="meta"><a href="{{ url_for('info.season_summary') }}">See the full season, week by week &rarr;</a></p>
+
   {% if society_session %}
     <p><a href="{{ url_for('society.new_show') }}" class="edit-callout">Don't see your show listed? Add it &rarr;</a></p>
   {% endif %}
