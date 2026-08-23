@@ -1283,11 +1283,13 @@ a.queue-item:hover { border-color: var(--accent); }
   color: inherit;
 }
 .review-row:last-child { border-bottom: none; }
-.review-row:hover .show { text-decoration: underline; }
-.review-row .show { font-weight: 600; color: var(--accent); }
+.review-row .show { font-weight: 600; color: var(--accent); text-decoration: none; }
+.review-row .show:hover { text-decoration: underline; }
 .review-row .soc { color: var(--muted); font-size: 0.86rem; }
 .review-row .by { color: var(--muted); font-size: 0.86rem; }
 .review-row .by::before { content: "by "; }
+.review-row .by a { color: var(--accent); text-decoration: none; }
+.review-row .by a:hover { text-decoration: underline; }
 .review-row .season-badge {
   font-size: 0.72rem; font-weight: 600; color: var(--muted);
   font-variant-numeric: tabular-nums; white-space: nowrap;
@@ -1298,6 +1300,7 @@ a.queue-item:hover { border-color: var(--accent); }
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  text-decoration: none;
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 0.05rem 0.4rem;

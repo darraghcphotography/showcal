@@ -49,11 +49,13 @@ def paginate_args(total):
 @bp.route("/")
 def index():
     db = get_db()
+    venues_build.ensure_current(db)
 
     upcoming_region = request.args.get("upcoming_region", "")
     upcoming_query = """
-        SELECT shows.*, societies.name AS society_name
+        SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug
         FROM shows JOIN societies ON societies.id = shows.society_id
+        LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE shows.moderation_status = 'approved'
           AND shows.show IS NOT NULL
           AND shows.opening_date >= ?
@@ -954,10 +956,12 @@ def society_detail(society_id):
 @bp.route("/shows/<int:show_id>")
 def show_detail(show_id):
     db = get_db()
+    venues_build.ensure_current(db)
     show = db.execute(
         """
-        SELECT shows.*, societies.name AS society_name
+        SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug
         FROM shows JOIN societies ON societies.id = shows.society_id
+        LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE shows.id = ? AND shows.moderation_status = 'approved'
         """,
         (show_id,),

@@ -106,6 +106,21 @@ def test_full_text_review_credits_adjudicator_directly(client, db):
     assert "Peter Kennedy" in body
 
 
+def test_adjudicator_name_links_to_their_own_page(client, db):
+    """Previously plain text, despite /adjudicators/<id> existing - the whole
+    row used to be one <a>, which is why the name couldn't be its own link
+    (HTML doesn't allow a nested <a>); the row is a <div> now, with the show
+    title carrying the row's original destination instead."""
+    society_id = seed_society(db)
+    adj_id = seed_adjudicator(db, "Peter Kennedy")
+    show_id = add_full_text_review(db, society_id, "Sister Act", season="22/23", adjudicator_id=adj_id)
+
+    body = client.get("/reviews?q=sister").get_data(as_text=True)
+    assert f'href="/adjudicators/{adj_id}">Peter Kennedy</a>' in body
+    # The show title still goes straight to the review, same as before.
+    assert f'href="/shows/{show_id}#showtimes-review">Sister Act</a>' in body
+
+
 def test_linked_review_credits_adjudicator_only_when_exactly_one_assigned(client, db):
     society_id = seed_society(db)
     adj_id = seed_adjudicator(db, "Solo Judge")

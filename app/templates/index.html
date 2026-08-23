@@ -7,7 +7,12 @@
       <td>
         <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
         {% if show['venue'] %}
-          <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+          {% if show['venue_slug'] %}
+            <a class="venue-link" href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">📍 {{ show['venue'] }}</a>
+            <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">(map)</a>
+          {% else %}
+            <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+          {% endif %}
         {% endif %}
       </td>
       <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
@@ -29,7 +34,12 @@
     <div class="queue-item">
       <div class="primary"><a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a></div>
       {% if show['venue'] %}
-        <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+        {% if show['venue_slug'] %}
+          <a class="venue-link" href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">📍 {{ show['venue'] }}</a>
+          <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">(map)</a>
+        {% else %}
+          <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">📍 {{ show['venue'] }}</a>
+        {% endif %}
       {% endif %}
       <div class="meta-chips">
         <span><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></span>

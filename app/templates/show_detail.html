@@ -40,7 +40,10 @@
     </dd>
 
     <dt>Venue</dt>
-    <dd>{{ show['venue'] or '—' }}</dd>
+    <dd>
+      {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
+      {% else %}{{ show['venue'] or '—' }}{% endif %}
+    </dd>
 
     {% if show['ticket_url'] %}
     <dt>Tickets</dt>

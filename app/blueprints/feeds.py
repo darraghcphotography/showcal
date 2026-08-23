@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
 
-from ..constants import REGIONS
+from ..constants import REGIONS, SHOWS_COVERAGE_START_YEAR
 from ..db import get_db
 
 bp = Blueprint("feeds", __name__)
@@ -174,6 +174,14 @@ def sitemap_xml():
     urls.append((url_for("info.season_summary", _external=True), today))
     urls.append((url_for("info.stats", _external=True), today))
     urls.append((url_for("public.adjudicators_list", _external=True), today))
+    # The rest of the public site - present in the app's own nav but missing
+    # from here until now, which meant search engines could never find them.
+    urls.append((url_for("public.titles_list", _external=True), today))
+    urls.append((url_for("public.venues_index", _external=True), today))
+    urls.append((url_for("info.awards", _external=True), today))
+    urls.append((url_for("public.reviews_index", _external=True), today))
+    urls.append((url_for("info.stats_trends", _external=True), today))
+    urls.append((url_for("public.about", _external=True), today))
 
     for row in db.execute("SELECT id FROM societies WHERE section != 'Inactive'").fetchall():
         urls.append((url_for("public.society_detail", society_id=row["id"], _external=True), today))
@@ -183,6 +191,31 @@ def sitemap_xml():
     ).fetchall():
         lastmod = (row["updated_at"] or today)[:10]
         urls.append((url_for("public.show_detail", show_id=row["id"], _external=True), lastmod))
+
+    # One entry per distinct title, matching titles_list()'s own definition
+    # of "a title on record" (current shows plus the pre-23/24 archive) -
+    # these are some of the site's best, most-searched pages and were
+    # entirely absent from the sitemap before.
+    for row in db.execute(
+        """
+        SELECT DISTINCT show FROM (
+            SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' AND source != 'historical'
+            UNION ALL
+            SELECT show FROM historical_results WHERE show IS NOT NULL AND year < ?
+        )
+        """,
+        (SHOWS_COVERAGE_START_YEAR,),
+    ).fetchall():
+        urls.append((url_for("public.title_detail", title=row["show"], _external=True), today))
+
+    for row in db.execute("SELECT slug FROM venues").fetchall():
+        urls.append((url_for("public.venue_detail", venue=row["slug"], _external=True), today))
+
+    # Only an adjudicator with at least one real assignment has a live page -
+    # one added in /admin/adjudicators but never assigned yet 404s, same
+    # rule adjudicators_list() applies to its own roster.
+    for row in db.execute("SELECT DISTINCT adjudicator_id FROM adjudicator_assignments").fetchall():
+        urls.append((url_for("public.adjudicator_detail", adjudicator_id=row["adjudicator_id"], _external=True), today))
 
     xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for loc, lastmod in urls:

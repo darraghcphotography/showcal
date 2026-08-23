@@ -25,6 +25,62 @@ def test_sitemap_falls_back_to_plain_http_without_forwarded_header(client):
     assert "<loc>http://" in body
 
 
+def test_sitemap_includes_the_previously_missing_index_pages(client):
+    """2026-08-23 audit finding: /titles, /venues, /awards, /reviews,
+    /stats/trends and /about were all missing, despite being some of the
+    site's best content and linked from the main nav."""
+    body = client.get("/sitemap.xml").get_data(as_text=True)
+    for path in ("/titles</loc>", "/venues</loc>", "/awards</loc>", "/reviews</loc>",
+                 "/stats/trends</loc>", "/about</loc>"):
+        assert path in body
+
+
+def test_sitemap_includes_a_title_page(client, db):
+    society_id = seed_society(db)
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, moderation_status) "
+        "VALUES (?, '24/25', 'Eastern', 'Oliver!', 'approved')",
+        (society_id,),
+    )
+    db.commit()
+
+    body = client.get("/sitemap.xml").get_data(as_text=True)
+    assert "/titles/Oliver" in body
+
+
+def test_sitemap_includes_a_venue_page(client, db):
+    society_id = seed_society(db)
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, venue, moderation_status) "
+        "VALUES (?, '24/25', 'Eastern', 'Oliver!', 'Gorey Little Theatre', 'approved')",
+        (society_id,),
+    )
+    db.commit()
+    client.get("/venues")  # triggers venues_build.ensure_current() so the venue row exists
+
+    body = client.get("/sitemap.xml").get_data(as_text=True)
+    assert "/venues/gorey-little-theatre</loc>" in body
+
+
+def test_sitemap_includes_an_assigned_adjudicator_but_not_an_unassigned_one(client, db):
+    """Same rule adjudicators_list() already applies to its own roster - an
+    adjudicator with no season/tier assignment 404s on their own page, so
+    listing them in the sitemap would just hand search engines a dead link."""
+    db.execute("INSERT INTO adjudicators (name) VALUES ('Assigned Judge')")
+    db.execute("INSERT INTO adjudicators (name) VALUES ('Unassigned Judge')")
+    assigned_id = db.execute("SELECT id FROM adjudicators WHERE name = 'Assigned Judge'").fetchone()["id"]
+    db.execute(
+        "INSERT INTO adjudicator_assignments (season, section, adjudicator_id) VALUES ('25/26', 'Gilbert', ?)",
+        (assigned_id,),
+    )
+    db.commit()
+
+    body = client.get("/sitemap.xml").get_data(as_text=True)
+    assert f"/adjudicators/{assigned_id}</loc>" in body
+    unassigned_id = db.execute("SELECT id FROM adjudicators WHERE name = 'Unassigned Judge'").fetchone()["id"]
+    assert f"/adjudicators/{unassigned_id}</loc>" not in body
+
+
 def test_500_page_renders_site_chrome(app, client):
     app.config["PROPAGATE_EXCEPTIONS"] = False
 

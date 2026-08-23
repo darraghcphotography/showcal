@@ -2,23 +2,28 @@
 {% block title %}Reviews - DC Show Tracker{% endblock %}
 {% block og_description %}Every adjudicator review archived on the site, browsable by show, society, season and tier.{% endblock %}
 
+{# review-row used to be one giant <a> wrapping the whole row - fine until
+   the adjudicator name below also needed to be a link, which HTML doesn't
+   allow nested inside another link. Now a <div>, with the show title itself
+   carrying the row's original destination (same href as before) and the
+   adjudicator name as its own independent link. #}
 {% macro review_row(r, show_season=false) %}
   {% if r['source'] == 'full_text' %}
-    <a class="review-row" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">
+    <div class="review-row">
       {% if show_season %}<span class="season-badge">{{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}</span>{% endif %}
-      <span class="show">{{ r['show'] }}</span>
+      <a class="show" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">{{ r['show'] }}</a>
       <span class="soc">{{ r['society_name'] }}</span>
-      {% if r['adjudicator_name'] %}<span class="by">{{ r['adjudicator_name'] }}</span>{% endif %}
-      <span class="src src-full">Full review</span>
-    </a>
+      {% if r['adjudicator_name'] %}<span class="by"><a href="{{ url_for('public.adjudicator_detail', adjudicator_id=r['adjudicator_id']) }}">{{ r['adjudicator_name'] }}</a></span>{% endif %}
+      <a class="src src-full" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">Full review</a>
+    </div>
   {% else %}
-    <a class="review-row" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
+    <div class="review-row">
       {% if show_season %}<span class="season-badge">{{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}</span>{% endif %}
-      <span class="show">{{ r['show'] }}</span>
+      <a class="show" href="{{ r['review_url'] }}" rel="noopener" target="_blank">{{ r['show'] }}</a>
       <span class="soc">{{ r['society_name'] }}</span>
-      {% if r['adjudicator_name'] %}<span class="by">{{ r['adjudicator_name'] }}</span>{% endif %}
-      <span class="src">Read on aims.ie</span>
-    </a>
+      {% if r['adjudicator_name'] %}<span class="by"><a href="{{ url_for('public.adjudicator_detail', adjudicator_id=r['adjudicator_id']) }}">{{ r['adjudicator_name'] }}</a></span>{% endif %}
+      <a class="src" href="{{ r['review_url'] }}" rel="noopener" target="_blank">Read on aims.ie</a>
+    </div>
   {% endif %}
 {% endmacro %}
 
