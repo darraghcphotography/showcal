@@ -26,10 +26,12 @@ because a blank one is visibly missing and a wrong one is quietly believed. So:
 
 Left deliberately blank, so nobody re-researches them thinking they were missed:
 
-  * No coordinates for St. Mary's College Arklow, The Hub Castlerea, Leixlip
-    GAA, Kilcock GAA, The Abbey Clane or Temperance Hall Loughrea - none of the
-    six has an OpenStreetMap entry findable by name, and every candidate was a
-    town-centre pin rather than the building.
+  * No coordinates for St. Mary's College Arklow, The Abbey Clane or Temperance
+    Hall Loughrea. All three venues are confirmed (Darragh, 2026-08-24) - it's
+    OpenStreetMap that has no entry for them findable by name, and every
+    candidate was a town-centre pin or a same-named housing estate rather than
+    the building. Eircodes don't help: Nominatim doesn't index them, and asked
+    for one it fuzzy-matched to an unrelated address with a different Eircode.
   * No capacity for any of the school, college and GAA halls, or for Temperance
     Hall Loughrea and The Hub Castlerea. None publishes one.
   * No website for Strand Theatre Carrick-on-Suir - it has a Facebook page and a
@@ -69,6 +71,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from app import venues_build  # noqa: E402
 from app.venues import merge_venue_into, normalize_venue  # noqa: E402
 
 ROOT = Path(__file__).parent
@@ -91,21 +94,49 @@ MERGES = [
      "Same building; the Navan suffix is the town it's already in."),
     ("St. Mary's GAA Club Hall, Leixlip", "Leixlip GAA",
      "St. Mary's is Leixlip's GAA club. Leixlip Musical & Variety Group both sides."),
+    ("Kilcock GAA Clubhouse / St. Joseph's Hall", "Kilcock GAA",
+     "Darragh confirmed 2026-08-24 that Kilcock perform at Kilcock GAA. Held back on "
+     "the first pass because a slash-joined name normally means two buildings."),
+]
+
+# Shows whose venue was typed as something ambiguous. Correcting the text is the
+# fix - the rebuild then resolves each row to the right venue on its own - so
+# these are not merges and must not be done as merges.
+#
+# All six were filed under a bare "Town Hall Theatre", which is four different
+# buildings: Ballinasloe, Claremorris and Galway all have one. Matched on
+# society + season + title rather than a row id, so a mismatch fails loudly
+# instead of quietly rewriting the wrong show's venue.
+#
+# (society, season, show, venue as typed, venue it should read)
+VENUE_CORRECTIONS = [
+    ("Ballinasloe Musical Society", "10/11", "South Pacific",
+     "Town Hall Theatre", "Town Hall Theatre, Ballinasloe"),
+    ("Ballinasloe Musical Society", "12/13", "The Pirates Of Penzance",
+     "Town Hall Theatre", "Town Hall Theatre, Ballinasloe"),
+    ("Ballinasloe Musical Society", "22/23", "The Sound of Music",
+     "Town Hall Theatre", "Town Hall Theatre, Ballinasloe"),
+    ("Claremorris Musical Society", "21/22", "Sister Act",
+     "Town Hall Theatre", "Town Hall Theatre, Claremorris"),
+    ("Galway University Musical Society", "11/12", "Spring Awakening",
+     "Town Hall Theatre", "Town Hall Theatre, Galway"),
+    # Twin Productions are Galway-based (Darragh, 2026-08-24), so the Galway
+    # Town Hall Theatre is the one they'll have played.
+    ("Twin Productions", "18/19", "Peter Pan",
+     "Town Hall Theatre", "Town Hall Theatre, Galway"),
 ]
 
 # Not merged, on purpose, and each one is a decision rather than an oversight:
 #
 #   * "Town Hall Theatre, Claremorris" / ", Ballinasloe" / ", Galway" are three
 #     different buildings. The merge queue proposes them as one; they are not.
-#   * Slash-joined names ("Grand Opera House / Lyric Theatre, Belfast",
-#     "glór, Ennis / St. Patrick's Comprehensive, Shannon", "Kilcock GAA
-#     Clubhouse / St. Joseph's Hall") name two buildings, not one venue recorded
-#     two ways - a production that played both. Folding one into either half
-#     would assert something the data doesn't say.
-#   * The bare "Town Hall Theatre" record isn't a duplicate at all: its 6
-#     productions are Ballinasloe (3), Claremorris (1), Galway University (1)
-#     and Twin Productions (1). That's a shows.venue correction, one row at a
-#     time, not a venue merge - and the Twin Productions one needs a human.
+#   * Slash-joined names ("Grand Opera House / Lyric Theatre, Belfast", "glór,
+#     Ennis / St. Patrick's Comprehensive, Shannon") name two buildings, not one
+#     venue recorded two ways. Darragh confirmed 2026-08-24 that the Grand Opera
+#     House and the Lyric are two different Belfast venues; folding that record
+#     into either half would assert something the data doesn't say.
+#   * The bare "Town Hall Theatre" record isn't a duplicate at all - it's four
+#     buildings under one label. Handled as VENUE_CORRECTIONS above.
 
 # Display name -> the fields researched for it. Keys are matched through
 # venue_aliases after normalize_venue(), so the spelling here only has to be one
@@ -238,11 +269,29 @@ DATA = {
     "The Hub Castlerea": {
         "town": "Castlerea", "county": "Roscommon",
         "website_url": "https://www.thehubcastlerea.com/",
+        # OSM knows the building as "The Hub Gym" - The Hub's own description of
+        # itself lists a gym among what the community centre houses, so this is
+        # the same building under the tenant's name rather than a near miss.
+        "latitude": 53.7673005, "longitude": -8.4763084,
     },
+    # Below the 5-production threshold, but only because the bare "Town Hall
+    # Theatre" label was hiding their real counts - they're here because
+    # VENUE_CORRECTIONS above put those productions back.
+    "Town Hall Theatre, Ballinasloe": {
+        "town": "Ballinasloe", "county": "Galway",
+        "latitude": 53.3305956, "longitude": -8.2249983,
+    },
+    "Town Hall Theatre, Claremorris": {"town": "Claremorris", "county": "Mayo"},
     "St. Mary's College Arklow": {"town": "Arklow", "county": "Wicklow"},
     "Temperance Hall, Loughrea": {"town": "Loughrea", "county": "Galway"},
-    "Leixlip GAA": {"town": "Leixlip", "county": "Kildare"},
-    "Kilcock GAA": {"town": "Kilcock", "county": "Kildare"},
+    "Leixlip GAA": {
+        "town": "Leixlip", "county": "Kildare",
+        "latitude": 53.3643146, "longitude": -6.5025255,
+    },
+    "Kilcock GAA": {
+        "town": "Kilcock", "county": "Kildare",
+        "latitude": 53.3938661, "longitude": -6.6664450,
+    },
     "The Abbey Clane": {"town": "Clane", "county": "Kildare"},
 }
 
@@ -265,10 +314,45 @@ def main():
 
     db = sqlite3.connect(args.db)
     db.row_factory = sqlite3.Row
+    # Same as the app does per connection (app/db.py). Not optional here: the
+    # rebuild below deletes a venue nothing points at any more, and without
+    # this its venue_aliases rows don't cascade - the rebuild's own
+    # verification pass catches the orphan and refuses to commit.
+    db.execute("PRAGMA foreign_keys = ON")
 
     unmatched = []
 
-    print("Merges")
+    print("Venue corrections on individual shows")
+    for society, season, show, typed, corrected in VENUE_CORRECTIONS:
+        row = db.execute(
+            """
+            SELECT shows.id, shows.venue FROM shows
+              JOIN societies ON societies.id = shows.society_id
+             WHERE societies.name = ? AND shows.season = ? AND shows.show = ?
+            """,
+            (society, season, show),
+        ).fetchone()
+        if row is None:
+            print(f"  no such show: {society}, {season}, {show}")
+            continue
+        if row["venue"] == corrected:
+            print(f"  already corrected: {society}, {season}, {show}")
+            continue
+        if row["venue"] != typed:
+            # Somebody has edited this row since the correction was written.
+            # Theirs wins - never overwrite a moderator with a stale script.
+            print(f"  SKIPPED, venue has changed since: {society}, {season}, {show} "
+                  f"(reads {row['venue']!r}, expected {typed!r})")
+            continue
+        db.execute("UPDATE shows SET venue = ?, updated_at = datetime('now') WHERE id = ?",
+                   (corrected, row["id"]))
+        print(f"  {society}, {season}, {show}: {typed!r} -> {corrected!r}")
+
+    # Re-derive so those rows point at the venue they now name, and so a venue
+    # nothing refers to any more is cleaned up before the merges below run.
+    venues_build.build(db)
+
+    print("\nMerges")
     for source_name, target_name, why in MERGES:
         source_id = resolve(db, source_name)
         target_id = resolve(db, target_name)

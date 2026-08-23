@@ -1,5 +1,6 @@
 Venue pages have started filling in - the 30 venues AIMS societies play most now carry a seating capacity, a website, a county and a pin you can open on a map, where before every venue page had none of it
-Galway's Town Hall Theatre was split across two spellings, so its 17 productions read as 11 and 6 on separate pages - that and four other split venues are now one venue each
+Galway's Town Hall Theatre was split across two spellings, so its productions read as 11 and 6 on separate pages - that and five other split venues are now one venue each, and Galway's page reads 19
+Six productions were filed under a bare "Town Hall Theatre" that was really four different buildings - they now sit under the Ballinasloe, Claremorris and Galway town halls they actually played
 Venues can now actually be searched by county, which the search box has been offering all along against no county data at all
 
 ---

@@ -18,22 +18,23 @@ again.
 **Two things are pushed and waiting on a redeploy.** Suite 589 green.
 
 1. **Venue content pass** - `enrich_venues.py` fills town/county/capacity/website/tech-spec/map pin for
-   the 30 venues with 5+ productions (~70% of venue-attributed shows), and folds away 5 duplicate
-   spellings. **The script has NOT been run against production yet** - deploying the code changes
+   the 30 venues with 5+ productions (~70% of venue-attributed shows), folds away 6 duplicate
+   spellings, and corrects 6 shows filed under a bare "Town Hall Theatre" that was really four
+   buildings. **The script has NOT been run against production yet** - deploying the code changes
    nothing on its own. After the redeploy, run:
    `docker compose exec aims-web python enrich_venues.py --db /data/aims.db`
-   Then check `/venues/town-hall-theatre-galway` reads 17 productions (it reads 11 and 6 on two pages
+   Then check `/venues/town-hall-theatre-galway` reads 19 productions (it reads 11 and 6 on two pages
    today) and shows its capacity, website and map link. Verified locally against a production copy: 145
-   venues become 140, 17 gain a capacity, 24 gain a pin, and a rebuild preserves all of it.
+   venues become 138, 17 gain a capacity, 28 gain a pin, and a rebuild preserves all of it.
 2. **Admin "Shows missing a date"** counter/page mismatch (30 vs 812), fixed via a shared
    `MISSING_DATES_WHERE` in `admin/_shared.py`. Moderator-only; nothing public waits on it.
 
 Everything before those is deployed and verified live - see below.
 
-**One venue question needs Darragh.** The bare `Town Hall Theatre` record holds 6 productions from four
-different buildings - Ballinasloe (3), Claremorris (1), Galway University (1), Twin Productions (1).
-Five are unambiguous from the society's own town and can be fixed by correcting `shows.venue`; **which
-town hall Twin Productions played is the open one.** Deliberately not guessed.
+Darragh answered the venue questions on 2026-08-24 and all of them are applied: Twin Productions are
+Galway-based (so their Town Hall Theatre is Galway's), Kilcock perform at Kilcock GAA (so that merge
+went ahead after all), and the Grand Opera House and the Lyric are two different Belfast venues (so
+that slash-joined record stays unmerged, as does glór/Shannon).
 
 **Productions-table migration stages 3-4 - DEPLOYED and verified live 2026-08-23 evening.** All four
 public surfaces now count real stagings; stage 4 was decided against (the table stays derived, with the
@@ -74,8 +75,10 @@ and fixed) - see the archive for the detail if a specific fix needs re-checking.
 - **Venue research, the long tail** - the 30 venues with 5+ productions were done 2026-08-23
   (`enrich_venues.py`); ~110 venues with 1-4 productions still have nothing. Same script, extend its
   `DATA` table. Lower value per venue, so only worth doing if the first pass proves itself. Six of the
-  30 also still have no map pin (Arklow, Castlerea, Leixlip, Kilcock, Clane, Loughrea) - none has an
-  OpenStreetMap entry findable by name, so they need a different source, not another search.
+  30 also still have no map pin: **St. Mary's College Arklow, The Abbey Clane and Loughrea Temperance
+  Hall**. All three venues are confirmed - OpenStreetMap simply has no entry for them findable by name,
+  and Eircodes don't help (Nominatim doesn't index them and fuzzy-matches to unrelated addresses). They
+  need a different source, not another search.
 - **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are near
   me). Smallest self-contained new page on the list.
 - **Merge duplicate/near-duplicate titles the A-Z now shows** (`/admin/duplicate-titles`) - 7 spelling
