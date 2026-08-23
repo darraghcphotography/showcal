@@ -127,7 +127,7 @@ def test_researched_detail_appears_on_the_public_page(client, db):
     assert "432" in body
     assert "Proscenium" in body
     assert "https://theatreroyal.ie/" in body
-    assert "openstreetmap.org" in body
+    assert "See the exact spot" in body
 
 
 def test_a_venue_with_no_detail_still_renders_cleanly(client, db):
@@ -140,5 +140,5 @@ def test_a_venue_with_no_detail_still_renders_cleanly(client, db):
 
     body = client.get(f"/venues/{slug}").get_data(as_text=True)
     assert body.count("Seating capacity") == 0
-    assert "openstreetmap.org" not in body
+    assert "See the exact spot" not in body
     assert "Some Parish Hall" in body

@@ -1,3 +1,7 @@
+Venue pages now offer "Get directions" - on a phone that opens your own Maps app and starts navigation, rather than showing a map you then have to copy the address out of. It works for every venue, not just the ones with a map pin on record
+
+---
+
 The Reviews page now loads a page at a time instead of all 1,086 reviews at once - it went from 460KB to 67KB, which is the difference between a slow page and an instant one on mobile data
 The search box on the Reviews page now searches the words inside a review, not just show and society names - searching "standing ovation" finds the reviews that say it. The notice telling you to go and use a different search box for that is gone
 

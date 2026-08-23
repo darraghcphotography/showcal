@@ -409,18 +409,34 @@ def test_detail_shows_only_the_fields_that_are_filled_in(client, db):
     assert "Proscenium" in body
 
 
-def test_a_map_link_needs_both_coordinates(client, db):
+def test_the_exact_pin_needs_both_coordinates(client, db):
+    """Directions work for any venue by name, so they're always offered. The
+    exact-spot link is what coordinates buy, and half a coordinate pair is no
+    use - it would drop a pin somewhere in the Atlantic."""
     seed_society(db)
     add_show(db, "Gorey Little Theatre")
     venues_build.ensure_current(db)
     db.execute("UPDATE venues SET latitude = 52.6759")
     db.commit()
 
-    assert "openstreetmap" not in client.get("/venues/gorey-little-theatre").get_data(as_text=True)
+    body = client.get("/venues/gorey-little-theatre").get_data(as_text=True)
+    assert "Get directions" in body
+    assert "See the exact spot" not in body
 
     db.execute("UPDATE venues SET longitude = -6.2937")
     db.commit()
-    assert "openstreetmap" in client.get("/venues/gorey-little-theatre").get_data(as_text=True)
+    assert "See the exact spot" in client.get("/venues/gorey-little-theatre").get_data(as_text=True)
+
+
+def test_directions_are_offered_even_without_coordinates(client, db):
+    """Most venues still have no pin - they should not be the ones you can't
+    get directions to."""
+    seed_society(db)
+    add_show(db, "Some Parish Hall")
+    venues_build.ensure_current(db)
+
+    body = client.get("/venues/some-parish-hall").get_data(as_text=True)
+    assert "google.com/maps/dir" in body
 
 
 def test_the_index_can_be_filtered_by_region(client, db):

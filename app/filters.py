@@ -105,10 +105,25 @@ def maps_search_url(venue):
     return f"https://www.google.com/maps/search/?api=1&query={quote_plus(venue)}"
 
 
+def maps_directions_url(destination):
+    """Directions to a place, same keyless Maps URL family as maps_search_url.
+
+    On a phone this hands off to the native Maps app and offers turn-by-turn
+    navigation, which a static map link can't - the one thing somebody looking
+    up a venue on the way to a show actually wants.
+
+    Takes text ("Moat Theatre, Naas") rather than coordinates on purpose: it
+    then works for every venue, not just the ones with a pin on record, and
+    Google shows a named destination instead of a bare lat/long.
+    """
+    return f"https://www.google.com/maps/dir/?api=1&destination={quote_plus(destination)}"
+
+
 def register(app):
     app.jinja_env.filters["irish_date"] = irish_date
     app.jinja_env.filters["irish_datetime"] = irish_datetime
     app.jinja_env.filters["date_range"] = date_range
     app.jinja_env.filters["month_label"] = month_label
     app.jinja_env.filters["maps_search_url"] = maps_search_url
+    app.jinja_env.filters["maps_directions_url"] = maps_directions_url
     app.jinja_env.filters["destub"] = destub

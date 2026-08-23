@@ -22,10 +22,25 @@
     </dl>
   {% endif %}
 
-  {% if venue['latitude'] is not none and venue['longitude'] is not none %}
-    <p class="meta"><a href="https://www.openstreetmap.org/?mlat={{ venue['latitude'] }}&amp;mlon={{ venue['longitude'] }}#map=16/{{ venue['latitude'] }}/{{ venue['longitude'] }}"
-                       rel="noopener nofollow">See {{ venue['name'] }} on a map</a></p>
-  {% endif %}
+  {# Directions are offered for every venue, pin or no pin - Google resolves the
+     name and town perfectly well, and on a phone this hands off to the native
+     Maps app for turn-by-turn, which a static map link never could. The exact
+     pin is the extra that coordinates buy, so it only appears when we have
+     them, and it's the one link that stays coordinate-based: it's the only way
+     to be unambiguous about a name like "Town Hall Theatre".
+
+     Google rather than OpenStreetMap because the rest of the site already links
+     to Google Maps (see maps_search_url), and one map provider is less
+     confusing than two. Both are keyless, so neither costs anything. #}
+  {% set map_target = [venue['name'], place]|select|join(', ') %}
+  <p class="meta">
+    <a href="{{ map_target|maps_directions_url }}" rel="noopener nofollow">Get directions</a>
+    {% if venue['latitude'] is not none and venue['longitude'] is not none %}
+      &middot;
+      <a href="{{ (venue['latitude']|string ~ ',' ~ venue['longitude']|string)|maps_search_url }}"
+         rel="noopener nofollow">See the exact spot on a map</a>
+    {% endif %}
+  </p>
 
   <div class="stat-tiles">
     <div class="stat-tile"><span class="stat-value">{{ production_count }}</span><span class="stat-label">AIMS productions on record</span></div>
