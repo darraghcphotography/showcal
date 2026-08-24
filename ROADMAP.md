@@ -58,9 +58,20 @@ done, pushed, not yet deployed:**
   detail pages). The society head-to-head compare mockup was **dropped entirely, not built** -
   Darragh's call, a direct comparison tool doesn't fit an amateur organisation's spirit.
 
-Both phases are cosmetic/presentation-only (no schema change), 612 tests green throughout, safe to
-redeploy whenever convenient. Phases 2-3 (a motion/icon pass, typography/colour experiment) still
-to come.
+**Phases 2-3 done too, same session.** Mocked up first as one Artifact ("Programme Notes",
+`https://claude.ai/code/artifact/70387538-825c-4985-8fca-39d937151fcc`), approved, then built:
+- Phase 2 (`e530513`): a global `prefers-reduced-motion` kill-switch, then 150ms transitions on
+  every card/pill hover that used to snap instantly. A new `_icons.html` macro set (map-pin/
+  ticket/calendar/external-link) wired into six real spots (venue directions/website, homepage
+  ticket badge, the two season-calendar links, a society's social links on the show page).
+- Phase 3 (`643fdb6`): Fraunces self-hosted under `app/static/fonts/` (the CSP blocks Google
+  Fonts, so this is a real font file, not a CDN link), applied to the homepage's `<h1>` only -
+  not sitewide. Also fixed the dark-mode accent token (`#d45e81`, same ~340° hue as light mode,
+  just less pale than the old `#f0a8c0` - the hue was never actually the problem, a 34%→80%
+  lightness swing was).
+
+All four phases are cosmetic/presentation-only (no schema change), 612 tests green throughout,
+pushed to `main`, safe to redeploy whenever convenient - nothing is deployed yet.
 
 # Roadmap
 
