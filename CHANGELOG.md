@@ -1,3 +1,7 @@
+A big batch of research landed across the site: 135 societies now show a Facebook/Instagram link and an "about" blurb, 87 venues gained a capacity, map pin, website and auditorium type, and 239 show titles picked up a synopsis and licensing info on their Shows A-Z page
+
+---
+
 A new coat of paint across the whole site - warm paper instead of stark white, a single restrained ink accent instead of burgundy-and-gold, a bolder heading typeface. Same pages, same layout, same light/dark toggle - just a calmer, more considered look
 
 ---

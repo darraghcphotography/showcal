@@ -15,26 +15,34 @@ again.
 
 ## START HERE - where things stand (2026-08-24, night)
 
-**Antigravity is running an enrichment pass in the background - check `D:\showdb\enrichment\`
-first thing next session, before anything else.** Darragh is running it as a second worker
-(separate tool, his own usage plan) on three worklists Claude generated from real production gaps:
-`societies_worklist.json` (189 societies with zero social/about info), `venues_worklist.json` (87
-venues missing capacity/coordinates/website, plus a new `venue_type` categorization request on
-every row), `shows_worklist.json` (239 titles with no synopsis/rights data). `ENRICHMENT_BRIEF.md`
-in the same folder is the spec Antigravity is working from - full field list, and two hard rules:
-every claimed fact needs a `source_url`, and a blank beats a guess. **Nothing here writes to the
-database automatically.** When the filled-in files come back:
-1. Spot-check a sample of `source_url`s per file before trusting the batch - confirm the cited page
-   actually says what the entry claims, the same discipline used for the 2026-08-24 venue-mapping
-   backlog item.
-2. Import through the app's own admin tools/scripts (`enrich_venues.py`'s pattern - a `DATA` table
-   or equivalent, never raw SQL against production), same trust model as every other
-   moderator-entered field in this repo.
-3. Four rows were deliberately excluded from `venues_worklist.json` before handoff - `Cork`,
-   `Wexford`, `Cork run`, `40th Anniversary (March run)` (known data-entry artifacts, not real
-   venues) - don't expect Antigravity to have researched those; they still need a source-level fix.
-4. Once imported, this closes (or substantially advances) two roadmap items below: "Venue
-   categorization" and "Society social-links harvest."
+**Antigravity enrichment pass: spot-checked and imported to production, done.** Three worklists
+Claude generated from real production gaps (`societies_worklist.json` - 189 societies with zero
+social/about info, `venues_worklist.json` - 87 venues missing capacity/coordinates/website,
+`shows_worklist.json` - 239 titles with no synopsis/rights data) came back from Antigravity filled
+in. Spot-checking `societies_worklist.json` caught a real bug before import: the `about`/social
+fields were shifted +2 rows out of alignment (database ids aren't contiguous - a dict keyed by
+sequential position instead of the real id desynced wherever the sequence skips). Flagged, fixed,
+re-verified clean.
+
+Three new fill-blanks-only scripts import each file (`import_society_enrichment.py`,
+`import_venue_enrichment.py`, `import_show_enrichment.py`, committed `2cc26bc`) - same trust model
+as `enrich_venues.py`: only ever write a currently-NULL field, so a real value a society/moderator
+already entered always wins, safe to re-run. Societies matched by stable id, venues matched by name
+through `venue_aliases` (ids aren't stable across a rebuild), shows matched by exact title. Ran
+`--dry-run` locally and against production before committing for real; verified the committed values
+directly in the database afterward. **135 of 189 societies, 87 of 87 venues, and 239 of 239 shows
+now have real data** (the other 54 societies already had something in every field offered).
+
+`venue_type` (82 values Antigravity provided per-venue) was deliberately **not** written anywhere -
+there's no column for it yet. Adding one is the real feature decision the "Venue categorization"
+item below still describes (schema + `/venues` filter + badges), not a data-import task. The
+researched values are sitting in `D:\showdb\enrichment\venues_worklist.json` (gitignored, still on
+disk) whenever that item gets picked up - re-running `import_venue_enrichment.py` after the column
+exists will report them again instead of needing to regenerate them.
+
+Four rows were deliberately excluded from `venues_worklist.json` before handoff - `Cork`,
+`Wexford`, `Cork run`, `40th Anniversary (March run)` (known data-entry artifacts, not real
+venues) - still need a source-level fix, unrelated to this import.
 
 **After the enrichment import, the next three items are scoped and ready for a Sonnet session**
 (not Fable - implementation work, no open design questions left): the poster thumbnail pipeline,
@@ -104,26 +112,25 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
   the Review column where Awards uses an em-dash. (5) society detail hero leaves its right column
   empty at desktop - region/tier line sits above the logo and badges below it, unlike the show
   page's proper two-column hero.
-- **Venue categorization (`venue_type` column + directory filter)** - the worthwhile core of
-  Antigravity's `VENUE_CATEGORIZATION_PROPOSAL.md` (2026-08-24, gitignored input doc, reviewed
-  same day). Adopt: the 5-category schema idea, the `/venues` filter, badges on venue pages - fits
-  the existing tier-badge/filter-chip patterns, and the doc correctly identified that `venues` is
-  a derived table needing `CURATED_COLUMNS` treatment. **Do not adopt as-is**: its CSS is
-  hardcoded Tailwind-dark-palette hexes that violate the token system and the Rehearsal Room
-  theme (restyle in our tokens); its master directory is unvetted - it lists Mandela Hall as an
-  operational 1,000-seat venue when this repo already flagged that building as demolished
-  2018-2020, and its claimed per-category counts don't match its own table lengths. Categories
-  themselves are mostly derivable from venue names (School/GAA/Hall/Arts Centre); capacities in
-  the doc need the same OSM-verification treatment as the Google Maps proposal's section 3.
-- **Society social-links harvest** - the one genuinely new, verified gap from Antigravity's
-  `DATA_ENRICHMENT_AND_SCRAPING_OPPORTUNITIES.md` (gitignored, reviewed 2026-08-24): its
-  fill-rate audit table checks out against production (8 of 8 numbers verified exact - 0/194
-  societies have a website_url, 2/194 a facebook_url, 1/194 an about). The infrastructure exists
-  (columns, page sections, a triaged user suggestion asking for it) - the data was just never
-  gathered. A Haiku-assisted lookup pass over the ~140 active societies fits the model-routing
-  rule. **Not adopted from the same doc**: automated scraping of MTI/Concord (repo already
-  concluded that's manual entry; ToS-hostile), Facebook/Instagram content scraping (ToS), its
-  "~280 of 300 titles" Wikidata yield claim (contradicts this repo's measured 48/306 without
+- **Venue categorization (`venue_type` column + directory filter)** - data gathering done
+  (2026-08-24: 82 venues now have a researched `venue_type` sitting in
+  `enrichment/venues_worklist.json`, not yet written anywhere - see START HERE). What's left is the
+  actual feature: the worthwhile core of Antigravity's `VENUE_CATEGORIZATION_PROPOSAL.md`
+  (2026-08-24, gitignored input doc, reviewed same day) is the 5-category schema idea, the
+  `/venues` filter, badges on venue pages - fits the existing tier-badge/filter-chip patterns, and
+  the doc correctly identified that `venues` is a derived table needing `CURATED_COLUMNS`
+  treatment. **Do not adopt as-is**: its CSS is hardcoded Tailwind-dark-palette hexes that violate
+  the token system and the Rehearsal Room theme (restyle in our tokens); its master directory is
+  unvetted - it lists Mandela Hall as an operational 1,000-seat venue when this repo already
+  flagged that building as demolished 2018-2020, and its claimed per-category counts don't match
+  its own table lengths.
+- **Society social-links harvest** - done 2026-08-24: 135 of 189 societies with a real gap now have
+  `about`/`facebook_url`/`instagram_url` (and some `website_url`), imported and verified live (see
+  START HERE). Originated from Antigravity's `DATA_ENRICHMENT_AND_SCRAPING_OPPORTUNITIES.md`
+  (gitignored, reviewed 2026-08-24), whose fill-rate audit checked out against production before
+  the work started. **Not adopted from the same doc**: automated scraping of MTI/Concord (repo
+  already concluded that's manual entry; ToS-hostile), Facebook/Instagram content scraping (ToS),
+  its "~280 of 300 titles" Wikidata yield claim (contradicts this repo's measured 48/306 without
   fuzzy matching), and piping scraped society archives "directly into shows" (conflicts with the
   moderation-first/skeleton-row pattern; the archive-backfill item above already tracks this
   properly). Its Ticketsolve ticket_url idea is plausible for a later pass.
