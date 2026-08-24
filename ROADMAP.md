@@ -77,6 +77,29 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
   the Review column where Awards uses an em-dash. (5) society detail hero leaves its right column
   empty at desktop - region/tier line sits above the logo and badges below it, unlike the show
   page's proper two-column hero.
+- **Venue categorization (`venue_type` column + directory filter)** - the worthwhile core of
+  Antigravity's `VENUE_CATEGORIZATION_PROPOSAL.md` (2026-08-24, gitignored input doc, reviewed
+  same day). Adopt: the 5-category schema idea, the `/venues` filter, badges on venue pages - fits
+  the existing tier-badge/filter-chip patterns, and the doc correctly identified that `venues` is
+  a derived table needing `CURATED_COLUMNS` treatment. **Do not adopt as-is**: its CSS is
+  hardcoded Tailwind-dark-palette hexes that violate the token system and the Rehearsal Room
+  theme (restyle in our tokens); its master directory is unvetted - it lists Mandela Hall as an
+  operational 1,000-seat venue when this repo already flagged that building as demolished
+  2018-2020, and its claimed per-category counts don't match its own table lengths. Categories
+  themselves are mostly derivable from venue names (School/GAA/Hall/Arts Centre); capacities in
+  the doc need the same OSM-verification treatment as the Google Maps proposal's section 3.
+- **Society social-links harvest** - the one genuinely new, verified gap from Antigravity's
+  `DATA_ENRICHMENT_AND_SCRAPING_OPPORTUNITIES.md` (gitignored, reviewed 2026-08-24): its
+  fill-rate audit table checks out against production (8 of 8 numbers verified exact - 0/194
+  societies have a website_url, 2/194 a facebook_url, 1/194 an about). The infrastructure exists
+  (columns, page sections, a triaged user suggestion asking for it) - the data was just never
+  gathered. A Haiku-assisted lookup pass over the ~140 active societies fits the model-routing
+  rule. **Not adopted from the same doc**: automated scraping of MTI/Concord (repo already
+  concluded that's manual entry; ToS-hostile), Facebook/Instagram content scraping (ToS), its
+  "~280 of 300 titles" Wikidata yield claim (contradicts this repo's measured 48/306 without
+  fuzzy matching), and piping scraped society archives "directly into shows" (conflicts with the
+  moderation-first/skeleton-row pattern; the archive-backfill item above already tracks this
+  properly). Its Ticketsolve ticket_url idea is plausible for a later pass.
 - **`/admin/data-quality`'s Orphaned title data section can't actually fix what it describes** -
   found 2026-08-24 while resolving a real instance of it. The "Edit" link for `show_info` only
   edits synopsis/rights fields (keyed by the existing title, no rename field); "Clear" for
