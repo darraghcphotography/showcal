@@ -1,0 +1,14 @@
+{# A floating "back to top" button for the site's longest list pages
+   (Second Act backlog item 6: societies, titles, reviews - no way back to
+   the filter form right now except a long thumb-scroll).
+
+   Works with zero JavaScript: it's a real <a href="#page-top"> anchor,
+   always in the page, so with JS off/blocked it's simply always visible
+   and jumps instantly - same "core behaviour doesn't depend on the
+   script" principle the header's <details> nav menus already use. The
+   scroll listener in base.html only adds two niceties on top: fading it
+   in once you've scrolled a bit (so it's not clutter near the top), and
+   scroll-behavior: smooth (in style.css) turns the jump into an animation. #}
+{% macro back_to_top() %}
+  <a href="#page-top" class="back-to-top" aria-label="Back to top">&uarr;</a>
+{% endmacro %}

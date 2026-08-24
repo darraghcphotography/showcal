@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "_back_to_top.html" as btt %}
 {% block title %}Shows A-Z - DC Show Tracker{% endblock %}
 {% block og_description %}Every distinct title performed on the AIMS circuit, browsable A-Z.{% endblock %}
 {% block content %}
-  <h1>Shows A-Z</h1>
+  <h1 id="page-top">Shows A-Z</h1>
   <p class="meta" style="max-width: 62ch;">
     {{ total }} distinct title{{ '' if total == 1 else 's' }} performed on the AIMS circuit, from
     single-year rarities to shows staged over 100 times. The "More info" link on each one goes to a
@@ -112,4 +113,5 @@
   {% else %}
     <p>No shows match{% if q %} "{{ q }}"{% endif %}.</p>
   {% endif %}
+  {{ btt.back_to_top() }}
 {% endblock %}

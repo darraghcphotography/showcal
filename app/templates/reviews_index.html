@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_pagination.html" as pg %}
+{% import "_back_to_top.html" as btt %}
 {% block title %}Reviews - DC Show Tracker{% endblock %}
 {% block og_description %}Every adjudicator review archived on the site, browsable by show, society, season and tier.{% endblock %}
 
@@ -31,7 +32,7 @@
 {% endmacro %}
 
 {% block content %}
-  <h1>Reviews</h1>
+  <h1 id="page-top">Reviews</h1>
   <p class="meta" style="max-width: 62ch;">
     Every adjudicator review archived on the site - the full ShowTimes text where AIMS republished it here,
     and a link out to aims.ie for anything reviewed since. Browse by show, society, season, tier or
@@ -111,4 +112,5 @@
   {% else %}
     <p>No reviews match those filters.</p>
   {% endif %}
+  {{ btt.back_to_top() }}
 {% endblock %}

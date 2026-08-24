@@ -1,3 +1,7 @@
+Societies, Shows A-Z and Reviews - the three longest list pages - now have a "back to top" button that appears once you've scrolled, so there's a way back to the filters besides a long thumb-scroll
+
+---
+
 Awards: a Winner row now stands out with a gold tint and a trophy mark instead of reading the Result column cell by cell, and an applied filter shows as a removable chip you can drop on its own instead of reopening the dropdown or clearing everything
 
 ---

@@ -149,8 +149,23 @@ always.
    tint and the chip row are new, same columns/pagination/mobile-card-fallback as before. 629
    tests green (5 new). Verified with local Playwright screenshots - the chip href test confirms
    removing "Year: 2025" keeps `result=Winner` in the URL, not just that the chip renders.
-6. **Mobile "back to top"** on the three longest list pages (societies, titles, reviews) - no way
-   back to the filter form on a long list page right now except a long thumb-scroll.
+6. ~~Mobile "back to top"~~ on the three longest list pages. **Done 2026-08-24**, pushed, not yet
+   deployed. Mockup (`https://claude.ai/code/artifact/a19df731-94f8-4917-a74b-13fcbffa1458`,
+   live-interactive rather than a static image) approved as-is. A new shared
+   `_back_to_top.html` partial, imported into `societies_list.html`, `titles_list.html` and
+   `reviews_index.html` - each `<h1>` now carries `id="page-top"`, the button is a real
+   `<a href="#page-top">`, so it's always visible and works with zero JavaScript (same "core
+   behaviour doesn't depend on the script" principle the header's nav menus already use).
+   `base.html`'s one new scroll listener only adds fading it out near the top and (via
+   `scroll-behavior: smooth` in `style.css`, itself reduced-motion-guarded) a smooth jump - both
+   niceties layered on an already-functional link, not requirements for it to work. Clears the
+   mobile bottom tab bar via a `max-width: 768px` offset. 633 tests green (4 new, including a
+   check that the other ~30 pages don't get the button). Verified with local Playwright
+   screenshots at two scroll positions - a real debugging detour along the way found several
+   stale `flask run` dev-server processes left running from earlier in the session on different
+   ports, serving Jinja-cached templates from before this change (`auto_reload` is off without
+   `--debug`) - worth remembering next time a local check shows unexpectedly stale output: check
+   for leftover background processes before suspecting the code.
 7. **Measure the Shows A-Z page weight before deciding whether to change it.** Full-page render
    comes out to ~30,000px / 2.3MB against the real 300-title archive - get real numbers
    (time-to-interactive on a throttled connection, not a guess) before choosing between leaving it,

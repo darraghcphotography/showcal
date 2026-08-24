@@ -292,6 +292,20 @@
 
   <script nonce="{{ csp_nonce }}">
     (function() {
+      // See _back_to_top.html - the button itself always works (a plain
+      // #page-top anchor); this only hides it near the top of the page so
+      // it's not clutter before there's anywhere useful to jump back to.
+      var btn = document.querySelector('.back-to-top');
+      if (!btn) return;
+      function update() {
+        btn.classList.toggle('is-near-top', window.scrollY < 400);
+      }
+      update();
+      window.addEventListener('scroll', update, { passive: true });
+    })();
+  </script>
+  <script nonce="{{ csp_nonce }}">
+    (function() {
       var btn = document.getElementById('theme-toggle');
       if (!btn) return;
       function effectiveTheme() {

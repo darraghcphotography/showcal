@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% import "_pagination.html" as pg %}
+{% import "_back_to_top.html" as btt %}
 {% block title %}Societies - DC Show Tracker{% endblock %}
 {% block content %}
-  <h1>Societies</h1>
+  <h1 id="page-top">Societies</h1>
 
   <form method="get" class="filter-form">
     <label>
@@ -76,4 +77,5 @@
   {% endif %}
 
   {{ pg.pager('public.societies_list', page, total_pages) }}
+  {{ btt.back_to_top() }}
 {% endblock %}

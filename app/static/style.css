@@ -92,7 +92,12 @@
    that later adds a transition or animation is covered by this automatically. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
 }
+
+/* Smooth-scrolls a same-page #anchor jump (currently just .back-to-top) -
+   reduced-motion above overrides this back to an instant jump. */
+html { scroll-behavior: smooth; }
 
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1419,6 +1424,43 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   body.has-bottom-nav .container {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
+}
+
+/* /societies, /titles, /reviews (Second Act backlog item 6) - the three
+   longest list pages get a floating "back to top" button; see
+   _back_to_top.html for why it's a plain anchor rather than JS-only.
+   Hidden near the top of the page, fades in once you've scrolled - the
+   is-visible toggle is the one bit that needs the scroll listener in
+   base.html, everything else about the link itself works without it. */
+.back-to-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 90;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  text-decoration: none;
+  font-size: 1.2rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+/* Default (and no-JS) state is visible - the button works with the script
+   blocked or still loading. base.html's scroll listener adds this class
+   only once JS has confirmed you're near the top, so the fade-out is a
+   nicety layered on top of an always-functional link, not a requirement
+   for it to appear at all. */
+.back-to-top.is-near-top { opacity: 0; transform: translateY(8px); pointer-events: none; }
+.back-to-top:hover { box-shadow: var(--shadow-lg), 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+@media (max-width: 768px) {
+  /* Clears the mobile bottom tab bar (4.5rem + its own safe-area padding). */
+  body.has-bottom-nav .back-to-top { bottom: calc(4.5rem + 1rem + env(safe-area-inset-bottom)); }
 }
 
 /* More page: .queue-item is normally a <div>/<article>, here the whole card
