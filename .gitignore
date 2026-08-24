@@ -53,6 +53,12 @@ venues_report.md
 # instead of piling up beside the code. Nothing in here is source.
 /inbox/
 
+# Outbound enrichment worklists handed to Antigravity for research (society
+# social links, venue categorization, show synopses/rights) - 2026-08-24.
+# Raw research output, reviewed and imported through the app's own admin
+# tools before anything here reaches the real database; not source.
+/enrichment/
+
 # Antigravity proposal docs, 2026-08-24 - same convention as the named docs
 # above: inputs, reviewed via ROADMAP.md, not repo content.
 VENUE_CATEGORIZATION_PROPOSAL.md
