@@ -53,8 +53,20 @@ Darragh's calls on the open questions this item used to carry: one combined form
 the public (not gated behind a society login), and an upload can sit unmatched - society/show/date
 are free text, no requirement to pick an existing production. A moderator reads each one and enters
 what it confirms into the real tables by hand, same trust model as every other member-contributed
-thing here; nothing auto-applies. 649 tests green (10 new). Not yet verified live - needs the same
-Portainer redeploy as everything else pushed this session.
+thing here; nothing auto-applies. 649 tests green (10 new). Deployed and verified live same day,
+found two real bugs from Darragh's own phone test and fixed both (`db84764`): the link was
+footer-only (invisible on mobile - added to the More page, renamed "Submit society history" per his
+suggestion), and upload failed outright on a real iPhone photo (HEIC format wasn't accepted or even
+renderable - both save functions now convert it via pillow-heif).
+
+**First real submission through it closed the long-parked "OCR test on a programme photo" item** -
+Darragh photographed Naas Musical Society's own 30th-anniversary programme (a 6x5 grid of poster
+tiles, 1996-2026) and submitted it same day. No OCR tool needed - read directly, cross-checked all
+30 productions against the database (24 already on record), and `naas_history_backfill.py`
+(`a1da900`) added the 6 genuine gaps (Anything Goes 2002, The Music Man 2004, Brigadoon 2006,
+Carousel 2008, Fiddler on the Roof 2010, Sister Act 2020) straight to production - verified live on
+the society's own page. Real validation that this whole pipeline (submission -> read -> cross-check
+-> backfill) works end to end on a real example, not just in theory.
 
 **After the enrichment import, the next three items are scoped and ready for a Sonnet session**
 (not Fable - implementation work, no open design questions left): the poster thumbnail pipeline,
@@ -252,7 +264,6 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
 - **Posters** - 41 exist against ~200 current-era shows. Gates the whole visual redesign (type/palette
   pass, then per-page components) - a poster-led design would be mostly empty frames without more of
   these.
-- **OCR test on a programme photo** - blocked on Darragh sending one.
 
 ## Technical debt
 
