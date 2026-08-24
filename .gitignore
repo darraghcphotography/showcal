@@ -47,3 +47,13 @@ venues_report.md
 # Local mockup drafts (HTML/CSS explored outside the app). Mockups normally
 # get published as Claude Artifacts for review, not committed here.
 /mockups/
+
+# Working-file inbox: spent inputs (logo images already uploaded through the
+# app, processed feedback docs, source PDFs) parked out of the repo root
+# instead of piling up beside the code. Nothing in here is source.
+/inbox/
+
+# Antigravity proposal docs, 2026-08-24 - same convention as the named docs
+# above: inputs, reviewed via ROADMAP.md, not repo content.
+VENUE_CATEGORIZATION_PROPOSAL.md
+DATA_ENRICHMENT_AND_SCRAPING_OPPORTUNITIES.md
