@@ -337,7 +337,7 @@ def test_skeleton_show_does_not_double_count_against_the_awards_archive(client, 
 
     resp = client.get("/titles?q=Double+Count+Test")
     body = resp.get_data(as_text=True)
-    row_match = re.search(r"<tr>\s*<td>.*?Double Count Test.*?</td>\s*<td>(\d+)</td>", body, re.S)
+    row_match = re.search(r">Double Count Test</a>.*?(\d+) staging", body, re.S)
     assert row_match is not None
     assert row_match.group(1) == "1"
 

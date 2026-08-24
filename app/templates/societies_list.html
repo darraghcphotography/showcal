@@ -45,25 +45,35 @@
   <p>{{ total }} societ{{ 'y' if total == 1 else 'ies' }} found{% if total_pages > 1 %} - showing page
      {{ page }} of {{ total_pages }}{% endif %}.</p>
 
-  <table class="data-table">
-    <thead>
-      <tr><th>Society</th><th>Region</th><th>Section</th></tr>
-    </thead>
-    <tbody>
+  {% if societies %}
+    <div class="society-grid">
       {% for s in societies %}
         {% if s['section'] == 'Non-AIMS' and (loop.first or societies[loop.index0 - 1]['section'] != 'Non-AIMS') %}
-          <tr class="row-note"><td colspan="3">Non-AIMS societies - not members, kept here for completeness where they've featured in the awards or review archive.</td></tr>
+          <p class="grid-note">Non-AIMS societies below - not members, kept here for completeness where they've featured in the awards or review archive.</p>
         {% endif %}
-        <tr>
-          <td><a href="{{ url_for('public.society_detail', society_id=s['id']) }}">{{ s['name'] }}</a></td>
-          <td>{{ s['region'] }}</td>
-          <td>{{ s['section'] }}</td>
-        </tr>
-      {% else %}
-        <tr><td colspan="3">No societies match those filters.</td></tr>
+        <a class="society-card" href="{{ url_for('public.society_detail', society_id=s['id']) }}">
+          <div class="society-card-top">
+            {% if s['logo_filename'] %}
+              <img class="society-logo" src="{{ url_for('public.uploaded_file', filename=s['logo_filename']) }}" alt="">
+            {% else %}
+              <div class="society-logo society-logo-placeholder" aria-hidden="true">{{ s['name'][0]|upper }}</div>
+            {% endif %}
+            <h3>{{ s['name'] }}</h3>
+          </div>
+          <div class="stat-line">
+            {{ s['region'] or 'No region' }}
+            {% if s['section'] in ('Gilbert', 'Sullivan') %}
+              &middot; <span class="tier-dot tier-dot-{{ s['section']|lower }}"></span> {{ s['section'] }}
+            {% else %}
+              &middot; {{ s['section'] }}
+            {% endif %}
+          </div>
+        </a>
       {% endfor %}
-    </tbody>
-  </table>
+    </div>
+  {% else %}
+    <p>No societies match those filters.</p>
+  {% endif %}
 
   {{ pg.pager('public.societies_list', page, total_pages) }}
 {% endblock %}

@@ -1,5 +1,6 @@
 import itertools
 import math
+import re
 import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
@@ -13,6 +14,7 @@ from ..calendar_links import google_calendar_url
 from ..circuit_intelligence import (
     award_tally, best_overall_show_wins, production_ids_for_title,
     regional_distribution, revival_candidate, signature_categories,
+    _is_revival_candidate,
 )
 from ..constants import REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
 from ..db import get_db
@@ -1238,34 +1240,38 @@ def show_detail(show_id):
     )
 
 
-TITLES_SORT_OPTIONS = {
-    "title": "show COLLATE NOCASE",
-    "most": "n DESC, show COLLATE NOCASE",
-    "least": "n ASC, show COLLATE NOCASE",
-}
-# "stale" isn't one of these - it needs titles with no year on record to sort
-# last rather than first, which SQLite's NULL ordering won't do, so it's
-# applied in Python after the fact (see below).
-TITLES_SORT_CHOICES = set(TITLES_SORT_OPTIONS) | {"stale"}
+# Shows A-Z grouping/sort key: a leading "The"/"A"/"An" is stripped so "The
+# Mikado" files under M next to "My Fair Lady", not off on its own under T -
+# the standard library/index convention (Netflix, IMDB, WorldCat all do this)
+# and what the approved Shows A-Z mockup itself assumes. Display always uses
+# the real title in full; only grouping/ordering uses the stripped form.
+_LEADING_ARTICLE_RE = re.compile(r"^(the|a|an)\s+", re.IGNORECASE)
+
+
+def _az_sort_key(title):
+    return _LEADING_ARTICLE_RE.sub("", title).strip().lower()
+
+
+def _az_letter(title):
+    key = _az_sort_key(title)
+    return key[0].upper() if key and key[0].isalpha() else "#"
 
 
 @bp.route("/titles")
 def titles_list():
     db = get_db()
     q = request.args.get("q", "").strip()
-    sort = request.args.get("sort", "title")
-    if sort not in TITLES_SORT_CHOICES:
-        sort = "title"
+    flt = request.args.get("filter", "")
 
     # One row per real staging, straight off the productions table. The old
     # union counted historical_results rows, which are one per award
     # *category*, so a production nominated five times counted five times -
     # the whole A-Z overstated the circuit by ~1.67x. MIN(title) rather than a
     # bare column because GROUP BY title_key would otherwise pick an arbitrary
-    # row's spelling; aliasing it `show` keeps TITLES_SORT_OPTIONS and the
-    # template working unchanged.
+    # row's spelling.
     query = f"""
-        SELECT title_key, MIN(title) AS show, COUNT(*) AS n, MAX(season_start_year) AS last_year
+        SELECT title_key, MIN(title) AS show, COUNT(*) AS n,
+               MIN(season_start_year) AS first_year, MAX(season_start_year) AS last_year
         FROM productions
         WHERE {ON_RECORD_PRODUCTION}
     """
@@ -1274,40 +1280,121 @@ def titles_list():
         query += " AND title LIKE ? ESCAPE '\\'"
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         params.append(f"%{escaped}%")
-    query += f" GROUP BY title_key ORDER BY {TITLES_SORT_OPTIONS[sort if sort != 'stale' else 'title']}"
-
+    query += " GROUP BY title_key"
     rows = db.execute(query, params).fetchall()
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
     has_info = {r[0] for r in db.execute("SELECT show FROM show_info").fetchall()}
 
-    shows = [
-        {
-            "title": r["show"],
-            "count": r["n"],
-            "last_year": r["last_year"],
-            "url": manual_links.get(r["show"]),
-            "is_manual": r["show"] in manual_links,
-            "has_info": r["show"] in has_info,
-            "search_url": f"https://en.wikipedia.org/w/index.php?search={quote_plus(r['show'] + ' musical')}",
-        }
-        for r in rows
+    # Nominations/wins per title, bulk rather than per-title (circuit_intelligence.
+    # award_tally does this one title at a time for title_detail, which is fine for
+    # one page but would be N+1 queries across ~300 titles here).
+    tally = {}
+    for r in db.execute("""
+        SELECT productions.title_key AS title_key, COUNT(*) AS nominations,
+               SUM(CASE WHEN historical_results.result = 'Winner' THEN 1 ELSE 0 END) AS wins
+        FROM historical_results
+        JOIN productions ON productions.id = historical_results.production_id
+        WHERE historical_results.category_name IS NOT NULL
+        GROUP BY productions.title_key
+    """):
+        tally[r["title_key"]] = {"nominations": r["nominations"], "wins": r["wins"] or 0}
+
+    # Announced/on-stage productions per title, bulk - same is_upcoming() definition
+    # used everywhere else a show's "has this happened yet" question comes up, rather
+    # than a fresh opening_date >= today re-derived here with slightly different phrasing.
+    upcoming = defaultdict(list)
+    for r in db.execute("""
+        SELECT productions.title_key AS title_key, shows.season AS season,
+               shows.opening_date AS opening_date, societies.name AS society_name
+        FROM shows
+        JOIN societies ON societies.id = shows.society_id
+        JOIN productions ON productions.id = shows.production_id
+        WHERE shows.moderation_status = 'approved' AND shows.show IS NOT NULL AND NOT societies.hidden
+    """):
+        if _is_upcoming(r):
+            upcoming[r["title_key"]].append({
+                "season": r["season"],
+                "society_name": r["society_name"],
+                "start_year": season_start_year(r["season"]) if r["season"] else None,
+            })
+
+    today_year = date.today().year
+    all_shows = []
+    for r in rows:
+        key, title, n = r["title_key"], r["show"], r["n"]
+        first_year, last_year = r["first_year"], r["last_year"]
+        gap = (today_year - last_year) if last_year is not None else None
+        is_revival = gap is not None and _is_revival_candidate(n, gap)
+        up = sorted(upcoming.get(key, []), key=lambda u: (u["start_year"] is None, u["start_year"]))
+        on_stage_text = None
+        if len(up) == 1:
+            on_stage_text = f"On stage {up[0]['season']} · {up[0]['society_name']}"
+        elif len(up) >= 2:
+            seasons = [u["season"] for u in up if u["season"]]
+            span = seasons[0] if (seasons and seasons[0] == seasons[-1]) else (
+                f"{seasons[0]}–{seasons[-1]}" if seasons else ""
+            )
+            on_stage_text = f"\U0001f525 {len(up)} productions in {span}" if span else f"\U0001f525 {len(up)} productions"
+
+        all_shows.append({
+            "title": title,
+            "count": n,
+            "first_year": first_year,
+            "last_year": last_year,
+            "nominations": tally.get(key, {}).get("nominations", 0),
+            "url": manual_links.get(title),
+            "is_manual": title in manual_links,
+            "has_info": title in has_info,
+            "search_url": f"https://en.wikipedia.org/w/index.php?search={quote_plus(title + ' musical')}",
+            "is_gem": n == 1,
+            "is_revival": is_revival,
+            "revival_last_year": last_year if is_revival else None,
+            "on_stage_text": on_stage_text,
+            "sort_key": _az_sort_key(title),
+            "letter": _az_letter(title),
+        })
+
+    total = len(all_shows)
+    filter_counts = {
+        "onstage": sum(1 for s in all_shows if s["on_stage_text"]),
+        "revival": sum(1 for s in all_shows if s["is_revival"]),
+        "gems": sum(1 for s in all_shows if s["is_gem"]),
+    }
+
+    if flt == "onstage":
+        visible = [s for s in all_shows if s["on_stage_text"]]
+    elif flt == "revival":
+        visible = [s for s in all_shows if s["is_revival"]]
+    elif flt == "gems":
+        visible = [s for s in all_shows if s["is_gem"]]
+    else:
+        flt = ""
+        visible = all_shows
+    visible.sort(key=lambda s: (s["sort_key"], s["title"].lower()))
+
+    letter_groups = [
+        {"letter": letter, "shows": list(group)}
+        for letter, group in itertools.groupby(visible, key=lambda s: s["letter"])
     ]
+    available_letters = {g["letter"] for g in letter_groups}
 
-    if sort == "stale":
-        shows.sort(key=lambda s: (s["last_year"] is None, s["last_year"] or 0))
-
-    # Paged in Python rather than SQL: the "stale" sort above reorders the
-    # whole list after the query, so it has to be built in full either way.
-    # Same page-size/param convention as /awards.
-    total = len(shows)
-    per_page, page, total_pages = paginate_args(total)
-    shows = shows[(page - 1) * per_page:page * per_page]
+    # "Most-staged, archive-wide" strip - always the real top 8 by total production
+    # count, independent of the current search/filter (a fixed reference point, not
+    # a view of whatever's currently filtered).
+    staples = [
+        {"title": r["show"], "count": r["n"]}
+        for r in db.execute(f"""
+            SELECT title_key, MIN(title) AS show, COUNT(*) AS n
+            FROM productions WHERE {ON_RECORD_PRODUCTION}
+            GROUP BY title_key ORDER BY n DESC LIMIT 8
+        """)
+    ] if not q else []
 
     return render_template(
-        "titles_list.html", shows=shows, q=q, sort=sort,
-        page=page, total_pages=total_pages, total=total,
-        per_page=per_page, page_sizes=LIST_PAGE_SIZES,
+        "titles_list.html", letter_groups=letter_groups, staples=staples,
+        available_letters=available_letters, q=q, flt=flt,
+        total=total, filter_counts=filter_counts,
     )
 
 

@@ -121,17 +121,17 @@ def test_review_column_shown_for_not_adjudicated(client, db):
 
 # --- pagination -------------------------------------------------------------
 
-def test_titles_paginates_and_reports_the_full_total(client, db):
+def test_titles_shows_every_title_on_one_page(client, db):
+    """/titles dropped per-page pagination for the Shows A-Z redesign - the
+    whole alphabet renders on one page behind a letter scrubber instead, so
+    there's no "page 2" for a title to be missing from any more."""
     seed_society(db)
     for i in range(60):
         seed_show(db, show=f"Show {i:03d}", opening_date="2025-09-01")
-    html = client.get("/titles?per_page=50").get_data(as_text=True)
-    assert "60 distinct titles" in html      # the total, not the page length
-    assert "showing page\n     1 of 2" in html or "1 of 2" in html
+    html = client.get("/titles").get_data(as_text=True)
+    assert "60 distinct titles" in html
     assert "Show 000" in html
-    assert "Show 059" not in html            # page 2
-    page2 = client.get("/titles?per_page=50&page=2").get_data(as_text=True)
-    assert "Show 059" in page2
+    assert "Show 059" in html
 
 
 def test_societies_paginates(client, db):

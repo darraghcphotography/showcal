@@ -1,57 +1,95 @@
 {% extends "base.html" %}
-{% import "_pagination.html" as pg %}
-{% block title %}All shows - DC Show Tracker{% endblock %}
+{% block title %}Shows A-Z - DC Show Tracker{% endblock %}
+{% block og_description %}Every distinct title performed on the AIMS circuit, browsable A-Z.{% endblock %}
 {% block content %}
-  <h1>All shows</h1>
-  <p>{{ total }} distinct titles performed on the AIMS circuit{% if total_pages > 1 %} - showing page
-     {{ page }} of {{ total_pages }}{% endif %}. The "More info" link goes to a
-     Wikipedia search{% if current_user %} unless a moderator has confirmed the exact page{% endif %} -
-     it's a best guess, not a verified match.</p>
+  <h1>Shows A-Z</h1>
+  <p class="meta" style="max-width: 62ch;">
+    {{ total }} distinct title{{ '' if total == 1 else 's' }} performed on the AIMS circuit, from
+    single-year rarities to shows staged over 100 times. The "More info" link on each one goes to a
+    Wikipedia search{% if current_user %} unless a moderator has confirmed the exact page{% endif %} -
+    it's a best guess, not a verified match.
+  </p>
+
+  {% if staples %}
+    <p class="hint az-staples-label">Most-staged, archive-wide</p>
+    <div class="staples-strip">
+      {% for t in staples %}
+        <a class="staple-chip" href="{{ url_for('public.title_detail', title=t['title']) }}">
+          <strong>{{ t['title'] }}</strong><span class="n">{{ t['count'] }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   <form method="get" class="filter-form">
-    <label>
-      Search
-      <input type="text" name="q" value="{{ q }}" placeholder="e.g. Sister Act">
+    <label>Search titles
+      <input type="text" name="q" value="{{ q }}" placeholder="e.g. Sister Act, Chess...">
     </label>
-    <label>
-      Sort by
-      <select name="sort">
-        <option value="title" {% if sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
-        <option value="most" {% if sort == 'most' %}selected{% endif %}>Most performed first</option>
-        <option value="least" {% if sort == 'least' %}selected{% endif %}>Least performed first</option>
-        <option value="stale" {% if sort == 'stale' %}selected{% endif %}>Longest since performed</option>
-      </select>
-    </label>
-    {{ pg.per_page_field(per_page, page_sizes) }}
-    <button type="submit">Apply</button>
-    {% if q %}<a href="{{ url_for('public.titles_list', sort=sort) }}">Clear search</a>{% endif %}
+    {% if flt %}<input type="hidden" name="filter" value="{{ flt }}">{% endif %}
+    <button type="submit">Search</button>
+    {% if q %}<a href="{{ url_for('public.titles_list', filter=flt) }}">Clear search</a>{% endif %}
   </form>
 
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Show</th><th>Times performed</th><th>Last performed</th><th>More info</th>
-        {% if current_user %}<th></th>{% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in shows %}
-        <tr>
-          <td>
-            <a href="{{ url_for('public.title_detail', title=s['title']) }}">{{ s['title'] }}</a>
-            {% if s['has_info'] %}<span class="tag" title="Synopsis/rights info available">info</span>{% endif %}
-          </td>
-          <td>{{ s['count'] }}</td>
-          <td>{{ s['last_year'] or '—' }}</td>
-          <td>
-            <a href="{{ s['url'] or s['search_url'] }}" rel="noopener" target="_blank">
-              {{ 'Wikipedia' if s['is_manual'] else 'Search' }}
-            </a>
-          </td>
-          {% if current_user %}
-            <td>
-              <details class="link-edit">
-                <summary>Edit link</summary>
+  <div class="quick-filters">
+    <a class="qf-btn {{ 'active' if not flt }}" href="{{ url_for('public.titles_list', q=q) }}">All <span class="n">{{ total }}</span></a>
+    <a class="qf-btn {{ 'active' if flt == 'onstage' }}" href="{{ url_for('public.titles_list', q=q, filter='onstage') }}">🟢 On stage this season <span class="n">{{ filter_counts['onstage'] }}</span></a>
+    <a class="qf-btn {{ 'active' if flt == 'revival' }}" href="{{ url_for('public.titles_list', q=q, filter='revival') }}">💡 Revival candidates <span class="n">{{ filter_counts['revival'] }}</span></a>
+    <a class="qf-btn {{ 'active' if flt == 'gems' }}" href="{{ url_for('public.titles_list', q=q, filter='gems') }}">💎 Rare gems <span class="n">{{ filter_counts['gems'] }}</span></a>
+  </div>
+
+  {% if letter_groups %}
+    <nav class="az-scrubber" aria-label="Jump to letter">
+      {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+        {% if letter in available_letters %}
+          <a class="az-btn" href="#letter-{{ letter }}">{{ letter }}</a>
+        {% else %}
+          <span class="az-btn disabled">{{ letter }}</span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+
+    {% for group in letter_groups %}
+      <div class="letter-group" id="letter-{{ group['letter'] }}">
+        <div class="letter-head">
+          <h2>{{ group['letter'] }}</h2>
+          <span class="n">{{ group['shows']|length }} title{{ '' if group['shows']|length == 1 else 's' }}</span>
+        </div>
+        {% for s in group['shows'] %}
+          <div class="title-card {{ 'hot' if s['on_stage_text'] }}">
+            <div>
+              <div class="name-row">
+                <h3><a href="{{ url_for('public.title_detail', title=s['title']) }}">{{ s['title'] }}</a></h3>
+                {% if s['has_info'] %}<span class="tag" title="Synopsis/rights info available">info</span>{% endif %}
+                {% if s['on_stage_text'] %}
+                  <span class="tag badge-live">{{ s['on_stage_text'] }}</span>
+                {% elif s['is_revival'] %}
+                  <span class="tag badge-revival">💡 Revival candidate — quiet since {{ s['revival_last_year'] }}</span>
+                {% elif s['is_gem'] %}
+                  <span class="tag badge-gem">💎 Rare gem — staged once</span>
+                {% endif %}
+              </div>
+              <div class="sub">
+                {% if s['is_gem'] %}
+                  1 staging on record{% if s['last_year'] %}, {{ s['last_year'] }}{% endif %}
+                {% elif s['first_year'] and s['last_year'] and s['first_year'] != s['last_year'] %}
+                  {{ s['count'] }} stagings, {{ s['first_year'] }}–{{ s['last_year'] }}
+                {% elif s['last_year'] %}
+                  {{ s['count'] }} stagings, {{ s['last_year'] }}
+                {% else %}
+                  {{ s['count'] }} stagings
+                {% endif %}
+                &middot; <a class="more-info-link" href="{{ s['url'] or s['search_url'] }}" rel="noopener" target="_blank">{{ 'Wikipedia' if s['is_manual'] else 'More info' }}</a>
+              </div>
+            </div>
+            <div class="title-card-cta">
+              {% if s['nominations'] %}<span class="noms">🏆 {{ s['nominations'] }} nomination{{ '' if s['nominations'] == 1 else 's' }}</span>{% endif %}
+              <a class="stagings-cta" href="{{ url_for('public.title_detail', title=s['title']) }}">
+                {{ 'See it' if s['count'] == 1 else 'See all ' ~ s['count'] }} &rarr;
+              </a>
+            </div>
+            {% if current_user %}
+              <details class="link-edit title-mod-edit">
+                <summary>Edit Wikipedia link</summary>
                 <form method="post" action="{{ url_for('admin.set_show_link') }}" class="inline-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="show" value="{{ s['title'] }}">
@@ -66,14 +104,12 @@
                   </form>
                 {% endif %}
               </details>
-            </td>
-          {% endif %}
-        </tr>
-      {% else %}
-        <tr><td colspan="{{ 5 if current_user else 4 }}">No shows match{% if q %} "{{ q }}"{% endif %}.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  {{ pg.pager('public.titles_list', page, total_pages) }}
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No shows match{% if q %} "{{ q }}"{% endif %}.</p>
+  {% endif %}
 {% endblock %}

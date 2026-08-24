@@ -47,10 +47,13 @@ def _squish(body):
 
 
 def _az_count(body, title):
-    """The "Times performed" cell for `title` on /titles."""
+    """The stagings count shown for `title` on the /titles Shows A-Z page
+    (the card's sub-line reads "N stagings, ..." or, for a single-production
+    title, "1 staging on record" - either way the digit right after the
+    title's link is the real production count)."""
     import re
     match = re.search(
-        r">%s</a>.*?</td>\s*<td>(\d+)</td>" % re.escape(title), body, re.S
+        r">%s</a>.*?(\d+) staging" % re.escape(title), body, re.S
     )
     return int(match.group(1)) if match else None
 
@@ -127,7 +130,7 @@ def test_last_performed_is_the_season_start_year(client, db):
     db.commit()
 
     body = client.get("/titles").get_data(as_text=True)
-    assert "<td>2018</td>" in body
+    assert "1 staging on record, 2018" in body
 
 
 def test_titles_search_box_still_filters(client, db):
@@ -141,9 +144,12 @@ def test_titles_search_box_still_filters(client, db):
     assert "Oliver!" not in body
 
 
-def test_most_performed_sort_orders_by_real_production_count(client, db):
-    """The sort used to rank by nomination volume, so a much-nominated title
-    outranked a more-staged one."""
+def test_most_performed_counts_real_productions_not_nominations(client, db):
+    """The count used to rank by nomination volume, so a much-nominated title
+    outranked a more-staged one. Checked directly against the count shown
+    per title now rather than via a sort order - the Shows A-Z redesign
+    replaced the old sort dropdown with quick filters and letter browsing,
+    so there's no single "most performed first" order left to assert on."""
     seed_society(db, id=1, name="First Society")
     seed_society(db, id=2, name="Second Society")
     for category in ("Best Overall Show", "Best Director", "Best Sets"):
@@ -152,8 +158,9 @@ def test_most_performed_sort_orders_by_real_production_count(client, db):
     _add_award(db, 2019, "Oliver!", society_id=2, society_name="Second Society")
     db.commit()
 
-    body = client.get("/titles?sort=most").get_data(as_text=True)
-    assert body.index(">Oliver!<") < body.index(">Chess<")
+    body = client.get("/titles").get_data(as_text=True)
+    assert _az_count(body, "Chess") == 1
+    assert _az_count(body, "Oliver!") == 2
 
 
 # ------------------------------------------------------------ the moderation gate
