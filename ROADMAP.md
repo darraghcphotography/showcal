@@ -58,6 +58,21 @@ done, pushed, not yet deployed:**
   detail pages). The society head-to-head compare mockup was **dropped entirely, not built** -
   Darragh's call, a direct comparison tool doesn't fit an amateur organisation's spirit.
 
+**A fresh live-site walkthrough followed the same session, after Darragh redeployed the four phases
+above.** Two Artifacts: **Second Act**
+(`https://claude.ai/code/artifact/9cb573f0-ed17-4301-a4b7-36912c14893b`) - real findings from
+screenshots of the live site (desktop/mobile, both themes) and a template-level read of the admin
+dashboard (couldn't screenshot admin - logging into production programmatically was correctly
+declined by this session's safety tooling), plus a week-ahead punch list; and **Two More Looks**
+(`https://claude.ai/code/artifact/d818bc2c-d7f7-4834-a75c-de0e2b6c97c4`) - two alternate visual
+directions (a dark poster-marquee look, a warm-paper editorial look) mocked up against the real
+homepage listings. Genuinely new findings from that walkthrough, not yet actioned: bare county names
+("Belfast", "Antrim", etc.) rendering as if they were real venues on `/venues`; show-detail pages
+leaving the right two-thirds of the screen empty on desktop; the un-paginated Shows A-Z page is
+~30,000px tall and 2.3MB, worth measuring before deciding whether to leave it; `/reviews` is now the
+last page still reading as a bare link list; no way back to the top of a long mobile list page. Full
+detail and the day-by-day plan are in the Second Act artifact, not duplicated here.
+
 **Phases 2-3 done too, same session.** Mocked up first as one Artifact ("Programme Notes",
 `https://claude.ai/code/artifact/70387538-825c-4985-8fca-39d937151fcc`), approved, then built:
 - Phase 2 (`e530513`): a global `prefers-reduced-motion` kill-switch, then 150ms transitions on
