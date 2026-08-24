@@ -20,6 +20,33 @@ def test_venues_page_groups_by_region_and_excludes_inactive(client, db):
     assert "Retired Society" not in body
 
 
+def test_venues_page_splits_out_societies_with_no_venue_evidence(client, db):
+    """A society with none of its own shows recording a venue can't have a
+    default inferred from data on hand - it should land in the separate
+    "no evidence" section, not the main region-grouped table, and shouldn't
+    count toward the progress bar's denominator."""
+    admin_id = seed_user(db, username="mod", role="moderator")
+    seed_society(db, id=1, name="Has Venue History", region="Eastern")
+    seed_society(db, id=2, name="No Venue History", region="Eastern")
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, show, venue) "
+        "VALUES (1, '25/26', 'Eastern', 'Oklahoma!', 'Town Hall Theatre')"
+    )
+    db.commit()
+    login_as(client, admin_id)
+
+    body = client.get("/admin/venues").get_data(as_text=True)
+    has_evidence_pos = body.index("Has Venue History")
+    no_evidence_pos = body.index("No Venue History")
+    details_pos = body.index("No venue history on record yet")
+    # The evidenced society renders before the "no evidence" <details>
+    # section; the unevidenced one renders inside it.
+    assert has_evidence_pos < details_pos < no_evidence_pos
+    # Progress bar denominator (total) excludes the no-evidence society -
+    # only "Has Venue History" counts, so it reads "0 / 1" not "0 / 2".
+    assert "0</span> / 1" in body
+
+
 def test_venues_page_requires_login(client):
     resp = client.get("/admin/venues")
     assert resp.status_code == 302

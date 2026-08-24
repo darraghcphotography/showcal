@@ -628,6 +628,25 @@ details table { margin-top: 0.5rem; }
 }
 .whatson-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* Filled in when a show has no poster upload yet - same box, same footprint,
+   so the row doesn't lose visual weight next to one that has a real poster
+   (Second Act backlog item 2). Show-title initials, not a single letter, so
+   it reads as a deliberate monogram rather than a blank swatch. */
+.whatson-poster.is-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: transparent;
+}
+.whatson-poster.is-placeholder span {
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
 .whatson-body { min-width: 0; }
 .whatson-title { font-weight: 600; font-size: 1.05rem; }
 .whatson-body .meta { margin: 0.15rem 0 0; }

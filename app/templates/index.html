@@ -2,14 +2,19 @@
 {% import "_icons.html" as icons %}
 {% block title %}DC Show Tracker{% endblock %}
 
-{# One production, as it appears in the month lists. The poster is optional and
-   the row has to look deliberate without one - only a handful of upcoming shows
-   have had one uploaded, so a missing poster is the normal case, not a gap. #}
+{# One production, as it appears in the month lists. Most upcoming shows have
+   no poster uploaded - rather than skip the image and let the row go thin,
+   a placeholder box keeps the same footprint as a real poster, filled with
+   the show's initials instead. #}
 {% macro upcoming_entry(show, distance_km=none) %}
   <li class="whatson-item">
     {% if show['poster_filename'] %}
       <a class="whatson-poster" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
         <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="" loading="lazy">
+      </a>
+    {% else %}
+      <a class="whatson-poster is-placeholder" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
+        <span>{{ show['show']|show_initials }}</span>
       </a>
     {% endif %}
     <div class="whatson-body">

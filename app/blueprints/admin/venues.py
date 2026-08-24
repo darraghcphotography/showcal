@@ -18,17 +18,37 @@ AUDITORIUM_TYPES = ["Proscenium", "Thrust", "End-on", "Flat floor", "In the roun
 @login_required
 def venues():
     db = get_db()
+    # has_evidence: has this society got at least one of its own shows with
+    # venue text recorded? shows.venue is the only place venue text lives
+    # (historical_results/historical_reviews carry no venue column at all -
+    # see backfill_default_venues_round2.py). A society with none isn't
+    # something a moderator can fill in from the data on hand, so it's kept
+    # out of the main list/progress bar entirely rather than sitting there
+    # unresolved next to ones that are actually actionable.
     societies = db.execute(
-        "SELECT id, name, region, default_venue FROM societies "
-        "WHERE section != 'Inactive' ORDER BY region, name"
+        """
+        SELECT s.id, s.name, s.region, s.default_venue,
+               EXISTS (
+                 SELECT 1 FROM shows sh
+                 WHERE sh.society_id = s.id AND sh.venue IS NOT NULL AND sh.venue != ''
+               ) AS has_evidence
+        FROM societies s
+        WHERE s.section != 'Inactive'
+        ORDER BY s.region, s.name
+        """
     ).fetchall()
     by_region = {r: [] for r in REGIONS}
+    no_evidence = []
     for s in societies:
-        by_region.setdefault(s["region"], []).append(s)
+        if not s["default_venue"] and not s["has_evidence"]:
+            no_evidence.append(s)
+        else:
+            by_region.setdefault(s["region"], []).append(s)
     filled_count = sum(1 for s in societies if s["default_venue"])
+    actionable_total = len(societies) - len(no_evidence)
     return render_template(
         "admin/venues.html", by_region=by_region, regions=REGIONS,
-        total=len(societies), filled_count=filled_count,
+        no_evidence=no_evidence, total=actionable_total, filled_count=filled_count,
     )
 
 

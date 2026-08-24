@@ -116,8 +116,22 @@ def dashboard():
         "WHERE confirmed_region IS NULL AND no_region = 0"
     ).fetchone()[0]
 
+    # Only counts societies a moderator could actually resolve from data on
+    # hand (at least one of their own shows has venue text recorded) - see
+    # admin.venues, which applies the same has_evidence split. A society with
+    # zero venue history isn't a "possible error" waiting to be fixed, it's a
+    # permanent gap until it gets more show data, so it's excluded here too
+    # rather than inflating this count (and skewing "quick win" below) with
+    # entries nothing can clear.
     missing_venue_count = db.execute(
-        "SELECT COUNT(*) FROM societies WHERE section != 'Inactive' AND default_venue IS NULL"
+        """
+        SELECT COUNT(*) FROM societies s
+        WHERE s.section != 'Inactive' AND s.default_venue IS NULL
+          AND EXISTS (
+            SELECT 1 FROM shows sh
+            WHERE sh.society_id = s.id AND sh.venue IS NOT NULL AND sh.venue != ''
+          )
+        """
     ).fetchone()[0]
 
     duplicate_historical_count = len(_duplicate_historical_rows(db))

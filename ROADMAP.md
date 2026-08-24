@@ -96,10 +96,16 @@ always.
    - **Two entries aren't real places and were never in scope here**: `"Cork run"` (venue id 120)
      and `"40th Anniversary (March run)"` (id 130) are malformed data-entry artifacts - trace back
      to whatever import/entry produced them and fix at the source, not via a venue correction.
-2. **Homepage poster placeholder** - a fixed-size tinted box with the show's initial, so a listing
-   without a poster keeps the same visual weight as one with a real poster instead of the page
-   visibly thinning out partway down (seen clearly comparing August/September to October on the
-   live homepage).
+2. ~~Homepage poster placeholder.~~ **Done 2026-08-24**, pushed, not yet deployed. Mockup
+   (`https://claude.ai/code/artifact/f6f1281e-228b-4566-8485-a724671bba19`) approved by Darragh,
+   who asked for the show's initials rather than a single letter - built that way. The
+   `upcoming_entry` macro in `index.html` (shared by the month list, "Near me", and "Closest
+   first") now renders a `.whatson-poster.is-placeholder` box - same 54px/2:3 footprint, border
+   and shadow as a real poster - with a new `show_initials` filter (`app/filters.py`, skips small
+   connecting words: "The Hired Man" -> "HM", single-word titles fall back to their own first two
+   letters: "Oklahoma!" -> "OK"). 618 tests green (6 new for the filter, 1 updated for the new
+   render). Verified locally against real upcoming-show data via a Playwright screenshot, not just
+   the test suite - October's run of bare listings now reads the same as August's.
 3. **Two-column show-detail layout at desktop widths** - poster/logo one side, facts the other.
    Currently a 240px poster sits alone in a narrow column with the right two-thirds of a 1280px
    screen empty. Mock up first; check society-detail too, same shape of problem.
@@ -118,7 +124,13 @@ always.
    lazy-loading by letter, or paginating by letter-group.
 8. **Admin dashboard: extend the on/off urgency dot** from 2 of ~12 dashboard rows to all of them;
    split out the rows that explicitly "won't reach 0" (e.g. unmatched award societies) into their
-   own unstyled group rather than living inside "Possible errors."
+   own unstyled group rather than living inside "Possible errors." **Partially done 2026-08-24,
+   ahead of the general pass:** "Active societies missing a default venue" was flagged mid-session
+   as mixing in societies with zero venue history on record - nothing a moderator can act on, same
+   shape of problem as this item. Both the dashboard count and `/admin/venues` now only count/list
+   societies with at least one show of their own recording a venue; the rest sit in a separate,
+   collapsed "no venue history on record yet" section, still fillable but out of the main list and
+   out of the count. The other ~10 rows and the urgency-dot extension are still open.
 
 Feature ideas from the same walkthrough, not part of the ordered list above (lower confidence
 they're worth building, or need Darragh's product judgement first): a "who else has staged this

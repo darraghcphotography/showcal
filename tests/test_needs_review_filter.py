@@ -28,8 +28,12 @@ def test_not_adjudicated_shows_excluded_from_dashboard_count(client, db):
     db.commit()
 
     body = client.get("/admin/").get_data(as_text=True)
-    # Only "Genuinely Missing" should count - extract the row's count cell.
-    assert ">1<" in body.split("Shows missing a review link")[1].split("</tr>")[0]
+    # Only "Genuinely Missing" should count - extract the row's count cell from
+    # the "Missing data" table specifically (the same label text can also
+    # appear in the "Quick win" banner above it, if this happens to be the
+    # smallest nonzero count on the page).
+    missing_data_table = body.split("Missing data</h2>")[1]
+    assert ">1<" in missing_data_table.split("Shows missing a review link")[1].split("</tr>")[0]
 
 
 def test_not_adjudicated_shows_excluded_from_needs_review_filter(client, db):

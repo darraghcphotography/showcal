@@ -6,6 +6,9 @@
      submission, and backfills the Maps link on past shows that don't have one recorded. Type a
      venue and click/tab away to save it - no submit button, each field saves itself. Leave any
      you don't know blank; a partial pass still helps.</p>
+  <p class="meta">Only societies with at least one of their own shows recording a venue are
+     listed below - the rest have nothing on record to go on yet
+     ({{ no_evidence|length }} of them, listed separately at the bottom).</p>
 
   <input type="hidden" id="csrf-token" value="{{ csrf_token() }}">
 
@@ -31,6 +34,7 @@
               <td>{{ s['name'] }}</td>
               <td>
                 <input class="venue-input" type="text" data-society-id="{{ s['id'] }}"
+                       data-track-progress="1"
                        value="{{ s['default_venue'] or '' }}" placeholder="e.g. Town Hall Theatre">
               </td>
             </tr>
@@ -39,6 +43,30 @@
       </table>
     {% endif %}
   {% endfor %}
+
+  {% if no_evidence %}
+    <details class="calendar-subscribe">
+      <summary>No venue history on record yet ({{ no_evidence|length }}) - not counted above</summary>
+      <p class="meta">None of these societies have a single show with a venue recorded, so there's
+         nothing here to infer a default from. Still fillable if you happen to know one -
+         it just won't move the progress bar, since most of this list will stay empty until
+         they get more show data.</p>
+      <table class="data-table venue-table">
+        <thead><tr><th>Society</th><th>Venue</th></tr></thead>
+        <tbody>
+          {% for s in no_evidence %}
+            <tr class="{{ 'filled' if s['default_venue'] else '' }}">
+              <td>{{ s['name'] }} <span class="meta">({{ s['region'] }})</span></td>
+              <td>
+                <input class="venue-input" type="text" data-society-id="{{ s['id'] }}"
+                       value="{{ s['default_venue'] or '' }}" placeholder="e.g. Town Hall Theatre">
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -74,8 +102,11 @@
               if (!data.ok) throw new Error(data.error || "Save failed");
               input.dataset.saved = value;
               const isFilled = value.length > 0;
-              if (isFilled && !wasFilled) { row.classList.add("filled"); updateProgress(1); }
-              if (!isFilled && wasFilled) { row.classList.remove("filled"); updateProgress(-1); }
+              row.classList.toggle("filled", isFilled);
+              if (input.dataset.trackProgress) {
+                if (isFilled && !wasFilled) updateProgress(1);
+                if (!isFilled && wasFilled) updateProgress(-1);
+              }
               input.classList.remove("venue-input-error");
             })
             .catch(() => {

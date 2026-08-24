@@ -1,9 +1,12 @@
+import re
 from datetime import datetime
 from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
 UTC = ZoneInfo("UTC")
 DUBLIN = ZoneInfo("Europe/Dublin")
+
+SHOW_INITIALS_STOPWORDS = {"the", "a", "an", "of", "and", "or", "in", "at", "on", "for", "to"}
 
 
 def irish_date(value):
@@ -98,6 +101,24 @@ def month_label(value):
         return value
 
 
+def show_initials(value):
+    """1-2 letter monogram for the homepage's poster-placeholder box (a show
+    with no poster upload yet - see .whatson-poster.is-placeholder). Initials
+    of the title's significant words, skipping small connecting words
+    ("The Hired Man" -> "HM", not "TH") so the letters carry the title's real
+    identity. A single-word title falls back to its own first two letters
+    ("Oklahoma!" -> "OK") so the box always reads as two characters rather
+    than one lonely one."""
+    words = [w for w in re.findall(r"[A-Za-z0-9]+", value or "") if w.lower() not in SHOW_INITIALS_STOPWORDS]
+    if not words:
+        words = re.findall(r"[A-Za-z0-9]+", value or "")
+    if not words:
+        return "?"
+    if len(words) == 1:
+        return words[0][:2].upper()
+    return (words[0][0] + words[1][0]).upper()
+
+
 def maps_search_url(venue):
     """Google's free "Maps URL" text-search scheme - no API key or billing
     account needed (unlike the Maps Embed/Static/Geocoding APIs), and works
@@ -124,6 +145,7 @@ def register(app):
     app.jinja_env.filters["irish_datetime"] = irish_datetime
     app.jinja_env.filters["date_range"] = date_range
     app.jinja_env.filters["month_label"] = month_label
+    app.jinja_env.filters["show_initials"] = show_initials
     app.jinja_env.filters["maps_search_url"] = maps_search_url
     app.jinja_env.filters["maps_directions_url"] = maps_directions_url
     app.jinja_env.filters["destub"] = destub

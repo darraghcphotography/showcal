@@ -1,3 +1,7 @@
+A show with no poster uploaded yet now shows a tinted initials box on the homepage instead of no image at all - so a month with fewer posters on file doesn't visibly thin out next to one with more
+
+---
+
 49 venues that showed just a bare county or town name - "Belfast", "Antrim", "Tipperary" - now show the real theatre, hall or arts centre a society actually performs at, researched and cross-checked against the archive
 
 ---

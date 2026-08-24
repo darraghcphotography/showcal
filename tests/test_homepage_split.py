@@ -81,9 +81,11 @@ def test_homepage_lists_upcoming_shows_with_their_poster_inline(client, db):
     assert 'class="whatson-poster"' in body
 
 
-def test_a_show_without_a_poster_still_renders_a_full_row(client, db):
+def test_a_show_without_a_poster_gets_an_initials_placeholder(client, db):
     """Only a handful of upcoming shows have a poster, so no poster is the
-    normal case - the row must not look like it's missing something."""
+    normal case - the row must not look like it's missing something. A
+    tinted initials box (Second Act backlog item 2) fills the same
+    poster-sized slot instead of leaving it out."""
     society_id = seed_society(db, id=1, name="Test Soc", region="Eastern")
     db.execute(
         "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date) "
@@ -95,7 +97,8 @@ def test_a_show_without_a_poster_still_renders_a_full_row(client, db):
     body = client.get("/").get_data(as_text=True)
     assert "Chess" in body
     assert "Test Soc" in body
-    assert 'class="whatson-poster"' not in body
+    assert 'class="whatson-poster is-placeholder"' in body
+    assert "<span>CH</span>" in body
 
 
 def test_listings_are_grouped_by_month(client, db):
