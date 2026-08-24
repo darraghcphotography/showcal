@@ -204,22 +204,22 @@ rather than creating a new one, so these links stay correct.
 Two of the six items measured 2026-08-23 are done (the admin.py package split, test-suite
 parallelization) - see the archive. Still open:
 
-1. **`ensure_current()` is a call site you have to remember.** Many call sites now across `admin/`,
-   `info.py` and `public.py`. Any route reading `production_id` or `venue_id` must call it first;
-   forgetting doesn't error, it silently under-reports. Worth replacing with a `before_request` on the
-   blueprint, or a decorator, so it can't be forgotten.
+1. ~~`ensure_current()` is a call site you have to remember.~~ **Done 2026-08-24** - a
+   `before_request` in `app/__init__.py` does it for every request; the sixteen per-route calls are
+   gone. Affordable because the no-op case is one fingerprint query, measured at 0.26ms (the stage
+   3-4 plan's "~50ms" was pessimistic). Guarded by `tests/test_derived_tables_stay_current.py`.
 2. **`productions_build.py` and `venues_build.py` duplicate the same freshness machinery** -
    `FINGERPRINT_SQL`, `fingerprint()`, `mark_stale()`, `ensure_current()` and a one-row `*_build_state`
-   table, written twice. Worth folding into one small shared helper; pairs naturally with item 1.
+   table, written twice. Still open, but much less pressing now item 1 has one caller for both: the
+   duplication is now two near-identical private helpers rather than a rule spread over six modules.
 3. **FTS indexes rebuild on every startup.** Known, deliberate, documented in `db.py` - the obvious
    `COUNT(*)` guard doesn't work on an external-content FTS5 table. Left alone on purpose.
 4. **`page_views` is keyed on path only**, so no query-string question can ever be answered from it.
    Fine as a popularity counter, useless as analytics. Only worth changing if a real question needs it.
-5. **Five untracked `.md` files sit in the repo root** (`DESIGN_AUDIT_AND_PROPOSALS.md`,
-   `FEATURE_IDEAS.md`, `SHOW_ENRICHMENT_PROPOSAL.md`, `venues_report.md`,
-   `DATA_ACCURACY_AND_CORRECTIONS_REPORT.md`). Source documents, not repo content, deliberately left
-   untracked - but they show up in every `git status`. Either commit them to a `docs/proposals/` folder
-   or add them to `.gitignore`.
+5. ~~Untracked `.md` files sit in the repo root.~~ **Done 2026-08-24** - gitignored by name, following
+   the convention already set for `AUDIT_AND_RECOMMENDATIONS.md`. They're inputs; what came out of
+   each is in `ROADMAP.md` and the commits that acted on it. Listed individually rather than by
+   wildcard so a genuinely new repo document isn't silently ignored. `git status` is clean.
 
 ## Parked, each wants its own dedicated session or decision, none started
 
@@ -244,7 +244,19 @@ parallelization) - see the archive. Still open:
   done).
 - A formal `LAUNCH.md` spec, written up retroactively (the site launched organically instead).
 - Real image-content validation on poster uploads (would need Pillow, not built).
-- Periodically verify the nightly backup actually restores cleanly.
+- ~~Periodically verify the nightly backup actually restores cleanly.~~ **Done 2026-08-24.**
+  `verify_backup.py` restores a backup to a scratch copy and runs `integrity_check`,
+  `foreign_key_check`, a table-count comparison against live, and a full rebuild of the derived
+  tables (whose own verification raises rather than committing on disagreement). It runs
+  automatically after every backup - see `docker-compose.yml` - so a bad backup shows up in
+  `docker logs aims-backup` rather than at the moment you need it. Verified against the real
+  production backup: integrity ok, zero FK violations, both rebuilds passed, 2,818 productions.
+  Retention was also fixed: "keep the newest 14 files" covered only 3.5 days in practice, because
+  a backup is taken on every container start and this session's own redeploys spent ten slots.
+- **Backups sit on the same volume as the database** (`/data/backups` beside `/data/aims.db`). They
+  survive a bad script or a bad deploy, which is what they're mostly for - but not the disk. An
+  off-box copy (QNAP HBS3 pointed at `/share/CACHEDEV1_DATA/Data/config/aims-web`) is the missing
+  half, and it's a NAS configuration job rather than a code one.
 
 ## Working agreements (from the 2026-08-03 process review)
 
