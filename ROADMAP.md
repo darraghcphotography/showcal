@@ -171,9 +171,10 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
   tables (to a real match already in `shows`/`historical_results`, not a free-text field - keeps
   the site's no-fuzzy-matching rule intact) so the next orphaned title doesn't need direct database
   access to fix.
-- **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are
-  near me). Smallest self-contained new page on the list. Confirmed not built yet (`/faq` still
-  404s on the live site).
+- **FAQ page - built and pushed** (`0bf084b`), awaiting redeploy. Admin-managed rather than
+  hardcoded, per Darragh's ask: `/admin/faq` add/edit/reorder/publish, a question stays a draft
+  until explicitly published, public `/faq` only shows published ones in order. No actual questions
+  written yet - that's a content task for whoever's ready to populate it, not a coding one.
 - **Merge duplicate/near-duplicate titles - narrowed down, script built, awaiting redeploy.** The
   original list of 7 (from the cutover) turned out stale on inspection (`7d57e6c`) - `Annie - The
   Musical`/`Elf - The Musical`/`Shrek` no longer have a variant to merge, `Big Fish`/`Big The
@@ -189,19 +190,28 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
   Source A (Wikidata) has a real bug in its proposed query (`wdt:P58` should be `wdt:P87`) and only
   reliably resolves 48 of 306 titles without fuzzy title-matching, which this repo avoids - fix the
   query before building. Source B (licensing-house specs) isn't a pipeline, it's manual data entry.
-- **Venue research, the long tail** - the 30 venues with 5+ productions were done already
-  (`enrich_venues.py`); ~110 venues with 1-4 productions still have nothing. Same script, extend
-  its `DATA` table. Lower value per venue, so only worth doing if the first pass proves itself.
-  Six of the 30 also still have no map pin: **St. Mary's College Arklow, The Abbey Clane and
-  Loughrea Temperance Hall**. All three are confirmed real - OpenStreetMap simply has no entry for
-  them findable by name, and Eircodes don't help (Nominatim doesn't index them and fuzzy-matches to
-  unrelated addresses). They need a different source, not another search.
-- **`GOOGLE_MAPS_INTEGRATION_PROPOSAL.md`, section 3** - a 109-venue list (54 of them venues this
-  repo has no record of at all), but the coordinates need OSM verification first (76 of 83 new ones
-  are suspiciously rounded, and spot-checks found real drift - see the archive for the specific
-  measurements). Mechanical work, not manual: geocode each one, accept where it agrees with OSM
-  within a couple hundred metres, flag where it doesn't. Sections 1-2 of the same proposal are
-  already adopted.
+- **Venue research, the long tail - mostly closed by this session's enrichment import.** Re-checked
+  2026-08-24 evening: only 13 real venues (excluding known artifacts and slash-joined dual-venue
+  names) still have a gap, and every one of them now has capacity/coordinates/auditorium type
+  already - the only thing missing is a website. Two of the 13 turned out to be duplicate venue rows
+  split by apostrophe placement (`Scout's Hall, Nenagh` / `Scouts' Hall, Nenagh`, and `Tullyvin
+  Community Centre` / `Tullyvin Community Centre, Cavan`) - a quick manual merge via
+  `/admin/venue-directory`, not research. Six of the 30 highest-traffic venues still have no map
+  pin: **St. Mary's College Arklow, The Abbey Clane and Loughrea Temperance Hall**. All three are
+  confirmed real - OpenStreetMap simply has no entry for them findable by name, and Eircodes don't
+  help (Nominatim doesn't index them and fuzzy-matches to unrelated addresses). They need a
+  different source, not another search.
+- **Venue coordinate verification - homework handed to Antigravity 2026-08-24 evening**
+  (`enrichment/venues_coordinate_verification.json` + brief, gitignored). Diffed
+  `GOOGLE_MAPS_INTEGRATION_PROPOSAL.md`'s 109-venue list against production directly rather than
+  trusting the proposal doc's own claims: 85 matched an existing venue by name (not 87 as
+  previously estimated - some were already covered by this session's own import), only 24 had no
+  match at all, and a rough distance check found just 2 with notable drift - much better than the
+  proposal's own "76 of 83 suspiciously rounded" claim, though that was a loose check (~1km
+  threshold), which is exactly why this is going to a second, independent research pass rather than
+  being trusted either way. The homework is broader than just those flagged 2: verify all 108 real
+  venues (5 known artifacts/slash-combos excluded) against OpenStreetMap, plus find a website for
+  the 19 that don't have one. Sections 1-2 of the same proposal are already adopted.
 
 ## Data-accuracy follow-ups (from the 2026-08-23 report check), need Darragh's input or real research
 
