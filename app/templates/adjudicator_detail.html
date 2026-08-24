@@ -29,20 +29,24 @@
           {% for tier in group['tiers'] %}<span class="tag tag-tier">{{ tier }}</span>{% endfor %}
           <span class="review-n">{{ group['reviews']|length }} review{{ '' if group['reviews']|length == 1 else 's' }}</span>
         </summary>
-        <div class="queue-item-body review-list">
+        <div class="queue-item-body review-grid">
           {% for r in group['reviews'] %}
             {% if r['source'] == 'full_text' %}
               {# The extracted ShowTimes review lives on the show's own page here, not on aims.ie. #}
-              <a class="review-row" href="{{ url_for('public.show_detail', show_id=r['id']) }}">
-                <span class="show">{{ r['show'] }}</span>
+              <a class="review-card" href="{{ url_for('public.show_detail', show_id=r['id']) }}">
+                <div class="review-card-top">
+                  <span class="show">{{ r['show'] }}</span>
+                  <span class="src src-full">Full review</span>
+                </div>
                 <span class="soc">{{ r['society_name'] }}</span>
-                <span class="src src-full">Full review</span>
               </a>
             {% else %}
-              <a class="review-row" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
-                <span class="show">{{ r['show'] }}</span>
+              <a class="review-card" href="{{ r['review_url'] }}" rel="noopener" target="_blank">
+                <div class="review-card-top">
+                  <span class="show">{{ r['show'] }}</span>
+                  <span class="src">aims.ie</span>
+                </div>
                 <span class="soc">{{ r['society_name'] }}</span>
-                <span class="src">Read on aims.ie</span>
               </a>
             {% endif %}
           {% endfor %}

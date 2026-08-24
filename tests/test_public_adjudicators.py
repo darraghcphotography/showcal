@@ -88,6 +88,27 @@ def test_adjudicator_detail_shows_only_published_reviews(client, db):
     assert "Cabaret" not in body
 
 
+def test_adjudicator_detail_reviews_render_as_a_card_grid(client, db):
+    """Shares the same .review-card/.review-grid classes as /reviews (Second
+    Act backlog item 4), so an adjudicator's own review list picked up the
+    same card treatment automatically."""
+    society_id = seed_society(db, id=1, name="Test Society", region="Eastern")
+    jane_id = seed_adjudicator(db, name="Jane Smith")
+    assign(db, "23/24", "Gilbert", jane_id)
+    db.execute(
+        "INSERT INTO shows (society_id, season, region, section, show, review_status, review_url) "
+        "VALUES (?, '23/24', 'Eastern', 'Gilbert', 'Oliver!', 'Published', 'https://example.com/review')",
+        (society_id,),
+    )
+    db.commit()
+    jane_id = db.execute("SELECT id FROM adjudicators WHERE name = 'Jane Smith'").fetchone()["id"]
+
+    body = client.get(f"/adjudicators/{jane_id}").get_data(as_text=True)
+    assert 'class="queue-item-body review-grid"' in body
+    assert '<a class="review-card"' in body
+    assert '<div class="review-card-top">' in body
+
+
 def test_adjudicator_detail_excludes_hidden_society(client, db):
     society_id = seed_society(db, id=1, name="Hidden Society", region="Eastern")
     db.execute("UPDATE societies SET hidden = 1 WHERE id = ?", (society_id,))

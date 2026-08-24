@@ -79,6 +79,31 @@ def test_default_browse_groups_by_season(client, db):
     assert "16/17" in body
 
 
+def test_reviews_render_as_a_card_grid(client, db):
+    """Second Act backlog item 4 - /reviews used to be a bare flex-row list
+    (almost no visual weight difference row to row); it's a card grid now,
+    same treatment /societies already got."""
+    society_id = seed_society(db)
+    add_full_text_review(db, society_id, "The Addams Family", season="22/23")
+
+    body = client.get("/reviews").get_data(as_text=True)
+    assert 'class="queue-item-body review-grid"' in body
+    assert '<div class="review-card">' in body
+    assert '<div class="review-card-top">' in body
+
+
+def test_search_result_card_shows_season_in_the_meta_line(client, db):
+    """Search-result mode has no season <details> grouping to carry the
+    season/tier, so it's folded into the card's own society/meta line
+    instead of a separate badge."""
+    society_id = seed_society(db)
+    add_full_text_review(db, society_id, "The Addams Family", season="22/23", tier="Sullivan")
+
+    body = client.get("/reviews?q=addams").get_data(as_text=True)
+    assert "22/23" in body
+    assert "Sullivan" in body
+
+
 def test_full_text_review_shown_with_full_review_tag_and_show_page_link(client, db):
     society_id = seed_society(db)
     show_id = add_full_text_review(db, society_id, "The Addams Family", season="22/23")
@@ -93,7 +118,7 @@ def test_linked_review_shown_with_aims_ie_tag_and_external_link(client, db):
     add_linked_show(db, society_id, "Oklahoma!", season="25/26", review_url="https://www.aims.ie/post/oklahoma")
 
     body = client.get("/reviews?q=oklahoma").get_data(as_text=True)
-    assert "Read on aims.ie" in body
+    assert "aims.ie" in body
     assert 'href="https://www.aims.ie/post/oklahoma"' in body
 
 

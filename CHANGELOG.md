@@ -1,3 +1,7 @@
+Reviews are now cards, not a bare list of links - same look /societies already got. An adjudicator's own review list on their profile page picked up the same treatment
+
+---
+
 A show or society page now puts its poster/logo beside its details instead of above them at wider screen widths, so the page uses the space it has instead of leaving most of it empty next to a small image
 
 ---

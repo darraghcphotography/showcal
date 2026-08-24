@@ -121,9 +121,21 @@ always.
    (poster, placeholder, and the mobile stack) using real dummy image files, since the real
    uploads aren't reachable locally - the earlier screenshot without them showed a browser's
    default broken-image box, not a layout bug.
-4. **Reviews page card pass** - same treatment `/societies` already got. It's now the one list page
-   still reading as a bare link list (season-grouped rows, ~90 "READ ON AIMS.IE" links per season,
-   almost no visual weight difference row to row) next to everything else that got redesigned.
+4. ~~Reviews page card pass.~~ **Done 2026-08-24**, pushed, not yet deployed. Mockup
+   (`https://claude.ai/code/artifact/ae0e41f3-4d0e-4b33-97bc-5628bc13d061`) approved as-is. Same
+   treatment `/societies` already got - `.review-row`/`.review-list` renamed and restyled as
+   `.review-card`/`.review-grid` (a card grid, source tag moved to the card's top-right corner,
+   accent-tinted only for "Full review" since that's worth drawing the eye to versus a plain link
+   out). Both `reviews_index.html` and `adjudicator_detail.html` already shared the same CSS
+   classes before the redesign, so an adjudicator's own review list picked up the same card
+   treatment automatically, confirmed live with a screenshot rather than assumed. The "Read on
+   aims.ie" pill text is shortened to "aims.ie" to fit the card's top-right corner - a deliberate
+   copy change, one test updated to match. Season `<details>` grouping, pagination, and the search
+   box are all untouched - only what's inside each season's body changed shape. 625 tests green (4
+   new, covering the card markup on both pages and the season/tier meta line in search-result
+   mode). Verified with local Playwright screenshots at desktop and mobile widths - the grid
+   collapses to one column at narrow viewports on its own (`repeat(auto-fit, minmax(230px, 1fr))`),
+   same responsive behaviour as the other card grids, no separate breakpoint needed.
 5. **Awards page polish without touching the table shape** - tint Winner rows; turn the four filter
    dropdowns into removable chips above the table (already an unclaimed idea elsewhere in this
    file). Table stays a table on purpose (4,878 rows) - this is contrast-with-the-rest-of-the-site

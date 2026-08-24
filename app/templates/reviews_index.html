@@ -10,20 +10,22 @@
    adjudicator name as its own independent link. #}
 {% macro review_row(r, show_season=false) %}
   {% if r['source'] == 'full_text' %}
-    <div class="review-row">
-      {% if show_season %}<span class="season-badge">{{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}</span>{% endif %}
-      <a class="show" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">{{ r['show'] }}</a>
-      <span class="soc">{{ r['society_name'] }}</span>
+    <div class="review-card">
+      <div class="review-card-top">
+        <a class="show" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">{{ r['show'] }}</a>
+        <a class="src src-full" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">Full review</a>
+      </div>
+      <span class="soc">{{ r['society_name'] }}{% if show_season %} &middot; {{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}{% endif %}</span>
       {% if r['adjudicator_name'] %}<span class="by"><a href="{{ url_for('public.adjudicator_detail', adjudicator_id=r['adjudicator_id']) }}">{{ r['adjudicator_name'] }}</a></span>{% endif %}
-      <a class="src src-full" href="{{ url_for('public.show_detail', show_id=r['show_id']) }}#showtimes-review">Full review</a>
     </div>
   {% else %}
-    <div class="review-row">
-      {% if show_season %}<span class="season-badge">{{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}</span>{% endif %}
-      <a class="show" href="{{ r['review_url'] }}" rel="noopener" target="_blank">{{ r['show'] }}</a>
-      <span class="soc">{{ r['society_name'] }}</span>
+    <div class="review-card">
+      <div class="review-card-top">
+        <a class="show" href="{{ r['review_url'] }}" rel="noopener" target="_blank">{{ r['show'] }}</a>
+        <a class="src" href="{{ r['review_url'] }}" rel="noopener" target="_blank">aims.ie</a>
+      </div>
+      <span class="soc">{{ r['society_name'] }}{% if show_season %} &middot; {{ r['season'] }}{% if r['tier'] %} &middot; {{ r['tier'] }}{% endif %}{% endif %}</span>
       {% if r['adjudicator_name'] %}<span class="by"><a href="{{ url_for('public.adjudicator_detail', adjudicator_id=r['adjudicator_id']) }}">{{ r['adjudicator_name'] }}</a></span>{% endif %}
-      <a class="src" href="{{ r['review_url'] }}" rel="noopener" target="_blank">Read on aims.ie</a>
     </div>
   {% endif %}
 {% endmacro %}
@@ -86,7 +88,7 @@
   {% if q %}
     <p class="meta">{{ result_count }} result{{ '' if result_count == 1 else 's' }} for &ldquo;{{ q }}&rdquo;</p>
     {% if flat_reviews %}
-      <div class="review-list">
+      <div class="review-grid">
         {% for r in flat_reviews %}{{ review_row(r, show_season=true) }}{% endfor %}
       </div>
       {{ pg.pager('public.reviews_index', page, total_pages) }}
@@ -100,7 +102,7 @@
           {{ group['season'] }}
           <span class="review-n">{{ group['reviews']|length }} review{{ '' if group['reviews']|length == 1 else 's' }}</span>
         </summary>
-        <div class="queue-item-body review-list">
+        <div class="queue-item-body review-grid">
           {% for r in group['reviews'] %}{{ review_row(r) }}{% endfor %}
         </div>
       </details>
