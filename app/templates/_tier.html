@@ -1,0 +1,12 @@
+{#- Shared "Section" rendering - a small coloured dot (--tier-gilbert/--tier-sullivan,
+    the same tokens the season calendar already uses) next to the Gilbert/Sullivan
+    label, so the two AIMS adjudication tiers read as a colour-coded identity
+    everywhere they appear, not just on the calendar. Non-AIMS/Inactive/blank values
+    render as plain text - the dot only means something for a real tier. -#}
+{% macro tier_label(value) %}
+  {%- if value in ('Gilbert', 'Sullivan') -%}
+    <span class="tier-label"><span class="tier-dot tier-dot-{{ value|lower }}"></span>{{ value }}</span>
+  {%- else -%}
+    {{- value or '—' -}}
+  {%- endif -%}
+{% endmacro %}

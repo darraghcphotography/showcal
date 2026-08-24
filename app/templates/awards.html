@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_pagination.html" as pg %}
+{% import "_tier.html" as tier %}
 {% block title %}Awards - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Awards</h1>
@@ -63,7 +64,7 @@
       {% for r in rows %}
         <tr>
           <td>{{ r['year'] }}</td>
-          <td>{{ r['tier'] or '—' }}</td>
+          <td>{{ tier.tier_label(r['tier']) }}</td>
           <td>{{ r['category_name'] or '—' }}</td>
           <td>{{ r['result'] or '—' }}</td>
           <td>
@@ -108,7 +109,7 @@
         </div>
         <div class="meta-chips">
           <span>{{ r['year'] }}</span>
-          <span>&middot; {{ r['tier'] or '—' }}</span>
+          <span>&middot; {{ tier.tier_label(r['tier']) }}</span>
           {% if r['show'] %}<span>&middot; {{ r['category_name'] or '—' }}</span>{% endif %}
           {% if r['result'] != 'Winner' %}<span>&middot; {{ r['result'] or '—' }}</span>{% endif %}
           <span>&middot;

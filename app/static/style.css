@@ -1358,6 +1358,9 @@ a.queue-item:hover { border-color: var(--accent); }
 }
 .society-card .stat-line { font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
 .tier-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+/* Same dot, used wherever "Section" (Gilbert/Sullivan) renders as text
+   outside a card - table cells, meta lines - see _tier.html. */
+.tier-label { display: inline-flex; align-items: center; gap: 0.35rem; }
 .tier-dot-gilbert { background: var(--tier-gilbert); }
 .tier-dot-sullivan { background: var(--tier-sullivan); }
 .grid-note {
