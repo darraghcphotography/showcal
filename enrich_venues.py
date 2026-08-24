@@ -391,6 +391,20 @@ DATA = {
 }
 
 
+# Venues whose display name is a typo or a fragment. The rebuild picks a name
+# from the spellings in shows.venue, so where every show carries the misspelling
+# it has no better option - correcting it is an authored act, like a merge.
+#
+# The slug is deliberately left alone: it was minted from the old name, existing
+# links use it, and /venues/<slug> is stable. Same as the admin edit form, which
+# also doesn't re-slug on rename.
+RENAMES = [
+    ("Pavillion Theatre", "Pavilion Theatre, Dún Laoghaire",
+     "Missing an 'l'. The correctly-spelled record was merged into this one, so "
+     "this is the surviving name and it's the wrong one."),
+]
+
+
 def resolve(db, name):
     """The venue a spelling belongs to today, following any merge. Returns None
     if nothing in the archive ever used this spelling."""
@@ -462,6 +476,23 @@ def main():
             continue
         merge_venue_into(db, source_id, target_id)
         print(f"  {source_name} -> {target_name}")
+        print(f"      {why}")
+
+    print("\nCorrected names")
+    for current, corrected, why in RENAMES:
+        venue_id = resolve(db, current)
+        if venue_id is None:
+            unmatched.append(current)
+            continue
+        row = db.execute("SELECT name FROM venues WHERE id = ?", (venue_id,)).fetchone()
+        if row["name"] == corrected:
+            print(f"  already correct: {corrected}")
+            continue
+        db.execute(
+            "UPDATE venues SET name = ?, updated_at = datetime('now') WHERE id = ?",
+            (corrected, venue_id),
+        )
+        print(f"  {row['name']!r} -> {corrected!r}")
         print(f"      {why}")
 
     print("\nDetail")

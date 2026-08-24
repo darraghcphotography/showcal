@@ -2,11 +2,12 @@ import os
 import secrets
 from pathlib import Path
 
-from flask import Flask, g
+from flask import Flask, g, request
 from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import db as db_module
+from . import productions_build, venues_build
 from .rate_limit import limiter
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -142,6 +143,27 @@ def create_app(test_config=None):
         # inside set_security_headers below) so inject_globals() can hand it
         # to templates in time for their <script nonce="..."> tags.
         g.csp_nonce = secrets.token_urlsafe(16)
+
+    @app.before_request
+    def keep_derived_tables_current():
+        """Rebuild productions/venues if their sources have moved, before any
+        view runs.
+
+        These used to be per-route calls, and that made correctness a thing you
+        had to remember: a route reading production_id or venue_id without one
+        doesn't error, it silently under-reports. Sixteen call sites across six
+        modules, and every new route was another chance to forget. Stated once
+        here it can't be forgotten instead.
+
+        The cost of the no-op case is why this is affordable: both freshness
+        checks are a single fingerprint query, measured at 0.26ms each on the
+        real database. Static files skip it because they touch no data at all.
+        """
+        if request.endpoint == "static":
+            return
+        db = db_module.get_db()
+        productions_build.ensure_current(db)
+        venues_build.ensure_current(db)
 
     @app.context_processor
     def inject_globals():

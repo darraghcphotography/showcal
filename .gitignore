@@ -26,8 +26,23 @@ uploads/
 # Reference docs dropped in the repo root, not source - e.g. Darragh's
 # feedback doc (dcfeedback.docx) or a one-off external audit write-up
 # (AUDIT_AND_RECOMMENDATIONS.md, from Gemini Antigravity - see ROADMAP.md).
+#
+# These are inputs, not repo content: what came out of each one is recorded in
+# ROADMAP.md and in the commits that acted on it, which is the part worth
+# keeping. Listed by name rather than a *.md wildcard so a genuinely new repo
+# document doesn't get silently ignored too.
 *.docx
 AUDIT_AND_RECOMMENDATIONS.md
+DATA_ACCURACY_AND_CORRECTIONS_REPORT.md
+DESIGN_AUDIT_AND_PROPOSALS.md
+FEATURE_IDEAS.md
+GOOGLE_MAPS_INTEGRATION_PROPOSAL.md
+SHOW_ENRICHMENT_PROPOSAL.md
+venues_report.md
+
+# Source material dropped in the root - AIMS's own branding/mission PDF and
+# anything like it. Root-only, so real PDFs under app/ or docs/ are unaffected.
+/*.pdf
 
 # Local mockup drafts (HTML/CSS explored outside the app). Mockups normally
 # get published as Claude Artifacts for review, not committed here.

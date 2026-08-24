@@ -1,6 +1,5 @@
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 
-from ... import venues_build
 from ...auth import login_required
 from ...constants import REGIONS
 from ...db import get_db
@@ -60,7 +59,6 @@ def venue_directory():
     /venues is built on and the thing a capacity or a map pin hangs off.
     """
     db = get_db()
-    venues_build.ensure_current(db)
 
     rows = db.execute(
         """

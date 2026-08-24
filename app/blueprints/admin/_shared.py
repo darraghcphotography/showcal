@@ -35,10 +35,10 @@ URL_RE = re.compile(r"^https?://")
 # the current season hasn't happened, but an undated one from 10/11 certainly
 # has, and dropping it would hide real work rather than noise.
 #
-# Reads production_id, so any route using it must call
-# productions_build.ensure_current(db) first (dashboard, shows_list,
-# reviews_queue all do) - otherwise it reads a stale link and silently
-# under-reports.
+# Reads production_id. Nothing to remember any more: a before_request in
+# app/__init__.py keeps the derived tables current for every request, so this
+# can't read a stale link. That used to be sixteen per-route calls, and a route
+# that forgot one didn't error, it silently under-reported.
 NEEDS_REVIEW_WHERE = """
     shows.moderation_status = 'approved'
     AND shows.show IS NOT NULL

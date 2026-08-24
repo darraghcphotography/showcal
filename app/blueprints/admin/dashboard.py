@@ -2,7 +2,6 @@ from datetime import date, timedelta
 
 from flask import flash, redirect, render_template, url_for
 
-from ... import productions_build
 from ...auth import login_required
 from ...db import get_db
 from ...dedupe import find_candidates
@@ -75,9 +74,6 @@ def _orphaned_titles(db):
 @login_required
 def dashboard():
     db = get_db()
-    # Several counters below read production_id, so the derived table has to
-    # be current with the source tables first (no-op unless something moved).
-    productions_build.ensure_current(db)
     current = current_season(db)
 
     pending_count = db.execute(
@@ -228,9 +224,6 @@ def dashboard():
 @login_required
 def data_quality():
     db = get_db()
-    # _duplicate_historical_rows reads production_id (see its docstring), so
-    # the derived table has to be current first.
-    productions_build.ensure_current(db)
     orphaned_info, orphaned_links = _orphaned_titles(db)
     return render_template(
         "admin/data_quality.html",

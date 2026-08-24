@@ -5,7 +5,6 @@ from datetime import date, datetime, timedelta
 
 from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
 
-from .. import productions_build
 from ..constants import REGIONS
 from ..db import get_db
 from ..productions import ON_RECORD_PRODUCTION
@@ -169,7 +168,6 @@ def robots_txt():
 @bp.route("/sitemap.xml")
 def sitemap_xml():
     db = get_db()
-    productions_build.ensure_current(db)
     today = date.today().isoformat()
 
     urls = [(url_for("public.index", _external=True), today)]

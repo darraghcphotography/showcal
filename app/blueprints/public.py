@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
-from .. import notify, productions_build, venues_build
+from .. import notify
 from ..auth import active_society_code, current_user
 from ..calendar_links import google_calendar_url
 from ..circuit_intelligence import (
@@ -60,7 +60,6 @@ def paginate_args(total):
 @bp.route("/")
 def index():
     db = get_db()
-    venues_build.ensure_current(db)
 
     upcoming_region = request.args.get("upcoming_region", "")
     upcoming_query = """
@@ -243,7 +242,6 @@ def _review_snippet(review_text, q):
 def search():
     q = request.args.get("q", "").strip()
     db = get_db()
-    productions_build.ensure_current(db)
     societies = []
     titles = []
     reviews = []
@@ -869,7 +867,6 @@ def _society_badges(db, society_id):
 @bp.route("/societies/<int:society_id>")
 def society_detail(society_id):
     db = get_db()
-    productions_build.ensure_current(db)
     society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
     if society is None:
         abort(404)
@@ -1049,8 +1046,6 @@ def _may_see_own_show_admin(show):
 @bp.route("/shows/<int:show_id>")
 def show_detail(show_id):
     db = get_db()
-    venues_build.ensure_current(db)
-    productions_build.ensure_current(db)
     show = db.execute(
         """
         SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug
@@ -1187,7 +1182,6 @@ TITLES_SORT_CHOICES = set(TITLES_SORT_OPTIONS) | {"stale"}
 @bp.route("/titles")
 def titles_list():
     db = get_db()
-    productions_build.ensure_current(db)
     q = request.args.get("q", "").strip()
     sort = request.args.get("sort", "title")
     if sort not in TITLES_SORT_CHOICES:
@@ -1250,7 +1244,6 @@ def titles_list():
 @bp.route("/titles/<path:title>")
 def title_detail(title):
     db = get_db()
-    productions_build.ensure_current(db)
     title_key = normalize_title(title)
 
     # Joined through productions rather than matched on the raw title text, so
@@ -1336,7 +1329,6 @@ def title_detail(title):
 @bp.route("/venues")
 def venues_index():
     db = get_db()
-    venues_build.ensure_current(db)
     q = request.args.get("q", "").strip()
     region = request.args.get("region", "")
     if region not in REGIONS:
@@ -1391,7 +1383,6 @@ def venues_index():
 @bp.route("/venues/<path:venue>")
 def venue_detail(venue):
     db = get_db()
-    venues_build.ensure_current(db)
     # `venue` is a slug now, but every previously-published /venues/<name> URL
     # used the raw venue string - those are still live links (and indexed), so
     # a name that resolves through venue_aliases redirects to its slug rather

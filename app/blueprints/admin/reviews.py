@@ -1,6 +1,5 @@
 from flask import flash, redirect, render_template, request, url_for
 
-from ... import productions_build
 from ...auth import login_required
 from ...db import get_db
 from . import bp
@@ -11,7 +10,6 @@ from ._shared import NEEDS_REVIEW_WHERE, URL_RE, needs_review_params
 @login_required
 def reviews_queue():
     db = get_db()
-    productions_build.ensure_current(db)
 
     # Same definition as the dashboard's own "Shows missing a review link"
     # counter and the shows-list filter behind it - see NEEDS_REVIEW_WHERE.

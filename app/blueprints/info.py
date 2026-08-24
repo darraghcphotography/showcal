@@ -14,7 +14,6 @@ from ..constants import (
     SHOWS_COVERAGE_START_YEAR,
     SOCIETY_AWARD_CATEGORY_NAMES,
 )
-from .. import productions_build
 from ..db import get_db
 from ..search import fts_match_ids
 from ..season import current_season, season_start_year, season_weeks
@@ -27,11 +26,6 @@ TOP_N = 10
 @bp.route("/stats")
 def stats():
     db = get_db()
-    # Every production count below reads the derived productions table, so it
-    # has to be current with the source tables first - otherwise a show
-    # approved since the last deploy simply wouldn't be counted. No-op unless
-    # something actually changed.
-    productions_build.ensure_current(db)
     today = date.today().isoformat()
     region = request.args.get("region", "")
     if region not in REGIONS:

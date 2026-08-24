@@ -3,7 +3,6 @@ from datetime import datetime
 
 from flask import abort, current_app, flash, redirect, render_template, request, url_for
 
-from ... import productions_build
 from ...auth import current_user, login_required
 from ...constants import REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS
 from ...db import get_db
@@ -77,9 +76,7 @@ def shows_list():
     season = request.args.get("season", "")
     current = current_season(db)
     if needs_review:
-        # This filter reads production_id, so the derived table has to be
-        # current first (no-op unless something moved).
-        productions_build.ensure_current(db)
+        pass
 
     # Named params throughout, not positional - NEEDS_REVIEW_WHERE below uses
     # them, and sqlite3 won't mix the two styles in one statement.
