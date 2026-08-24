@@ -1,3 +1,16 @@
+## Ready by Morning - overnight plan, 2026-08-24/25, awaiting review
+
+Every item below worked through, sequenced, and turned into 14 concrete queue items (4 safe to
+start on your word alone, 6 needing a specific decision from you, 4 design reviews) plus two new
+mockups (FAQ page, "near me" redrawn against real 31% pin coverage). One real bug found while
+researching it, not previously on this list: Leixlip's 25/26 *Fame* has six live award
+nominations (incl. Best Overall Show) that don't appear on its own show page, because
+`shows.show` reads "Fame" and `historical_results.show` reads "Fame: The Musical" for the same
+production - exact-string title matching means they never link up. Full detail, real numbers, and
+the reasoning behind every recommendation: https://claude.ai/code/artifact/c85710e6-d535-46d1-8041-5e4bad7c5115
+
+Nothing in it has been built. Read it, then say which queue numbers to start.
+
 # Roadmap
 
 Tracks the current phase of work and genuinely open items, so a new session (after `/clear` or a fresh
