@@ -42,15 +42,25 @@ Cancelled flags. The feature (schema column, admin/society checkboxes, tag rende
 path) is being removed entirely, not just the data cleared, so this can't recur.
 
 **Second thread started today: a UI-polish plan** (Fable's read on "the site feels dated," plan at
-`C:\Users\Darragh\.claude\plans\hello-1-are-sunny-hippo.md`, executing phase by phase). **Phase 0
-done, pushed, not yet deployed:** colour was already tokenised in `style.css` but spacing/radius
-weren't - added `--space-*`/`--radius-*` tokens and consolidated five near-identical card
-components (venue/resident/adj/lb/stat) and three "hero" gradient cards (explorer/trends-callout/
-era-card) that were each independently re-declaring the same border/background/shadow, plus ~11
-duplicate `border-radius: 999px` pill declarations. Every substitution is value-identical to what
-it replaced - zero rendered-output change, 612 tests green, safe to redeploy whenever convenient
-(no rush, purely cosmetic-neutral). Phases 1-3 (bare-page consistency pass, a motion/icon pass,
-typography/colour experiment) still to come.
+`C:\Users\Darragh\.claude\plans\hello-1-are-sunny-hippo.md`, executing phase by phase). **Phases 0-1
+done, pushed, not yet deployed:**
+- Phase 0: colour was already tokenised in `style.css` but spacing/radius weren't - added
+  `--space-*`/`--radius-*` tokens and consolidated five near-identical card components (venue/
+  resident/adj/lb/stat) and three "hero" gradient cards (explorer/trends-callout/era-card) that
+  were each independently re-declaring the same border/background/shadow, plus ~11 duplicate
+  `border-radius: 999px` pill declarations. Every substitution is value-identical to what it
+  replaced - zero rendered-output change.
+- Phase 1: `/societies` is now a card grid (logo if maintained, initial-letter placeholder if not -
+  Darragh's ask); `/titles` rebuilt as the already-approved Shows A-Z mockup (staples strip, three
+  quick filters, sticky letter scrubber, per-title cards - sort dropdown and pagination both
+  dropped, replaced by the scrubber); Section (Gilbert/Sullivan) now shows a coloured dot via a new
+  shared `_tier.html` macro everywhere it used to be plain text (`/awards`, `/season`, society/show
+  detail pages). The society head-to-head compare mockup was **dropped entirely, not built** -
+  Darragh's call, a direct comparison tool doesn't fit an amateur organisation's spirit.
+
+Both phases are cosmetic/presentation-only (no schema change), 612 tests green throughout, safe to
+redeploy whenever convenient. Phases 2-3 (a motion/icon pass, typography/colour experiment) still
+to come.
 
 # Roadmap
 
@@ -235,11 +245,10 @@ moderator-corrected, so it isn't a field to set from a list.
 
 ## Mockups approved or built, not yet applied to real templates
 
-- Shows A-Z redesign: https://claude.ai/code/artifact/8748ee86-2422-4df3-aae6-7ee5973bc5c3
-- Society head-to-head compare: https://claude.ai/code/artifact/a3b6ce5c-1bbc-4eb3-aea9-8f480a51e209
-
-To update either with feedback, republish the same Artifact URL (via the Artifact tool's `url` param)
-rather than creating a new one, so these links stay correct.
+Both resolved 2026-08-24 (see the UI-polish plan thread above): Shows A-Z was built for real onto
+`/titles`. The society head-to-head compare mockup was reviewed and **rejected, not built** -
+Darragh's call, a direct comparison tool doesn't fit an amateur organisation's spirit - so nothing
+is pending here any more.
 
 ## Waiting on Darragh, not a coding task
 
