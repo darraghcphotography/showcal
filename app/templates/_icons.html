@@ -1,0 +1,9 @@
+{#- Small line-icon set, matching the brand mark's plain-shapes style (no icon
+    font/CDN - inline SVG, currentColor, consistent with the CSP's default-src
+    'self'). Used sparingly, next to a handful of existing links where the icon
+    adds real wayfinding (this is what it does / where it goes), not decoration
+    on every label - see the Phase 2 mockup ("Programme Notes"). -#}
+{% macro pin() %}<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13Z"/><circle cx="12" cy="9" r="2.4"/></svg>{% endmacro %}
+{% macro ticket() %}<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1.4a1.4 1.4 0 0 0 0 2.8V15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1.8a1.4 1.4 0 0 0 0-2.8V9Z"/><path d="M10 7.5v9" stroke-dasharray="2.2 2.2"/></svg>{% endmacro %}
+{% macro calendar() %}<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M16 3v4M8 3v4M3.5 10h17"/></svg>{% endmacro %}
+{% macro external() %}<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10.5 13.5"/><path d="M18 13v5.5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>{% endmacro %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_tier.html" as tier %}
+{% import "_icons.html" as icons %}
 {% block title %}{{ show['show'] }} - DC Show Tracker{% endblock %}
 {% block og_description %}{{ show['society_name'] }}, {{ show['season'] }}{% if show['opening_date'] %} - opens {{ show['opening_date']|irish_date }}{% endif %}.{% endblock %}
 {% block og_image %}
@@ -45,7 +46,7 @@
     {% if show['society_instagram_url'] %}{% set _ = social_links.append(('Instagram', show['society_instagram_url'])) %}{% endif %}
     {% if social_links %}
       <p class="meta">
-        {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{% endfor %}
+        {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ icons.external() }}{{ label }}</a>{% endfor %}
       </p>
     {% endif %}
   {% endif %}

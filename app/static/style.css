@@ -87,6 +87,13 @@
 
 * { box-sizing: border-box; }
 
+/* One global kill-switch for the transitions/transforms added below, rather
+   than a `prefers-reduced-motion` guard scattered per component - anything
+   that later adds a transition or animation is covered by this automatically. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--fg);
@@ -190,6 +197,7 @@ body {
   padding: 0.3rem 0.8rem;
   font-size: 0.86rem;
   background: none;
+  transition: border-color 150ms ease, background 150ms ease;
   text-decoration: none;
 }
 .site-header .nav-pill:hover {
@@ -327,6 +335,7 @@ body {
   line-height: 1;
   padding: 0.35rem 0.5rem;
   font-size: 0.95rem;
+  transition: border-color 150ms ease;
 }
 .theme-toggle:hover { border-color: var(--accent); }
 
@@ -349,6 +358,11 @@ body {
 
 a { color: var(--accent); }
 
+/* Shared line-icon set - see _icons.html. Sized off the surrounding text so
+   an icon next to a small meta link and one next to a heading both look
+   proportionate without a second set of size rules. */
+.icon { width: 1.05em; height: 1.05em; vertical-align: -0.18em; flex-shrink: 0; margin-right: 0.3em; }
+
 table.data-table {
   width: 100%;
   border-collapse: collapse;
@@ -362,6 +376,7 @@ table.data-table {
   border-bottom: 1px solid var(--border);
 }
 
+.data-table tbody tr { transition: background-color 150ms ease; }
 .data-table tbody tr:nth-child(even) { background: var(--row-alt); }
 .data-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
@@ -698,6 +713,7 @@ details table { margin-top: 0.5rem; }
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   position: relative;
+  transition: border-color 150ms ease;
 }
 .badge .icon {
   display: flex; align-items: center; justify-content: center;
@@ -847,6 +863,7 @@ details table { margin-top: 0.5rem; }
   padding: 1rem;
   margin-bottom: 1rem;
   box-shadow: var(--shadow);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
 .queue-item.next-production { border-color: var(--gold); border-width: 2px; }
@@ -939,6 +956,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   border: 1px solid var(--border);
   background: var(--bg);
   box-shadow: var(--shadow);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
 .stat-tiles {
@@ -1106,8 +1124,9 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, var(--bg)), var(--bg) 75%);
   box-shadow: var(--shadow);
   text-decoration: none; color: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
-.trends-callout:hover { border-color: var(--gold); }
+.trends-callout:hover { border-color: var(--gold); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .trends-callout .trends-copy h2 { margin: 0 0 0.2rem; font-size: 1.05rem; color: var(--fg); }
 .trends-callout .trends-copy p { margin: 0; color: var(--muted); font-size: 0.88rem; }
 .trends-callout .trends-cta {
@@ -1264,6 +1283,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   color: var(--muted);
   font-size: 1.2rem;
   line-height: 1;
+  transition: color 150ms ease;
   padding: 0.2rem 0.4rem;
   cursor: pointer;
 }
@@ -1285,7 +1305,7 @@ a.queue-item {
   text-decoration: none;
   color: inherit;
 }
-a.queue-item:hover { border-color: var(--accent); }
+a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 
 /* Adjudicators page: the current season's Gilbert/Sullivan pair as two hero
    cards (reads as "who's judging right now", the thing most visitors
@@ -1305,7 +1325,7 @@ a.queue-item:hover { border-color: var(--accent); }
   border-radius: var(--radius-lg);
   padding: 0.9rem 1rem;
 }
-.adj-card:hover { border-color: var(--accent); }
+.adj-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .adj-card .name { display: block; font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-top: 0.4rem; }
 .adj-card .sub { color: var(--muted); font-size: 0.84rem; margin: 0.25rem 0 0; }
 
@@ -1330,7 +1350,7 @@ a.queue-item:hover { border-color: var(--accent); }
   display: block; text-decoration: none; color: inherit;
   border-radius: var(--radius-xl); padding: 1rem 1.1rem;
 }
-.venue-card:hover { border-color: var(--accent); }
+.venue-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .venue-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent); }
 .venue-card .stat-line { font-size: 0.82rem; color: var(--muted); }
 .venue-card .stat-line strong { color: var(--fg); }
@@ -1345,7 +1365,7 @@ a.queue-item:hover { border-color: var(--accent); }
   display: flex; flex-direction: column; gap: 0.7rem;
   border-radius: var(--radius-xl); padding: 1rem 1.1rem;
 }
-.society-card:hover { border-color: var(--accent); }
+.society-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .society-card-top { display: flex; align-items: center; gap: 0.7rem; }
 .society-card h3 { margin: 0; font-size: 1rem; color: var(--accent); line-height: 1.3; }
 .society-logo {
@@ -1406,6 +1426,7 @@ a.queue-item:hover { border-color: var(--accent); }
   width: 1.9rem; height: 1.9rem; display: flex; align-items: center; justify-content: center;
   border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 700; color: var(--muted);
   text-decoration: none; border: 1px solid transparent;
+  transition: border-color 150ms ease, color 150ms ease;
 }
 .az-btn:hover { border-color: var(--accent); color: var(--accent); }
 .az-btn.disabled { opacity: 0.3; }
@@ -1426,7 +1447,7 @@ a.queue-item:hover { border-color: var(--accent); }
 .title-card .sub { color: var(--muted); font-size: 0.84rem; }
 .title-card .more-info-link { font-size: 0.8rem; }
 .title-card-cta { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
-.stagings-cta { font-size: 0.84rem; text-decoration: none; white-space: nowrap; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.35rem 0.75rem; }
+.stagings-cta { font-size: 0.84rem; text-decoration: none; white-space: nowrap; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.35rem 0.75rem; transition: border-color 150ms ease; }
 .stagings-cta:hover { border-color: var(--accent); }
 .noms { color: var(--gold); font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
 
@@ -1445,7 +1466,7 @@ a.queue-item:hover { border-color: var(--accent); }
   display: flex; flex-direction: column; gap: 0.1rem;
   border-radius: var(--radius-lg); padding: 0.55rem 0.9rem; text-decoration: none; color: inherit;
 }
-.resident-card:hover { border-color: var(--accent); }
+.resident-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .resident-card .name { font-weight: 600; color: var(--accent); font-size: 0.9rem; }
 .resident-card .n { font-size: 0.74rem; color: var(--muted); }
 

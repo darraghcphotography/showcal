@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}{{ venue['name'] }} - DC Show Tracker{% endblock %}
 {% block og_description %}{{ production_count }} AIMS production{{ '' if production_count == 1 else 's' }} staged at {{ venue['name'] }}.{% endblock %}
 {% block content %}
@@ -17,7 +18,7 @@
     <dl class="detail-list">
       {% if venue['capacity'] %}<dt>Seating capacity</dt><dd>{{ venue['capacity'] }}</dd>{% endif %}
       {% if venue['auditorium_type'] %}<dt>Auditorium type</dt><dd>{{ venue['auditorium_type'] }}</dd>{% endif %}
-      {% if venue['website_url'] %}<dt>Website</dt><dd><a href="{{ venue['website_url'] }}" rel="noopener nofollow">{{ venue['website_url'] }}</a></dd>{% endif %}
+      {% if venue['website_url'] %}<dt>Website</dt><dd><a href="{{ venue['website_url'] }}" rel="noopener nofollow">{{ icons.external() }}{{ venue['website_url'] }}</a></dd>{% endif %}
       {% if venue['tech_spec_url'] %}<dt>Technical spec</dt><dd><a href="{{ venue['tech_spec_url'] }}" rel="noopener nofollow">From the venue's own site</a></dd>{% endif %}
     </dl>
   {% endif %}
@@ -34,7 +35,7 @@
      confusing than two. Both are keyless, so neither costs anything. #}
   {% set map_target = [venue['name'], place]|select|join(', ') %}
   <p class="meta">
-    <a href="{{ map_target|maps_directions_url }}" rel="noopener nofollow">Get directions</a>
+    <a href="{{ map_target|maps_directions_url }}" rel="noopener nofollow">{{ icons.pin() }}Get directions</a>
     {% if venue['latitude'] is not none and venue['longitude'] is not none %}
       &middot;
       <a href="{{ (venue['latitude']|string ~ ',' ~ venue['longitude']|string)|maps_search_url }}"
