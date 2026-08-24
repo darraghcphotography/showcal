@@ -102,11 +102,12 @@ body {
   line-height: 1.5;
 }
 
-/* Phase 3 typography experiment (see the "Programme Notes" mockup) - a
-   self-hosted display serif for one heading only, the homepage's. Every
-   other h1/h2 on the site stays system-ui until/unless this goes wider.
-   Self-hosted because the CSP (app/__init__.py) blocks Google Fonts and any
-   other CDN font outright, at both the stylesheet and font-file level. */
+/* Phase 3 typography (see the "Programme Notes" mockup) - a self-hosted
+   display serif on public-page headings; admin/society stay system-ui,
+   matching this codebase's existing public/admin split (see mobile_chrome
+   in base.html, which body.public-chrome reuses). Self-hosted because the
+   CSP (app/__init__.py) blocks Google Fonts and any other CDN font outright,
+   at both the stylesheet and font-file level. */
 @font-face {
   font-family: "Fraunces";
   font-style: normal;
@@ -114,11 +115,16 @@ body {
   font-display: swap;
   src: url("fonts/fraunces-600.woff2") format("woff2");
 }
-.hero-heading {
+body.public-chrome .container h1 {
   font-family: "Fraunces", Georgia, "Times New Roman", serif;
   font-weight: 600;
-  font-size: 2.2rem;
+  font-size: 2.1rem;
   letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+body.public-chrome .container h2 {
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-weight: 600;
   text-wrap: balance;
 }
 
