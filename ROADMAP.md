@@ -44,6 +44,18 @@ Four rows were deliberately excluded from `venues_worklist.json` before handoff 
 `Wexford`, `Cork run`, `40th Anniversary (March run)` (known data-entry artifacts, not real
 venues) - still need a source-level fix, unrelated to this import.
 
+**Public photo-submission intake built** (`c12b927`, pushed, awaiting redeploy) - resolves the
+"Member-contributed historical photo upload" item that used to sit in Parked below. `/submit/photo`
+(footer-linked, no login, rate-limited, honeypot) takes pre-2009 ShowTimes review clippings (older
+than the digitized PDF archive `extract_historical_reviews.py` works from) and old production
+photos/programmes, into a new `photo_submissions` table and `/admin/photo-submissions` queue.
+Darragh's calls on the open questions this item used to carry: one combined form (not two), open to
+the public (not gated behind a society login), and an upload can sit unmatched - society/show/date
+are free text, no requirement to pick an existing production. A moderator reads each one and enters
+what it confirms into the real tables by hand, same trust model as every other member-contributed
+thing here; nothing auto-applies. 649 tests green (10 new). Not yet verified live - needs the same
+Portainer redeploy as everything else pushed this session.
+
 **After the enrichment import, the next three items are scoped and ready for a Sonnet session**
 (not Fable - implementation work, no open design questions left): the poster thumbnail pipeline,
 the theme-polish micro-batch, and the duplicate-title merges. All three are written up in full
@@ -195,21 +207,6 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
 
 ## Parked, each wants its own dedicated session or decision, none started
 
-- **Member-contributed historical photo upload, for backfilling gaps in old productions.** Raised
-  2026-08-24 (Darragh may contribute himself). Doesn't exist today - the only upload path is a
-  poster field tied to one specific show's own edit form (a society or moderator editing that
-  show), not a general "here's an old programme photo, use it" flow. Distinct from two related
-  parked ideas below: the posters-gallery/programme-museum page is *display* of posters already in
-  the system; this is *intake* of new material to fill data gaps (cast, director, venue, date) on
-  productions that have little or no record. Recommended v1 scope, needs Darragh's sign-off before
-  a mockup: an upload form (which production is this, from a picker or free-text if no match
-  exists) that stores the photo plus the uploader's own free-text notes, landing in a moderation
-  queue - same pattern already used for member submissions and historical reviews, nothing
-  auto-applies to real data. A moderator reads the photo and manually enters whatever it confirms;
-  OCR is explicitly out of v1, revisited once the already-parked "OCR test on a programme photo"
-  below has a real sample to test against. Open questions for Darragh: who can upload (any AIMS
-  member via society login, or open to the public) and whether an upload needs to match an
-  existing production row or can sit unmatched for a moderator to triage later.
 - **`match_show_for_edit` never fuzzy-matches** against `shows` (exact match only) - a systemic version
   of a title-mismatch bug already fixed once for a specific case, not yet generalized.
 - **Person/person-page identity resolution** - parked on Darragh's privacy objection to public person
