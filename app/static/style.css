@@ -17,6 +17,25 @@
   --tier-sullivan: #7a4fb0;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.09), 0 2px 4px rgba(0, 0, 0, 0.06);
+
+  /* Spacing and radius scales - colour was already tokenised, these weren't.
+     Every value here matches what components already converged on, so
+     nothing changes what an existing rule renders as; new/edited rules
+     should reach for one of these instead of picking a fresh number. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 14px;
+  --radius-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -167,7 +186,7 @@ body {
   align-items: center;
   color: var(--accent);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.3rem 0.8rem;
   font-size: 0.86rem;
   background: none;
@@ -293,7 +312,7 @@ body {
 
 .site-search input {
   padding: 0.3rem 0.65rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.9rem;
   width: 9rem;
 }
@@ -302,7 +321,7 @@ body {
 .theme-toggle {
   background: none;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--fg);
   cursor: pointer;
   line-height: 1;
@@ -472,13 +491,16 @@ button.button-primary { background: var(--success); color: #fff; }
 }
 .edit-callout:hover { border-style: solid; }
 
-.site-notice {
+/* .install-hint (near the bottom bar-nav styles) is the same callout box
+   with extra right padding for its own close button - shared declarations
+   live here so the two can't drift apart again. */
+.site-notice, .install-hint {
   background: var(--row-alt);
   border-left: 3px solid var(--gold);
-  border-radius: 4px;
-  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
   margin-bottom: 1.25rem;
 }
+.site-notice { padding: 0.75rem 1rem; }
 .site-notice p { margin: 0; }
 
 .honeypot {
@@ -577,7 +599,7 @@ details table { margin-top: 0.5rem; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.1rem 0.45rem;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--success);
   color: var(--success);
   vertical-align: 0.1em;
@@ -640,7 +662,7 @@ details table { margin-top: 0.5rem; }
   display: inline-block;
   font-size: 0.75rem;
   padding: 0.1rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-left: 0.5rem;
 }
 
@@ -671,7 +693,7 @@ details table { margin-top: 0.5rem; }
 .badge {
   display: flex; align-items: center; gap: 0.5rem;
   padding: 0.45rem 0.85rem 0.45rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--bg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -721,7 +743,7 @@ details table { margin-top: 0.5rem; }
   border-bottom: 1px solid var(--border); margin-bottom: 1rem; z-index: 5;
 }
 .venue-progress-line { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem; }
-.venue-progress-track { background: var(--row-alt); border-radius: 999px; height: 0.5rem; overflow: hidden; }
+.venue-progress-track { background: var(--row-alt); border-radius: var(--radius-pill); height: 0.5rem; overflow: hidden; }
 .venue-progress-fill { background: var(--success); height: 100%; transition: width 0.15s ease; }
 
 .venue-table tr.filled { background: color-mix(in srgb, var(--success) 10%, transparent); }
@@ -847,7 +869,7 @@ details table { margin-top: 0.5rem; }
 .lane-head .dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--lane-color); flex-shrink: 0; }
 .lane-head .lane-count {
   margin-left: auto; font-size: 0.72rem; font-weight: 600; letter-spacing: normal; text-transform: none;
-  background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 0.05rem 0.5rem; color: var(--muted);
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 0.05rem 0.5rem; color: var(--muted);
 }
 .lane.lane-planned { --lane-color: var(--accent); }
 .lane.lane-progress { --lane-color: var(--gold); }
@@ -904,8 +926,19 @@ fieldset { border: 1px solid var(--border); border-radius: 6px; }
 code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 
 .code-sample {
-  background: var(--row-alt); border: 1px solid var(--border); border-radius: 6px;
+  background: var(--row-alt); border: 1px solid var(--border); border-radius: var(--radius-md);
   padding: 0.7rem 0.9rem; font-size: 0.85rem; overflow-x: auto; max-width: 480px;
+}
+
+/* Shared "card" shape - the border/background/shadow that .venue-card,
+   .resident-card, .adj-card, .lb-card and .stat-tile were each
+   independently re-declaring below. Radius, padding and hover behaviour
+   still vary per component and stay where they are; this only centralises
+   the three properties that were already identical everywhere. */
+.venue-card, .resident-card, .adj-card, .lb-card, .stat-tile {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: var(--shadow);
 }
 
 .stat-tiles {
@@ -920,9 +953,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   flex-direction: column;
   gap: 0.2rem;
   padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
 }
 
 .stat-tile-gold { border-color: var(--gold); }
@@ -984,10 +1015,8 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   margin-bottom: 1.5rem;
 }
 .lb-card {
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   padding: 1.1rem 1.2rem;
-  box-shadow: var(--shadow);
 }
 .lb-card h3 { margin: 0 0 0.2rem; font-size: 0.95rem; }
 .lb-card .lb-meta { font-size: 0.78rem; color: var(--muted); margin: 0 0 0.5rem; }
@@ -1003,7 +1032,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   align-items: baseline;
   gap: 0.4rem;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.4rem 0.85rem;
   font-size: 0.85rem;
 }
@@ -1014,10 +1043,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
    tinted card with more visual weight than a plain .lb-card so it reads as
    the page's centrepiece rather than just another section. */
 .explorer {
-  border: 1px solid var(--border);
-  border-radius: 14px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, var(--bg)), var(--bg) 60%);
-  box-shadow: var(--shadow-lg);
   padding: 1.5rem 1.6rem 1.7rem;
   margin-bottom: 2rem;
 }
@@ -1057,10 +1083,17 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
 }
+
+/* Shared "hero" card shape - .explorer, .trends-callout and .era-card each
+   independently declared an identical border; .explorer and .era-card
+   additionally share the same larger radius and heavier shadow (the two
+   full feature cards, vs. trends-callout's smaller banner). */
+.explorer, .trends-callout, .era-card { border: 1px solid var(--border); }
+.explorer, .era-card { border-radius: var(--radius-3xl); box-shadow: var(--shadow-lg); }
 
 /* /stats - a prominent, clickable banner pointing at /stats/trends (Decades),
    sitting above the region filter so it isn't just a small link buried in
@@ -1068,7 +1101,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
    pattern as a.queue-item on the More page. */
 .trends-callout {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.3rem;
+  border-radius: var(--radius-xl); padding: 1rem 1.3rem;
   margin: 1.25rem 0 1.75rem;
   background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, var(--bg)), var(--bg) 75%);
   box-shadow: var(--shadow);
@@ -1099,7 +1132,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 .decade-pill.active { background: var(--bg); border-color: var(--accent); box-shadow: var(--shadow); font-weight: 700; }
 .decade-pill:hover:not(.active) { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
-.era-card { border: 1px solid var(--border); border-radius: 14px; margin-bottom: 2rem; overflow: hidden; box-shadow: var(--shadow-lg); }
+.era-card { margin-bottom: 2rem; overflow: hidden; }
 .era-head {
   padding: 1.4rem 1.6rem 1.1rem;
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--bg)), var(--bg) 75%);
@@ -1112,7 +1145,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 .winners-strip { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .winner-chip {
   display: flex; align-items: baseline; gap: 0.4rem; border: 1px solid var(--border);
-  border-radius: 999px; padding: 0.3rem 0.75rem 0.3rem 0.6rem; font-size: 0.82rem; background: var(--bg);
+  border-radius: var(--radius-pill); padding: 0.3rem 0.75rem 0.3rem 0.6rem; font-size: 0.82rem; background: var(--bg);
 }
 .winner-chip .yr { font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
 .winner-chip .soc { color: var(--muted); }
@@ -1219,11 +1252,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 
 .install-hint {
   position: relative;
-  background: var(--row-alt);
-  border-left: 3px solid var(--gold);
-  border-radius: 4px;
   padding: 0.75rem 2.2rem 0.75rem 1rem;
-  margin-bottom: 1.25rem;
 }
 .install-hint p { margin: 0; font-size: 0.9rem; }
 .install-hint-close {
@@ -1273,11 +1302,8 @@ a.queue-item:hover { border-color: var(--accent); }
   display: block;
   text-decoration: none;
   color: inherit;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
+  border-radius: var(--radius-lg);
   padding: 0.9rem 1rem;
-  box-shadow: var(--shadow);
 }
 .adj-card:hover { border-color: var(--accent); }
 .adj-card .name { display: block; font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-top: 0.4rem; }
@@ -1301,8 +1327,8 @@ a.queue-item:hover { border-color: var(--accent); }
    quietly implied here by matching the look of a richer page. */
 .venue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .venue-card {
-  display: block; text-decoration: none; color: inherit; border: 1px solid var(--border);
-  border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); background: var(--bg);
+  display: block; text-decoration: none; color: inherit;
+  border-radius: var(--radius-xl); padding: 1rem 1.1rem;
 }
 .venue-card:hover { border-color: var(--accent); }
 .venue-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent); }
@@ -1311,8 +1337,8 @@ a.queue-item:hover { border-color: var(--accent); }
 
 .resident-list { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.75rem; }
 .resident-card {
-  display: flex; flex-direction: column; gap: 0.1rem; border: 1px solid var(--border);
-  border-radius: 8px; padding: 0.55rem 0.9rem; text-decoration: none; color: inherit; background: var(--bg);
+  display: flex; flex-direction: column; gap: 0.1rem;
+  border-radius: var(--radius-lg); padding: 0.55rem 0.9rem; text-decoration: none; color: inherit;
 }
 .resident-card:hover { border-color: var(--accent); }
 .resident-card .name { font-weight: 600; color: var(--accent); font-size: 0.9rem; }
