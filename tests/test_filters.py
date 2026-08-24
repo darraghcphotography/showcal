@@ -4,7 +4,7 @@ local time via zoneinfo, rather than just reformatting the string as-is.
 Ireland alternates GMT/BST, so this has to actually shift the clock, not
 apply a fixed offset - see the 2026-08-05 bug where "Latest version
 deployed" was showing exactly one hour behind during BST."""
-from app.filters import initials, irish_datetime
+from app.filters import initials, irish_datetime, place_label
 
 
 def test_bst_summer_timestamp_shifts_forward_one_hour():
@@ -27,6 +27,20 @@ def test_malformed_value_falls_back_unchanged():
 def test_initials_skips_connecting_words():
     assert initials("The Hired Man") == "HM"
     assert initials("Shrek the Musical") == "SM"
+
+
+def test_place_label_drops_the_duplicate_when_town_equals_county():
+    assert place_label("Dublin", "Dublin") == "Dublin"
+
+
+def test_place_label_joins_a_real_town_and_county():
+    assert place_label("Ballyshannon", "Donegal") == "Ballyshannon, Donegal"
+
+
+def test_place_label_handles_a_missing_half():
+    assert place_label("Ballyshannon", None) == "Ballyshannon"
+    assert place_label(None, "Donegal") == "Donegal"
+    assert place_label(None, None) == ""
 
 
 def test_initials_two_words_no_stopwords():

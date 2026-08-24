@@ -668,6 +668,21 @@ def join_paragraphs(lines):
     return "\n\n".join(p.strip() for p in paragraphs if p.strip())
 
 
+_TITLE_AFTER_DIGIT_RE = re.compile(r"(\d)([A-Z])")
+
+
+def _title_case(all_caps):
+    """str.title() capitalizes the first letter after ANY non-alphabetic
+    character, including a digit - "25TH ANNUAL..." becomes "25Th Annual...",
+    not "25th Annual...". Ordinals are common in show titles ("The 25th
+    Annual Putnam County Spelling Bee"), so this undoes just that one
+    artifact afterwards rather than reimplementing title-casing from
+    scratch - every other .title() behavior (hyphens, apostrophes) is left
+    exactly as it was, since only the digit case was ever reported wrong."""
+    titled = all_caps.title()
+    return _TITLE_AFTER_DIGIT_RE.sub(lambda m: m.group(1) + m.group(2).lower(), titled)
+
+
 def split_reviews(body_lines, tier_by_name, source_issue, known_societies):
     """body_lines is the whole review section's (text, width_ratio,
     is_headline) lines, in reading order. Splits on whichever line's text
@@ -690,7 +705,7 @@ def split_reviews(body_lines, tier_by_name, source_issue, known_societies):
         society_raw, show_raw, review_text = parsed
         reviews.append({
             "society_raw": society_raw,
-            "show_raw": show_raw.title() if show_raw.isupper() else show_raw,
+            "show_raw": _title_case(show_raw) if show_raw.isupper() else show_raw,
             "adjudicator": adjudicator,
             "tier": tier_by_name[adjudicator],
             "review_text": review_text,

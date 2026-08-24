@@ -6,7 +6,7 @@
   <p class="meta"><a href="{{ url_for('public.venues_index') }}">&larr; All venues</a></p>
   <h1>{{ venue['name'] }}</h1>
 
-  {% set place = [venue['town'], venue['county']]|select|join(', ') %}
+  {% set place = venue['town']|place_label(venue['county']) %}
   {% if place or venue['region'] %}
     <p class="meta">{{ place }}{% if place and venue['region'] %} &middot; {% endif %}{% if venue['region'] %}{{ venue['region'] }} region{% endif %}</p>
   {% endif %}

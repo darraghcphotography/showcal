@@ -21,10 +21,6 @@
 {% block content %}
   <p><a href="{{ url_for('public.societies_list') }}">&larr; Back to browse</a></p>
   <h1>{{ society['name'] }}</h1>
-  <p class="meta">
-    {{ society['region'] }} &middot; {{ tier.tier_label(society['section']) }}
-    {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
-  </p>
 
   <div class="detail-hero society-hero">
     {% if society['logo_filename'] %}
@@ -33,6 +29,21 @@
       <div class="poster is-placeholder" aria-hidden="true"><span>{{ society['name']|initials }}</span></div>
     {% endif %}
     <div>
+      <p class="meta">
+        {{ society['region'] }} &middot; {{ tier.tier_label(society['section']) }}
+        {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
+      </p>
+
+      {% if active_since or total_wins %}
+        <div class="trophy-case">
+          {% if active_since %}<span class="tag tag-gold">Active since {{ active_since }}</span>{% endif %}
+          {% if best_show_wins %}<span class="tag tag-gold">🏆 {{ best_show_wins }}&times; Best Overall Show</span>{% endif %}
+          {% if best_show_second %}<span class="tag tag-silver">🥈 {{ best_show_second }}&times; Best Overall Show runner-up</span>{% endif %}
+          {% if best_show_third %}<span class="tag tag-bronze">🥉 {{ best_show_third }}&times; Best Overall Show third place</span>{% endif %}
+          {% if total_wins %}<span class="tag tag-gold">{{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}</span>{% endif %}
+        </div>
+      {% endif %}
+
       {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
       {% if society['about'] %}<p class="notes">{{ society['about'] }}</p>{% endif %}
       {% set social_links = [] %}
@@ -48,16 +59,6 @@
       {% endif %}
     </div>
   </div>
-
-  {% if active_since or total_wins %}
-    <div class="trophy-case">
-      {% if active_since %}<span class="tag tag-gold">Active since {{ active_since }}</span>{% endif %}
-      {% if best_show_wins %}<span class="tag tag-gold">🏆 {{ best_show_wins }}&times; Best Overall Show</span>{% endif %}
-      {% if best_show_second %}<span class="tag tag-silver">🥈 {{ best_show_second }}&times; Best Overall Show runner-up</span>{% endif %}
-      {% if best_show_third %}<span class="tag tag-bronze">🥉 {{ best_show_third }}&times; Best Overall Show third place</span>{% endif %}
-      {% if total_wins %}<span class="tag tag-gold">{{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}</span>{% endif %}
-    </div>
-  {% endif %}
 
   {% if badges %}
     <div class="badge-row">
@@ -150,7 +151,7 @@
             {% elif show['has_historical_review'] %}
               <a href="{{ url_for('public.show_detail', show_id=show['id']) }}#showtimes-review">Read ShowTimes review</a>
             {% else %}
-              {{ show['review_status'] }}
+              {{ show['review_status']|destub or '—' }}
             {% endif %}
           </td>
           <td class="award-badges">
@@ -189,7 +190,7 @@
             {% elif show['has_historical_review'] %}
               <a href="{{ url_for('public.show_detail', show_id=show['id']) }}#showtimes-review">Read ShowTimes review</a>
             {% else %}
-              {{ show['review_status'] }}
+              {{ show['review_status']|destub or '—' }}
             {% endif %}
           </span>
         </div>

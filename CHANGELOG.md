@@ -1,3 +1,7 @@
+A small polish batch: dates now read the same everywhere (no more "20-04-2027" mixed in with "20-28 Apr 2027"), venue cards don't repeat themselves when a town and county share a name ("Dublin, Dublin"), a literal "None" no longer shows up in a society's Review column, ordinal show titles like "The 25th Annual Putnam County Spelling Bee" keep their lowercase "th"/"nd", and a society's own page makes better use of its header on desktop
+
+---
+
 Show posters now load much faster - they used to serve at full upload size (some over a megabyte) no matter how small they actually render on the page. New uploads are resized automatically, and every existing poster's been converted too
 
 ---

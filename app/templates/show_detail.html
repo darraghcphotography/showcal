@@ -102,7 +102,7 @@
             {% elif historical_review %}
               <a href="#showtimes-review">Read the {{ 'ShowTimes ' if historical_review['source'] != 'manual' else '' }}review below</a>
             {% else %}
-              {{ show['review_status'] }}
+              {{ show['review_status']|destub or '—' }}
             {% endif %}
           </dd>
         {% endif %}

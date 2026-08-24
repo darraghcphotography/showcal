@@ -31,7 +31,7 @@
       {% for v in venues %}
         <a class="venue-card" href="{{ url_for('public.venue_detail', venue=v['slug']) }}">
           <h3>{{ v['name'] }}</h3>
-          {% set place = [v['town'], v['county']]|select|join(', ') %}
+          {% set place = v['town']|place_label(v['county']) %}
           {% if place or v['region'] %}
             <div class="county">{{ place }}{% if place and v['region'] %} &middot; {% endif %}{{ v['region'] or '' }}</div>
           {% endif %}

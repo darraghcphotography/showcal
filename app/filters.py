@@ -86,6 +86,16 @@ def destub(value):
     return value
 
 
+def place_label(town, county):
+    """Town and county for display, e.g. "Ballyshannon, Donegal" - but just
+    "Dublin" rather than "Dublin, Dublin" when a venue's town and county
+    share a name (real for several city venues - found 2026-08-24)."""
+    parts = [p for p in (town, county) if p]
+    if len(parts) == 2 and parts[0] == parts[1]:
+        return parts[0]
+    return ", ".join(parts)
+
+
 def month_label(value):
     """'2026-09' -> 'September 2026', for the homepage's month headings.
 
@@ -145,6 +155,7 @@ def register(app):
     app.jinja_env.filters["irish_datetime"] = irish_datetime
     app.jinja_env.filters["date_range"] = date_range
     app.jinja_env.filters["month_label"] = month_label
+    app.jinja_env.filters["place_label"] = place_label
     app.jinja_env.filters["initials"] = initials
     app.jinja_env.filters["maps_search_url"] = maps_search_url
     app.jinja_env.filters["maps_directions_url"] = maps_directions_url
