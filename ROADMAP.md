@@ -101,14 +101,26 @@ always.
    who asked for the show's initials rather than a single letter - built that way. The
    `upcoming_entry` macro in `index.html` (shared by the month list, "Near me", and "Closest
    first") now renders a `.whatson-poster.is-placeholder` box - same 54px/2:3 footprint, border
-   and shadow as a real poster - with a new `show_initials` filter (`app/filters.py`, skips small
+   and shadow as a real poster - with a new `initials` filter (`app/filters.py`, skips small
    connecting words: "The Hired Man" -> "HM", single-word titles fall back to their own first two
-   letters: "Oklahoma!" -> "OK"). 618 tests green (6 new for the filter, 1 updated for the new
-   render). Verified locally against real upcoming-show data via a Playwright screenshot, not just
-   the test suite - October's run of bare listings now reads the same as August's.
-3. **Two-column show-detail layout at desktop widths** - poster/logo one side, facts the other.
-   Currently a 240px poster sits alone in a narrow column with the right two-thirds of a 1280px
-   screen empty. Mock up first; check society-detail too, same shape of problem.
+   letters: "Oklahoma!" -> "OK"). Verified locally against real upcoming-show data via a Playwright
+   screenshot, not just the test suite - October's run of bare listings now reads the same as
+   August's.
+3. ~~Two-column show-detail layout at desktop widths.~~ **Done 2026-08-24**, pushed, not yet
+   deployed. Mockup (`https://claude.ai/code/artifact/82fca774-ad46-466e-a3ca-f1d69282d72b`)
+   approved as-is. A new `.detail-hero` grid (260px poster / flex facts column, 160px for a
+   society's square logo via the `.society-hero` modifier) wraps the existing poster/logo image
+   and the facts that used to sit in their own stacked block below it - `show_detail.html`'s
+   about-society blurb + `<dl class="detail-list">`, `society_detail.html`'s
+   notes/about/social-links. Everything above (title, byline) and below (review, awards, trophy
+   case, badges, show history) stays full width, untouched. Collapses back to one column below
+   700px, same as it already looked on mobile. A show/society with no image gets the item-2
+   initials placeholder in the slot instead of falling back to one column - the `initials` filter
+   was renamed from `show_initials` to cover both uses. 622 tests green (4 new, covering the
+   poster/logo vs. placeholder branch on both pages). Verified with local Playwright screenshots
+   (poster, placeholder, and the mobile stack) using real dummy image files, since the real
+   uploads aren't reachable locally - the earlier screenshot without them showed a browser's
+   default broken-image box, not a layout bug.
 4. **Reviews page card pass** - same treatment `/societies` already got. It's now the one list page
    still reading as a bare link list (season-grouped rows, ~90 "READ ON AIMS.IE" links per season,
    almost no visual weight difference row to row) next to everything else that got redesigned.

@@ -1,3 +1,7 @@
+A show or society page now puts its poster/logo beside its details instead of above them at wider screen widths, so the page uses the space it has instead of leaving most of it empty next to a small image
+
+---
+
 A show with no poster uploaded yet now shows a tinted initials box on the homepage instead of no image at all - so a month with fewer posters on file doesn't visibly thin out next to one with more
 
 ---

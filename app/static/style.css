@@ -581,6 +581,53 @@ details table { margin-top: 0.5rem; }
   box-shadow: var(--shadow);
 }
 
+/* Show/society detail pages, desktop widths (Second Act backlog item 3):
+   poster/logo one side, the facts (dates/venue/tickets/crew, or
+   notes/social links) the other, instead of a 240px image sitting alone in
+   a 900px container with nothing beside it. Collapses to the original
+   single-column stack below 700px - narrow viewports already looked right,
+   only the wasted desktop space needed fixing. */
+.detail-hero {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+.detail-hero .poster { max-width: none; margin-bottom: 0; }
+.detail-hero .detail-list { margin-bottom: 0.8rem; }
+@media (max-width: 700px) {
+  .detail-hero { grid-template-columns: 1fr; }
+  .detail-hero .poster { max-width: 240px; }
+}
+
+/* Same hero, smaller fixed column - a society logo is usually square and
+   doesn't carry a poster's visual weight. */
+.society-hero { grid-template-columns: 160px 1fr; }
+@media (max-width: 700px) {
+  .society-hero .poster { max-width: 160px; }
+}
+
+/* No poster/logo uploaded yet - same box, same slot, filled with the
+   name's initials instead of leaving the hero row one-sided (same pattern
+   as .whatson-poster.is-placeholder on the homepage). */
+.poster.is-placeholder {
+  aspect-ratio: 2 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: transparent;
+}
+.society-hero .poster.is-placeholder { aspect-ratio: 1; }
+.poster.is-placeholder span {
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  font-size: 2.6rem;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
 .poster-thumb {
   max-width: 80px;
   height: auto;

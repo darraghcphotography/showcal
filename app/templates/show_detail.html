@@ -33,82 +33,87 @@
     </div>
   {% endif %}
 
-  {% if show['poster_filename'] %}
-    <img class="poster" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
-  {% endif %}
-
-  {% if show['society_about'] or show['society_website_url'] or show['society_facebook_url'] or show['society_instagram_url'] %}
-    <h2>About {{ show['society_name'] }}</h2>
-    {% if show['society_about'] %}<p class="notes">{{ show['society_about'] }}</p>{% endif %}
-    {% set social_links = [] %}
-    {% if show['society_website_url'] %}{% set _ = social_links.append(('Website', show['society_website_url'])) %}{% endif %}
-    {% if show['society_facebook_url'] %}{% set _ = social_links.append(('Facebook', show['society_facebook_url'])) %}{% endif %}
-    {% if show['society_instagram_url'] %}{% set _ = social_links.append(('Instagram', show['society_instagram_url'])) %}{% endif %}
-    {% if social_links %}
-      <p class="meta">
-        {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ icons.external() }}{{ label }}</a>{% endfor %}
-      </p>
+  <div class="detail-hero">
+    {% if show['poster_filename'] %}
+      <img class="poster" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
+    {% else %}
+      <div class="poster is-placeholder" aria-hidden="true"><span>{{ show['show']|initials }}</span></div>
     {% endif %}
-  {% endif %}
-
-  <dl class="detail-list">
-    <dt>Dates</dt>
-    <dd>
-      {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ 'Not on record' if season_ended else 'TBA' }}{% endif %}
-      {% if gcal_show_url %}
-        <br><a href="{{ gcal_show_url }}" rel="noopener" target="_blank">📅 Add show to Google Calendar</a>
-      {% endif %}
-    </dd>
-
-    <dt>Venue</dt>
-    <dd>
-      {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
-      {% else %}{{ show['venue'] or '—' }}{% endif %}
-      {% if show['venue_capacity'] or show['venue_town'] %}
-        <span class="meta">
-          {% if show['venue_capacity'] %}&middot; {{ show['venue_capacity'] }} seats{% endif %}
-          {% if show['venue_town'] %}&middot; {{ show['venue_town'] }}{% endif %}
-        </span>
-      {% endif %}
-    </dd>
-
-    {% if show['ticket_url'] %}
-    <dt>Tickets</dt>
-    <dd><a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a></dd>
-    {% endif %}
-
-    <dt>Director</dt>
-    <dd>{{ show['director'] or '—' }}</dd>
-
-    <dt>Musical Director</dt>
-    <dd>{{ show['musical_director'] or '—' }}</dd>
-
-    <dt>Choreographer</dt>
-    <dd>{{ show['choreographer'] or '—' }}</dd>
-
-    {% if not (is_upcoming and show['review_status'] == 'None' and not historical_review) %}
-      <dt>Review</dt>
-      <dd>
-        {% if show['review_status'] == 'Published' and show['review_url'] %}
-          <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read the AIMS review</a>
-          {% if show['review_author'] %}
-            <span class="meta">&middot; reviewed by {{ show['review_author'] }}</span>
-          {% elif reviewed_by %}
-            <span class="meta">&middot; reviewed by <a href="{{ url_for('public.adjudicator_detail', adjudicator_id=reviewed_by['id']) }}">{{ reviewed_by['name'] }}</a></span>
-          {% endif %}
-        {% elif historical_review %}
-          <a href="#showtimes-review">Read the {{ 'ShowTimes ' if historical_review['source'] != 'manual' else '' }}review below</a>
-        {% else %}
-          {{ show['review_status'] }}
+    <div>
+      {% if show['society_about'] or show['society_website_url'] or show['society_facebook_url'] or show['society_instagram_url'] %}
+        <h2>About {{ show['society_name'] }}</h2>
+        {% if show['society_about'] %}<p class="notes">{{ show['society_about'] }}</p>{% endif %}
+        {% set social_links = [] %}
+        {% if show['society_website_url'] %}{% set _ = social_links.append(('Website', show['society_website_url'])) %}{% endif %}
+        {% if show['society_facebook_url'] %}{% set _ = social_links.append(('Facebook', show['society_facebook_url'])) %}{% endif %}
+        {% if show['society_instagram_url'] %}{% set _ = social_links.append(('Instagram', show['society_instagram_url'])) %}{% endif %}
+        {% if social_links %}
+          <p class="meta">
+            {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ icons.external() }}{{ label }}</a>{% endfor %}
+          </p>
         {% endif %}
-      </dd>
-    {% endif %}
+      {% endif %}
 
-    {% if adjudication_cutoff %}
-      <dt>Adjudication submission cut-off</dt>
-      <dd>{{ adjudication_cutoff|irish_date }} <span class="meta">(6 weeks before opening night, per AIMS rules)</span></dd>
-    {% endif %}
-  </dl>
+      <dl class="detail-list">
+        <dt>Dates</dt>
+        <dd>
+          {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ 'Not on record' if season_ended else 'TBA' }}{% endif %}
+          {% if gcal_show_url %}
+            <br><a href="{{ gcal_show_url }}" rel="noopener" target="_blank">📅 Add show to Google Calendar</a>
+          {% endif %}
+        </dd>
+
+        <dt>Venue</dt>
+        <dd>
+          {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
+          {% else %}{{ show['venue'] or '—' }}{% endif %}
+          {% if show['venue_capacity'] or show['venue_town'] %}
+            <span class="meta">
+              {% if show['venue_capacity'] %}&middot; {{ show['venue_capacity'] }} seats{% endif %}
+              {% if show['venue_town'] %}&middot; {{ show['venue_town'] }}{% endif %}
+            </span>
+          {% endif %}
+        </dd>
+
+        {% if show['ticket_url'] %}
+        <dt>Tickets</dt>
+        <dd><a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a></dd>
+        {% endif %}
+
+        <dt>Director</dt>
+        <dd>{{ show['director'] or '—' }}</dd>
+
+        <dt>Musical Director</dt>
+        <dd>{{ show['musical_director'] or '—' }}</dd>
+
+        <dt>Choreographer</dt>
+        <dd>{{ show['choreographer'] or '—' }}</dd>
+
+        {% if not (is_upcoming and show['review_status'] == 'None' and not historical_review) %}
+          <dt>Review</dt>
+          <dd>
+            {% if show['review_status'] == 'Published' and show['review_url'] %}
+              <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read the AIMS review</a>
+              {% if show['review_author'] %}
+                <span class="meta">&middot; reviewed by {{ show['review_author'] }}</span>
+              {% elif reviewed_by %}
+                <span class="meta">&middot; reviewed by <a href="{{ url_for('public.adjudicator_detail', adjudicator_id=reviewed_by['id']) }}">{{ reviewed_by['name'] }}</a></span>
+              {% endif %}
+            {% elif historical_review %}
+              <a href="#showtimes-review">Read the {{ 'ShowTimes ' if historical_review['source'] != 'manual' else '' }}review below</a>
+            {% else %}
+              {{ show['review_status'] }}
+            {% endif %}
+          </dd>
+        {% endif %}
+
+        {% if adjudication_cutoff %}
+          <dt>Adjudication submission cut-off</dt>
+          <dd>{{ adjudication_cutoff|irish_date }} <span class="meta">(6 weeks before opening night, per AIMS rules)</span></dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
 
   {% if historical_review %}
     <h2 id="showtimes-review">{{ 'ShowTimes review' if historical_review['source'] != 'manual' else 'Review' }}</h2>

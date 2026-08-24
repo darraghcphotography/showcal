@@ -20,27 +20,34 @@
 {% endmacro %}
 {% block content %}
   <p><a href="{{ url_for('public.societies_list') }}">&larr; Back to browse</a></p>
-  {% if society['logo_filename'] %}
-    <img class="poster" src="{{ url_for('public.uploaded_file', filename=society['logo_filename']) }}" alt="{{ society['name'] }} logo">
-  {% endif %}
   <h1>{{ society['name'] }}</h1>
   <p class="meta">
     {{ society['region'] }} &middot; {{ tier.tier_label(society['section']) }}
     {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
   </p>
-  {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
-  {% if society['about'] %}<p class="notes">{{ society['about'] }}</p>{% endif %}
-  {% set social_links = [] %}
-  {% if society['website_url'] %}{% set _ = social_links.append(('Website', society['website_url'])) %}{% endif %}
-  {% if society['facebook_url'] %}{% set _ = social_links.append(('Facebook', society['facebook_url'])) %}{% endif %}
-  {% if society['instagram_url'] %}{% set _ = social_links.append(('Instagram', society['instagram_url'])) %}{% endif %}
-  {% if society['tiktok_url'] %}{% set _ = social_links.append(('TikTok', society['tiktok_url'])) %}{% endif %}
-  {% if society['other_url'] %}{% set _ = social_links.append((society['other_label'] or 'More info', society['other_url'])) %}{% endif %}
-  {% if social_links %}
-    <p class="meta">
-      {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{% endfor %}
-    </p>
-  {% endif %}
+
+  <div class="detail-hero society-hero">
+    {% if society['logo_filename'] %}
+      <img class="poster" src="{{ url_for('public.uploaded_file', filename=society['logo_filename']) }}" alt="{{ society['name'] }} logo">
+    {% else %}
+      <div class="poster is-placeholder" aria-hidden="true"><span>{{ society['name']|initials }}</span></div>
+    {% endif %}
+    <div>
+      {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
+      {% if society['about'] %}<p class="notes">{{ society['about'] }}</p>{% endif %}
+      {% set social_links = [] %}
+      {% if society['website_url'] %}{% set _ = social_links.append(('Website', society['website_url'])) %}{% endif %}
+      {% if society['facebook_url'] %}{% set _ = social_links.append(('Facebook', society['facebook_url'])) %}{% endif %}
+      {% if society['instagram_url'] %}{% set _ = social_links.append(('Instagram', society['instagram_url'])) %}{% endif %}
+      {% if society['tiktok_url'] %}{% set _ = social_links.append(('TikTok', society['tiktok_url'])) %}{% endif %}
+      {% if society['other_url'] %}{% set _ = social_links.append((society['other_label'] or 'More info', society['other_url'])) %}{% endif %}
+      {% if social_links %}
+        <p class="meta">
+          {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{% endfor %}
+        </p>
+      {% endif %}
+    </div>
+  </div>
 
   {% if active_since or total_wins %}
     <div class="trophy-case">

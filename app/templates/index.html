@@ -14,7 +14,7 @@
       </a>
     {% else %}
       <a class="whatson-poster is-placeholder" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
-        <span>{{ show['show']|show_initials }}</span>
+        <span>{{ show['show']|initials }}</span>
       </a>
     {% endif %}
     <div class="whatson-body">
