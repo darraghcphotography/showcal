@@ -1,3 +1,7 @@
+A new coat of paint across the whole site - warm paper instead of stark white, a single restrained ink accent instead of burgundy-and-gold, a bolder heading typeface. Same pages, same layout, same light/dark toggle - just a calmer, more considered look
+
+---
+
 Every page now loads faster, especially on a slow connection - the site compresses its responses now, which it never did before. Nothing to see, just quicker
 
 ---

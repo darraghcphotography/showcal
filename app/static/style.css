@@ -1,18 +1,21 @@
 :root {
   color-scheme: light dark;
-  --fg: #1a1a1a;
-  --bg: #ffffff;
-  --muted: #666;
-  --border: #ddd;
-  --accent: #8c1f3f;
+  /* Rehearsal Room palette (2026-08-24) - warm paper instead of pure white,
+     one restrained ink accent instead of burgundy-and-gold. Approved via
+     mockup against real page content before this swap - see ROADMAP.md. */
+  --fg: #26241f;
+  --bg: #faf8f3;
+  --muted: #726c60;
+  --border: #ddd6c6;
+  --accent: #2b3a42;
   --accent-contrast: #ffffff;
-  --gold: #b8860b;
+  --gold: #a6842f;
   --silver: #7d8790;
   --bronze: #a9702f;
   --danger: #a02f2f;
   --success: #2f7a3f;
   --warning: #a06c00;
-  --row-alt: #f7f7f8;
+  --row-alt: #f1ede4;
   --tier-gilbert: #2f6db0;
   --tier-sullivan: #7a4fb0;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -40,19 +43,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --fg: #ececec;
-    --bg: #17161a;
-    --muted: #a4a0a8;
-    --border: #38343c;
-    --accent: #d45e81;
-    --accent-contrast: #2a0f18;
-    --gold: #dcb84f;
+    --fg: #ece7db;
+    --bg: #201d19;
+    --muted: #a39b89;
+    --border: #3d3830;
+    --accent: #8fb0ba;
+    --accent-contrast: #16262c;
+    --gold: #d4af6a;
     --silver: #b9bfc8;
     --bronze: #d68a4a;
     --danger: #ff8b8b;
     --success: #7fd48f;
     --warning: #e0b84a;
-    --row-alt: #221f26;
+    --row-alt: #2a2621;
     --tier-gilbert: #8fb8f5;
     --tier-sullivan: #c9a6f5;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -62,19 +65,19 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --fg: #ececec;
-  --bg: #17161a;
-  --muted: #a4a0a8;
-  --border: #38343c;
-  --accent: #d45e81;
-  --accent-contrast: #2a0f18;
-  --gold: #dcb84f;
+  --fg: #ece7db;
+  --bg: #201d19;
+  --muted: #a39b89;
+  --border: #3d3830;
+  --accent: #8fb0ba;
+  --accent-contrast: #16262c;
+  --gold: #d4af6a;
   --silver: #b9bfc8;
   --bronze: #d68a4a;
   --danger: #ff8b8b;
   --success: #7fd48f;
   --warning: #e0b84a;
-  --row-alt: #221f26;
+  --row-alt: #2a2621;
   --tier-gilbert: #8fb8f5;
   --tier-sullivan: #c9a6f5;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -107,29 +110,38 @@ body {
   line-height: 1.5;
 }
 
-/* Phase 3 typography (see the "Programme Notes" mockup) - a self-hosted
-   display serif on public-page headings; admin/society stay system-ui,
-   matching this codebase's existing public/admin split (see mobile_chrome
-   in base.html, which body.public-chrome reuses). Self-hosted because the
-   CSP (app/__init__.py) blocks Google Fonts and any other CDN font outright,
-   at both the stylesheet and font-file level. */
+/* Public-page heading typeface - a self-hosted display sans on public-page
+   headings; admin/society stay system-ui, matching this codebase's existing
+   public/admin split (see mobile_chrome in base.html, which body.public-chrome
+   reuses). Self-hosted because the CSP (app/__init__.py) blocks Google Fonts
+   and any other CDN font outright, at both the stylesheet and font-file level.
+   Archivo replaced Fraunces 2026-08-24 as part of the Rehearsal Room theme -
+   a plain, confident grotesk set tight and bold, a deliberate contrast with
+   the soft display serif it replaced. */
 @font-face {
-  font-family: "Fraunces";
+  font-family: "Archivo";
   font-style: normal;
-  font-weight: 600;
+  font-weight: 700;
   font-display: swap;
-  src: url("fonts/fraunces-600.woff2") format("woff2");
+  src: url("fonts/archivo-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("fonts/archivo-800.woff2") format("woff2");
 }
 body.public-chrome .container h1 {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-weight: 600;
+  font-family: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 800;
   font-size: 2.1rem;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 body.public-chrome .container h2 {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-weight: 600;
+  font-family: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 700;
   text-wrap: balance;
 }
 
@@ -659,8 +671,8 @@ details table { margin-top: 0.5rem; }
 }
 .society-hero .poster.is-placeholder { aspect-ratio: 1; }
 .poster.is-placeholder span {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-weight: 600;
+  font-family: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 700;
   font-size: 2.6rem;
   letter-spacing: 0.02em;
   color: var(--accent);
@@ -725,8 +737,8 @@ details table { margin-top: 0.5rem; }
   border-color: transparent;
 }
 .whatson-poster.is-placeholder span {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-weight: 600;
+  font-family: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: 0.02em;
   color: var(--accent);
@@ -1397,7 +1409,7 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   padding: 0.25rem 0;
 }
 .tab-link svg { width: 22px; height: 22px; }
-.tab-link.active { color: #c8102e; }
+.tab-link.active { color: var(--accent); }
 
 .install-hint {
   position: relative;
