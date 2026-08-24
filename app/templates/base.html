@@ -234,6 +234,40 @@
         el.form.submit();
         return;
       }
+      // A "Near me" checkbox (data-geolocate="<form id>") - asks the browser
+      // for a one-off position, stashes it in that form's hidden lat/lng/near
+      // fields, then submits. Unchecking clears near/lat/lng and re-submits
+      // straight away, no geolocation prompt needed to turn it back off.
+      var geoFormId = el.getAttribute('data-geolocate');
+      if (geoFormId) {
+        var geoForm = document.getElementById(geoFormId);
+        var errorEl = document.getElementById('near-me-error');
+        if (!el.checked) {
+          if (geoForm) {
+            geoForm.querySelector('#near-me-flag').value = '';
+            geoForm.querySelector('#near-me-lat').value = '';
+            geoForm.querySelector('#near-me-lng').value = '';
+            geoForm.submit();
+          }
+          return;
+        }
+        if (errorEl) errorEl.style.display = 'none';
+        if (!geoForm || !navigator.geolocation) {
+          el.checked = false;
+          if (errorEl) errorEl.style.display = '';
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          geoForm.querySelector('#near-me-flag').value = '1';
+          geoForm.querySelector('#near-me-lat').value = pos.coords.latitude;
+          geoForm.querySelector('#near-me-lng').value = pos.coords.longitude;
+          geoForm.submit();
+        }, function() {
+          el.checked = false;
+          if (errorEl) errorEl.style.display = '';
+        });
+        return;
+      }
       var toggleId = el.getAttribute('data-toggle-target');
       if (toggleId) {
         var target = document.getElementById(toggleId);

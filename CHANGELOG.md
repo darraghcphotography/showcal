@@ -1,3 +1,12 @@
+The homepage has a "Near me" toggle now - it sorts upcoming shows by distance from you, for the roughly third of venues that have a map location on record so far
+A show page now shows the venue's seating capacity and town, an "About the society" blurb with its social links, and a one-line note on how many times the show's been staged on the circuit and who staged it most recently
+A society's own show-history table now links every venue, and its next announced show gets a highlighted callout with a "Tickets on sale" tag when one's set
+Six near-identical show titles are one now, not two: Fame/Fame: The Musical (which also reunited Leixlip Musical & Variety Group's Fame with six award nominations that weren't showing on its own page), Annie - The Musical/Annie, Shrek/Shrek the Musical, Elf - The Musical/Elf
+11 shows that read "review published" with no actual link now read "no review yet" instead, rather than promising a review a visitor can't find
+3 more societies now have a default venue on record
+
+---
+
 84 more societies now have a default venue on record - 123 of 194, up from 39. It prefills when a society adds a show, so there's one less field to fill in, and it puts a real building behind entries that previously read just "Roscommon" or "Donegal"
 15 more venues filled in, including the Grand Opera House Belfast, The Helix, Hawk's Well Sligo, Lime Tree Limerick, glór Ennis, Watergate Kilkenny, Mermaid Bray, Dunamaise Portlaoise and Backstage Longford - 28 venues now carry a seating capacity and 43 have a map pin
 Dún Laoghaire's Pavilion Theatre was on record twice under two spellings; it's one venue now

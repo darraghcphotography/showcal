@@ -57,13 +57,28 @@ def paginate_args(total):
     return per_page, page, total_pages
 
 
+def _haversine_km(lat1, lng1, lat2, lng2):
+    """Great-circle distance in km - Earth's radius is close enough for
+    "how far is this venue", not a surveying tool."""
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lng2 - lng1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+NEAR_ME_LIMIT = 20
+
+
 @bp.route("/")
 def index():
     db = get_db()
 
     upcoming_region = request.args.get("upcoming_region", "")
     upcoming_query = """
-        SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug
+        SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug,
+               venues.latitude AS venue_lat, venues.longitude AS venue_lng
         FROM shows JOIN societies ON societies.id = shows.society_id
         LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE shows.moderation_status = 'approved'
@@ -81,11 +96,38 @@ def index():
     # there is. Same WHERE, same params, so the two can't disagree.
     upcoming_total = db.execute(
         upcoming_query.replace(
-            "SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug",
+            "SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug,\n"
+            "               venues.latitude AS venue_lat, venues.longitude AS venue_lng",
             "SELECT COUNT(*)", 1,
         ),
         upcoming_params,
     ).fetchone()[0]
+
+    # "Near me" needs every upcoming show's distance computed before it can
+    # sort and cut down to the closest N, so it can't reuse the plain
+    # ORDER BY opening_date LIMIT query below - it runs its own unlimited
+    # fetch instead. Only about a third of venues have a lat/lng on record
+    # yet (the venue content pass is still working through the long tail),
+    # so this is always a partial view - near_unpinned_count says how partial.
+    near_me = request.args.get("near") == "1"
+    try:
+        near_lat = float(request.args["lat"])
+        near_lng = float(request.args["lng"])
+    except (KeyError, ValueError):
+        near_lat = near_lng = None
+    near_shows = []
+    near_unpinned_count = 0
+    if near_me and near_lat is not None:
+        all_upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
+        for row in all_upcoming:
+            if row["venue_lat"] is None or row["venue_lng"] is None:
+                near_unpinned_count += 1
+                continue
+            entry = dict(row)
+            entry["distance_km"] = _haversine_km(near_lat, near_lng, row["venue_lat"], row["venue_lng"])
+            near_shows.append(entry)
+        near_shows.sort(key=lambda s: s["distance_km"])
+        near_shows = near_shows[:NEAR_ME_LIMIT]
 
     upcoming_query += " ORDER BY shows.opening_date LIMIT ?"
     upcoming_params.append(UPCOMING_LIMIT)
@@ -114,6 +156,9 @@ def index():
         regions=REGIONS,
         upcoming_region=upcoming_region,
         changelog_teaser=changelog_teaser,
+        near_me=near_me and near_lat is not None,
+        near_shows=near_shows,
+        near_unpinned_count=near_unpinned_count,
     )
 
 
@@ -901,12 +946,13 @@ def society_detail(society_id):
 
     shows = db.execute(
         """
-        SELECT shows.*,
+        SELECT shows.*, venues.slug AS venue_slug, venues.capacity AS venue_capacity,
                EXISTS(
                    SELECT 1 FROM historical_reviews
                    WHERE historical_reviews.show_id = shows.id AND historical_reviews.moderation_status = 'approved'
                ) AS has_historical_review
         FROM shows
+        LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE society_id = ? AND moderation_status = 'approved'
         ORDER BY season DESC, show
         """,
@@ -1048,7 +1094,10 @@ def show_detail(show_id):
     db = get_db()
     show = db.execute(
         """
-        SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug
+        SELECT shows.*, societies.name AS society_name, societies.about AS society_about,
+               societies.website_url AS society_website_url, societies.facebook_url AS society_facebook_url,
+               societies.instagram_url AS society_instagram_url,
+               venues.slug AS venue_slug, venues.capacity AS venue_capacity, venues.town AS venue_town
         FROM shows JOIN societies ON societies.id = shows.society_id
         LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE shows.id = ? AND shows.moderation_status = 'approved'
@@ -1057,6 +1106,28 @@ def show_detail(show_id):
     ).fetchone()
     if show is None:
         abort(404)
+
+    # One-line "circuit" summary - how often this title has been staged and
+    # who did it most recently - reusing the same title_key identity as
+    # /titles/<title>, but only the two numbers a show page needs rather
+    # than that page's full award-tally panel.
+    circuit_summary = None
+    title_key = normalize_title(show["show"])
+    circuit_row = db.execute(
+        f"SELECT COUNT(*) AS n, MIN(season_start_year) + 1 AS since FROM productions "
+        f"WHERE title_key = ? AND {ON_RECORD_PRODUCTION}",
+        (title_key,),
+    ).fetchone()
+    if circuit_row["n"] > 1:
+        most_recent = db.execute(
+            f"""
+            SELECT society_name, season_start_year + 1 AS year FROM productions
+            WHERE title_key = ? AND {ON_RECORD_PRODUCTION} AND id != COALESCE(?, -1)
+            ORDER BY season_start_year DESC LIMIT 1
+            """,
+            (title_key, show["production_id"]),
+        ).fetchone()
+        circuit_summary = {"count": circuit_row["n"], "since": circuit_row["since"], "most_recent": most_recent}
 
     # Same "upcoming" definition as the homepage's Upcoming shows list -
     # only nudge for details on shows that haven't happened yet.
@@ -1164,7 +1235,7 @@ def show_detail(show_id):
         "show_detail.html", show=show, is_upcoming=is_upcoming,
         gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
         historical_review=historical_review, award_history=award_history,
-        season_ended=season_has_ended(db, show["season"]),
+        season_ended=season_has_ended(db, show["season"]), circuit_summary=circuit_summary,
     )
 
 

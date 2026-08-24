@@ -417,6 +417,12 @@ table.data-table {
   color: var(--muted);
 }
 
+.filter-form label.near-me-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .checkbox-label, .radio-label { flex-direction: row !important; align-items: center; gap: 0.5rem !important; }
 .radio-label { display: inline-flex !important; margin-right: 1rem; }
 
@@ -826,6 +832,8 @@ details.season-calendar summary .count { font-weight: 400; color: var(--muted); 
   margin-bottom: 1rem;
   box-shadow: var(--shadow);
 }
+
+.queue-item.next-production { border-color: var(--gold); border-width: 2px; }
 
 /* Roadmap page: a status lane per triage_status, colour-coded the same way
    .tag-gold/.tag-active/.tag-cancelled already colour those statuses

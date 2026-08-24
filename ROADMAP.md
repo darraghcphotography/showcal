@@ -1,15 +1,29 @@
-## Ready by Morning - overnight plan, 2026-08-24/25, awaiting review
+## Morning queue, 2026-08-24 - worked through same day
 
-Every item below worked through, sequenced, and turned into 14 concrete queue items (4 safe to
-start on your word alone, 6 needing a specific decision from you, 4 design reviews) plus two new
-mockups (FAQ page, "near me" redrawn against real 31% pin coverage). One real bug found while
-researching it, not previously on this list: Leixlip's 25/26 *Fame* has six live award
-nominations (incl. Best Overall Show) that don't appear on its own show page, because
-`shows.show` reads "Fame" and `historical_results.show` reads "Fame: The Musical" for the same
-production - exact-string title matching means they never link up. Full detail, real numbers, and
-the reasoning behind every recommendation: https://claude.ai/code/artifact/c85710e6-d535-46d1-8041-5e4bad7c5115
+Full plan and reasoning: https://claude.ai/code/artifact/c85710e6-d535-46d1-8041-5e4bad7c5115
 
-Nothing in it has been built. Read it, then say which queue numbers to start.
+**Done and verified live on production** (queue items 1-3, 5-6): the Fame/Fame: The Musical bug
+(Leixlip's six award nominations now show on its own page), Annie/Shrek/Elf title merges, and the
+11 published-no-link reviews cleared back to "None". Item 4 (default_venue backfill) landed 3 of
+the targeted 5-10 - re-checked against this repo's own data (the Gemini list is exhausted), and
+68 of the remaining 71 societies genuinely don't have enough venue history on record to back a
+confident call; deliberately not forced further (see `backfill_default_venues_round2.py`).
+
+**Built, tested (616 tests pass), verified against local data - pushed, not yet deployed**
+(queue items 9-10, said "go" on this morning): the society page now links every venue in its show
+history and highlights the next announced show; the show page shows venue capacity/town, an
+"About the society" blurb with social links, and a one-line circuit summary; the homepage has a
+"Near me" toggle (browser geolocation, distance-sorted, honest about the ~third of venues that
+have a map pin so far - no fake map graphic, just the list, matching the site's existing
+"link out to Google Maps" convention rather than adding a new mapping dependency). Same redeploy
+step as the rest of this file's deploy queue below.
+
+**Still open from that plan:**
+- Item 7 (14 shows marked Cancelled) - waiting on which specific rows you flagged as wrong.
+- Item 8 (FAQ page mockup) - parked until the six questions are settled.
+- Peter Pan and Sugar/Some Like It Hot title pairs - left unmerged, no confident call either way.
+- Queue items 11-14 (next venue-backfill batch, venue long tail, unmapped historical societies
+  schema question, outreach track) - not started this session.
 
 # Roadmap
 

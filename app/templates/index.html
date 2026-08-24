@@ -4,7 +4,7 @@
 {# One production, as it appears in the month lists. The poster is optional and
    the row has to look deliberate without one - only a handful of upcoming shows
    have had one uploaded, so a missing poster is the normal case, not a gap. #}
-{% macro upcoming_entry(show) %}
+{% macro upcoming_entry(show, distance_km=none) %}
   <li class="whatson-item">
     {% if show['poster_filename'] %}
       <a class="whatson-poster" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
@@ -14,6 +14,7 @@
     <div class="whatson-body">
       <div class="whatson-title">
         <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+        {% if distance_km is not none %}<span class="meta">&middot; {{ '%.0f'|format(distance_km) }}km away</span>{% endif %}
         {% if show['ticket_url'] %}
           <a class="whatson-tickets" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Tickets</a>
         {% endif %}
@@ -48,7 +49,7 @@
        by AIMS member societies.</p>
   {% endif %}
 
-  <form method="get" class="filter-form">
+  <form method="get" class="filter-form" id="whatson-filter-form">
     <label>
       Region
       <select name="upcoming_region" data-auto-submit>
@@ -58,10 +59,30 @@
         {% endfor %}
       </select>
     </label>
+    <label class="near-me-toggle">
+      <input type="checkbox" id="near-me-checkbox" data-geolocate="whatson-filter-form" {% if near_me %}checked{% endif %}>
+      Near me
+    </label>
+    <input type="hidden" name="near" id="near-me-flag" value="{{ '1' if near_me }}">
+    <input type="hidden" name="lat" id="near-me-lat" value="{{ request.args.get('lat', '') }}">
+    <input type="hidden" name="lng" id="near-me-lng" value="{{ request.args.get('lng', '') }}">
+    <p class="meta" id="near-me-error" style="display: none;">Couldn't get your location - try again, or browse by region instead.</p>
     <noscript><button type="submit">Filter</button></noscript>
   </form>
 
-  {% if upcoming_months %}
+  {% if near_me %}
+    {% if near_shows %}
+      <div class="site-notice">
+        <p>Showing venues with a known location - about a third of them so far ({{ upcoming_total - near_unpinned_count }} of {{ upcoming_total }} upcoming productions). Switch back to <a href="{{ url_for('public.index') }}">All regions</a> to see everything.</p>
+      </div>
+      <h2 class="whatson-month">Closest first</h2>
+      <ul class="whatson-list">
+        {% for show in near_shows %}{{ upcoming_entry(show, show['distance_km']) }}{% endfor %}
+      </ul>
+    {% else %}
+      <p>None of the upcoming shows near you have a pinned venue yet. <a href="{{ url_for('public.index') }}">See everything &rarr;</a></p>
+    {% endif %}
+  {% elif upcoming_months %}
     {% for month, shows in upcoming_months %}
       <h2 class="whatson-month">{{ month|month_label }}</h2>
       <ul class="whatson-list">

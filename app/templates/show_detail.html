@@ -9,6 +9,12 @@
 {% block content %}
   <p><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">&larr; Back to {{ show['society_name'] }}</a></p>
   <h1>{{ show['show'] }}</h1>
+  {% if circuit_summary %}
+    <p class="meta">
+      Staged {{ circuit_summary['count'] }} times{% if circuit_summary['since'] %} since {{ circuit_summary['since'] }}{% endif %}
+      {% if circuit_summary['most_recent'] %} &middot; most recently by {{ circuit_summary['most_recent']['society_name'] }} ({{ circuit_summary['most_recent']['year'] }}){% endif %}
+    </p>
+  {% endif %}
   <p><a href="{{ url_for('public.title_detail', title=show['show']) }}">See every AIMS production of this show &rarr;</a></p>
   <p class="meta">
     {{ show['society_name'] }} &middot; {{ show['season'] }}
@@ -30,6 +36,20 @@
     <img class="poster" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
   {% endif %}
 
+  {% if show['society_about'] or show['society_website_url'] or show['society_facebook_url'] or show['society_instagram_url'] %}
+    <h2>About {{ show['society_name'] }}</h2>
+    {% if show['society_about'] %}<p class="notes">{{ show['society_about'] }}</p>{% endif %}
+    {% set social_links = [] %}
+    {% if show['society_website_url'] %}{% set _ = social_links.append(('Website', show['society_website_url'])) %}{% endif %}
+    {% if show['society_facebook_url'] %}{% set _ = social_links.append(('Facebook', show['society_facebook_url'])) %}{% endif %}
+    {% if show['society_instagram_url'] %}{% set _ = social_links.append(('Instagram', show['society_instagram_url'])) %}{% endif %}
+    {% if social_links %}
+      <p class="meta">
+        {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{% endfor %}
+      </p>
+    {% endif %}
+  {% endif %}
+
   <dl class="detail-list">
     <dt>Dates</dt>
     <dd>
@@ -43,6 +63,12 @@
     <dd>
       {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
       {% else %}{{ show['venue'] or '—' }}{% endif %}
+      {% if show['venue_capacity'] or show['venue_town'] %}
+        <span class="meta">
+          {% if show['venue_capacity'] %}&middot; {{ show['venue_capacity'] }} seats{% endif %}
+          {% if show['venue_town'] %}&middot; {{ show['venue_town'] }}{% endif %}
+        </span>
+      {% endif %}
     </dd>
 
     {% if show['ticket_url'] %}
