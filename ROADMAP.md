@@ -406,6 +406,21 @@ parallelization) - see the archive. Still open:
 
 ## Parked, each wants its own dedicated session or decision, none started
 
+- **Member-contributed historical photo upload, for backfilling gaps in old productions.** Raised
+  2026-08-24 (Darragh may contribute himself). Doesn't exist today - the only upload path is a
+  poster field tied to one specific show's own edit form (a society or moderator editing that
+  show), not a general "here's an old programme photo, use it" flow. Distinct from two related
+  parked ideas below: the posters-gallery/programme-museum page is *display* of posters already in
+  the system; this is *intake* of new material to fill data gaps (cast, director, venue, date) on
+  productions that have little or no record. Recommended v1 scope, needs Darragh's sign-off before
+  a mockup: an upload form (which production is this, from a picker or free-text if no match
+  exists) that stores the photo plus the uploader's own free-text notes, landing in a moderation
+  queue - same pattern already used for member submissions and historical reviews, nothing
+  auto-applies to real data. A moderator reads the photo and manually enters whatever it confirms;
+  OCR is explicitly out of v1, revisited once the already-parked "OCR test on a programme photo"
+  below has a real sample to test against. Open questions for Darragh: who can upload (any AIMS
+  member via society login, or open to the public) and whether an upload needs to match an
+  existing production row or can sit unmatched for a moderator to triage later.
 - **`match_show_for_edit` never fuzzy-matches** against `shows` (exact match only) - a systemic version
   of a title-mismatch bug already fixed once for a specific case, not yet generalized.
 - **Person/person-page identity resolution** - parked on Darragh's privacy objection to public person
