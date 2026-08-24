@@ -109,13 +109,14 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
 
 ## Next feasible things, roughly in order
 
-- **Poster thumbnail pipeline** - found in the 2026-08-24 evening run-through: posters serve at
-  original upload size (homepage total 3,154KB across 8 images, one alone 1.36MB, all rendered
-  54px wide). `loading="lazy"` softens it but above-fold posters always pay full price, and the
-  planned poster drive would make it worse. Fix: generate a small WebP at upload time + a one-off
-  backfill script for the ~41 existing files. Needs Pillow - same dependency the housekeeping
-  list's "image-content validation" item already wants, so one job delivers both. Biggest
-  user-facing perf lever now that compression shipped (this is ~25x the compression win).
+- **Poster thumbnail pipeline - built, awaiting redeploy + backfill run.** `save_poster` now
+  downscales to 600px and re-encodes as WebP at upload time (`beead5b`, pushed); Pillow added to
+  requirements.txt. `backfill_poster_thumbnails.py` does the same conversion for the ~44 posters
+  uploaded before this shipped - **needs a Portainer redeploy first** (Pillow has to actually be
+  installed in the image), then run it for real against `/data/uploads` (dry-run first to see the
+  before/after sizes). 654 tests green (5 new, first time any test exercised real image bytes
+  through save_poster). Housekeeping's "image-content validation" item can reuse this same Pillow
+  dependency once picked up.
 - **Theme-polish micro-batch** (from the same run-through, all small): (1) date formats disagree -
   homepage says "28-29 Aug 2026", a title page's productions table says "20-04-2027 - 25-04-2027";
   human form should win everywhere. (2) venue cards print "Dublin, Dublin" when town == county.
