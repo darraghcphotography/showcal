@@ -222,6 +222,24 @@ CREATE TABLE IF NOT EXISTS changelog_entries (
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- The public /faq page's content, moderator-authored. 'draft' rows are only
+-- ever visible in /admin/faq - a moderator can write and revise a question
+-- before it's ready, same idea as a draft blog post, rather than every edit
+-- going live immediately. sort_order is a plain integer a moderator moves up
+-- and down by hand (see admin/faq.py) - there's no natural ordering (not
+-- alphabetical, not by date) for a page meant to read top-to-bottom.
+CREATE TABLE IF NOT EXISTS faq_entries (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    question        TEXT NOT NULL,
+    answer          TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_faq_entries_status ON faq_entries(status);
+
 -- Remembers every entry from the git-tracked CHANGELOG.md that's ever been
 -- auto-published into changelog_entries above, so app/changelog_sync.py can
 -- tell "never synced yet" (publish it) apart from "synced once, then

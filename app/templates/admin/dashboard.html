@@ -202,6 +202,7 @@
         <li><a href="{{ url_for('admin.traffic') }}">Traffic</a></li>
         <li><a href="{{ url_for('admin.suggestions') }}">Suggestions</a></li>
         <li><a href="{{ url_for('admin.changelog') }}">Changelog</a></li>
+        <li><a href="{{ url_for('admin.faq_list') }}">FAQ</a></li>
         {% if current_user['role'] == 'admin' %}
           <li><a href="{{ url_for('admin.invite_codes') }}">Invite codes</a></li>
         {% endif %}

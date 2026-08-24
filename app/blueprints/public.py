@@ -1627,6 +1627,15 @@ def about():
     )
 
 
+@bp.route("/faq")
+def faq():
+    db = get_db()
+    entries = db.execute(
+        "SELECT * FROM faq_entries WHERE status = 'published' ORDER BY sort_order, id"
+    ).fetchall()
+    return render_template("faq.html", entries=entries)
+
+
 @bp.route("/suggest", methods=("GET", "POST"))
 @limiter.limit("5 per minute")
 def suggest():

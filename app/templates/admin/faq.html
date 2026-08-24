@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}FAQ - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>FAQ</h1>
+  <p>Draft entries are only visible here - publish one when it's ready for the
+     <a href="{{ url_for('public.faq') }}">public FAQ page</a>.</p>
+
+  <p><a href="{{ url_for('admin.faq_new') }}" class="button-primary">Add a question</a></p>
+
+  {% for e in entries %}
+    <article class="queue-item">
+      <span class="tag {{ 'tag-gold' if e['status'] == 'published' else 'tag-past' }}">{{ e['status'] }}</span>
+      <h2>{{ e['question'] }}</h2>
+      <p>{{ e['answer'] }}</p>
+      <div class="actions">
+        <a href="{{ url_for('admin.faq_edit', entry_id=e['id']) }}">Edit</a>
+
+        <form method="post" action="{{ url_for('admin.faq_move', entry_id=e['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="direction" value="up">
+          <button type="submit" {{ 'disabled' if loop.first }}>&uarr; Move up</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.faq_move', entry_id=e['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="direction" value="down">
+          <button type="submit" {{ 'disabled' if loop.last }}>&darr; Move down</button>
+        </form>
+
+        {% if e['status'] == 'published' %}
+          <form method="post" action="{{ url_for('admin.faq_unpublish', entry_id=e['id']) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Unpublish</button>
+          </form>
+        {% else %}
+          <form method="post" action="{{ url_for('admin.faq_publish', entry_id=e['id']) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="button-primary">Publish</button>
+          </form>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('admin.faq_delete', entry_id=e['id']) }}" class="inline-form"
+              data-confirm="Delete this FAQ entry?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button-danger">Delete</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <p>No FAQ entries yet.</p>
+  {% endfor %}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}FAQ - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Frequently asked questions</h1>
+
+  {% for e in entries %}
+    <details class="queue-item">
+      <summary><strong>{{ e['question'] }}</strong></summary>
+      <p>{{ e['answer'] }}</p>
+    </details>
+  {% else %}
+    <p>Nothing here yet - check back soon.</p>
+  {% endfor %}
+{% endblock %}
