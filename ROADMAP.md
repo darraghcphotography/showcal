@@ -119,7 +119,31 @@ dirs) are in the "Opening Night Notes" artifact:
 https://claude.ai/code/artifact/c82c78fa-e1b8-4beb-9a73-158e39a0d409 - tidy-up suggested, not
 executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
 
+**Antigravity's own 5-item follow-up proposal, reviewed and scoped down 2026-08-24 night**
+(`52f0562`, pushed, awaiting redeploy) - before handing it the coordinate-verification homework's
+results, Antigravity separately proposed 5 new data gaps unprompted. Reviewed each against real
+production numbers (all were accurate) before deciding: adopted 3 as new columns + display +
+homework (`founded_year` on societies, `composer`/`lyricist`/`book_author`/`licensing_house` on
+show_info, `box_office_phone`/`box_office_url` on venues - all wired into their admin edit forms
+and public pages, not just bare columns), rejected 2 outright - ticket-URL scraping (time-sensitive
+links for shows mostly not yet on sale, and `ticket_url` is meant to be the society's own submitted
+link) and historical-awards linkage (570 `historical_results` rows missing `society_id`/
+`production_id` - internal/derived keys, not something an external worklist can safely guess; needs
+doing directly with this repo's own matching tools instead - **not done yet, next up**). Also
+declined a `stage_dimensions` column Antigravity suggested - `venue_form.html` already has a
+deliberate past decision to link to a venue's own tech-spec page rather than copy dimensions in,
+specifically to avoid exactly the staleness problem this would reintroduce. 680 tests green (4 new).
+Second homework batch sent: `show_credits_worklist.json` (300 titles), `society_founding_years_
+worklist.json` (143), `venue_box_office_worklist.json` (108), all in the gitignored `enrichment/`
+folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
+
 ## Next feasible things, roughly in order
+
+- **Historical awards linkage (570 `historical_results` rows missing `society_id`, 172 missing
+  `production_id`)** - real gap Antigravity's audit found (numbers verified against production), but
+  needs doing directly with this repo's own tools (the same fuzzy-matching machinery behind the
+  historical-reviews queue), not handed to an external worklist - `production_id` especially is a
+  derived field the app computes itself and must never be hand-assigned. Not started.
 
 - **Poster thumbnail pipeline - built, awaiting redeploy + backfill run.** `save_poster` now
   downscales to 600px and re-encodes as WebP at upload time (`beead5b`, pushed); Pillow added to
