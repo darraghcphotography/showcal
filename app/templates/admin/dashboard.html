@@ -54,22 +54,42 @@
   <table class="data-table">
     <tbody>
       <tr>
-        <td>Shows missing a review link</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if needs_review_count else 'admin-dot-off' }}"></span>
+            Shows missing a review link
+          </span>
+        </td>
         <td>{{ needs_review_count }}</td>
         <td><a href="{{ url_for('admin.shows_list', needs_review=1) }}">All shows</a></td>
       </tr>
       <tr>
-        <td>Active societies missing a default venue</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if missing_venue_count else 'admin-dot-off' }}"></span>
+            Active societies missing a default venue
+          </span>
+        </td>
         <td>{{ missing_venue_count }}</td>
         <td><a href="{{ url_for('admin.venues') }}">Fill in venues</a></td>
       </tr>
       <tr>
-        <td>Shows missing a date</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if missing_dates_count else 'admin-dot-off' }}"></span>
+            Shows missing a date
+          </span>
+        </td>
         <td>{{ missing_dates_count }}</td>
         <td><a href="{{ url_for('admin.fix_dates', missing=1) }}">Fix dates</a></td>
       </tr>
       <tr>
-        <td>Historical societies with a region awaiting confirmation</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if historical_regions_pending_count else 'admin-dot-off' }}"></span>
+            Historical societies with a region awaiting confirmation
+          </span>
+        </td>
         <td>{{ historical_regions_pending_count }}</td>
         <td><a href="{{ url_for('admin.historical_societies') }}">Review</a></td>
       </tr>
@@ -80,29 +100,61 @@
   <table class="data-table">
     <tbody>
       <tr>
-        <td>Possible duplicate titles</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if duplicate_count else 'admin-dot-off' }}"></span>
+            Possible duplicate titles
+          </span>
+        </td>
         <td>{{ duplicate_count }}</td>
         <td><a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a></td>
       </tr>
       <tr>
-        <td>Award records with no society match <span class="hint">(mostly genuinely defunct societies - won't reach 0; see "awaiting confirmation" above for what's actually actionable)</span></td>
-        <td>{{ unmatched_award_societies_count }}</td>
-        <td><a href="{{ url_for('admin.awards_list', unmatched=1) }}">Awards</a></td>
-      </tr>
-      <tr>
-        <td>Duplicate historical productions</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if duplicate_historical_count else 'admin-dot-off' }}"></span>
+            Duplicate historical productions
+          </span>
+        </td>
         <td>{{ duplicate_historical_count }}</td>
         <td><a href="{{ url_for('admin.data_quality') }}">Data quality</a></td>
       </tr>
       <tr>
-        <td>Orphaned title data (info/links invisible due to a title mismatch)</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if orphaned_titles_count else 'admin-dot-off' }}"></span>
+            Orphaned title data (info/links invisible due to a title mismatch)
+          </span>
+        </td>
         <td>{{ orphaned_titles_count }}</td>
         <td><a href="{{ url_for('admin.data_quality') }}">Data quality</a></td>
       </tr>
       <tr>
-        <td>Skeleton shows whose title doesn't line up with the awards archive</td>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if mismatched_skeleton_shows_count else 'admin-dot-off' }}"></span>
+            Skeleton shows whose title doesn't line up with the awards archive
+          </span>
+        </td>
         <td>{{ mismatched_skeleton_shows_count }}</td>
         <td><a href="{{ url_for('admin.historical_shows_title_check') }}">Check titles</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  {# Split out from "Possible errors to check" (Second Act backlog item 8) -
+     this count is explicitly documented as structural, not a bug: mostly
+     genuinely defunct societies that will never get a match. A permanent
+     amber "needs attention" dot here would be a standing false alarm, the
+     same "counterproductive" shape the venue-backfill count had earlier -
+     so this group deliberately carries no dot at all, on any row. #}
+  <h2 class="admin-group-label">Won't reach zero</h2>
+  <table class="data-table">
+    <tbody>
+      <tr>
+        <td>Award records with no society match <span class="hint">(mostly genuinely defunct societies - won't reach 0; see "awaiting confirmation" above for what's actually actionable)</span></td>
+        <td>{{ unmatched_award_societies_count }}</td>
+        <td><a href="{{ url_for('admin.awards_list', unmatched=1) }}">Awards</a></td>
       </tr>
     </tbody>
   </table>

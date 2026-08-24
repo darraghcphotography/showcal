@@ -188,15 +188,36 @@ always.
    question this item was originally about doesn't need revisiting unless a future measurement
    still shows a problem after this. 636 tests green (3 new, covering compression on/off and that
    an already-compressed upload isn't recompressed).
-8. **Admin dashboard: extend the on/off urgency dot** from 2 of ~12 dashboard rows to all of them;
-   split out the rows that explicitly "won't reach 0" (e.g. unmatched award societies) into their
-   own unstyled group rather than living inside "Possible errors." **Partially done 2026-08-24,
-   ahead of the general pass:** "Active societies missing a default venue" was flagged mid-session
-   as mixing in societies with zero venue history on record - nothing a moderator can act on, same
-   shape of problem as this item. Both the dashboard count and `/admin/venues` now only count/list
-   societies with at least one show of their own recording a venue; the rest sit in a separate,
-   collapsed "no venue history on record yet" section, still fillable but out of the main list and
-   out of the count. The other ~10 rows and the urgency-dot extension are still open.
+8. ~~Admin dashboard: extend the on/off urgency dot~~ from 2 of ~12 dashboard rows to all of them;
+   split out the rows that explicitly "won't reach 0" into their own group. **Done 2026-08-24**,
+   pushed, not yet deployed - **the eighth and last item in the Second Act ordered backlog,
+   completing it in a single session.** No mockup needed (a small, unambiguous extension of an
+   existing pattern - the dot already exists, this only applies it more places) - built directly,
+   verified with a real admin-login screenshot against live local data before/after cleanup of the
+   throwaway login (per this file's own housekeeping rule). Every row in "Awaiting your review,"
+   "Missing data" and "Possible errors to check" now carries the same `.admin-dot-on`/
+   `.admin-dot-off` marker `dashboard.html`'s first two rows already had (11 rows total).
+   "Award records with no society match" - the one row already documented in its own hint text as
+   structurally permanent (mostly genuinely defunct societies) - moves into a new, deliberately
+   dot-less "Won't reach zero" group: a permanent amber dot there would be a standing false alarm,
+   the same "counterproductive" shape "Active societies missing a default venue" had, fixed
+   earlier the same session (both the dashboard count and `/admin/venues` now only count/list
+   societies with at least one show of their own recording a venue, rather than mixing in ones
+   with zero venue history to go on). So this group carries no dot on any row, not just the one
+   award-societies example. Confirmed against real production-shaped local data via screenshot:
+   540 unmatched award records sit cleanly separated from the 8 genuinely actionable rows above
+   them. 639 tests green (3 new; 3 existing tests updated for the new `.admin-row-label`-wrapped
+   markup, two of them fixed for a real bug the dot rollout exposed - a test's
+   `<td>Label</td>\s*<td>N</td>` regex happened to also match whichever row currently has the
+   smallest nonzero count if it got featured in the "quick win" banner above the table, since the
+   label text now appears twice on the page in that case; rescoped to the right table section
+   instead of assuming the label is unique).
+
+**Second Act backlog: all 8 items done, one session, 2026-08-24.** Everything above is committed
+and pushed to `main`, none of it deployed yet - see the DEPLOY QUEUE section below for what a
+redeploy needs to pick all of it up together. `git log` from `e49582c` (item 1) through the final
+item-8 commit has the full sequence if a specific change needs re-checking; this file's own
+per-item write-ups above carry the reasoning, numbers and test counts for each.
 
 Feature ideas from the same walkthrough, not part of the ordered list above (lower confidence
 they're worth building, or need Darragh's product judgement first): a "who else has staged this

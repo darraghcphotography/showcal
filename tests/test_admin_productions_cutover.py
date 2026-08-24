@@ -28,9 +28,11 @@ def _add_show(db, season="24/25", show="Oliver!", **kw):
 
 
 def _counter(client, label="Shows missing a review link"):
-    """A named number from the dashboard's "Missing data" table."""
+    """A named number from the dashboard's "Missing data" table. The label
+    sits inside an .admin-row-label span (with an on/off urgency dot) rather
+    than directly in the <td> - see dashboard.html, Second Act backlog item 8."""
     body = client.get("/admin/").get_data(as_text=True)
-    match = re.search(r"<td>%s</td>\s*<td>(\d+)</td>" % re.escape(label), body)
+    match = re.search(r"%s\s*</span>\s*</td>\s*<td>(\d+)</td>" % re.escape(label), body)
     assert match, f"no dashboard row labelled {label!r}"
     return int(match.group(1))
 

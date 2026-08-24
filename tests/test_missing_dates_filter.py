@@ -28,9 +28,13 @@ def test_historical_skeletons_excluded_from_dashboard_count(client, db):
     db.commit()
 
     body = client.get("/admin/").get_data(as_text=True)
-    # The label also appears in the "quick wins" card above the table, so
-    # anchor on the table cell specifically.
-    row = body.split("<td>Shows missing a date</td>")[1].split("</tr>")[0]
+    # The label can also appear in the "quick win" banner above the table
+    # (if this happens to be the smallest nonzero count on the page), so
+    # scope to the "Missing data" table first. The label itself sits inside
+    # an .admin-row-label span (with an on/off urgency dot) rather than
+    # directly in the <td> - see dashboard.html, Second Act backlog item 8.
+    missing_data_table = body.split("Missing data</h2>")[1]
+    row = missing_data_table.split("Shows missing a date")[1].split("</tr>")[0]
     assert "<td>1</td>" in row
 
 
