@@ -95,7 +95,6 @@
       <div class="queue-item{{ ' next-production' if loop.first }}">
         <div class="primary">
           <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-          {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
           {% if loop.first and show['ticket_url'] %}<span class="tag tag-gold">Tickets on sale</span>{% endif %}
         </div>
         <div class="meta-chips">
@@ -128,8 +127,7 @@
             {% else %}
               <em>TBA</em>
             {% endif %}
-            {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
-          </td>
+            </td>
           <td>{{ show['section'] or '—' }}</td>
           <td>
             {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
@@ -167,7 +165,6 @@
           {% else %}
             <em>TBA</em>
           {% endif %}
-          {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
         </div>
         <div class="meta-chips">
           <span>{{ show['season'] }}</span>

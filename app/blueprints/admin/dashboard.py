@@ -137,7 +137,7 @@ def dashboard():
     concluded = db.execute(
         """
         SELECT season FROM shows
-        WHERE show IS NOT NULL AND moderation_status = 'approved' AND status IS NOT 'Cancelled'
+        WHERE show IS NOT NULL AND moderation_status = 'approved'
         GROUP BY season
         HAVING MAX(COALESCE(closing_date, opening_date)) <= ?
         ORDER BY season DESC LIMIT 1

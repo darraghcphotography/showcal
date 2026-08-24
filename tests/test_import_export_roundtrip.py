@@ -16,9 +16,9 @@ SOCIETIES_CSV = """id,name,region,section,section_as_of,section_history,notes
 2,Other Society,Western,Sullivan,26/27,25/26: Gilbert,Some notes
 """
 
-SHOWS_CSV = """season,region,section,society,show,opening_date,closing_date,adjudication_date,adjudication_month_raw,venue,director,musical_director,choreographer,review_status,review_url,status
-23/24,Eastern,Gilbert,Test Society,Oliver!,2024-03-01,2024-03-05,2024-03-15,,Town Hall,Jane Doe,John Smith,,Published,https://example.com/review,
-24/25,Western,Sullivan,Other Society,,,,,,,,,,None,,
+SHOWS_CSV = """season,region,section,society,show,opening_date,closing_date,adjudication_date,adjudication_month_raw,venue,director,musical_director,choreographer,review_status,review_url
+23/24,Eastern,Gilbert,Test Society,Oliver!,2024-03-01,2024-03-05,2024-03-15,,Town Hall,Jane Doe,John Smith,,Published,https://example.com/review
+24/25,Western,Sullivan,Other Society,,,,,,,,,,None,
 """
 
 

@@ -19,11 +19,19 @@ have a map pin so far - no fake map graphic, just the list, matching the site's 
 step as the rest of this file's deploy queue below.
 
 **Still open from that plan:**
-- Item 7 (14 shows marked Cancelled) - waiting on which specific rows you flagged as wrong.
 - Item 8 (FAQ page mockup) - parked until the six questions are settled.
 - Peter Pan and Sugar/Some Like It Hot title pairs - left unmerged, no confident call either way.
 - Queue items 11-14 (next venue-backfill batch, venue long tail, unmapped historical societies
   schema question, outreach track) - not started this session.
+
+**Item 7 resolved, then taken further.** The 14 Cancelled shows weren't a "some are wrong, flag
+which ones" cleanup - Darragh's call was that the field itself isn't reliably used, so the flag
+was cleared everywhere (local + production) rather than corrected row by row. Digging into why
+turned up the actual root cause: `import_csv.py` reads a `status` column straight from the source
+spreadsheet and upserts it unconditionally on every import, with none of the protection
+`review_status` gets - so the next routine re-import would have silently resurrected wrong
+Cancelled flags. The feature (schema column, admin/society checkboxes, tag rendering, the CSV read
+path) is being removed entirely, not just the data cleared, so this can't recur.
 
 # Roadmap
 
@@ -179,20 +187,14 @@ moderator-corrected, so it isn't a field to set from a list.
 
 ## Data-accuracy follow-ups (from the 2026-08-23 report check), need Darragh's input or real research
 
-- **11 shows with `review_status='Published'` and no `review_url`** - each needs a real per-show
-  judgment call (was it actually reviewed and just missing the link, or never adjudicated at all), not
-  a bulk guess.
-- **154 `historical_results` rows (1983-2000) with `category_name IS NULL`** - needs real historical
-  AIMS awards-programme research; a Gemini report only sampled 6 of them.
+- **297 `historical_results` rows with `category_name IS NULL`, 274 of them pre-2001** (re-measured
+  2026-08-24 against the fuller archive now loaded - the earlier "154, 1983-2000" figure undercounted)
+  - needs real historical AIMS awards-programme research; a Gemini report only sampled 6 of them.
 - **~10 unmapped historical societies with no existing `societies` row** (Bangor Operatic Society, De La
   Salle Musical Society Waterford, others) - creating new historical society records is a structural
   decision, not a data-quality bugfix.
 - **28 orphaned Inactive societies with zero shows/awards** - retain or remove is a judgment call, no
   urgency signal.
-- **Cancelled-show data reliability - not investigated.** Darragh: the `status='Cancelled'` field "has
-  been inaccurate anywhere I found it." Only the season calendar's filter control was removed in
-  response so far - whether the underlying data needs a real fix, and whether the "Cancelled" tag shown
-  elsewhere on the site should stop rendering until it's trustworthy, is still open.
 - **19 of 23 researched societies' online production archives not yet backfilled** (research inventory
   exists, only 4 done so far).
 - **~112 stale orphaned `historical_reviews` rows** - cross-referenced as real, but explicitly not
@@ -201,12 +203,13 @@ moderator-corrected, so it isn't a field to set from a list.
 ## UX-audit bigger bets and outreach track (not started, need Darragh's design input)
 
 - **Homepage reorder** - lead with what's on, group by month, add poster thumbnails inline.
-- **Society page, empty vs. filled** - the mockup already doubles as the pitch for getting societies to
-  fill their own pages in; this bet is building that page for real.
-- **Show page as the shared front door** - venue detail linked inline, other societies who've staged
-  this show, the society's own social links, a share affordance.
-- **"What's on near me"** - genuinely blocked on venue coordinates existing first (see venue research
-  above); the mockup states this plainly rather than promising it.
+- **Society page, empty vs. filled** - venue links + next-show callout shipped 2026-08-24 (pending
+  redeploy); still open: the mockup's fuller "empty vs. filled" pitch beyond that.
+- **Show page as the shared front door** - venue capacity/town, an about-the-society blurb, and a
+  one-line circuit summary shipped 2026-08-24 (pending redeploy); still open: cross-links to other
+  societies who've staged this show, a share affordance.
+- **"What's on near me"** - shipped 2026-08-24 as a homepage toggle (pending redeploy), honest about
+  the ~third of venues pinned so far rather than waiting for full coverage.
 - **Outreach/onboarding track** (non-technical, Darragh's lever, not a coding task) - a nudge on a
   society's own page when its profile is thin, 2-3 exemplar societies filled in completely as a
   reference, a draft message to send a committee, a "claim your page" request route.
@@ -264,6 +267,20 @@ parallelization) - see the archive. Still open:
   call, not a data question.
 - A browsable historical-posters gallery page; costume/prop rental listings; a staging/test environment;
   edit-history/versioning with revert for society-editable data; a pantomime award category.
+- From an untracked `FEATURE_IDEAS.md` (deleted 2026-08-24, everything else in it either already shipped
+  or already tracked above) - three genuinely new, unclaimed ideas: a 1-click Instagram/Facebook social
+  card generator per show (poster + logo + opening countdown + QR code); automated society milestone
+  badges (e.g. "100+ productions", "3+ Best Overall Show wins"); a browsable programme-cover/poster
+  museum page (overlaps the posters-gallery idea above, but framed as a designer-credited visual archive
+  rather than a plain gallery).
+- From an untracked `AUDIT_AND_RECOMMENDATIONS.md` (deleted 2026-08-24 - its case-insensitive-index,
+  WAL-mode/busy-timeout, and admin.py-split recommendations were all already independently done) - five
+  genuinely new, unclaimed ideas: removable filter "chips" above `/season`/`/awards`/`/stats` tables; a
+  poster lightbox/zoom on show pages; a zero-login "My Season Watchlist" (localStorage bookmarks + a
+  personal .ics export); an "On This Day in AIMS History" homepage widget; an embeddable per-society
+  JSON feed/widget for a society's own website. Also worth a note: a fuller interactive Leaflet/OSM pin
+  map (colour-coded by region, filterable by tier) as a richer successor to the list-based Near-me
+  toggle that shipped 2026-08-24, once venue pin coverage is higher.
 
 ## Housekeeping, low priority, no urgency signal
 

@@ -39,24 +39,6 @@ def test_stats_defines_distinct_titles(client):
     assert "counts once" in body
 
 
-def test_season_page_always_shows_cancelled_shows(client, db):
-    """The "Hide cancelled shows" filter was removed (see ROADMAP,
-    2026-08-20) - the underlying status data was found unreliable, so a
-    cancelled show is always shown (with its Cancelled tag) rather than
-    silently dropped by a filter nobody could trust."""
-    society_id = seed_society(db)
-    db.execute(
-        "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status, status) "
-        "VALUES (?, '26/27', 'Eastern', 'Cancelled Show', '2026-09-01', '2026-09-05', 'approved', 'Cancelled')",
-        (society_id,),
-    )
-    db.commit()
-
-    body = client.get("/season?season=26/27").get_data(as_text=True)
-    assert "Cancelled Show" in body
-    assert "hide_cancelled" not in body
-
-
 def _add_award(db, category_name, result, tier, society_name=None, nominee_name=None, year=2025):
     db.execute(
         "INSERT INTO historical_results (year, tier, category_name, result, society_name, nominee_name, source) "

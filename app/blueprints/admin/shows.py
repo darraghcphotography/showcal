@@ -139,7 +139,6 @@ def new_show(society_id):
         review_url = request.form.get("review_url", "").strip() or None
         review_status = request.form.get("review_status", "None")
         ticket_url = request.form.get("ticket_url", "").strip() or None
-        cancelled = bool(request.form.get("cancelled"))
 
         if not season:
             errors.append("Choose a season.")
@@ -183,13 +182,13 @@ def new_show(society_id):
                     society_id, season, region, section, show,
                     opening_date, closing_date, adjudication_date,
                     venue, director, musical_director, choreographer,
-                    review_url, review_status, ticket_url, poster_filename, status,
+                    review_url, review_status, ticket_url, poster_filename,
                     moderation_status, source, moderated_by, moderated_at
                 ) VALUES (
                     :society_id, :season, :region, :section, :show,
                     :opening_date, :closing_date, :adjudication_date,
                     :venue, :director, :musical_director, :choreographer,
-                    :review_url, :review_status, :ticket_url, :poster_filename, :status,
+                    :review_url, :review_status, :ticket_url, :poster_filename,
                     'approved', 'submission', :moderated_by, :moderated_at
                 )
                 """,
@@ -210,7 +209,6 @@ def new_show(society_id):
                     "review_status": review_status,
                     "ticket_url": ticket_url,
                     "poster_filename": poster_filename,
-                    "status": "Cancelled" if cancelled else None,
                     "moderated_by": current_user()["username"],
                     "moderated_at": datetime.utcnow().isoformat(),
                 },
@@ -315,7 +313,6 @@ def edit_show(show_id):
         review_author = request.form.get("review_author", "").strip() or None
         review_status = request.form.get("review_status", "None")
         ticket_url = request.form.get("ticket_url", "").strip() or None
-        cancelled = bool(request.form.get("cancelled"))
 
         if region not in REGIONS:
             errors.append("Choose a valid region.")
@@ -362,7 +359,7 @@ def edit_show(show_id):
                 opening_date = ?, closing_date = ?, adjudication_date = ?,
                 venue = ?, director = ?, musical_director = ?, choreographer = ?,
                 review_url = ?, review_author = ?, review_status = ?, ticket_url = ?, poster_filename = ?,
-                status = ?, updated_at = ?
+                updated_at = ?
             WHERE id = ?
             """,
             (
@@ -370,7 +367,7 @@ def edit_show(show_id):
                 opening_date, closing_date, adjudication_date,
                 venue, director, musical_director, choreographer,
                 review_url, review_author, review_status, ticket_url, poster_filename,
-                "Cancelled" if cancelled else None, datetime.utcnow().isoformat(), show_id,
+                datetime.utcnow().isoformat(), show_id,
             ),
         )
         db.commit()

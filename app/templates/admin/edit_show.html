@@ -97,11 +97,6 @@
       <input type="url" name="ticket_url" value="{{ show['ticket_url'] or '' }}">
     </label>
 
-    <label class="checkbox-label">
-      <input type="checkbox" name="cancelled" {% if show['status'] == 'Cancelled' %}checked{% endif %}>
-      Cancelled
-    </label>
-
     <fieldset>
       <legend>Poster</legend>
       {% if show['poster_filename'] %}
@@ -187,7 +182,7 @@
   {% endif %}
 
   <form method="post" action="{{ url_for('admin.delete_show', show_id=show['id']) }}" class="inline-form"
-        data-confirm="Delete this show entirely? This cannot be undone - use &quot;Cancelled&quot; above instead if the show is still real but didn't go ahead.">
+        data-confirm="Delete this show entirely? This cannot be undone.">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="button-danger">Delete this show</button>
   </form>

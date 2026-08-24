@@ -7,7 +7,6 @@ def is_upcoming(show):
     own adjudication-forms reminder, previously computed separately in each
     place with slightly different phrasing."""
     return (
-        show["status"] != "Cancelled"
-        and show["opening_date"] is not None
+        show["opening_date"] is not None
         and show["opening_date"] >= date.today().isoformat()
     )

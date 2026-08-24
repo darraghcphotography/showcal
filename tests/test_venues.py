@@ -8,11 +8,11 @@ from conftest import seed_society
 
 
 def add_show(db, society_id, show, venue, season="24/25", opening_date="2025-01-05",
-             closing_date="2025-01-10", status=None, moderation_status="approved"):
+             closing_date="2025-01-10", moderation_status="approved"):
     db.execute(
         "INSERT INTO shows (society_id, season, region, show, venue, opening_date, closing_date, "
-        "status, moderation_status) VALUES (?, ?, 'Eastern', ?, ?, ?, ?, ?, ?)",
-        (society_id, season, show, venue, opening_date, closing_date, status, moderation_status),
+        "moderation_status) VALUES (?, ?, 'Eastern', ?, ?, ?, ?, ?)",
+        (society_id, season, show, venue, opening_date, closing_date, moderation_status),
     )
     db.commit()
     return db.execute("SELECT id FROM shows WHERE show = ? AND season = ?", (show, season)).fetchone()["id"]
@@ -138,15 +138,6 @@ def test_detail_splits_upcoming_and_past(client, db):
     assert "Past Show" not in upcoming_section
     assert "Past Show" in history_section
     assert "Future Show" not in history_section
-
-
-def test_cancelled_upcoming_show_treated_as_not_upcoming(client, db):
-    society_id = seed_society(db)
-    add_show(db, society_id, "Cancelled Show", "The Venue", season="26/27",
-             opening_date="2099-01-01", closing_date="2099-01-05", status="Cancelled")
-
-    body = client.get("/venues/The Venue", follow_redirects=True).get_data(as_text=True)
-    assert "Upcoming here" not in body
 
 
 def test_span_shows_single_season_without_a_dash_when_theres_only_one(client, db):

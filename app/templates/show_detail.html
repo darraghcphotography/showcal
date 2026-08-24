@@ -19,7 +19,6 @@
   <p class="meta">
     {{ show['society_name'] }} &middot; {{ show['season'] }}
     {% if show['section'] %}&middot; {{ show['section'] }}{% endif %}
-    {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
   </p>
 
   {% if current_user %}

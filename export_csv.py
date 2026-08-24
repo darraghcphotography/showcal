@@ -32,7 +32,7 @@ SHOW_FIELDS = [
     "season", "region", "section", "society", "show",
     "opening_date", "closing_date", "adjudication_date", "adjudication_month_raw",
     "venue", "director", "musical_director", "choreographer",
-    "review_status", "review_url", "status",
+    "review_status", "review_url",
 ]
 
 
@@ -55,7 +55,7 @@ def export_shows(conn, path):
             shows.season, shows.region, shows.section, societies.name AS society, shows.show,
             shows.opening_date, shows.closing_date, shows.adjudication_date, shows.adjudication_month_raw,
             shows.venue, shows.director, shows.musical_director, shows.choreographer,
-            shows.review_status, shows.review_url, shows.status
+            shows.review_status, shows.review_url
         FROM shows JOIN societies ON societies.id = shows.society_id
         WHERE shows.source = 'import'
         ORDER BY shows.season, societies.name

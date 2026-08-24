@@ -89,8 +89,6 @@ CREATE TABLE IF NOT EXISTS shows (
     ticket_url             TEXT,                 -- optional link to buy tickets, member-submitted
     poster_filename         TEXT,                 -- filename under the uploads dir, not a user path
 
-    status                 TEXT CHECK (status IN ('Cancelled') OR status IS NULL),
-
     -- moderation / provenance (not present in the CSV export)
     moderation_status      TEXT NOT NULL DEFAULT 'approved' CHECK (moderation_status IN (
                                 'pending', 'approved', 'rejected'

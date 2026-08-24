@@ -244,10 +244,6 @@ with no Path set, and leave `URL_PREFIX` unset.
 
 - No self-service member accounts/registration - invite codes plus your own
   admin login is the whole auth surface, on purpose (no public writes).
-- No automated backups - `aims.db` (or `data/aims.db` under Docker) is the
-  entire database; back it up however you already back up NAS shares. Back up
-  the `uploads`/`data/uploads` folder the same way if posters matter to you -
-  it's not part of the database file.
 - No image resizing - posters are stored and served exactly as uploaded
   (capped at 8&nbsp;MB). A member uploading an unnecessarily huge photo will
   make that page slow to load; nothing currently downsizes it.

@@ -117,12 +117,10 @@ def test_a_pending_archive_review_does_not_count_as_reviewed(client, db):
     assert _list_show_ids(client) == {show_id}
 
 
-def test_not_adjudicated_and_cancelled_are_both_left_out(client, db):
+def test_not_adjudicated_is_left_out(client, db):
     _setup(client, db)
     _add_show(db, season="23/24", show="Not Judged", opening_date="2023-11-01",
               closing_date="2023-11-05", review_status="Not adjudicated")
-    _add_show(db, season="23/24", show="Called Off", opening_date="2023-11-01",
-              closing_date="2023-11-05", status="Cancelled")
     db.commit()
 
     assert _counter(client) == 0

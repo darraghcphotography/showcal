@@ -105,7 +105,6 @@ def load_shows(conn, path):
             "choreographer": normalize(row["choreographer"]),
             "review_status": normalize(row["review_status"]) or "None",
             "review_url": normalize(row["review_url"]),
-            "status": normalize(row["status"]),
         }
 
         conn.execute(
@@ -114,13 +113,13 @@ def load_shows(conn, path):
                 society_id, season, region, section, show,
                 opening_date, closing_date, adjudication_date, adjudication_month_raw,
                 venue, director, musical_director, choreographer,
-                review_status, review_url, status,
+                review_status, review_url,
                 moderation_status, source
             ) VALUES (
                 :society_id, :season, :region, :section, :show,
                 :opening_date, :closing_date, :adjudication_date, :adjudication_month_raw,
                 :venue, :director, :musical_director, :choreographer,
-                :review_status, :review_url, :status,
+                :review_status, :review_url,
                 'approved', 'import'
             )
             ON CONFLICT(society_id, season, COALESCE(show, '')) DO UPDATE SET
@@ -134,7 +133,6 @@ def load_shows(conn, path):
                 director=COALESCE(excluded.director, shows.director),
                 musical_director=COALESCE(excluded.musical_director, shows.musical_director),
                 choreographer=COALESCE(excluded.choreographer, shows.choreographer),
-                status=excluded.status,
                 review_url=COALESCE(NULLIF(excluded.review_url, ''), shows.review_url),
                 review_status=CASE
                     WHEN excluded.review_status != 'None' THEN excluded.review_status

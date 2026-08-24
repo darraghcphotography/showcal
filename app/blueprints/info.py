@@ -32,11 +32,11 @@ def stats():
         region = ""
 
     # A show only counts toward "how many have actually happened" once it's
-    # opened and wasn't cancelled - excludes announced-but-not-yet-run shows
-    # (which may still fall through) and cancelled slots from every count/
-    # chart below that isn't explicitly about the awards archive (which is
-    # inherently already-happened, since an award implies it was judged).
-    happened = "shows.status IS NOT 'Cancelled' AND COALESCE(shows.closing_date, shows.opening_date) <= ?"
+    # opened - excludes announced-but-not-yet-run shows (which may still fall
+    # through) from every count/chart below that isn't explicitly about the
+    # awards archive (which is inherently already-happened, since an award
+    # implies it was judged).
+    happened = "COALESCE(shows.closing_date, shows.opening_date) <= ?"
 
     def region_clause(params):
         if region:
@@ -194,7 +194,6 @@ def stats():
          OR EXISTS (SELECT 1 FROM shows
                      WHERE shows.production_id = productions.id
                        AND shows.moderation_status = 'approved'
-                       AND shows.status IS NOT 'Cancelled'
                        AND (shows.source = 'historical'
                             OR COALESCE(shows.closing_date, shows.opening_date) <= ?)))
     """

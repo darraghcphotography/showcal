@@ -84,7 +84,6 @@ def index():
         WHERE shows.moderation_status = 'approved'
           AND shows.show IS NOT NULL
           AND shows.opening_date >= ?
-          AND shows.status IS NOT 'Cancelled'
           AND NOT societies.hidden
     """
     upcoming_params = [date.today().isoformat()]

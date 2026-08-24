@@ -98,11 +98,6 @@
       <input type="url" name="ticket_url" value="{{ values['ticket_url'] or '' }}">
     </label>
 
-    <label class="checkbox-label">
-      <input type="checkbox" name="cancelled" {% if values['status'] == 'Cancelled' %}checked{% endif %}>
-      Cancelled
-    </label>
-
     <fieldset>
       <legend>Poster</legend>
       {% if mode == 'edit' and show['poster_filename'] %}

@@ -15,7 +15,7 @@ EXPORT_COLUMNS = [
     "season", "region", "section", "society", "show",
     "opening_date", "closing_date", "adjudication_date",
     "venue", "director", "musical_director", "choreographer",
-    "review_status", "review_url", "ticket_url", "status",
+    "review_status", "review_url", "ticket_url",
 ]
 
 

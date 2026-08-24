@@ -60,8 +60,6 @@ form - every field a submission has, plus:
   is what "publishing" means here.
 - **Poster.** Upload one if there isn't one, replace it, or tick "Remove
   current poster" to take it down.
-- **Cancelled.** Ticking this shows a "Cancelled" tag next to the show
-  everywhere it appears, without removing it from the record.
 
 This is also where you'd fix up a CSV-imported historical show (all
 originally-imported shows are editable here too, not just new submissions).

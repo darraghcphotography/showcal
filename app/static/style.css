@@ -730,9 +730,9 @@ details table { margin-top: 0.5rem; }
 
 /* Season calendar: month -> week rows, Gilbert/Sullivan split left/right so
    an adjudicator can scan just their own column - see the season-calendar
-   mockup. A week is "congested" when 3+ non-cancelled shows are actually
-   running at once (a still-running show from the week before counts too),
-   not just when 3+ open in it. The whole thing is a native <details>
+   mockup. A week is "congested" when 4+ shows are actually running at once
+   (a still-running show from the week before counts too), not just when 4+
+   open in it. The whole thing is a native <details>
    disclosure (open by default on the current season, closed on a past one -
    see info.py's season_summary()) rather than always-visible, so it doesn't
    compete with the Past productions table for attention when browsing
@@ -816,9 +816,6 @@ details.season-calendar summary .count { font-weight: 400; color: var(--muted); 
 }
 .season-calendar .chip .chip-meta a { color: inherit; }
 .season-calendar .chip .date-range { font-variant-numeric: tabular-nums; }
-.season-calendar .chip .cancelled-tag { color: var(--danger); font-weight: 700; font-size: 0.68rem; text-transform: uppercase; margin-left: auto; flex: none; }
-.season-calendar .chip.is-cancelled { opacity: 0.6; }
-.season-calendar .chip.is-cancelled .show-name { text-decoration: line-through; text-decoration-color: var(--muted); }
 
 @media (max-width: 640px) {
   .week-split { grid-template-columns: 1fr; }

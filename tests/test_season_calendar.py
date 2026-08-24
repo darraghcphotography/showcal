@@ -3,11 +3,11 @@ congestion teaser (app/season.py's season_weeks(), info.py's season_summary(),
 public.py's _congestion_teaser()).
 
 A section (Gilbert or Sullivan) is flagged "congested" for a week where 4+ of
-its own non-cancelled shows are actually *running* at some point in it -
-including one still mid-run from the week before, not just shows opening in
-it - judged separately per section, since an adjudicator only needs to reach
-everything in their own (2 Gilbert + 2 Sullivan in the same week is 4 shows
-total but a real clash for neither).
+its own shows are actually *running* at some point in it - including one
+still mid-run from the week before, not just shows opening in it - judged
+separately per section, since an adjudicator only needs to reach everything
+in their own (2 Gilbert + 2 Sullivan in the same week is 4 shows total but a
+real clash for neither).
 
 info.py's season_summary() also drops already-finished weeks for the current/
 a future season (a past season being browsed as history keeps its full
@@ -24,7 +24,7 @@ from app.season import season_weeks
 def _show(**overrides):
     row = {
         "id": 1, "show": "Show", "society_id": 1, "society_name": "Soc",
-        "section": "Gilbert", "region": "Eastern", "status": None,
+        "section": "Gilbert", "region": "Eastern",
         "opening_date": "2026-04-06", "closing_date": "2026-04-11",
     }
     row.update(overrides)
@@ -68,21 +68,6 @@ def test_season_weeks_two_plus_two_across_sections_is_not_congested():
     assert week["congestion_notes"] == []
 
 
-def test_season_weeks_cancelled_shows_excluded_from_counts_not_from_lists():
-    rows = [
-        _show(id=1, show="A"),
-        _show(id=2, show="B"),
-        _show(id=3, show="C"),
-        _show(id=4, show="D", status="Cancelled"),
-    ]
-    weeks = season_weeks(rows)
-    assert len(weeks) == 1
-    week = weeks[0]
-    assert week["gilbert_congested"] is False  # only 3 non-cancelled overlap, threshold is 4
-    assert week["gilbert_overlap"] == 3
-    assert len(week["gilbert"]) == 4  # all four, including the cancelled one, still listed
-
-
 def test_season_weeks_ignores_rows_without_opening_date():
     rows = [_show(id=1), _show(id=2, opening_date=None, closing_date=None)]
     weeks = season_weeks(rows)
@@ -106,11 +91,11 @@ def _week_run(weeks_ahead, day_offset=0, length=4):
     return start.isoformat(), end.isoformat()
 
 
-def _insert_show(db, society_id, show, opening, closing, section="Gilbert", status=None, region="Eastern"):
+def _insert_show(db, society_id, show, opening, closing, section="Gilbert", region="Eastern"):
     db.execute(
         "INSERT INTO shows (society_id, season, region, section, show, opening_date, closing_date, "
-        "status, moderation_status) VALUES (?, '26/27', ?, ?, ?, ?, ?, ?, 'approved')",
-        (society_id, region, section, show, opening, closing, status),
+        "moderation_status) VALUES (?, '26/27', ?, ?, ?, ?, ?, 'approved')",
+        (society_id, region, section, show, opening, closing),
     )
 
 
@@ -175,24 +160,6 @@ def test_season_page_section_filter_recomputes_congestion(client, db):
     eastern_only = client.get("/season?season=26/27&region=Eastern").get_data(as_text=True)
     assert "week-row congested" not in eastern_only
     assert "Gilbert (2)" in eastern_only
-
-
-def test_season_page_cancelled_show_shown_but_not_congested(client, db):
-    society_id = seed_society(db)
-    o1, c1 = _week_run(6, day_offset=0)
-    o2, c2 = _week_run(6, day_offset=1)
-    o3, c3 = _week_run(6, day_offset=2)
-    o4, c4 = _week_run(6, day_offset=3)
-    _insert_show(db, society_id, "Gil One", o1, c1)
-    _insert_show(db, society_id, "Gil Two", o2, c2)
-    _insert_show(db, society_id, "Gil Three", o3, c3)
-    _insert_show(db, society_id, "Gil Four", o4, c4, status="Cancelled")
-    db.commit()
-
-    body = client.get("/season?season=26/27").get_data(as_text=True)
-    assert "Gil Four" in body
-    assert "cancelled-tag" in body
-    assert "week-row congested" not in body
 
 
 def test_season_page_hides_already_finished_weeks_for_current_season(client, db):

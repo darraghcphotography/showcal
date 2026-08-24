@@ -214,7 +214,6 @@ def _migrate_shows_source_check(db):
             review_url             TEXT,
             ticket_url             TEXT,
             poster_filename        TEXT,
-            status                 TEXT CHECK (status IN ('Cancelled') OR status IS NULL),
             moderation_status      TEXT NOT NULL DEFAULT 'approved' CHECK (moderation_status IN (
                                         'pending', 'approved', 'rejected'
                                     )),
@@ -233,13 +232,13 @@ def _migrate_shows_source_check(db):
         INSERT INTO shows_new (
             id, society_id, season, region, section, show, opening_date, closing_date,
             adjudication_date, adjudication_month_raw, venue, director, musical_director, choreographer,
-            review_status, review_url, ticket_url, poster_filename, status, moderation_status, source,
+            review_status, review_url, ticket_url, poster_filename, moderation_status, source,
             submitted_by, invite_code_id, moderated_by, moderated_at, created_at, updated_at
         )
         SELECT
             id, society_id, season, region, section, show, opening_date, closing_date,
             adjudication_date, adjudication_month_raw, venue, director, musical_director, choreographer,
-            review_status, review_url, ticket_url, poster_filename, status, moderation_status, source,
+            review_status, review_url, ticket_url, poster_filename, moderation_status, source,
             submitted_by, invite_code_id, moderated_by, moderated_at, created_at, updated_at
         FROM shows
         """
@@ -279,6 +278,30 @@ def _migrate_shows_natural_key_collation(db):
     )
 
 
+def _migrate_drop_shows_status(db):
+    """shows.status only ever held 'Cancelled' or NULL, and turned out to be
+    unreliable - repeatedly misattributed to shows that actually went ahead
+    (see ROADMAP, 24 Aug 2026) - with a real root cause: import_csv.py read a
+    'status' column straight off the source spreadsheet and upserted it
+    unconditionally on every import, unlike review_status's own blank-can't-
+    overwrite-a-real-value protection, so a routine re-import could silently
+    resurrect a wrong Cancelled flag. Removed entirely rather than just
+    cleared, so it can't recur. A plain DROP COLUMN, not the new-table/copy/
+    drop/rename dance _migrate_shows_source_check and
+    _migrate_adjudicator_assignments_table above use - those exist because
+    SQLite can't ALTER a CHECK constraint or a PRIMARY KEY in place, but a
+    straight column removal has been supported natively since SQLite 3.35
+    (this app's SQLite is well past that floor), and status isn't part of
+    any index, trigger, or foreign key. Keyed off whether the column still
+    exists, so this is a no-op on every startup once a database has been
+    migrated, including a brand-new one where schema.sql no longer creates
+    the column at all."""
+    existing = {row[1] for row in db.execute("PRAGMA table_info(shows)")}
+    if "status" not in existing:
+        return
+    db.execute("ALTER TABLE shows DROP COLUMN status")
+
+
 # FTS5 external-content tables need an explicit 'rebuild' to actually build
 # the searchable index from their source table - the triggers in schema.sql
 # only cover changes from this point on. Deliberately NOT guarded by a
@@ -306,6 +329,7 @@ def init_schema():
     _migrate_adjudicator_assignments_table(db)
     _migrate_shows_source_check(db)
     _migrate_shows_natural_key_collation(db)
+    _migrate_drop_shows_status(db)
     _apply_column_migrations(db)
     _create_migrated_column_indexes(db)
     db.commit()

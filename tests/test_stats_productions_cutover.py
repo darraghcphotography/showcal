@@ -153,19 +153,6 @@ def test_an_upcoming_show_is_not_counted_as_having_happened(client, db):
     assert int(total.group(1)) == 0
 
 
-def test_a_cancelled_show_is_not_counted(client, db):
-    seed_society(db)
-    db.execute(
-        "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, status, moderation_status) "
-        "VALUES (1, '23/24', 'Eastern', 'Chicago', '2023-11-01', '2023-11-05', 'Cancelled', 'approved')"
-    )
-    db.commit()
-
-    body = client.get("/stats").get_data(as_text=True)
-    total = re.search(r'stat-value">(\d+)</span>\s*<span class="stat-label">Productions on record', body)
-    assert int(total.group(1)) == 0
-
-
 def test_the_page_picks_up_a_show_added_since_the_last_build(client, db):
     """The table is derived, so /stats refreshes it when the sources have
     moved - a moderator shouldn't have to wait for a redeploy to see a show

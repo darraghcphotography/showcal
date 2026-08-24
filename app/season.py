@@ -7,11 +7,11 @@ CONGESTION_THRESHOLD = 4
 def season_weeks(rows):
     """Group a season's shows by the ISO week of their opening date, flagging
     a week "congested" per section - Gilbert and Sullivan judged separately,
-    each at 4+ non-cancelled shows actually *running* (not just opening) at
-    any point in it, a still-running show from the week before counts too.
-    Per-section, not combined: an adjudicator only needs to reach every show
-    in their own section, so 2 Gilbert + 2 Sullivan in the same week isn't a
-    real clash for either of them, even though it's 4 shows total."""
+    each at 4+ shows actually *running* (not just opening) at any point in
+    it, a still-running show from the week before counts too. Per-section,
+    not combined: an adjudicator only needs to reach every show in their own
+    section, so 2 Gilbert + 2 Sullivan in the same week isn't a real clash
+    for either of them, even though it's 4 shows total."""
     parsed = []
     for row in rows:
         if not row["opening_date"]:
@@ -27,7 +27,7 @@ def season_weeks(rows):
     def section_overlap(section, start, end):
         return sum(
             1 for r, o, c in parsed
-            if r["status"] != "Cancelled" and r["section"] == section and o <= end and c >= start
+            if r["section"] == section and o <= end and c >= start
         )
 
     weeks = []
@@ -40,8 +40,8 @@ def season_weeks(rows):
         sullivan_shows = [r for r in shows if r["section"] == "Sullivan"]
         other_shows = [r for r in shows if r["section"] not in ("Gilbert", "Sullivan")]
 
-        gilbert_open = sum(1 for r in gilbert_shows if r["status"] != "Cancelled")
-        sullivan_open = sum(1 for r in sullivan_shows if r["status"] != "Cancelled")
+        gilbert_open = len(gilbert_shows)
+        sullivan_open = len(sullivan_shows)
         gilbert_overlap = section_overlap("Gilbert", start, end)
         sullivan_overlap = section_overlap("Sullivan", start, end)
         gilbert_congested = gilbert_overlap >= CONGESTION_THRESHOLD
@@ -57,7 +57,7 @@ def season_weeks(rows):
                 "label": "Sullivan", "overlap": sullivan_overlap, "carryover": sullivan_overlap - sullivan_open,
             })
 
-        other_open = sum(1 for r in other_shows if r["status"] != "Cancelled")
+        other_open = len(other_shows)
 
         weeks.append({
             "start": start,

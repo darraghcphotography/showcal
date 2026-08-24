@@ -104,8 +104,8 @@ def test_referrer_and_permissions_policy_headers_present(client):
     assert "geolocation=()" in resp.headers.get("Permissions-Policy", "")
 
 
-def _show(status=None, opening_date=None):
-    return {"status": status, "opening_date": opening_date}
+def _show(opening_date=None):
+    return {"opening_date": opening_date}
 
 
 def test_is_upcoming_true_for_future_open_show():
@@ -116,11 +116,6 @@ def test_is_upcoming_true_for_future_open_show():
 def test_is_upcoming_false_for_past_show():
     past = (date.today() - timedelta(days=10)).isoformat()
     assert is_upcoming(_show(opening_date=past)) is False
-
-
-def test_is_upcoming_false_for_cancelled_show():
-    future = (date.today() + timedelta(days=10)).isoformat()
-    assert is_upcoming(_show(status="Cancelled", opening_date=future)) is False
 
 
 def test_is_upcoming_false_when_no_opening_date():

@@ -106,7 +106,6 @@
               <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">
                 {% if show['opening_date'] %}{{ show['opening_date']|irish_date }} &ndash; {{ show['closing_date']|irish_date or '?' }}{% else %}TBA{% endif %}
               </a>
-              {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
             </td>
           </tr>
         {% endfor %}

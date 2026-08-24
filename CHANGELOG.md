@@ -1,3 +1,7 @@
+The "Cancelled" show flag is gone. It had been misattributed to shows that actually went ahead, and the routine spreadsheet re-import used to silently resurrect a wrong flag on every run - it's removed everywhere (the checkbox, the tag, the database column) rather than just corrected
+
+---
+
 The homepage has a "Near me" toggle now - it sorts upcoming shows by distance from you, for the roughly third of venues that have a map location on record so far
 A show page now shows the venue's seating capacity and town, an "About the society" blurb with its social links, and a one-line note on how many times the show's been staged on the circuit and who staged it most recently
 A society's own show-history table now links every venue, and its next announced show gets a highlighted callout with a "Tickets on sale" tag when one's set

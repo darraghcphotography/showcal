@@ -43,7 +43,6 @@ NEEDS_REVIEW_WHERE = """
     shows.moderation_status = 'approved'
     AND shows.show IS NOT NULL
     AND shows.source != 'historical'
-    AND shows.status IS NOT 'Cancelled'
     AND shows.review_status != 'Not adjudicated'
     AND (shows.review_url IS NULL OR shows.review_url = '')
     AND (COALESCE(shows.closing_date, shows.opening_date) <= :today

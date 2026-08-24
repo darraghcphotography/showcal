@@ -79,7 +79,6 @@ def _read_form(form):
         "musical_director": form.get("musical_director", "").strip() or None,
         "choreographer": form.get("choreographer", "").strip() or None,
         "ticket_url": form.get("ticket_url", "").strip() or None,
-        "cancelled": bool(form.get("cancelled")),
     }
 
 
@@ -246,11 +245,11 @@ def new_show():
             INSERT INTO shows (
                 society_id, season, region, section, show,
                 opening_date, closing_date, venue, director, musical_director, choreographer,
-                ticket_url, poster_filename, status, review_status, moderation_status, source, invite_code_id
+                ticket_url, poster_filename, review_status, moderation_status, source, invite_code_id
             ) VALUES (
                 :society_id, :season, :region, :section, :show,
                 :opening_date, :closing_date, :venue, :director, :musical_director, :choreographer,
-                :ticket_url, :poster_filename, :status, 'None', 'approved', 'submission', :invite_code_id
+                :ticket_url, :poster_filename, 'None', 'approved', 'submission', :invite_code_id
             )
             """,
             {
@@ -267,7 +266,6 @@ def new_show():
                 "choreographer": fields["choreographer"],
                 "ticket_url": fields["ticket_url"],
                 "poster_filename": poster_filename,
-                "status": "Cancelled" if fields["cancelled"] else None,
                 "invite_code_id": code["id"],
             },
         )
@@ -323,14 +321,14 @@ def edit_show(show_id):
             UPDATE shows SET
                 season = ?, section = ?, show = ?, opening_date = ?, closing_date = ?,
                 venue = ?, director = ?, musical_director = ?, choreographer = ?,
-                ticket_url = ?, poster_filename = ?, status = ?, updated_at = ?
+                ticket_url = ?, poster_filename = ?, updated_at = ?
             WHERE id = ?
             """,
             (
                 fields["season"], fields["section"], fields["show"] or None,
                 fields["opening_date"], fields["closing_date"],
                 fields["venue"], fields["director"], fields["musical_director"], fields["choreographer"],
-                fields["ticket_url"], poster_filename, "Cancelled" if fields["cancelled"] else None,
+                fields["ticket_url"], poster_filename,
                 datetime.utcnow().isoformat(), show_id,
             ),
         )

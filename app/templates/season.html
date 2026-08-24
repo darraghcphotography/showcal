@@ -12,7 +12,6 @@
       <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
       <td>
         <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-        {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
       </td>
       <td>{{ show['section'] or '—' }}</td>
       <td>{{ show['opening_date']|date_range(show['closing_date']) or ('Not on record' if past else 'TBA') }}</td>
@@ -34,7 +33,7 @@
 {% endmacro %}
 
 {% macro season_chip(show) %}
-  <span class="chip {{ 'gilbert' if show['section'] == 'Gilbert' else ('sullivan' if show['section'] == 'Sullivan' else 'other') }}{{ ' is-cancelled' if show['status'] == 'Cancelled' else '' }}">
+  <span class="chip {{ 'gilbert' if show['section'] == 'Gilbert' else ('sullivan' if show['section'] == 'Sullivan' else 'other') }}">
     <span class="dot"></span>
     <span class="chip-text">
       <a class="show-name" href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
@@ -43,7 +42,6 @@
         &middot; <span class="date-range">{{ show['opening_date']|date_range(show['closing_date']) }}</span>
       </span>
     </span>
-    {% if show['status'] == 'Cancelled' %}<span class="cancelled-tag">Cancelled</span>{% endif %}
   </span>
 {% endmacro %}
 
@@ -63,7 +61,6 @@
     <div class="queue-item">
       <div class="primary">
         <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-        {% if show['status'] == 'Cancelled' %}<span class="tag tag-cancelled">Cancelled</span>{% endif %}
       </div>
       <div class="meta-chips">
         <span><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></span>
