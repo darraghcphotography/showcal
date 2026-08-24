@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Share an old photo - DC Show Tracker{% endblock %}
+{% block title %}Submit society history - DC Show Tracker{% endblock %}
 {% block content %}
-  <h1>Share an old photo</h1>
+  <h1>Submit society history</h1>
   <p>We're especially looking for: an old newspaper review clipping (particularly anything before
      2009, which our own archive doesn't cover), a programme cover, or a photo of a programme page
      listing a society's own past productions - those production-history pages are gold for filling
@@ -33,10 +33,10 @@
 
     <label>
       Photo
-      <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif" required>
+      <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif" required>
     </label>
 
-    <p class="meta">JPG, PNG, WEBP, or GIF, max 8&nbsp;MB.</p>
+    <p class="meta">JPG, PNG, WEBP, GIF, or HEIC (iPhone photos work fine), max 8&nbsp;MB.</p>
 
     <label>
       Society, if known

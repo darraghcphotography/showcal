@@ -1,3 +1,7 @@
+"Share an old photo" is now "Submit society history", reachable on mobile from the More page (it was desktop-footer only before), and accepts iPhone photos properly - a real upload was failing outright since iPhones save photos in a format the site didn't understand or could display back
+
+---
+
 A small polish batch: dates now read the same everywhere (no more "20-04-2027" mixed in with "20-28 Apr 2027"), venue cards don't repeat themselves when a town and county share a name ("Dublin, Dublin"), a literal "None" no longer shows up in a society's Review column, ordinal show titles like "The 25th Annual Putnam County Spelling Bee" keep their lowercase "th"/"nd", and a society's own page makes better use of its header on desktop
 
 ---

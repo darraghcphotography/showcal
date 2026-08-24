@@ -2,9 +2,16 @@ import io
 import os
 import uuid
 
+import pillow_heif
 from PIL import Image
 
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
+pillow_heif.register_heif_opener()
+
+# iPhones (and many Androids) save camera photos as HEIC/HEIF by default -
+# accepted here even though no browser renders it directly (found 2026-08-24:
+# a real phone upload to /submit/photo failed outright), so both save
+# functions below always convert it to something every browser can display.
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "heic", "heif"}
 
 # Posters render at most 240 CSS px wide anywhere on the site (.poster, the
 # show-detail hero and the poster gallery - see style.css) - 600px comfortably
@@ -13,12 +20,20 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 # the homepage - this is the actual fix, not lazy-loading or pagination.
 MAX_POSTER_DIMENSION = 600
 WEBP_QUALITY = 82
+JPEG_QUALITY = 90
 
 
 def _extension(filename):
     if "." not in filename:
         return None
     return filename.rsplit(".", 1)[1].lower()
+
+
+def _open_image(fileobj):
+    """Image.open, but HEIC/HEIF is decoded via pillow_heif's registered
+    opener - stock Pillow can't read it at all without this."""
+    fileobj.seek(0)
+    return Image.open(fileobj)
 
 
 def _resized_webp_bytes(fileobj, ext):
@@ -31,8 +46,7 @@ def _resized_webp_bytes(fileobj, ext):
     theatre poster is never animated, so it's not worth the complexity for
     what amounts to a hypothetical case.
     """
-    fileobj.seek(0)
-    img = Image.open(fileobj)
+    img = _open_image(fileobj)
     if ext == "gif" and getattr(img, "is_animated", False):
         fileobj.seek(0)
         return fileobj.read(), "gif"
@@ -44,6 +58,25 @@ def _resized_webp_bytes(fileobj, ext):
     buf = io.BytesIO()
     img.save(buf, format="WEBP", quality=WEBP_QUALITY)
     return buf.getvalue(), "webp"
+
+
+def _viewable_bytes(fileobj, ext):
+    """Passes a browser-renderable format straight through unchanged; a
+    HEIC/HEIF source (no browser renders that directly - see ALLOWED_
+    EXTENSIONS) is re-encoded to full-resolution JPEG instead, no resizing,
+    so a moderator can actually see it in the admin queue."""
+    if ext not in ("heic", "heif"):
+        fileobj.seek(0)
+        return fileobj.read(), ext
+
+    img = _open_image(fileobj)
+    if img.mode not in ("RGB", "RGBA"):
+        img = img.convert("RGB")
+    if img.mode == "RGBA":
+        img = img.convert("RGB")  # JPEG has no alpha channel
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=JPEG_QUALITY)
+    return buf.getvalue(), "jpg"
 
 
 def save_poster(file_storage, upload_dir):
@@ -60,7 +93,7 @@ def save_poster(file_storage, upload_dir):
 
     ext = _extension(file_storage.filename)
     if ext not in ALLOWED_EXTENSIONS:
-        raise ValueError("Poster must be a JPG, PNG, WEBP, or GIF image.")
+        raise ValueError("Poster must be a JPG, PNG, WEBP, GIF, or HEIC image.")
 
     try:
         data, out_ext = _resized_webp_bytes(file_storage.stream, ext)
@@ -83,19 +116,26 @@ def save_photo_submission(file_storage, upload_dir):
     submission with no file attached isn't a submission. Raises ValueError
     with a user-facing message either way.
 
-    Deliberately NOT resized like save_poster - this is source material a
-    moderator reads to fill in real data (extract_historical_reviews.py's
-    kind of raw scan), not something rendered at a fixed on-page size, so
-    downscaling it would only throw away detail a moderator might need to
-    read (a name, a small print run credit)."""
+    Not resized like save_poster - this is source material a moderator reads
+    to fill in real data (extract_historical_reviews.py's kind of raw scan),
+    not something rendered at a fixed on-page size, so downscaling it would
+    only throw away detail a moderator might need to read (a name, a small
+    print run credit). A HEIC/HEIF upload is still re-encoded to JPEG (see
+    _viewable_bytes) - full resolution, format only - since no browser can
+    display HEIC directly and the admin queue needs to actually show it."""
     if not file_storage or not file_storage.filename:
         raise ValueError("Choose a photo to upload.")
 
     ext = _extension(file_storage.filename)
     if ext not in ALLOWED_EXTENSIONS:
-        raise ValueError("Photo must be a JPG, PNG, WEBP, or GIF image.")
+        raise ValueError("Photo must be a JPG, PNG, WEBP, GIF, or HEIC image.")
 
+    try:
+        data, out_ext = _viewable_bytes(file_storage.stream, ext)
+    except Exception:
+        raise ValueError("That file doesn't look like a valid image - try a different one.")
     os.makedirs(upload_dir, exist_ok=True)
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    file_storage.save(os.path.join(upload_dir, filename))
+    filename = f"{uuid.uuid4().hex}.{out_ext}"
+    with open(os.path.join(upload_dir, filename), "wb") as f:
+        f.write(data)
     return filename

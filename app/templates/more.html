@@ -57,6 +57,11 @@
     <p class="meta">Add your society's production</p>
   </a>
 
+  <a class="queue-item" href="{{ url_for('submit.photo') }}">
+    <span class="primary">Submit society history</span>
+    <p class="meta">Share an old review clipping, programme, or production photo</p>
+  </a>
+
   {% if society_session %}
     <a class="queue-item" href="{{ url_for('society.dashboard') }}">
       <span class="primary">My society</span>

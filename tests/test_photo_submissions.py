@@ -19,7 +19,7 @@ def _photo_file(name="clipping.jpg"):
 def test_get_renders_form(client):
     resp = client.get("/submit/photo")
     assert resp.status_code == 200
-    assert b"Share an old photo" in resp.data
+    assert b"Submit society history" in resp.data
 
 
 def test_submission_with_no_notes_is_rejected(client, db):
