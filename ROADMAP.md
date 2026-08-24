@@ -1,253 +1,10 @@
-## Morning queue, 2026-08-24 - worked through same day
-
-Full plan and reasoning: https://claude.ai/code/artifact/c85710e6-d535-46d1-8041-5e4bad7c5115
-
-**Done and verified live on production** (queue items 1-3, 5-6): the Fame/Fame: The Musical bug
-(Leixlip's six award nominations now show on its own page), Annie/Shrek/Elf title merges, and the
-11 published-no-link reviews cleared back to "None". Item 4 (default_venue backfill) landed 3 of
-the targeted 5-10 - re-checked against this repo's own data (the Gemini list is exhausted), and
-68 of the remaining 71 societies genuinely don't have enough venue history on record to back a
-confident call; deliberately not forced further (see `backfill_default_venues_round2.py`).
-
-**Built, tested (612 tests pass), verified against local data - pushed, not yet deployed**
-(queue items 9-10, said "go" on this morning): the society page now links every venue in its show
-history and highlights the next announced show; the show page shows venue capacity/town, an
-"About the society" blurb with social links, and a one-line circuit summary; the homepage has a
-"Near me" toggle (browser geolocation, distance-sorted, honest about the ~third of venues that
-have a map pin so far - no fake map graphic, just the list, matching the site's existing
-"link out to Google Maps" convention rather than adding a new mapping dependency). Same redeploy
-step as the rest of this file's deploy queue below.
-
-**Also built, same status (mockup approved 2026-08-24, then built for real the same day):** the
-week-by-week season calendar moved off `/season` onto its own page, `/season/calendar` - `/season`
-now holds only the past/upcoming productions list plus a link to the calendar. An empty Gilbert or
-Sullivan column reads as an actual blank card (dashed border, "Nothing opening this week") instead
-of italic muted text. Nav, footer, More page, the homepage's "week by week" link, and the sitemap
-all point at the new route; the mobile bottom tab bar's "Seasons" tab was deliberately left
-pointed at `/season` (no spare tab slot, no "week by week" wording there to redirect).
-
-**Still open from that plan:**
-- Item 8 (FAQ page mockup) - parked until the six questions are settled.
-- Peter Pan and Sugar/Some Like It Hot title pairs - left unmerged, no confident call either way.
-- Queue items 11-14 (next venue-backfill batch, venue long tail, unmapped historical societies
-  schema question, outreach track) - not started this session.
-
-**Item 7 resolved, then taken further.** The 14 Cancelled shows weren't a "some are wrong, flag
-which ones" cleanup - Darragh's call was that the field itself isn't reliably used, so the flag
-was cleared everywhere (local + production) rather than corrected row by row. Digging into why
-turned up the actual root cause: `import_csv.py` reads a `status` column straight from the source
-spreadsheet and upserts it unconditionally on every import, with none of the protection
-`review_status` gets - so the next routine re-import would have silently resurrected wrong
-Cancelled flags. The feature (schema column, admin/society checkboxes, tag rendering, the CSV read
-path) is being removed entirely, not just the data cleared, so this can't recur.
-
-**Second thread started today: a UI-polish plan** (Fable's read on "the site feels dated," plan at
-`C:\Users\Darragh\.claude\plans\hello-1-are-sunny-hippo.md`, executing phase by phase). **Phases 0-1
-done, pushed, not yet deployed:**
-- Phase 0: colour was already tokenised in `style.css` but spacing/radius weren't - added
-  `--space-*`/`--radius-*` tokens and consolidated five near-identical card components (venue/
-  resident/adj/lb/stat) and three "hero" gradient cards (explorer/trends-callout/era-card) that
-  were each independently re-declaring the same border/background/shadow, plus ~11 duplicate
-  `border-radius: 999px` pill declarations. Every substitution is value-identical to what it
-  replaced - zero rendered-output change.
-- Phase 1: `/societies` is now a card grid (logo if maintained, initial-letter placeholder if not -
-  Darragh's ask); `/titles` rebuilt as the already-approved Shows A-Z mockup (staples strip, three
-  quick filters, sticky letter scrubber, per-title cards - sort dropdown and pagination both
-  dropped, replaced by the scrubber); Section (Gilbert/Sullivan) now shows a coloured dot via a new
-  shared `_tier.html` macro everywhere it used to be plain text (`/awards`, `/season`, society/show
-  detail pages). The society head-to-head compare mockup was **dropped entirely, not built** -
-  Darragh's call, a direct comparison tool doesn't fit an amateur organisation's spirit.
-
-**A fresh live-site walkthrough followed the same session, after Darragh redeployed the four phases
-above.** Two Artifacts: **Second Act**
-(`https://claude.ai/code/artifact/9cb573f0-ed17-4301-a4b7-36912c14893b`) - real findings from
-screenshots of the live site (desktop/mobile, both themes) and a template-level read of the admin
-dashboard (couldn't screenshot admin - logging into production programmatically was correctly
-declined by this session's safety tooling), plus a week-ahead punch list; and **Two More Looks**
-(`https://claude.ai/code/artifact/d818bc2c-d7f7-4834-a75c-de0e2b6c97c4`) - two alternate visual
-directions (Marquee: dark, bold poster-lettering; Rehearsal Room: warm paper, minimal, editorial,
-now with a light/dark toggle - Darragh's favourite of the two so far) mocked up against the real
-homepage listings.
-
-## Second Act backlog - ordered, ready to pick up after a `/clear`
-
-Nothing below is started. Proposed order is value-per-hour, each row independently shippable.
-Darragh's steer on model routing: Fable for planning/mockups/vision, Sonnet for implementation,
-Haiku for cheap/bulk work (already used for the venue research below) - a Plan-mode session can
-hand off to an Agent-tool call with `model: "sonnet"` for the build step once a mockup's approved.
-Every visual item still gets a mockup first, approved before real templates change - same gate as
-always.
-
-1. ~~Apply the researched venue fixes.~~ **Done 2026-08-24**, `e49582c`, deployed and verified live.
-   49 of the 53 bare-placeholder venues corrected (71 (placeholder, society) pairs, 73 show rows) -
-   see `apply_venue_research.py` (kept in the repo, safe to re-run, same convention as
-   `enrich_venues.py`) for the full mapping and reasoning. `enrich_venues.py` re-run immediately
-   after, which already had capacity/coordinates waiting for several of these under their corrected
-   spelling (28 of 118 venues now carry a capacity, 43 have a map pin).
-   **Deliberately left open, still need a human decision:**
-   - **`Mandela Hall, Belfast`** (applied for Queen's Musical Theatre Society) is the building
-     already flagged as closed and demolished 2018-2020 - applied as the best available answer, but
-     worth a second look for whichever specific production this is.
-   - **Two societies need per-show research, not a blanket fix**: Enniscorthy Musical Society
-     ("Wexford") and UCC Musical Theatre Society ("Cork") only had a slash-joined answer
-     ("Coláiste Bríde / IFA Centre", "Cork Arts Theatre / Devere Hall UCC") - two buildings, not
-     one venue recorded two ways, per this codebase's own policy on slash-joined names. Still show
-     as bare placeholders.
-   - **Two entries aren't real places and were never in scope here**: `"Cork run"` (venue id 120)
-     and `"40th Anniversary (March run)"` (id 130) are malformed data-entry artifacts - trace back
-     to whatever import/entry produced them and fix at the source, not via a venue correction.
-2. ~~Homepage poster placeholder.~~ **Done 2026-08-24**, pushed, not yet deployed. Mockup
-   (`https://claude.ai/code/artifact/f6f1281e-228b-4566-8485-a724671bba19`) approved by Darragh,
-   who asked for the show's initials rather than a single letter - built that way. The
-   `upcoming_entry` macro in `index.html` (shared by the month list, "Near me", and "Closest
-   first") now renders a `.whatson-poster.is-placeholder` box - same 54px/2:3 footprint, border
-   and shadow as a real poster - with a new `initials` filter (`app/filters.py`, skips small
-   connecting words: "The Hired Man" -> "HM", single-word titles fall back to their own first two
-   letters: "Oklahoma!" -> "OK"). Verified locally against real upcoming-show data via a Playwright
-   screenshot, not just the test suite - October's run of bare listings now reads the same as
-   August's.
-3. ~~Two-column show-detail layout at desktop widths.~~ **Done 2026-08-24**, pushed, not yet
-   deployed. Mockup (`https://claude.ai/code/artifact/82fca774-ad46-466e-a3ca-f1d69282d72b`)
-   approved as-is. A new `.detail-hero` grid (260px poster / flex facts column, 160px for a
-   society's square logo via the `.society-hero` modifier) wraps the existing poster/logo image
-   and the facts that used to sit in their own stacked block below it - `show_detail.html`'s
-   about-society blurb + `<dl class="detail-list">`, `society_detail.html`'s
-   notes/about/social-links. Everything above (title, byline) and below (review, awards, trophy
-   case, badges, show history) stays full width, untouched. Collapses back to one column below
-   700px, same as it already looked on mobile. A show/society with no image gets the item-2
-   initials placeholder in the slot instead of falling back to one column - the `initials` filter
-   was renamed from `show_initials` to cover both uses. 622 tests green (4 new, covering the
-   poster/logo vs. placeholder branch on both pages). Verified with local Playwright screenshots
-   (poster, placeholder, and the mobile stack) using real dummy image files, since the real
-   uploads aren't reachable locally - the earlier screenshot without them showed a browser's
-   default broken-image box, not a layout bug.
-4. ~~Reviews page card pass.~~ **Done 2026-08-24**, pushed, not yet deployed. Mockup
-   (`https://claude.ai/code/artifact/ae0e41f3-4d0e-4b33-97bc-5628bc13d061`) approved as-is. Same
-   treatment `/societies` already got - `.review-row`/`.review-list` renamed and restyled as
-   `.review-card`/`.review-grid` (a card grid, source tag moved to the card's top-right corner,
-   accent-tinted only for "Full review" since that's worth drawing the eye to versus a plain link
-   out). Both `reviews_index.html` and `adjudicator_detail.html` already shared the same CSS
-   classes before the redesign, so an adjudicator's own review list picked up the same card
-   treatment automatically, confirmed live with a screenshot rather than assumed. The "Read on
-   aims.ie" pill text is shortened to "aims.ie" to fit the card's top-right corner - a deliberate
-   copy change, one test updated to match. Season `<details>` grouping, pagination, and the search
-   box are all untouched - only what's inside each season's body changed shape. 625 tests green (4
-   new, covering the card markup on both pages and the season/tier meta line in search-result
-   mode). Verified with local Playwright screenshots at desktop and mobile widths - the grid
-   collapses to one column at narrow viewports on its own (`repeat(auto-fit, minmax(230px, 1fr))`),
-   same responsive behaviour as the other card grids, no separate breakpoint needed.
-5. ~~Awards page polish without touching the table shape.~~ **Done 2026-08-24**, pushed, not yet
-   deployed. Mockup (`https://claude.ai/code/artifact/e6e73546-a103-47a4-a51c-204adf3a2a3d`)
-   approved as-is, including the one deviation flagged during review: a fifth chip for the search
-   box (`q`), not just the four dropdowns the backlog wording named, so an active search doesn't
-   sit invisibly next to the chips for everything else. A Winner row gets
-   `color-mix(in srgb, var(--gold) 14%, transparent)` regardless of the zebra stripe, plus a small
-   🏆 tag replacing the plain "Winner" text in the Result cell. Filter chips are plain links, no
-   JS - each one is `request.args` with just that filter's key popped, built in the template
-   (`awards.html`), so "Year: 2025 ×" drops only the year and keeps every other active filter;
-   "Clear all" goes to the bare `/awards`. Table stays a table on purpose (4,878 rows) - only the
-   tint and the chip row are new, same columns/pagination/mobile-card-fallback as before. 629
-   tests green (5 new). Verified with local Playwright screenshots - the chip href test confirms
-   removing "Year: 2025" keeps `result=Winner` in the URL, not just that the chip renders.
-6. ~~Mobile "back to top"~~ on the three longest list pages. **Done 2026-08-24**, pushed, not yet
-   deployed. Mockup (`https://claude.ai/code/artifact/a19df731-94f8-4917-a74b-13fcbffa1458`,
-   live-interactive rather than a static image) approved as-is. A new shared
-   `_back_to_top.html` partial, imported into `societies_list.html`, `titles_list.html` and
-   `reviews_index.html` - each `<h1>` now carries `id="page-top"`, the button is a real
-   `<a href="#page-top">`, so it's always visible and works with zero JavaScript (same "core
-   behaviour doesn't depend on the script" principle the header's nav menus already use).
-   `base.html`'s one new scroll listener only adds fading it out near the top and (via
-   `scroll-behavior: smooth` in `style.css`, itself reduced-motion-guarded) a smooth jump - both
-   niceties layered on an already-functional link, not requirements for it to work. Clears the
-   mobile bottom tab bar via a `max-width: 768px` offset. 633 tests green (4 new, including a
-   check that the other ~30 pages don't get the button). Verified with local Playwright
-   screenshots at two scroll positions - a real debugging detour along the way found several
-   stale `flask run` dev-server processes left running from earlier in the session on different
-   ports, serving Jinja-cached templates from before this change (`auto_reload` is off without
-   `--debug`) - worth remembering next time a local check shows unexpectedly stale output: check
-   for leftover background processes before suspecting the code.
-7. ~~Measure the Shows A-Z page weight before deciding whether to change it.~~ **Done and
-   resolved differently than expected, 2026-08-24**, pushed, not yet deployed. The old "~30,000px
-   / 2.3MB" figure was a guess, never actually measured - real numbers against the live 300-title
-   page (Playwright, CDP network + throttling, mobile viewport): 48,383px tall (taller than
-   guessed) but only **385.9KB uncompressed** (far less than guessed) across just 3 requests
-   (286KB HTML, 66KB CSS, 34KB font - no images, since titles use the item-2 initials placeholder
-   rather than a poster). Time-to-interactive: 2.2s on a "Fast 3G" profile (fine), but **8.3s on a
-   genuine "Slow 3G" profile** (400Kbps/400ms RTT, Lighthouse's own preset) - worth caring about
-   for an Ireland-wide amateur-theatre audience that includes rural connections, not a purely
-   theoretical edge case. Traced the 8.3s to its actual cause: **nothing in the stack compresses a
-   response** - not waitress, no reverse proxy in front. Added `Flask-Compress` (auto-negotiates
-   gzip/brotli/zstd per request, `app/__init__.py`) rather than the three options the item
-   originally posed (leave it, lazy-load by letter, paginate) - none of those addressed the actual
-   bottleneck, which was payload size on a slow link, not page structure or height. Confirmed
-   working under both `flask run` and waitress (the real production server). Re-measured after:
-   **79.0KB over the wire** (4.9x smaller - HTML 25.1KB, CSS 19.7KB, both zstd-compressed; the
-   already-compressed WOFF2 font correctly left alone), Slow-3G interactive time **3.3s, down from
-   8.3s** (61% faster) - real Playwright numbers, not estimated from the byte reduction. This is a
-   site-wide fix (every page gets smaller/faster), not just `/titles` - the lazy-load/paginate
-   question this item was originally about doesn't need revisiting unless a future measurement
-   still shows a problem after this. 636 tests green (3 new, covering compression on/off and that
-   an already-compressed upload isn't recompressed).
-8. ~~Admin dashboard: extend the on/off urgency dot~~ from 2 of ~12 dashboard rows to all of them;
-   split out the rows that explicitly "won't reach 0" into their own group. **Done 2026-08-24**,
-   pushed, not yet deployed - **the eighth and last item in the Second Act ordered backlog,
-   completing it in a single session.** No mockup needed (a small, unambiguous extension of an
-   existing pattern - the dot already exists, this only applies it more places) - built directly,
-   verified with a real admin-login screenshot against live local data before/after cleanup of the
-   throwaway login (per this file's own housekeeping rule). Every row in "Awaiting your review,"
-   "Missing data" and "Possible errors to check" now carries the same `.admin-dot-on`/
-   `.admin-dot-off` marker `dashboard.html`'s first two rows already had (11 rows total).
-   "Award records with no society match" - the one row already documented in its own hint text as
-   structurally permanent (mostly genuinely defunct societies) - moves into a new, deliberately
-   dot-less "Won't reach zero" group: a permanent amber dot there would be a standing false alarm,
-   the same "counterproductive" shape "Active societies missing a default venue" had, fixed
-   earlier the same session (both the dashboard count and `/admin/venues` now only count/list
-   societies with at least one show of their own recording a venue, rather than mixing in ones
-   with zero venue history to go on). So this group carries no dot on any row, not just the one
-   award-societies example. Confirmed against real production-shaped local data via screenshot:
-   540 unmatched award records sit cleanly separated from the 8 genuinely actionable rows above
-   them. 639 tests green (3 new; 3 existing tests updated for the new `.admin-row-label`-wrapped
-   markup, two of them fixed for a real bug the dot rollout exposed - a test's
-   `<td>Label</td>\s*<td>N</td>` regex happened to also match whichever row currently has the
-   smallest nonzero count if it got featured in the "quick win" banner above the table, since the
-   label text now appears twice on the page in that case; rescoped to the right table section
-   instead of assuming the label is unique).
-
-**Second Act backlog: all 8 items done, one session, 2026-08-24.** Everything above is committed
-and pushed to `main`, none of it deployed yet - see the DEPLOY QUEUE section below for what a
-redeploy needs to pick all of it up together. `git log` from `e49582c` (item 1) through the final
-item-8 commit has the full sequence if a specific change needs re-checking; this file's own
-per-item write-ups above carry the reasoning, numbers and test counts for each.
-
-Feature ideas from the same walkthrough, not part of the ordered list above (lower confidence
-they're worth building, or need Darragh's product judgement first): a "who else has staged this
-show" cross-link on the two-column show-detail page; a print/export view of `/season/calendar` for
-a committee planning around busy weeks; a lightweight poster-forward share view of a single show
-page. Full detail on all of these, plus everything already tracked elsewhere in this file (poster
-gallery, "claim your page" outreach, watchlist/.ics export), is in the Second Act artifact.
-
-**Phases 2-3 done too, same session.** Mocked up first as one Artifact ("Programme Notes",
-`https://claude.ai/code/artifact/70387538-825c-4985-8fca-39d937151fcc`), approved, then built:
-- Phase 2 (`e530513`): a global `prefers-reduced-motion` kill-switch, then 150ms transitions on
-  every card/pill hover that used to snap instantly. A new `_icons.html` macro set (map-pin/
-  ticket/calendar/external-link) wired into six real spots (venue directions/website, homepage
-  ticket badge, the two season-calendar links, a society's social links on the show page).
-- Phase 3 (`643fdb6`): Fraunces self-hosted under `app/static/fonts/` (the CSP blocks Google
-  Fonts, so this is a real font file, not a CDN link), applied to the homepage's `<h1>` only -
-  not sitewide. Also fixed the dark-mode accent token (`#d45e81`, same ~340° hue as light mode,
-  just less pale than the old `#f0a8c0` - the hue was never actually the problem, a 34%→80%
-  lightness swing was).
-
-All four phases are cosmetic/presentation-only (no schema change), 612 tests green throughout,
-pushed to `main`, safe to redeploy whenever convenient - nothing is deployed yet.
-
 # Roadmap
 
 Tracks the current phase of work and genuinely open items, so a new session (after `/clear` or a fresh
 start) can pick up without re-deriving context. Update this file - don't just say the plan out loud in
 chat - whenever the phase changes.
 
-**Pruned twice** (2026-08-20, then again 2026-08-23) - each time because it had grown into a
+**Pruned three times now** (2026-08-20, 2026-08-23, 2026-08-24) - each time because it had grown into a
 chronological session log of mostly-shipped work, and CLAUDE.md's own rule says to read it at the start
 of every session. Full history (every Round, every Phase, every session's blow-by-blow) is preserved
 verbatim in `ROADMAP_ARCHIVE.md` - nothing was ever deleted, just moved out of the file that gets read
@@ -256,148 +13,57 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - where things stand (2026-08-23)
+## START HERE - where things stand (2026-08-24, evening)
 
-## DEPLOY QUEUE (2026-08-24) - everything below is pushed, none of it is live
+**Everything is shipped, deployed and verified live as of this evening.** The morning queue, all
+four phases of the UI-polish plan, and all 8 items of the Second Act backlog (homepage poster
+placeholder, two-column show/society detail layout, the reviews card grid, awards page polish,
+mobile "back to top," response compression, and admin dashboard urgency dots) are live on
+production - checked directly against the real site, not assumed from a `git push`. Test suite is
+639 and green. Full detail, commit hashes and the live-check evidence for all of it is in
+`ROADMAP_ARCHIVE.md` under "Morning queue, 2026-08-24," "UI-polish plan," and "Second Act backlog"
+- nothing below duplicates it.
 
-Suite 607 green. Redeploy through Portainer, then run **two** scripts in the container -
-the code deploy alone changes no data:
-
-```bash
-docker exec aims-web python enrich_venues.py --db /data/aims.db
-docker exec aims-web python backfill_default_venues.py --db /data/aims.db
-```
-(`docker compose exec` needs the compose directory; `docker exec` works from anywhere.)
-
-Both are idempotent, and `enrich_venues.py` has already run once against prod - the second
-run adds 15 venues and one merge. Then check: the homepage leads with "What's on" grouped by
-month, `/reviews` is a page at a time with a pager, an upcoming show page no longer shows the
-adjudication cut-off to a logged-out visitor, and a venue page offers "Get directions".
-
-Shipped in this batch: the homepage rebuild (audit bet 1 + findings 02/04), the adjudication
-cut-off audience fix (finding 07), `/reviews` pagination and full-text search (finding 12),
-the "No region" option for historical societies, Google Maps directions on venue pages, and
-the Gemini venue-mapping adoption (84 default venues, 15 more venues enriched).
-
----
-
-**Two earlier things, also waiting on the same redeploy.** Suite 589 green at the time.
-
-1. **Venue content pass** - `enrich_venues.py` fills town/county/capacity/website/tech-spec/map pin for
-   the 30 venues with 5+ productions (~70% of venue-attributed shows), folds away 6 duplicate
-   spellings, and corrects 6 shows filed under a bare "Town Hall Theatre" that was really four
-   buildings. **The script has NOT been run against production yet** - deploying the code changes
-   nothing on its own. After the redeploy, run:
-   `docker compose exec aims-web python enrich_venues.py --db /data/aims.db`
-   Then check `/venues/town-hall-theatre-galway` reads 19 productions (it reads 11 and 6 on two pages
-   today) and shows its capacity, website and map link. Verified locally against a production copy: 145
-   venues become 138, 17 gain a capacity, 28 gain a pin, and a rebuild preserves all of it.
-2. **Admin "Shows missing a date"** counter/page mismatch (30 vs 812), fixed via a shared
-   `MISSING_DATES_WHERE` in `admin/_shared.py`. Moderator-only; nothing public waits on it.
-
-Everything before those is deployed and verified live - see below.
-
-Darragh answered the venue questions on 2026-08-24 and all of them are applied: Twin Productions are
-Galway-based (so their Town Hall Theatre is Galway's), Kilcock perform at Kilcock GAA (so that merge
-went ahead after all), and the Grand Opera House and the Lyric are two different Belfast venues (so
-that slash-joined record stays unmerged, as does glór/Shannon).
-
-**Productions-table migration stages 3-4 - DEPLOYED and verified live 2026-08-23 evening.** All four
-public surfaces now count real stagings; stage 4 was decided against (the table stays derived, with the
-reasoning and the trigger conditions in `schema.sql` and `docs/data-model.md`). Verified on the live
-site, not assumed: `/stats` still reads **2,709** (the invariant that proves stage 1's numbers didn't
-move), `/titles/Fame:%20The%20Musical` returns 200 where it used to 404, the A-Z's most-performed
-column reads real production counts (Oklahoma! 83, Fiddler 81, JCS 78 - it said 152 for JCS before),
-and `review_author` exists in the production schema, confirming the byline shipped in the same deploy.
-Full detail and numbers in `ROADMAP_ARCHIVE.md` under "Productions-table migration, stages 3-4".
-
-Live and confirmed deployed: the productions table (stats cut over), the real venues table (147 venues,
-merge queue mostly worked), the header nav restructure + polish + mobile fix, Decades/Reviews pages,
-show circuit intelligence on `/titles/<title>`, two rounds of UX-audit quick wins (venue/adjudicator
-linking, sitemap coverage, wording fixes, Gilbert/Sullivan explainers), and the review-author byline
-(`review_author` column, admin edit form + reviews-queue quick save, explicit-beats-inferred credit on
-the public show page). A large batch of venue-data and society-section data fixes also went out today,
-plus a fresh full-archive sweep for the truncated-extraction garbled-title bug (2 more instances found
-and fixed) - see the archive for the detail if a specific fix needs re-checking.
-
-**Two open reference documents worth knowing about before starting anything new:**
-- **Full public-site UX audit** (non-technical, mockups included):
-  https://claude.ai/code/artifact/a546fc7e-ef6e-42c3-b6e5-400634708318 - headline finding is that the
-  site's infrastructure is far ahead of its content (0 of 194 societies have a website link, 0 of 147
-  venues have a map pin). Its four "bigger bets" and outreach track are still open, listed below.
-- **`DATA_ACCURACY_AND_CORRECTIONS_REPORT.md`** (repo root, untracked, Gemini-generated) - checked
-  against reality 2026-08-23, most of it already fixed or already stale; the genuinely open remainder is
-  listed below. Treat any *new* Gemini-sourced report the same way before acting on it: verify against a
-  fresh prod snapshot first, don't trust its specific claims - it got at least one flat wrong this round.
-
-## `GOOGLE_MAPS_INTEGRATION_PROPOSAL.md` - assessed 2026-08-24, mostly adopt
-
-Gemini-generated, three sections. **Section 1 (Google Maps directions) is shipped.** Sections 2
-and 3 are worth adopting, but field by field rather than pasted whole - the two carry very
-different confidence, and the measurements below say which is which.
-
-**Section 2, `default_venue` for 140 societies - strong, adopt after the auto-check.**
-Cross-checked every claim against the venue our own archive says that society most often plays:
-**90 of the 112 judgeable claims agree (80%)** - 61 exact, 29 the same venue under a different
-spelling. Only 22 genuinely differ, and **on inspection most of those are our data being wrong,
-not the proposal**: our archive has Boyle Musical Society at "Roscommon", Ennistymon Choral at
-"Clare", Ballyshannon at "Donegal", Castlebar at "Castelbar", Trim at "40th Anniversary (March
-run)". Those are exactly the `looks_unresolved()` junk entries (53 of them) the merge queue
-flags and can't fix by itself. **This list is the missing half of that problem** - it names the
-real building behind the bare county. It also gives the correct spelling for venues we hold
-under a typo ("Pavillion Theatre" -> Pavilion Theatre, Dún Laoghaire).
-
-Worth verifying individually before applying: `Mandela Hall, Belfast` closed in 2018 and the
-building was demolished in January 2020 (the name was reused in the new QUB student centre, so
-it's ambiguous rather than simply wrong). `default_venue` prefills the venue on a society's own
-submission, so a wrong one mis-tags future shows quietly. 39 of 194 societies have one today.
-
-**Section 3, the 109-venue `DATA` dict - the venue list is valuable, the coordinates need
-verifying first.** 54 of the 109 name venues we have no record of at all (Barbican Drogheda,
-Hawk's Well, Lime Tree, Everyman, Millennium Forum, An Grianán...) - a genuinely useful
-to-research list for the long tail. But the coordinates can't go in unchecked: 26 are
-byte-identical to `enrich_venues.py`, and of the 83 new ones **76 are rounded to ≤4 decimal
-places on both axes, against 1 of 28 in the OSM/Wikipedia-sourced set**. Spot-checking the three
-venues this repo deliberately left unpinned because every candidate was a town-centre point: the
-proposal's "The Abbey Clane" is **170m from Clane's town centre**, its "Temperance Hall,
-Loughrea" **85m from Loughrea's**. Same for capacities on buildings that publish none (300, 300,
-180, 400...).
-
-**The adoption path for section 3 is mechanical, not manual:** geocode each proposed venue
-against OSM and accept the coordinates where the two agree within a couple of hundred metres,
-flag where they don't. That turns the list into verified data instead of discarding it. Also
-drop its `region` key - `venues.region` is derived from the productions staged there and
-moderator-corrected, so it isn't a field to set from a list.
+**Nothing is queued for deploy right now.** The next session can start straight into whichever open
+item below makes sense, without a deploy step first.
 
 ## Next feasible things, roughly in order
 
-- **`/reviews` + `/season` page weight** - 362KB/123KB, no pagination. Flagged in the UX audit as the
-  one remaining quick win too big/risky to bundle into the two batches already shipped.
-- **Show/title enrichment, Source C follow-ups** - Source C (circuit intelligence) shipped 2026-08-23.
+- **`/season` page weight** - 123KB, no pagination (the `/reviews` half of this same finding was
+  fixed 2026-08-24 alongside `/titles`, via response compression - see the archive). Worth a real
+  measurement (Playwright + CDP throttling, same method as the `/titles` check) before assuming it
+  needs anything more than compression already fixed.
+- **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are
+  near me). Smallest self-contained new page on the list. Confirmed not built yet (`/faq` still
+  404s on the live site).
+- **Merge duplicate/near-duplicate titles the A-Z now shows** (`/admin/duplicate-titles`) - 7
+  spelling variants of titles already on the list became visible when the productions cutover
+  stopped hiding them: `Annie - The Musical`, `Big The Musical`, `Elf - The Musical`,
+  `Fame: The Musical`, `Shrek`, `Peter Pan, A Musical Adventure`,
+  `Sugar The Musical - Some Like It Hot`. Real merge work, deliberately kept out of the cutover so
+  the migration wasn't blocked behind a manual title pass.
+- **Show/title enrichment, Source C follow-ups** - Source C (circuit intelligence) already shipped.
   Source A (Wikidata) has a real bug in its proposed query (`wdt:P58` should be `wdt:P87`) and only
   reliably resolves 48 of 306 titles without fuzzy title-matching, which this repo avoids - fix the
   query before building. Source B (licensing-house specs) isn't a pipeline, it's manual data entry.
-- **Venue research, the long tail** - the 30 venues with 5+ productions were done 2026-08-23
-  (`enrich_venues.py`); ~110 venues with 1-4 productions still have nothing. Same script, extend its
-  `DATA` table. Lower value per venue, so only worth doing if the first pass proves itself. Six of the
-  30 also still have no map pin: **St. Mary's College Arklow, The Abbey Clane and Loughrea Temperance
-  Hall**. All three venues are confirmed - OpenStreetMap simply has no entry for them findable by name,
-  and Eircodes don't help (Nominatim doesn't index them and fuzzy-matches to unrelated addresses). They
-  need a different source, not another search.
-- **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are near
-  me). Smallest self-contained new page on the list.
-- **Merge duplicate/near-duplicate titles the A-Z now shows** (`/admin/duplicate-titles`) - 7 spelling
-  variants of titles already on the list became visible when the productions cutover stopped hiding
-  them: `Annie - The Musical`, `Big The Musical`, `Elf - The Musical`, `Fame: The Musical`, `Shrek`,
-  `Peter Pan, A Musical Adventure`, `Sugar The Musical - Some Like It Hot`. Real merge work, deliberately
-  kept out of the cutover (Darragh's call 2026-08-23) so the migration wasn't blocked behind a manual
-  title pass. The other 9 new titles are genuinely distinct shows and want no action.
+- **Venue research, the long tail** - the 30 venues with 5+ productions were done already
+  (`enrich_venues.py`); ~110 venues with 1-4 productions still have nothing. Same script, extend
+  its `DATA` table. Lower value per venue, so only worth doing if the first pass proves itself.
+  Six of the 30 also still have no map pin: **St. Mary's College Arklow, The Abbey Clane and
+  Loughrea Temperance Hall**. All three are confirmed real - OpenStreetMap simply has no entry for
+  them findable by name, and Eircodes don't help (Nominatim doesn't index them and fuzzy-matches to
+  unrelated addresses). They need a different source, not another search.
+- **`GOOGLE_MAPS_INTEGRATION_PROPOSAL.md`, section 3** - a 109-venue list (54 of them venues this
+  repo has no record of at all), but the coordinates need OSM verification first (76 of 83 new ones
+  are suspiciously rounded, and spot-checks found real drift - see the archive for the specific
+  measurements). Mechanical work, not manual: geocode each one, accept where it agrees with OSM
+  within a couple hundred metres, flag where it doesn't. Sections 1-2 of the same proposal are
+  already adopted.
 
 ## Data-accuracy follow-ups (from the 2026-08-23 report check), need Darragh's input or real research
 
-- **297 `historical_results` rows with `category_name IS NULL`, 274 of them pre-2001** (re-measured
-  2026-08-24 against the fuller archive now loaded - the earlier "154, 1983-2000" figure undercounted)
-  - needs real historical AIMS awards-programme research; a Gemini report only sampled 6 of them.
+- **297 `historical_results` rows with `category_name IS NULL`, 274 of them pre-2001** - needs real
+  historical AIMS awards-programme research; a Gemini report only sampled 6 of them.
 - **~10 unmapped historical societies with no existing `societies` row** (Bangor Operatic Society, De La
   Salle Musical Society Waterford, others) - creating new historical society records is a structural
   decision, not a data-quality bugfix.
@@ -408,55 +74,15 @@ moderator-corrected, so it isn't a field to set from a list.
 - **~112 stale orphaned `historical_reviews` rows** - cross-referenced as real, but explicitly not
   deleted pending a more rigorous verification method than what was used to find them.
 
-## UX-audit bigger bets and outreach track (not started, need Darragh's design input)
+## UX-audit remaining slivers (the bigger bets themselves shipped 2026-08-24 - see archive)
 
-- **Homepage reorder** - lead with what's on, group by month, add poster thumbnails inline.
-- **Society page, empty vs. filled** - venue links + next-show callout shipped 2026-08-24 (pending
-  redeploy); still open: the mockup's fuller "empty vs. filled" pitch beyond that.
-- **Show page as the shared front door** - venue capacity/town, an about-the-society blurb, and a
-  one-line circuit summary shipped 2026-08-24 (pending redeploy); still open: cross-links to other
-  societies who've staged this show, a share affordance.
-- **"What's on near me"** - shipped 2026-08-24 as a homepage toggle (pending redeploy), honest about
-  the ~third of venues pinned so far rather than waiting for full coverage.
+- **Society page** - venue links + next-show callout shipped; still open: the original mockup's
+  fuller "empty vs. filled" pitch beyond that.
+- **Show page** - venue capacity/town, about-the-society blurb and circuit summary all shipped;
+  still open: cross-links to other societies who've staged the same show, a share affordance.
 - **Outreach/onboarding track** (non-technical, Darragh's lever, not a coding task) - a nudge on a
   society's own page when its profile is thin, 2-3 exemplar societies filled in completely as a
   reference, a draft message to send a committee, a "claim your page" request route.
-
-## Mockups approved or built, not yet applied to real templates
-
-Both resolved 2026-08-24 (see the UI-polish plan thread above): Shows A-Z was built for real onto
-`/titles`. The society head-to-head compare mockup was reviewed and **rejected, not built** -
-Darragh's call, a direct comparison tool doesn't fit an amateur organisation's spirit - so nothing
-is pending here any more.
-
-## Waiting on Darragh, not a coding task
-
-- **Posters** - 41 exist against ~200 current-era shows. Gates the whole visual redesign (type/palette
-  pass, then per-page components) - a poster-led design would be mostly empty frames without more of
-  these.
-- **OCR test on a programme photo** - blocked on Darragh sending one.
-
-## Technical debt
-
-Two of the six items measured 2026-08-23 are done (the admin.py package split, test-suite
-parallelization) - see the archive. Still open:
-
-1. ~~`ensure_current()` is a call site you have to remember.~~ **Done 2026-08-24** - a
-   `before_request` in `app/__init__.py` does it for every request; the sixteen per-route calls are
-   gone. Affordable because the no-op case is one fingerprint query, measured at 0.26ms (the stage
-   3-4 plan's "~50ms" was pessimistic). Guarded by `tests/test_derived_tables_stay_current.py`.
-2. **`productions_build.py` and `venues_build.py` duplicate the same freshness machinery** -
-   `FINGERPRINT_SQL`, `fingerprint()`, `mark_stale()`, `ensure_current()` and a one-row `*_build_state`
-   table, written twice. Still open, but much less pressing now item 1 has one caller for both: the
-   duplication is now two near-identical private helpers rather than a rule spread over six modules.
-3. **FTS indexes rebuild on every startup.** Known, deliberate, documented in `db.py` - the obvious
-   `COUNT(*)` guard doesn't work on an external-content FTS5 table. Left alone on purpose.
-4. **`page_views` is keyed on path only**, so no query-string question can ever be answered from it.
-   Fine as a popularity counter, useless as analytics. Only worth changing if a real question needs it.
-5. ~~Untracked `.md` files sit in the repo root.~~ **Done 2026-08-24** - gitignored by name, following
-   the convention already set for `AUDIT_AND_RECOMMENDATIONS.md`. They're inputs; what came out of
-   each is in `ROADMAP.md` and the commits that acted on it. Listed individually rather than by
-   wildcard so a genuinely new repo document isn't silently ignored. `git status` is clean.
 
 ## Parked, each wants its own dedicated session or decision, none started
 
@@ -482,11 +108,11 @@ parallelization) - see the archive. Still open:
 - **`/admin/duplicate-titles` UX redesign** - asked for once, later called "not really an issue" when a
   real mockup existed. Low priority.
 - **`DESIGN_AUDIT_AND_PROPOSALS.md`** (repo root, untracked) - a Gemini nav/design-system audit from
-  2026-08-22, not reviewed in depth. Likely mostly superseded by the 2026-08-23 UX audit above - check
+  2026-08-22, not reviewed in depth. Likely mostly superseded by the 2026-08-23 UX audit - check
   there first before reading this one.
 - **Reviews page: a show dropdown instead of season grouping.** Darragh's instinct: people don't look
-  for a specific season's reviews. `page_views` can't settle this (see tech debt item 4) - a judgement
-  call, not a data question.
+  for a specific season's reviews. `page_views` can't settle this (see tech debt item below) - a
+  judgement call, not a data question.
 - A browsable historical-posters gallery page; costume/prop rental listings; a staging/test environment;
   edit-history/versioning with revert for society-editable data; a pantomime award category.
 - From an untracked `FEATURE_IDEAS.md` (deleted 2026-08-24, everything else in it either already shipped
@@ -497,12 +123,32 @@ parallelization) - see the archive. Still open:
   rather than a plain gallery).
 - From an untracked `AUDIT_AND_RECOMMENDATIONS.md` (deleted 2026-08-24 - its case-insensitive-index,
   WAL-mode/busy-timeout, and admin.py-split recommendations were all already independently done) - five
-  genuinely new, unclaimed ideas: removable filter "chips" above `/season`/`/awards`/`/stats` tables; a
-  poster lightbox/zoom on show pages; a zero-login "My Season Watchlist" (localStorage bookmarks + a
-  personal .ics export); an "On This Day in AIMS History" homepage widget; an embeddable per-society
-  JSON feed/widget for a society's own website. Also worth a note: a fuller interactive Leaflet/OSM pin
-  map (colour-coded by region, filterable by tier) as a richer successor to the list-based Near-me
-  toggle that shipped 2026-08-24, once venue pin coverage is higher.
+  genuinely new, unclaimed ideas: a poster lightbox/zoom on show pages; a zero-login "My Season
+  Watchlist" (localStorage bookmarks + a personal .ics export); an "On This Day in AIMS History"
+  homepage widget; an embeddable per-society JSON feed/widget for a society's own website. (Its
+  "removable filter chips" idea shipped on `/awards` 2026-08-24 - still open for `/season`/`/stats` if
+  either grows a filter form worth the same treatment.) Also worth a note: a fuller interactive
+  Leaflet/OSM pin map (colour-coded by region, filterable by tier) as a richer successor to the
+  list-based Near-me toggle, once venue pin coverage is higher.
+
+## Waiting on Darragh, not a coding task
+
+- **Posters** - 41 exist against ~200 current-era shows. Gates the whole visual redesign (type/palette
+  pass, then per-page components) - a poster-led design would be mostly empty frames without more of
+  these.
+- **OCR test on a programme photo** - blocked on Darragh sending one.
+
+## Technical debt
+
+1. **`productions_build.py` and `venues_build.py` duplicate the same freshness machinery** -
+   `FINGERPRINT_SQL`, `fingerprint()`, `mark_stale()`, `ensure_current()` and a one-row `*_build_state`
+   table, written twice. Less pressing now that `ensure_current()` itself has one caller for both
+   (a shared `before_request`) rather than sixteen scattered call sites - the duplication left is
+   two near-identical private helpers, not a rule spread over six modules.
+2. **FTS indexes rebuild on every startup.** Known, deliberate, documented in `db.py` - the obvious
+   `COUNT(*)` guard doesn't work on an external-content FTS5 table. Left alone on purpose.
+3. **`page_views` is keyed on path only**, so no query-string question can ever be answered from it.
+   Fine as a popularity counter, useless as analytics. Only worth changing if a real question needs it.
 
 ## Housekeeping, low priority, no urgency signal
 
@@ -510,15 +156,6 @@ parallelization) - see the archive. Still open:
   done).
 - A formal `LAUNCH.md` spec, written up retroactively (the site launched organically instead).
 - Real image-content validation on poster uploads (would need Pillow, not built).
-- ~~Periodically verify the nightly backup actually restores cleanly.~~ **Done 2026-08-24.**
-  `verify_backup.py` restores a backup to a scratch copy and runs `integrity_check`,
-  `foreign_key_check`, a table-count comparison against live, and a full rebuild of the derived
-  tables (whose own verification raises rather than committing on disagreement). It runs
-  automatically after every backup - see `docker-compose.yml` - so a bad backup shows up in
-  `docker logs aims-backup` rather than at the moment you need it. Verified against the real
-  production backup: integrity ok, zero FK violations, both rebuilds passed, 2,818 productions.
-  Retention was also fixed: "keep the newest 14 files" covered only 3.5 days in practice, because
-  a backup is taken on every container start and this session's own redeploys spent ten slots.
 - **Backups sit on the same volume as the database** (`/data/backups` beside `/data/aims.db`). They
   survive a bad script or a bad deploy, which is what they're mostly for - but not the disk. An
   off-box copy (QNAP HBS3 pointed at `/share/CACHEDEV1_DATA/Data/config/aims-web`) is the missing
