@@ -162,12 +162,17 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
 - **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are
   near me). Smallest self-contained new page on the list. Confirmed not built yet (`/faq` still
   404s on the live site).
-- **Merge duplicate/near-duplicate titles the A-Z now shows** (`/admin/duplicate-titles`) - 7
-  spelling variants of titles already on the list became visible when the productions cutover
-  stopped hiding them: `Annie - The Musical`, `Big The Musical`, `Elf - The Musical`,
-  `Fame: The Musical`, `Shrek`, `Peter Pan, A Musical Adventure`,
-  `Sugar The Musical - Some Like It Hot`. Real merge work, deliberately kept out of the cutover so
-  the migration wasn't blocked behind a manual title pass.
+- **Merge duplicate/near-duplicate titles - narrowed down, script built, awaiting redeploy.** The
+  original list of 7 (from the cutover) turned out stale on inspection (`7d57e6c`) - `Annie - The
+  Musical`/`Elf - The Musical`/`Shrek` no longer have a variant to merge, `Big Fish`/`Big The
+  Musical` are different shows entirely, and the site's own fuzzy detector currently flags zero
+  candidates. Only two have real evidence (a society staging the same show under both spellings):
+  `Fame` -> `Fame: The Musical`, `Sugar The Musical - Some Like It Hot` -> `Sugar`.
+  `merge_duplicate_titles.py` does both, plus untangles a show_info collision the plain merge tool
+  doesn't handle (both Fame titles already carry their own show_info row from this session's
+  enrichment import). **`Peter Pan` / `Peter Pan, A Musical Adventure` deliberately left alone** -
+  no overlapping society, and the latter is a real distinct licensed title (Piers Chater-Robinson) -
+  needs Darragh's own knowledge of the two productions, not more digging.
 - **Show/title enrichment, Source C follow-ups** - Source C (circuit intelligence) already shipped.
   Source A (Wikidata) has a real bug in its proposed query (`wdt:P58` should be `wdt:P87`) and only
   reliably resolves 48 of 306 titles without fuzzy title-matching, which this repo avoids - fix the
