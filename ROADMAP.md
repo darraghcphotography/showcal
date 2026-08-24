@@ -50,12 +50,33 @@ production - checked directly against the real site, not assumed from a `git pus
 `ROADMAP_ARCHIVE.md` under "Morning queue, 2026-08-24," "UI-polish plan," and "Second Act backlog"
 - nothing below duplicates it.
 
-**The Rehearsal Room theme (`48c4044`) is queued for deploy** - a Portainer redeploy is the only
-thing standing between it and going live. Everything else below can start without a deploy step
-first.
+**The Rehearsal Room theme (`48c4044`) is deployed and verified live** - confirmed the same
+evening by a full 11-page screenshot run-through (light+dark+mobile): both Archivo weights serve,
+the old Fraunces file 404s, every page renders coherently in the new palette. The run-through's
+full findings (poster weight, polish micro-batch - both now open items below), the user-feedback
+triage state (all 6 suggestions handled, SpongeBob fix verified live), and a repo tidy-up list
+(2 stale worktrees totalling 24MB, stale branches, ~2.7MB of root-directory strays, empty scratch
+dirs) are in the "Opening Night Notes" artifact:
+https://claude.ai/code/artifact/c82c78fa-e1b8-4beb-9a73-158e39a0d409 - tidy-up suggested, not
+executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
 
 ## Next feasible things, roughly in order
 
+- **Poster thumbnail pipeline** - found in the 2026-08-24 evening run-through: posters serve at
+  original upload size (homepage total 3,154KB across 8 images, one alone 1.36MB, all rendered
+  54px wide). `loading="lazy"` softens it but above-fold posters always pay full price, and the
+  planned poster drive would make it worse. Fix: generate a small WebP at upload time + a one-off
+  backfill script for the ~41 existing files. Needs Pillow - same dependency the housekeeping
+  list's "image-content validation" item already wants, so one job delivers both. Biggest
+  user-facing perf lever now that compression shipped (this is ~25x the compression win).
+- **Theme-polish micro-batch** (from the same run-through, all small): (1) date formats disagree -
+  homepage says "28-29 Aug 2026", a title page's productions table says "20-04-2027 - 25-04-2027";
+  human form should win everywhere. (2) venue cards print "Dublin, Dublin" when town == county.
+  (3) title-case normalizer produces "The 25Th Annual Putnam County Spelling Bee" - capitalizes
+  after a digit; ordinals are common in titles. (4) society show-history prints literal "None" in
+  the Review column where Awards uses an em-dash. (5) society detail hero leaves its right column
+  empty at desktop - region/tier line sits above the logo and badges below it, unlike the show
+  page's proper two-column hero.
 - **`/admin/data-quality`'s Orphaned title data section can't actually fix what it describes** -
   found 2026-08-24 while resolving a real instance of it. The "Edit" link for `show_info` only
   edits synopsis/rights fields (keyed by the existing title, no rename field); "Clear" for
