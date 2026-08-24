@@ -1,3 +1,7 @@
+Show posters now load much faster - they used to serve at full upload size (some over a megabyte) no matter how small they actually render on the page. New uploads are resized automatically, and every existing poster's been converted too
+
+---
+
 Got an old newspaper review clipping or a photo from a past production sitting in a drawer? There's now a "Share an old photo" link in the footer - no login needed - that sends it straight to a moderator to fill gaps in the record
 
 ---
