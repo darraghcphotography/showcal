@@ -3,6 +3,7 @@ import secrets
 from pathlib import Path
 
 from flask import Flask, g, request
+from flask_compress import Compress
 from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -12,6 +13,7 @@ from .rate_limit import limiter
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 csrf = CSRFProtect()
+compress = Compress()
 
 
 def create_app(test_config=None):
@@ -71,6 +73,17 @@ def create_app(test_config=None):
     db_module.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+    # Measured 2026-08-24 against /titles (300 titles, the site's heaviest
+    # list page): 386KB uncompressed (286KB HTML + 66KB CSS + 34KB font),
+    # nothing in the stack compresses a response - not waitress, no reverse
+    # proxy in front. On a real "Slow 3G" profile (400Kbps/400ms RTT,
+    # Lighthouse's own preset) that page took 8.2s to become interactive,
+    # against 2.2s on "Fast 3G". Text compresses ~70-80% with gzip/brotli,
+    # so this alone should close most of that gap site-wide, for every page,
+    # not just this one - the actual fix for the "page weight" backlog item
+    # (Second Act item 7) turned out to be missing compression, not /titles
+    # needing lazy-loading or pagination.
+    compress.init_app(app)
 
     from . import filters
     filters.register(app)

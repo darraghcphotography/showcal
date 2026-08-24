@@ -166,10 +166,28 @@ always.
    ports, serving Jinja-cached templates from before this change (`auto_reload` is off without
    `--debug`) - worth remembering next time a local check shows unexpectedly stale output: check
    for leftover background processes before suspecting the code.
-7. **Measure the Shows A-Z page weight before deciding whether to change it.** Full-page render
-   comes out to ~30,000px / 2.3MB against the real 300-title archive - get real numbers
-   (time-to-interactive on a throttled connection, not a guess) before choosing between leaving it,
-   lazy-loading by letter, or paginating by letter-group.
+7. ~~Measure the Shows A-Z page weight before deciding whether to change it.~~ **Done and
+   resolved differently than expected, 2026-08-24**, pushed, not yet deployed. The old "~30,000px
+   / 2.3MB" figure was a guess, never actually measured - real numbers against the live 300-title
+   page (Playwright, CDP network + throttling, mobile viewport): 48,383px tall (taller than
+   guessed) but only **385.9KB uncompressed** (far less than guessed) across just 3 requests
+   (286KB HTML, 66KB CSS, 34KB font - no images, since titles use the item-2 initials placeholder
+   rather than a poster). Time-to-interactive: 2.2s on a "Fast 3G" profile (fine), but **8.3s on a
+   genuine "Slow 3G" profile** (400Kbps/400ms RTT, Lighthouse's own preset) - worth caring about
+   for an Ireland-wide amateur-theatre audience that includes rural connections, not a purely
+   theoretical edge case. Traced the 8.3s to its actual cause: **nothing in the stack compresses a
+   response** - not waitress, no reverse proxy in front. Added `Flask-Compress` (auto-negotiates
+   gzip/brotli/zstd per request, `app/__init__.py`) rather than the three options the item
+   originally posed (leave it, lazy-load by letter, paginate) - none of those addressed the actual
+   bottleneck, which was payload size on a slow link, not page structure or height. Confirmed
+   working under both `flask run` and waitress (the real production server). Re-measured after:
+   **79.0KB over the wire** (4.9x smaller - HTML 25.1KB, CSS 19.7KB, both zstd-compressed; the
+   already-compressed WOFF2 font correctly left alone), Slow-3G interactive time **3.3s, down from
+   8.3s** (61% faster) - real Playwright numbers, not estimated from the byte reduction. This is a
+   site-wide fix (every page gets smaller/faster), not just `/titles` - the lazy-load/paginate
+   question this item was originally about doesn't need revisiting unless a future measurement
+   still shows a problem after this. 636 tests green (3 new, covering compression on/off and that
+   an already-compressed upload isn't recompressed).
 8. **Admin dashboard: extend the on/off urgency dot** from 2 of ~12 dashboard rows to all of them;
    split out the rows that explicitly "won't reach 0" (e.g. unmatched award societies) into their
    own unstyled group rather than living inside "Possible errors." **Partially done 2026-08-24,

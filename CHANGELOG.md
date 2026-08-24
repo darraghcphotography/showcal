@@ -1,3 +1,7 @@
+Every page now loads faster, especially on a slow connection - the site compresses its responses now, which it never did before. Nothing to see, just quicker
+
+---
+
 Societies, Shows A-Z and Reviews - the three longest list pages - now have a "back to top" button that appears once you've scrolled, so there's a way back to the filters besides a long thumb-scroll
 
 ---
