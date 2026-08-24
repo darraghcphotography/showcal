@@ -65,13 +65,73 @@ screenshots of the live site (desktop/mobile, both themes) and a template-level 
 dashboard (couldn't screenshot admin - logging into production programmatically was correctly
 declined by this session's safety tooling), plus a week-ahead punch list; and **Two More Looks**
 (`https://claude.ai/code/artifact/d818bc2c-d7f7-4834-a75c-de0e2b6c97c4`) - two alternate visual
-directions (a dark poster-marquee look, a warm-paper editorial look) mocked up against the real
-homepage listings. Genuinely new findings from that walkthrough, not yet actioned: bare county names
-("Belfast", "Antrim", etc.) rendering as if they were real venues on `/venues`; show-detail pages
-leaving the right two-thirds of the screen empty on desktop; the un-paginated Shows A-Z page is
-~30,000px tall and 2.3MB, worth measuring before deciding whether to leave it; `/reviews` is now the
-last page still reading as a bare link list; no way back to the top of a long mobile list page. Full
-detail and the day-by-day plan are in the Second Act artifact, not duplicated here.
+directions (Marquee: dark, bold poster-lettering; Rehearsal Room: warm paper, minimal, editorial,
+now with a light/dark toggle - Darragh's favourite of the two so far) mocked up against the real
+homepage listings.
+
+## Second Act backlog - ordered, ready to pick up after a `/clear`
+
+Nothing below is started. Proposed order is value-per-hour, each row independently shippable.
+Darragh's steer on model routing: Fable for planning/mockups/vision, Sonnet for implementation,
+Haiku for cheap/bulk work (already used for the venue research below) - a Plan-mode session can
+hand off to an Agent-tool call with `model: "sonnet"` for the build step once a mockup's approved.
+Every visual item still gets a mockup first, approved before real templates change - same gate as
+always.
+
+1. **Apply the researched venue fixes (mostly done - see below).** Was expected to be fresh
+   research; turned out to be an *apply* task instead - all 53 bare-placeholder venues on
+   `/venues` (the ones that showed a plain county name like "Belfast" or "Antrim" as if they were
+   real theatres) already have a proposed real name sitting in the untracked
+   `GOOGLE_MAPS_INTEGRATION_PROPOSAL.md`, confirmed today via 3 parallel Haiku research passes.
+   **Before applying any of it**: this doc has already been shown once to get some things wrong
+   (see the `default_venue` cross-check above, 90/112 agreed) - spot-check the way that check did,
+   don't paste it in wholesale. Two things caught today specifically worth a human look:
+   - **`Mandela Hall, Belfast`** (proposed for Queen's Musical Theatre Society, venue id 60) is the
+     building ROADMAP already flagged as closed and demolished in 2018-2020 - ambiguous for an
+     older production, not simply wrong.
+   - **Venue id 60 ("Antrim") isn't one venue, it's three**: Newcastle Glees Musical Society is
+     really in Co. Down (Annesley Hall, Newcastle), Newcastlewest Musical Society is really in
+     Co. Limerick (Newcastle West Community Centre), and only Queen's Musical Theatre Society is
+     actually Antrim/Belfast. This one needs the admin merge/split tooling, not a rename. Venue
+     id 61 ("Newcastle") looks like a duplicate of the Newcastle Glees half of this same fix.
+   - Two entries in the original 53 aren't real places at all and need a different fix, not
+     research: `"Cork run"` (id 120) and `"40th Anniversary (March run)"` (id 130) are malformed
+     data-entry artifacts - trace back to whatever import/entry produced them and fix at the
+     source, not via a venue rename.
+   - The full per-society mapping (51 real entries, all high confidence, all traceable to a line
+     number in `GOOGLE_MAPS_INTEGRATION_PROPOSAL.md`) is in this session's transcript, not
+     reproduced here - re-run the same 3-way Haiku research split if it's not still at hand, it
+     took under a minute per batch.
+2. **Homepage poster placeholder** - a fixed-size tinted box with the show's initial, so a listing
+   without a poster keeps the same visual weight as one with a real poster instead of the page
+   visibly thinning out partway down (seen clearly comparing August/September to October on the
+   live homepage).
+3. **Two-column show-detail layout at desktop widths** - poster/logo one side, facts the other.
+   Currently a 240px poster sits alone in a narrow column with the right two-thirds of a 1280px
+   screen empty. Mock up first; check society-detail too, same shape of problem.
+4. **Reviews page card pass** - same treatment `/societies` already got. It's now the one list page
+   still reading as a bare link list (season-grouped rows, ~90 "READ ON AIMS.IE" links per season,
+   almost no visual weight difference row to row) next to everything else that got redesigned.
+5. **Awards page polish without touching the table shape** - tint Winner rows; turn the four filter
+   dropdowns into removable chips above the table (already an unclaimed idea elsewhere in this
+   file). Table stays a table on purpose (4,878 rows) - this is contrast-with-the-rest-of-the-site
+   polish, not a rebuild.
+6. **Mobile "back to top"** on the three longest list pages (societies, titles, reviews) - no way
+   back to the filter form on a long list page right now except a long thumb-scroll.
+7. **Measure the Shows A-Z page weight before deciding whether to change it.** Full-page render
+   comes out to ~30,000px / 2.3MB against the real 300-title archive - get real numbers
+   (time-to-interactive on a throttled connection, not a guess) before choosing between leaving it,
+   lazy-loading by letter, or paginating by letter-group.
+8. **Admin dashboard: extend the on/off urgency dot** from 2 of ~12 dashboard rows to all of them;
+   split out the rows that explicitly "won't reach 0" (e.g. unmatched award societies) into their
+   own unstyled group rather than living inside "Possible errors."
+
+Feature ideas from the same walkthrough, not part of the ordered list above (lower confidence
+they're worth building, or need Darragh's product judgement first): a "who else has staged this
+show" cross-link on the two-column show-detail page; a print/export view of `/season/calendar` for
+a committee planning around busy weeks; a lightweight poster-forward share view of a single show
+page. Full detail on all of these, plus everything already tracked elsewhere in this file (poster
+gallery, "claim your page" outreach, watchlist/.ics export), is in the Second Act artifact.
 
 **Phases 2-3 done too, same session.** Mocked up first as one Artifact ("Programme Notes",
 `https://claude.ai/code/artifact/70387538-825c-4985-8fca-39d937151fcc`), approved, then built:
