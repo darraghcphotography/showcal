@@ -1,3 +1,7 @@
+Awards: a Winner row now stands out with a gold tint and a trophy mark instead of reading the Result column cell by cell, and an applied filter shows as a removable chip you can drop on its own instead of reopening the dropdown or clearing everything
+
+---
+
 Reviews are now cards, not a bare list of links - same look /societies already got. An adjudicator's own review list on their profile page picked up the same treatment
 
 ---

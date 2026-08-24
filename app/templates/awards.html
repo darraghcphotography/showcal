@@ -56,17 +56,39 @@
   <p class="hint">Gilbert and Sullivan are AIMS's two adjudication tiers, each with its own adjudicator -
      see <a href="{{ url_for('public.about') }}">About</a> for how societies are split between them.</p>
 
+  {# Each chip is the current URL with just that one filter's query param
+     removed - a plain link, no JS, so "Year: 2025 x" drops only the year
+     and keeps every other active filter. Dropdowns are still how a filter
+     gets set; chips are only a summary/removal layer once one's applied. #}
+  {% set active_filters = [] %}
+  {% if selected_year %}{% set _ = active_filters.append(('year', 'Year: ' ~ selected_year)) %}{% endif %}
+  {% if selected_category %}{% set _ = active_filters.append(('category', 'Category: ' ~ selected_category)) %}{% endif %}
+  {% if selected_tier %}{% set _ = active_filters.append(('tier', 'Section: ' ~ selected_tier)) %}{% endif %}
+  {% if selected_result %}{% set _ = active_filters.append(('result', 'Result: ' ~ selected_result)) %}{% endif %}
+  {% if q %}{% set _ = active_filters.append(('q', 'Search: “' ~ q ~ '”')) %}{% endif %}
+  {% if active_filters %}
+    <div class="filter-chips">
+      {% for key, label in active_filters %}
+        {% set remove_args = request.args.to_dict() %}
+        {% set _ = remove_args.pop(key, none) %}
+        {% set _ = remove_args.pop('page', none) %}
+        <a class="filter-chip" href="{{ url_for('info.awards', **remove_args) }}">{{ label }} <span class="x" aria-hidden="true">&times;</span></a>
+      {% endfor %}
+      <a class="filter-chip filter-chip-clear" href="{{ url_for('info.awards') }}">Clear all</a>
+    </div>
+  {% endif %}
+
   <table class="data-table table-wide">
     <thead>
       <tr><th>Year</th><th>Section</th><th>Category</th><th>Result</th><th>Show</th><th>Society</th><th>Nominee</th></tr>
     </thead>
     <tbody>
       {% for r in rows %}
-        <tr>
+        <tr class="{{ 'row-winner' if r['result'] == 'Winner' }}">
           <td>{{ r['year'] }}</td>
           <td>{{ tier.tier_label(r['tier']) }}</td>
           <td>{{ r['category_name'] or '—' }}</td>
-          <td>{{ r['result'] or '—' }}</td>
+          <td>{% if r['result'] == 'Winner' %}<span class="win-tag">🏆 Winner</span>{% else %}{{ r['result'] or '—' }}{% endif %}</td>
           <td>
             {% if r['show'] %}
               <a href="{{ url_for('public.title_detail', title=r['show']) }}">{{ r['show'] }}</a>

@@ -406,6 +406,39 @@ table.data-table {
 .data-table tbody tr:nth-child(even) { background: var(--row-alt); }
 .data-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
+/* /awards (Second Act backlog item 5) - a Winner row tinted gold regardless
+   of the zebra stripe, so it reads at a glance instead of needing the
+   Result column read cell by cell. Table shape/columns stay exactly as they
+   are - 4,878 rows, a table is still the right shape - this is
+   contrast-with-the-rest-of-the-site polish, not a rebuild. */
+.data-table tbody tr.row-winner { background: color-mix(in srgb, var(--gold) 14%, transparent); }
+.data-table tbody tr.row-winner:hover { background: color-mix(in srgb, var(--gold) 22%, transparent); }
+.win-tag {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.82rem; font-weight: 700; color: var(--gold);
+}
+
+/* Removable summary of the currently-applied filters, above the table -
+   plain links (the current URL minus one query param), not JS. The
+   dropdowns above stay the way a filter gets set; these are only how it
+   gets unset, one at a time, without reopening the form or losing the
+   others via "Clear". */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0 0 1rem; }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.8rem; font-weight: 600; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: var(--radius-pill);
+  padding: 0.25rem 0.5rem 0.25rem 0.7rem;
+  text-decoration: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.filter-chip:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.filter-chip .x { font-size: 0.9rem; line-height: 1; opacity: 0.75; }
+.filter-chip:hover .x { opacity: 1; }
+.filter-chip-clear { color: var(--muted); background: none; border-style: dashed; font-weight: 500; }
+
 /* Admin dashboard: labelled groups within "Needs attention", a dot marker on
    the real moderation queues (on = something waiting, off = empty), and a
    grouped Tools link grid in place of one long middot-separated line. */

@@ -86,6 +86,47 @@ def test_awards_page_shows_nominee_for_person_category(client, db):
     assert "Jane Doe" in body
 
 
+def test_winner_rows_get_the_gold_tint_class(client, db):
+    """Second Act backlog item 5 - a Winner row is visually distinct without
+    reading the Result column cell by cell."""
+    _add_result(db, 2020, "Best Overall Show", result="Winner", society_name="Winning Society")
+    _add_result(db, 2020, "Best Overall Show", result="Nominee", society_name="Nominated Society")
+    db.commit()
+
+    body = client.get("/awards").get_data(as_text=True)
+    assert '<tr class="row-winner">' in body
+    assert '<span class="win-tag">🏆 Winner</span>' in body
+
+
+def test_no_filter_chips_at_the_bare_default(client, db):
+    body = client.get("/awards").get_data(as_text=True)
+    assert "filter-chips" not in body
+
+
+def test_active_filters_render_as_removable_chips(client, db):
+    _add_result(db, 2020, "Best Overall Show", result="Winner", society_name="Test Society")
+    db.commit()
+
+    body = client.get("/awards?year=2020&result=Winner").get_data(as_text=True)
+    assert '<div class="filter-chips">' in body
+    assert "Year: 2020" in body
+    assert "Result: Winner" in body
+    assert '<a class="filter-chip filter-chip-clear" href="/awards">Clear all</a>' in body
+
+
+def test_a_chip_removes_only_its_own_filter(client, db):
+    _add_result(db, 2020, "Best Overall Show", result="Winner", society_name="Test Society")
+    db.commit()
+
+    body = client.get("/awards?year=2020&result=Winner").get_data(as_text=True)
+    # The "Year: 2020" chip's href drops year but keeps result=Winner.
+    year_chip_start = body.index("Year: 2020")
+    chip_html = body[max(0, year_chip_start - 200):year_chip_start]
+    href = chip_html.rsplit('href="', 1)[1].split('"')[0]
+    assert "result=Winner" in href
+    assert "year=2020" not in href
+
+
 def test_awards_page_hides_literal_none_sentinel(client, db):
     """A handful of legacy rows store the literal string 'None' (or 'NULL')
     in reason/role/nominee_name instead of a real blank - a plain

@@ -136,10 +136,19 @@ always.
    mode). Verified with local Playwright screenshots at desktop and mobile widths - the grid
    collapses to one column at narrow viewports on its own (`repeat(auto-fit, minmax(230px, 1fr))`),
    same responsive behaviour as the other card grids, no separate breakpoint needed.
-5. **Awards page polish without touching the table shape** - tint Winner rows; turn the four filter
-   dropdowns into removable chips above the table (already an unclaimed idea elsewhere in this
-   file). Table stays a table on purpose (4,878 rows) - this is contrast-with-the-rest-of-the-site
-   polish, not a rebuild.
+5. ~~Awards page polish without touching the table shape.~~ **Done 2026-08-24**, pushed, not yet
+   deployed. Mockup (`https://claude.ai/code/artifact/e6e73546-a103-47a4-a51c-204adf3a2a3d`)
+   approved as-is, including the one deviation flagged during review: a fifth chip for the search
+   box (`q`), not just the four dropdowns the backlog wording named, so an active search doesn't
+   sit invisibly next to the chips for everything else. A Winner row gets
+   `color-mix(in srgb, var(--gold) 14%, transparent)` regardless of the zebra stripe, plus a small
+   🏆 tag replacing the plain "Winner" text in the Result cell. Filter chips are plain links, no
+   JS - each one is `request.args` with just that filter's key popped, built in the template
+   (`awards.html`), so "Year: 2025 ×" drops only the year and keeps every other active filter;
+   "Clear all" goes to the bare `/awards`. Table stays a table on purpose (4,878 rows) - only the
+   tint and the chip row are new, same columns/pagination/mobile-card-fallback as before. 629
+   tests green (5 new). Verified with local Playwright screenshots - the chip href test confirms
+   removing "Year: 2025" keeps `result=Winner` in the URL, not just that the chip renders.
 6. **Mobile "back to top"** on the three longest list pages (societies, titles, reviews) - no way
    back to the filter form on a long list page right now except a long thumb-scroll.
 7. **Measure the Shows A-Z page weight before deciding whether to change it.** Full-page render
