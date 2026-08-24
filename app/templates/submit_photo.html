@@ -2,10 +2,12 @@
 {% block title %}Share an old photo - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Share an old photo</h1>
-  <p>Got an old newspaper review clipping (especially anything before 2009, which our own archive
-     doesn't cover) or a photo from a past production - a programme, a cast shot, anything? Send it
-     in. It goes to a moderator, who'll use it to fill in gaps in the record by hand - nothing here
-     gets published automatically.</p>
+  <p>We're especially looking for: an old newspaper review clipping (particularly anything before
+     2009, which our own archive doesn't cover), a programme cover, or a photo of a programme page
+     listing a society's own past productions - those production-history pages are gold for filling
+     in shows we have little or no record of. Anything else from an old production is welcome too.
+     It goes to a moderator, who'll use it to fill in gaps in the record by hand - nothing here gets
+     published automatically.</p>
 
   <form method="post" class="stacked-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -21,11 +23,11 @@
       <legend>What is this?</legend>
       <label class="radio-label">
         <input type="radio" name="kind" value="review" {% if form.get('kind') == 'review' %}checked{% endif %} required>
-        A review clipping (newspaper/magazine)
+        A newspaper/magazine review clipping
       </label>
       <label class="radio-label">
         <input type="radio" name="kind" value="production_photo" {% if form.get('kind') == 'production_photo' %}checked{% endif %}>
-        A production photo or programme
+        A programme cover, cast/production photo, or a programme page listing past productions
       </label>
     </fieldset>
 
@@ -60,7 +62,7 @@
 
     <label>
       Tell us about it
-      <textarea name="notes" rows="4" required placeholder="What is it, where's it from (publication name for a review clipping), who's pictured, anything else worth knowing">{{ form.get('notes', '') }}</textarea>
+      <textarea name="notes" rows="4" required placeholder="What is it - publication name and date for a review clipping, or for a past-productions list, the years/titles you can read on it - plus who's pictured or anything else worth knowing">{{ form.get('notes', '') }}</textarea>
     </label>
 
     <label>
