@@ -78,30 +78,24 @@ hand off to an Agent-tool call with `model: "sonnet"` for the build step once a 
 Every visual item still gets a mockup first, approved before real templates change - same gate as
 always.
 
-1. **Apply the researched venue fixes (mostly done - see below).** Was expected to be fresh
-   research; turned out to be an *apply* task instead - all 53 bare-placeholder venues on
-   `/venues` (the ones that showed a plain county name like "Belfast" or "Antrim" as if they were
-   real theatres) already have a proposed real name sitting in the untracked
-   `GOOGLE_MAPS_INTEGRATION_PROPOSAL.md`, confirmed today via 3 parallel Haiku research passes.
-   **Before applying any of it**: this doc has already been shown once to get some things wrong
-   (see the `default_venue` cross-check above, 90/112 agreed) - spot-check the way that check did,
-   don't paste it in wholesale. Two things caught today specifically worth a human look:
-   - **`Mandela Hall, Belfast`** (proposed for Queen's Musical Theatre Society, venue id 60) is the
-     building ROADMAP already flagged as closed and demolished in 2018-2020 - ambiguous for an
-     older production, not simply wrong.
-   - **Venue id 60 ("Antrim") isn't one venue, it's three**: Newcastle Glees Musical Society is
-     really in Co. Down (Annesley Hall, Newcastle), Newcastlewest Musical Society is really in
-     Co. Limerick (Newcastle West Community Centre), and only Queen's Musical Theatre Society is
-     actually Antrim/Belfast. This one needs the admin merge/split tooling, not a rename. Venue
-     id 61 ("Newcastle") looks like a duplicate of the Newcastle Glees half of this same fix.
-   - Two entries in the original 53 aren't real places at all and need a different fix, not
-     research: `"Cork run"` (id 120) and `"40th Anniversary (March run)"` (id 130) are malformed
-     data-entry artifacts - trace back to whatever import/entry produced them and fix at the
-     source, not via a venue rename.
-   - The full per-society mapping (51 real entries, all high confidence, all traceable to a line
-     number in `GOOGLE_MAPS_INTEGRATION_PROPOSAL.md`) is in this session's transcript, not
-     reproduced here - re-run the same 3-way Haiku research split if it's not still at hand, it
-     took under a minute per batch.
+1. ~~Apply the researched venue fixes.~~ **Done 2026-08-24**, `e49582c`, deployed and verified live.
+   49 of the 53 bare-placeholder venues corrected (71 (placeholder, society) pairs, 73 show rows) -
+   see `apply_venue_research.py` (kept in the repo, safe to re-run, same convention as
+   `enrich_venues.py`) for the full mapping and reasoning. `enrich_venues.py` re-run immediately
+   after, which already had capacity/coordinates waiting for several of these under their corrected
+   spelling (28 of 118 venues now carry a capacity, 43 have a map pin).
+   **Deliberately left open, still need a human decision:**
+   - **`Mandela Hall, Belfast`** (applied for Queen's Musical Theatre Society) is the building
+     already flagged as closed and demolished 2018-2020 - applied as the best available answer, but
+     worth a second look for whichever specific production this is.
+   - **Two societies need per-show research, not a blanket fix**: Enniscorthy Musical Society
+     ("Wexford") and UCC Musical Theatre Society ("Cork") only had a slash-joined answer
+     ("Coláiste Bríde / IFA Centre", "Cork Arts Theatre / Devere Hall UCC") - two buildings, not
+     one venue recorded two ways, per this codebase's own policy on slash-joined names. Still show
+     as bare placeholders.
+   - **Two entries aren't real places and were never in scope here**: `"Cork run"` (venue id 120)
+     and `"40th Anniversary (March run)"` (id 130) are malformed data-entry artifacts - trace back
+     to whatever import/entry produced them and fix at the source, not via a venue correction.
 2. **Homepage poster placeholder** - a fixed-size tinted box with the show's initial, so a listing
    without a poster keeps the same visual weight as one with a real poster instead of the page
    visibly thinning out partway down (seen clearly comparing August/September to October on the
