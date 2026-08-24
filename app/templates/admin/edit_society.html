@@ -68,6 +68,11 @@
       <input type="text" name="default_venue" value="{{ society['default_venue'] or '' }}">
     </label>
 
+    <label>
+      Founded year <span class="hint">(from a real source - the society's own about page, etc.)</span>
+      <input type="number" name="founded_year" min="1800" max="2100" value="{{ society['founded_year'] or '' }}">
+    </label>
+
     <fieldset>
       <legend>Profile <span class="hint">(shown on the society's public page - the society can also edit these themselves once logged in)</span></legend>
       <label>

@@ -63,6 +63,13 @@
     <p class="meta">A link to the venue's own spec sheet, rather than copying stage dimensions in
        here - the venue keeps theirs up to date, and this way there's nothing to go stale.</p>
 
+    <label>Box office phone
+      <input type="text" name="box_office_phone" value="{{ form['box_office_phone'] or '' }}" placeholder="053 912 2144">
+    </label>
+    <label>Box office booking link
+      <input type="url" name="box_office_url" value="{{ form['box_office_url'] or '' }}" placeholder="https://...">
+    </label>
+
     <label>Notes
       <textarea name="notes" rows="3">{{ form['notes'] or '' }}</textarea>
     </label>

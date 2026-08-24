@@ -40,6 +40,26 @@
       <input type="text" name="premiere_place" value="{{ form.get('premiere_place', '') }}">
     </label>
 
+    <label>
+      Composer
+      <input type="text" name="composer" value="{{ form.get('composer', '') }}">
+    </label>
+
+    <label>
+      Lyricist
+      <input type="text" name="lyricist" value="{{ form.get('lyricist', '') }}">
+    </label>
+
+    <label>
+      Book by <span class="hint">(the script/story writer, if distinct from the lyricist)</span>
+      <input type="text" name="book_author" value="{{ form.get('book_author', '') }}">
+    </label>
+
+    <label>
+      Licensing house <span class="hint">(e.g. "MTI Europe", "Concord Theatricals", "Public Domain")</span>
+      <input type="text" name="licensing_house" value="{{ form.get('licensing_house', '') }}">
+    </label>
+
     <button type="submit">Save</button>
   </form>
 

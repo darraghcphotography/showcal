@@ -105,6 +105,7 @@ def edit_society(society_id):
         notes = request.form.get("notes", "").strip() or None
         default_venue = request.form.get("default_venue", "").strip() or None
         hidden = 1 if request.form.get("hidden") else 0
+        founded_year_raw = request.form.get("founded_year", "").strip()
         profile_fields = {
             "about": request.form.get("about", "").strip() or None,
             "website_url": request.form.get("website_url", "").strip() or None,
@@ -141,6 +142,13 @@ def edit_society(society_id):
             if profile_fields[key] and not URL_RE.match(profile_fields[key])
         ]
 
+        founded_year = None
+        if founded_year_raw:
+            try:
+                founded_year = int(founded_year_raw)
+            except ValueError:
+                errors.append("Founded year must be a number.")
+
         if errors:
             for e in errors:
                 flash(e, "error")
@@ -153,14 +161,14 @@ def edit_society(society_id):
             UPDATE societies SET name = ?, region = ?, section = ?,
                 section_as_of = ?, section_history = ?, notes = ?, default_venue = ?, logo_filename = ?,
                 about = ?, website_url = ?, facebook_url = ?, instagram_url = ?,
-                tiktok_url = ?, other_url = ?, other_label = ?, hidden = ?
+                tiktok_url = ?, other_url = ?, other_label = ?, hidden = ?, founded_year = ?
             WHERE id = ?
             """,
             (
                 name, region, section, section_as_of, section_history, notes, default_venue, logo_filename,
                 profile_fields["about"], profile_fields["website_url"], profile_fields["facebook_url"],
                 profile_fields["instagram_url"], profile_fields["tiktok_url"], profile_fields["other_url"],
-                profile_fields["other_label"], hidden, society_id,
+                profile_fields["other_label"], hidden, founded_year, society_id,
             ),
         )
 

@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS societies (
     notes           TEXT,
     default_venue   TEXT,      -- prefilled as a show's venue when left blank at submission time
     logo_filename   TEXT,      -- filename under the uploads dir, not a user path (see shows.poster_filename)
+    founded_year    INTEGER,   -- moderator-entered from a real source (the society's own about page, etc.), never guessed
 
     -- Society-editable "get involved" profile, settable by the society's own
     -- login or by a moderator - shown on the society's public page.
@@ -340,6 +341,12 @@ CREATE TABLE IF NOT EXISTS show_info (
     -- this table - never guessed.
     premiere_year   INTEGER,
     premiere_place  TEXT,
+    -- Original creative credits - who wrote it, not who performed it. Same
+    -- trust model as the rest of this table.
+    composer        TEXT,
+    lyricist        TEXT,
+    book_author     TEXT,
+    licensing_house TEXT,
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -618,6 +625,8 @@ CREATE TABLE IF NOT EXISTS venues (
     longitude        REAL,
     website_url      TEXT,
     tech_spec_url    TEXT,
+    box_office_phone TEXT,
+    box_office_url   TEXT,
     notes            TEXT,                   -- moderator-facing, never shown publicly
 
     created_at       TEXT NOT NULL DEFAULT (datetime('now')),

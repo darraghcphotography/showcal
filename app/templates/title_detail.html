@@ -21,12 +21,20 @@
     </a></p>
   {% endif %}
 
-  {% if info and (info['synopsis'] or info['rights_url'] or info['rights_status']) %}
+  {% if info and (info['synopsis'] or info['rights_url'] or info['rights_status'] or info['composer'] or info['lyricist'] or info['book_author']) %}
     <h2>About this show</h2>
     {% if info['synopsis'] %}<p>{{ info['synopsis'] }}</p>{% endif %}
-    {% if info['rights_status'] or info['rights_url'] %}
+    {% if info['composer'] or info['lyricist'] or info['book_author'] %}
+      <p class="meta">
+        {% if info['composer'] %}Music by {{ info['composer'] }}{% endif %}
+        {% if info['lyricist'] %}{% if info['composer'] %} &middot; {% endif %}Lyrics by {{ info['lyricist'] }}{% endif %}
+        {% if info['book_author'] %}{% if info['composer'] or info['lyricist'] %} &middot; {% endif %}Book by {{ info['book_author'] }}{% endif %}
+      </p>
+    {% endif %}
+    {% if info['rights_status'] or info['rights_url'] or info['licensing_house'] %}
       <p class="meta">
         Amateur rights: {{ info['rights_status'] or 'Unknown' }}
+        {% if info['licensing_house'] %} &middot; {{ info['licensing_house'] }}{% endif %}
         {% if info['rights_url'] %} &middot; <a href="{{ info['rights_url'] }}" rel="noopener" target="_blank">Licensing page</a>{% endif %}
       </p>
     {% endif %}

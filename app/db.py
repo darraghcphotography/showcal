@@ -102,6 +102,22 @@ COLUMN_MIGRATIONS = [
         "historical_society_regions", "no_region",
         "ALTER TABLE historical_society_regions ADD COLUMN no_region INTEGER NOT NULL DEFAULT 0",
     ),
+    # A society's own founding year, moderator-entered from a source like the
+    # society's own about page - same trust model as everything else here,
+    # never guessed. Shown on the society's public page.
+    ("societies", "founded_year", "ALTER TABLE societies ADD COLUMN founded_year INTEGER"),
+    # Original creative credits for a title - who wrote it, not who performed
+    # it. Same trust model as show_info's synopsis/rights fields: a moderator
+    # looks it up on a real source (the licensing house's own listing,
+    # Wikipedia) and enters it once.
+    ("show_info", "composer", "ALTER TABLE show_info ADD COLUMN composer TEXT"),
+    ("show_info", "lyricist", "ALTER TABLE show_info ADD COLUMN lyricist TEXT"),
+    ("show_info", "book_author", "ALTER TABLE show_info ADD COLUMN book_author TEXT"),
+    ("show_info", "licensing_house", "ALTER TABLE show_info ADD COLUMN licensing_house TEXT"),
+    # Box office contact and stage specs for a venue - CURATED_COLUMNS
+    # territory (see app/venues_build.py), same as capacity/auditorium_type.
+    ("venues", "box_office_phone", "ALTER TABLE venues ADD COLUMN box_office_phone TEXT"),
+    ("venues", "box_office_url", "ALTER TABLE venues ADD COLUMN box_office_url TEXT"),
 ]
 
 

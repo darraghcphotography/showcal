@@ -2,6 +2,10 @@
 
 ---
 
+A society's page can now show when it was founded, a title's own page can credit its composer/lyricist/book writer and licensing house, and a venue's page can list a box office phone number and booking link - three small new fields, populated as moderators fill them in
+
+---
+
 A small polish batch: dates now read the same everywhere (no more "20-04-2027" mixed in with "20-28 Apr 2027"), venue cards don't repeat themselves when a town and county share a name ("Dublin, Dublin"), a literal "None" no longer shows up in a society's Review column, ordinal show titles like "The 25th Annual Putnam County Spelling Bee" keep their lowercase "th"/"nd", and a society's own page makes better use of its header on desktop
 
 ---

@@ -39,6 +39,7 @@ class VenueBuildError(AssertionError):
 CURATED_COLUMNS = (
     "county", "capacity", "auditorium_type",
     "latitude", "longitude", "website_url", "tech_spec_url", "notes",
+    "box_office_phone", "box_office_url",
 )
 
 

@@ -32,6 +32,7 @@
       <p class="meta">
         {{ society['region'] }} &middot; {{ tier.tier_label(society['section']) }}
         {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
+        {% if society['founded_year'] %} &middot; Founded {{ society['founded_year'] }}{% endif %}
       </p>
 
       {% if active_since or total_wins %}

@@ -13,13 +13,22 @@
 
   {# Each detail is shown only once it has been filled in - a venue with none
      simply doesn't get this block, rather than a list of "unknown"s. #}
-  {% set has_details = venue['capacity'] or venue['auditorium_type'] or venue['website_url'] or venue['tech_spec_url'] %}
+  {% set has_details = venue['capacity'] or venue['auditorium_type'] or venue['website_url'] or venue['tech_spec_url']
+                        or venue['box_office_phone'] or venue['box_office_url'] %}
   {% if has_details %}
     <dl class="detail-list">
       {% if venue['capacity'] %}<dt>Seating capacity</dt><dd>{{ venue['capacity'] }}</dd>{% endif %}
       {% if venue['auditorium_type'] %}<dt>Auditorium type</dt><dd>{{ venue['auditorium_type'] }}</dd>{% endif %}
       {% if venue['website_url'] %}<dt>Website</dt><dd><a href="{{ venue['website_url'] }}" rel="noopener nofollow">{{ icons.external() }}{{ venue['website_url'] }}</a></dd>{% endif %}
       {% if venue['tech_spec_url'] %}<dt>Technical spec</dt><dd><a href="{{ venue['tech_spec_url'] }}" rel="noopener nofollow">From the venue's own site</a></dd>{% endif %}
+      {% if venue['box_office_phone'] or venue['box_office_url'] %}
+        <dt>Box office</dt>
+        <dd>
+          {% if venue['box_office_phone'] %}{{ venue['box_office_phone'] }}{% endif %}
+          {% if venue['box_office_phone'] and venue['box_office_url'] %} &middot; {% endif %}
+          {% if venue['box_office_url'] %}<a href="{{ venue['box_office_url'] }}" rel="noopener nofollow">Book tickets</a>{% endif %}
+        </dd>
+      {% endif %}
     </dl>
   {% endif %}
 

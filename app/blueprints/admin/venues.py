@@ -10,6 +10,7 @@ from ._shared import URL_RE
 VENUE_FIELDS = (
     "name", "town", "county", "region", "capacity", "auditorium_type",
     "latitude", "longitude", "website_url", "tech_spec_url", "notes",
+    "box_office_phone", "box_office_url",
 )
 AUDITORIUM_TYPES = ["Proscenium", "Thrust", "End-on", "Flat floor", "In the round", "Other"]
 
@@ -146,7 +147,9 @@ def edit_venue_record(venue_id):
                     fields[numeric] = cast(fields[numeric])
                 except ValueError:
                     errors.append(f"{label} must be a number.")
-        for url_field, label in (("website_url", "Website"), ("tech_spec_url", "Technical spec")):
+        for url_field, label in (
+            ("website_url", "Website"), ("tech_spec_url", "Technical spec"), ("box_office_url", "Box office"),
+        ):
             if fields[url_field] and not URL_RE.match(fields[url_field]):
                 errors.append(f"{label} must be a full http(s) link.")
         if errors:
