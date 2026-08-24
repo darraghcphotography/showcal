@@ -15,6 +15,33 @@ again.
 
 ## START HERE - where things stand (2026-08-24, night)
 
+**Antigravity is running an enrichment pass in the background - check `D:\showdb\enrichment\`
+first thing next session, before anything else.** Darragh is running it as a second worker
+(separate tool, his own usage plan) on three worklists Claude generated from real production gaps:
+`societies_worklist.json` (189 societies with zero social/about info), `venues_worklist.json` (87
+venues missing capacity/coordinates/website, plus a new `venue_type` categorization request on
+every row), `shows_worklist.json` (239 titles with no synopsis/rights data). `ENRICHMENT_BRIEF.md`
+in the same folder is the spec Antigravity is working from - full field list, and two hard rules:
+every claimed fact needs a `source_url`, and a blank beats a guess. **Nothing here writes to the
+database automatically.** When the filled-in files come back:
+1. Spot-check a sample of `source_url`s per file before trusting the batch - confirm the cited page
+   actually says what the entry claims, the same discipline used for the 2026-08-24 venue-mapping
+   backlog item.
+2. Import through the app's own admin tools/scripts (`enrich_venues.py`'s pattern - a `DATA` table
+   or equivalent, never raw SQL against production), same trust model as every other
+   moderator-entered field in this repo.
+3. Four rows were deliberately excluded from `venues_worklist.json` before handoff - `Cork`,
+   `Wexford`, `Cork run`, `40th Anniversary (March run)` (known data-entry artifacts, not real
+   venues) - don't expect Antigravity to have researched those; they still need a source-level fix.
+4. Once imported, this closes (or substantially advances) two roadmap items below: "Venue
+   categorization" and "Society social-links harvest."
+
+**After the enrichment import, the next three items are scoped and ready for a Sonnet session**
+(not Fable - implementation work, no open design questions left): the poster thumbnail pipeline,
+the theme-polish micro-batch, and the duplicate-title merges. All three are written up in full
+below with enough detail that a fresh session can start directly from this file - no need to
+re-derive anything from chat history. Point a cleared/new session at this file and this section.
+
 **Rehearsal Room theme shipped site-wide, pushed not yet deployed (`48c4044`).** Darragh greenlit
 it after reviewing a fuller mockup (7 real page types, not just the homepage comparison from
 earlier). Warm paper instead of white, one restrained ink accent instead of burgundy-and-gold,
