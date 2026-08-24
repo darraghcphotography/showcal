@@ -65,10 +65,17 @@ services:
     # shell, so only "while" ends up as the actual -c script and everything
     # after it becomes stray positional args instead of part of the loop.
     entrypoint: ["/bin/sh", "-c"]
+    # Every backup is verified straight after it's taken - restored to a scratch
+    # copy, integrity-checked, and the app's own derived tables rebuilt from it.
+    # A backup nobody has restored is a hope rather than a backup, and the point
+    # of failure you don't want to discover is the one where you need it. The
+    # result lands in `docker logs aims-backup` either way.
     command:
       - |
         while true; do
           python backup_db.py --db /data/aims.db --backup-dir /data/backups
+          python verify_backup.py --backup-dir /data/backups --db /data/aims.db \
+            || echo "BACKUP VERIFICATION FAILED - see above"
           sleep 86400
         done
     volumes:
