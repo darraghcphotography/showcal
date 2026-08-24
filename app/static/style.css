@@ -729,25 +729,15 @@ details table { margin-top: 0.5rem; }
 .venue-table input.venue-input-error { border-color: var(--danger); }
 
 /* Season calendar: month -> week rows, Gilbert/Sullivan split left/right so
-   an adjudicator can scan just their own column - see the season-calendar
-   mockup. A week is "congested" when 4+ shows are actually running at once
-   (a still-running show from the week before counts too), not just when 4+
-   open in it. The whole thing is a native <details>
-   disclosure (open by default on the current season, closed on a past one -
-   see info.py's season_summary()) rather than always-visible, so it doesn't
-   compete with the Past productions table for attention when browsing
-   history. Same element the /stats page already uses for its own
-   older-seasons collapse. */
-details.season-calendar { border: 1px solid var(--border); border-radius: 8px; padding: 0 1.1rem 1rem; margin: 1.5rem 0; }
-details.season-calendar[open] { padding-top: 0.2rem; }
-details.season-calendar summary {
-  cursor: pointer; padding: 0.9rem 0; font-weight: 700; font-size: 1.05rem;
-  list-style: none; display: flex; align-items: center; gap: 0.5rem;
-}
-details.season-calendar summary::-webkit-details-marker { display: none; }
-details.season-calendar summary::before { content: "▸"; color: var(--muted); transition: transform 0.15s; font-size: 0.8rem; }
-details.season-calendar[open] summary::before { transform: rotate(90deg); }
-details.season-calendar summary .count { font-weight: 400; color: var(--muted); font-size: 0.85rem; }
+   an adjudicator can scan just their own column - see /season/calendar
+   (info.py's season_calendar(), app/templates/season_calendar.html). A week
+   is "congested" when 4+ shows are actually running at once (a
+   still-running show from the week before counts too), not just when 4+
+   open in it. Its own page now rather than a <details> disclosure shared
+   with the Past/Upcoming productions list on /season (see ROADMAP,
+   2026-08-24 - splitting it out was the whole point, so nothing here needs
+   to collapse against neighbouring content any more). */
+.season-calendar { margin: 1.5rem 0; }
 
 .season-calendar .legend {
   display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
@@ -792,7 +782,14 @@ details.season-calendar summary .count { font-weight: 400; color: var(--muted); 
   border-color: color-mix(in srgb, var(--warning) 35%, transparent);
 }
 .week-col.congested .week-col-head { color: var(--warning); }
-.week-col-empty { font-size: 0.78rem; color: var(--muted); font-style: italic; }
+/* A blank card, not italic text - reads as a real (empty) part of the grid
+   rather than a leftover label, and carries the same visual weight as a
+   real .chip beside it. Dashed border keeps it visually distinct from an
+   actual show at a glance. */
+.week-col-empty {
+  border: 1px dashed var(--border); border-radius: 8px;
+  padding: 0.3rem 0.55rem; font-size: 0.78rem; color: var(--muted); text-align: center;
+}
 .week-other { margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px dashed var(--border); }
 
 .season-calendar .chip {

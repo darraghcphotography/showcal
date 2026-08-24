@@ -34,6 +34,9 @@ Other pages worth knowing about:
   with region/section filters, split into upcoming and already-finished
   sections. A season picker at the top lets you jump to any past season the
   same way.
+- **Season Calendar** - the same season, grouped week by week instead of as
+  a flat list, Gilbert and Sullivan shown side by side so you can spot a busy
+  weekend before it sneaks up on you.
 - **Awards** - browse the full AIMS adjudication archive (1977-present):
   filter by year, category, section, result, or search across society/show/
   nominee/the adjudicator's own notes on discretionary awards. Defaults to

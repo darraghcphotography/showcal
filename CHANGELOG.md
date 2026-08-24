@@ -1,3 +1,7 @@
+The week-by-week season calendar has its own page now - Season Calendar, alongside Seasons in the nav - instead of sharing /season with the productions list. A week where nothing's opening for Gilbert or Sullivan now shows as an actual blank card instead of italic "None opening" text
+
+---
+
 The "Cancelled" show flag is gone. It had been misattributed to shows that actually went ahead, and the routine spreadsheet re-import used to silently resurrect a wrong flag on every run - it's removed everywhere (the checkbox, the tag, the database column) rather than just corrected
 
 ---

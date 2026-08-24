@@ -9,7 +9,7 @@ the targeted 5-10 - re-checked against this repo's own data (the Gemini list is 
 68 of the remaining 71 societies genuinely don't have enough venue history on record to back a
 confident call; deliberately not forced further (see `backfill_default_venues_round2.py`).
 
-**Built, tested (616 tests pass), verified against local data - pushed, not yet deployed**
+**Built, tested (612 tests pass), verified against local data - pushed, not yet deployed**
 (queue items 9-10, said "go" on this morning): the society page now links every venue in its show
 history and highlights the next announced show; the show page shows venue capacity/town, an
 "About the society" blurb with social links, and a one-line circuit summary; the homepage has a
@@ -17,6 +17,14 @@ history and highlights the next announced show; the show page shows venue capaci
 have a map pin so far - no fake map graphic, just the list, matching the site's existing
 "link out to Google Maps" convention rather than adding a new mapping dependency). Same redeploy
 step as the rest of this file's deploy queue below.
+
+**Also built, same status (mockup approved 2026-08-24, then built for real the same day):** the
+week-by-week season calendar moved off `/season` onto its own page, `/season/calendar` - `/season`
+now holds only the past/upcoming productions list plus a link to the calendar. An empty Gilbert or
+Sullivan column reads as an actual blank card (dashed border, "Nothing opening this week") instead
+of italic muted text. Nav, footer, More page, the homepage's "week by week" link, and the sitemap
+all point at the new route; the mobile bottom tab bar's "Seasons" tab was deliberately left
+pointed at `/season` (no spare tab slot, no "week by week" wording there to redirect).
 
 **Still open from that plan:**
 - Item 8 (FAQ page mockup) - parked until the six questions are settled.

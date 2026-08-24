@@ -467,25 +467,32 @@ def stats_trends():
     )
 
 
-@bp.route("/season")
-def season_summary():
-    db = get_db()
-
-    # Sorted in Python by season_start_year, not a plain SQL string DESC -
-    # this archive spans 05/06 through 27/28 and a text sort of season
-    # strings breaks across the 1999/2000 rollover (the exact bug already
-    # fixed twice elsewhere in this codebase - see season.py).
+def _season_options(db):
+    """All seasons plus the future/current/past split for the season
+    <select>'s <optgroup>s (see season.html/season_calendar.html) - sorted in
+    Python by season_start_year, not a plain SQL string DESC, since this
+    archive spans 05/06 through 27/28 and a text sort of season strings
+    breaks across the 1999/2000 rollover (the exact bug already fixed twice
+    elsewhere in this codebase - see season.py)."""
     all_seasons = sorted(
         (r["season"] for r in db.execute("SELECT DISTINCT season FROM shows WHERE show IS NOT NULL").fetchall()),
         key=season_start_year, reverse=True,
     )
-
     current = current_season(db)
+    current_year = season_start_year(current)
+    future_seasons = [s for s in all_seasons if season_start_year(s) > current_year]
+    past_seasons = [s for s in all_seasons if season_start_year(s) < current_year]
+    return all_seasons, current, future_seasons, past_seasons
+
+
+def _season_filtered_shows(db, all_seasons, current, region, tier):
+    """Resolve the requested `season` query param against real seasons, then
+    return (season, is_past_season, rows) for that season/region/tier - the
+    query shape /season and /season/calendar both need, kept in one place so
+    the two can't silently drift apart."""
     requested = request.args.get("season", "")
     season = requested if requested in all_seasons else current
-
-    region = request.args.get("region", "")
-    tier = request.args.get("tier", "")
+    is_past_season = season < current
 
     query = """
         SELECT shows.*, societies.name AS society_name,
@@ -507,16 +514,19 @@ def season_summary():
     query += " ORDER BY (shows.opening_date IS NULL), shows.opening_date ASC"
 
     rows = db.execute(query, params).fetchall()
+    return season, is_past_season, rows
+
+
+@bp.route("/season")
+def season_summary():
+    db = get_db()
+    all_seasons, current, future_seasons, past_seasons = _season_options(db)
+    region = request.args.get("region", "")
+    tier = request.args.get("tier", "")
+    season, is_past_season, rows = _season_filtered_shows(db, all_seasons, current, region, tier)
+
     upcoming = [r for r in rows if not r["is_past"]]
     finished = [r for r in rows if r["is_past"]]
-    is_past_season = season < current
-    weeks = season_weeks(rows)
-    if not is_past_season:
-        # For the current/a future season, already-finished months at the top
-        # are just clutter - nothing left to plan around. A genuinely past
-        # season is being browsed as history, so it keeps its full calendar.
-        today = date.today()
-        weeks = [w for w in weeks if w["end"] >= today]
 
     # A society can reserve a slot for the season before announcing a title -
     # shows.show is NULL until they do (same "slotted, TBA" placeholder
@@ -570,21 +580,38 @@ def season_summary():
             for r in rows_
         )
 
-    # Grouped for the season picker's <optgroup>s (see season.html) rather
-    # than one flat list - the archive has 20+ seasons now and only grows.
-    current_year = season_start_year(current)
-    future_seasons = [s for s in all_seasons if season_start_year(s) > current_year]
-    past_seasons = [s for s in all_seasons if season_start_year(s) < current_year]
-
-    calendar_show_count = sum(w["open_count"] for w in weeks)
-
     return render_template(
         "season.html", season=season, upcoming=upcoming, finished=finished,
         future_seasons=future_seasons, current_season_value=current, past_seasons=past_seasons,
-        unannounced=unannounced, weeks=weeks, calendar_show_count=calendar_show_count,
+        unannounced=unannounced,
         upcoming_has_review=_has_review(upcoming), finished_has_review=_has_review(finished),
         is_current=(season == current), is_past_season=is_past_season, is_future_season=(season > current),
         season_range_label=season_range_label,
+        regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
+    )
+
+
+@bp.route("/season/calendar")
+def season_calendar():
+    db = get_db()
+    all_seasons, current, future_seasons, past_seasons = _season_options(db)
+    region = request.args.get("region", "")
+    tier = request.args.get("tier", "")
+    season, is_past_season, rows = _season_filtered_shows(db, all_seasons, current, region, tier)
+
+    weeks = season_weeks(rows)
+    if not is_past_season:
+        # For the current/a future season, already-finished weeks at the top
+        # are just clutter - nothing left to plan around. A genuinely past
+        # season is being browsed as history, so it keeps its full calendar.
+        today = date.today()
+        weeks = [w for w in weeks if w["end"] >= today]
+    calendar_show_count = sum(w["open_count"] for w in weeks)
+
+    return render_template(
+        "season_calendar.html", season=season, weeks=weeks, calendar_show_count=calendar_show_count,
+        future_seasons=future_seasons, current_season_value=current, past_seasons=past_seasons,
+        is_current=(season == current), is_past_season=is_past_season, is_future_season=(season > current),
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,
     )
 

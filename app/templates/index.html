@@ -89,7 +89,7 @@
         {% for show in shows %}{{ upcoming_entry(show) }}{% endfor %}
       </ul>
     {% endfor %}
-    <p><a href="{{ url_for('info.season_summary') }}" class="edit-callout">See the full season, week by week &rarr;</a></p>
+    <p><a href="{{ url_for('info.season_calendar') }}" class="edit-callout">See the full season, week by week &rarr;</a></p>
   {% else %}
     <p>No upcoming shows{% if upcoming_region %} in {{ upcoming_region }} right now{% endif %}.</p>
     <p class="meta"><a href="{{ url_for('info.season_summary') }}">Browse the season archive &rarr;</a></p>

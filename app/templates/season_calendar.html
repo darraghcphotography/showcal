@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ season }} season calendar - DC Show Tracker{% endblock %}
+
+{% macro season_chip(show) %}
+  <span class="chip {{ 'gilbert' if show['section'] == 'Gilbert' else ('sullivan' if show['section'] == 'Sullivan' else 'other') }}">
+    <span class="dot"></span>
+    <span class="chip-text">
+      <a class="show-name" href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+      <span class="chip-meta">
+        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
+        &middot; <span class="date-range">{{ show['opening_date']|date_range(show['closing_date']) }}</span>
+      </span>
+    </span>
+  </span>
+{% endmacro %}
+
+{% macro season_column(label, cls, shows, congested=False) %}
+  <div class="week-col {{ cls }}{{ ' congested' if congested else '' }}">
+    <div class="week-col-head">{{ label }} ({{ shows|length }}){% if congested %} &#9888;{% endif %}</div>
+    {% if shows %}
+      {% for show in shows %}{{ season_chip(show) }}{% endfor %}
+    {% else %}
+      <div class="week-col-empty">Nothing opening this week</div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% block content %}
+  <p><a href="{{ url_for('info.season_summary', season=season) }}">&larr; Back to {{ season }} productions</a></p>
+  <h1>
+    {{ season }} season calendar
+    {% if is_current %}<span class="tag">current</span>{% endif %}
+  </h1>
+  <p>{{ calendar_show_count }} {{ 'production' if calendar_show_count == 1 else 'productions' }}
+    {{- 'across the season' if is_past_season else ' opening this season so far' }}.</p>
+
+  <form method="get" class="filter-form">
+    <label>
+      Season
+      <select name="season">
+        {% if future_seasons %}
+          <optgroup label="Future">
+            {% for s in future_seasons %}<option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </optgroup>
+        {% endif %}
+        <optgroup label="Current">
+          <option value="{{ current_season_value }}" {% if current_season_value == season %}selected{% endif %}>{{ current_season_value }}</option>
+        </optgroup>
+        {% if past_seasons %}
+          <optgroup label="Past seasons">
+            {% for s in past_seasons %}<option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </optgroup>
+        {% endif %}
+      </select>
+    </label>
+    <label>
+      Region
+      <select name="region">
+        <option value="">All regions</option>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == selected_region %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Section
+      <select name="tier">
+        <option value="">All sections</option>
+        {% for t in tiers %}
+          <option value="{{ t }}" {% if t == selected_tier %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+    {% if selected_region or selected_tier %}
+      <a href="{{ url_for('info.season_calendar', season=season) }}">Clear</a>
+    {% endif %}
+  </form>
+  <p class="hint">
+    {%- if is_past_season %}How the season's busy weeks played out
+    {%- else %}{% if selected_tier %}{{ selected_tier }} shows, grouped by week{% else %}Gilbert on the left, Sullivan on the right, grouped by week{% endif %}
+    {%- endif %} - A &#9888; flag marks a
+    {%- if is_past_season %} week where several shows clashed.
+    {%- else %} busy week, several shows running at once, worth planning ahead if you want to catch more than one.
+    {%- endif %}</p>
+
+  {% if weeks %}
+    <div class="season-calendar">
+      <div class="legend">
+        {%- if not selected_tier or selected_tier == 'Gilbert' %}
+          <span class="legend-item"><span class="swatch gilbert"></span>Gilbert</span>
+        {%- endif %}
+        {%- if not selected_tier or selected_tier == 'Sullivan' %}
+          <span class="legend-item"><span class="swatch sullivan"></span>Sullivan</span>
+        {%- endif %}
+        <span class="legend-item"><span class="swatch congested"></span>Busy week</span>
+      </div>
+      {% for month_key, month_weeks in weeks|groupby('month_key') %}
+        {% set month_weeks = month_weeks|list %}
+        <div class="month-block">
+          <div class="month-heading">
+            <span>{{ month_weeks[0]['month_label'] }}</span>
+            <span class="count">{{ month_weeks|sum(attribute='open_count') }} opening{{ '' if month_weeks|sum(attribute='open_count') == 1 else 's' }}</span>
+          </div>
+          {% for week in month_weeks %}
+            <div class="week-row{{ ' congested' if week['congested'] else '' }}">
+              <div class="week-row-top">
+                <span class="week-label">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</span>
+                {% if week['congestion_notes'] %}
+                  <span class="week-flag">
+                    {% for note in week['congestion_notes'] %}
+                      &#9888; Busy for {{ note['label'] }} &mdash; {{ note['overlap'] }} shows running{% if not loop.last %} &middot; {% endif %}
+                    {% endfor %}
+                  </span>
+                {% endif %}
+              </div>
+              {% if selected_tier == 'Gilbert' %}
+                <div class="week-split week-split-solo">
+                  {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
+                </div>
+              {% elif selected_tier == 'Sullivan' %}
+                <div class="week-split week-split-solo">
+                  {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
+                </div>
+              {% else %}
+                <div class="week-split">
+                  {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
+                  <div class="week-divider"></div>
+                  {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
+                </div>
+              {% endif %}
+              {% if week['other'] %}
+                <div class="week-other">{{ season_column('Non-AIMS', '', week['other']) }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No shows on record for {{ season }}{% if selected_region %} in {{ selected_region }}{% endif %}{% if selected_tier %} ({{ selected_tier }}){% endif %}.</p>
+  {% endif %}
+{% endblock %}

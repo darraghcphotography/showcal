@@ -99,7 +99,7 @@ def _insert_show(db, society_id, show, opening, closing, section="Gilbert", regi
     )
 
 
-def test_season_page_renders_split_columns_and_congestion_flag(client, db):
+def test_calendar_page_renders_split_columns_and_congestion_flag(client, db):
     society_id = seed_society(db)
     o1, c1 = _week_run(4, day_offset=0)
     o2, c2 = _week_run(4, day_offset=1)
@@ -113,8 +113,8 @@ def test_season_page_renders_split_columns_and_congestion_flag(client, db):
     _insert_show(db, society_id, "Sul One", o5, c5, section="Sullivan")
     db.commit()
 
-    body = client.get("/season?season=26/27").get_data(as_text=True)
-    assert "Season calendar" in body
+    body = client.get("/season/calendar?season=26/27").get_data(as_text=True)
+    assert "season calendar" in body
     assert "Gilbert (4)" in body
     assert "Sullivan (1)" in body
     assert "week-row congested" in body
@@ -122,7 +122,7 @@ def test_season_page_renders_split_columns_and_congestion_flag(client, db):
     assert "Busy for Sullivan" not in body
 
 
-def test_season_page_hides_the_other_column_when_filtered_to_one_section(client, db):
+def test_calendar_page_hides_the_other_column_when_filtered_to_one_section(client, db):
     society_id = seed_society(db)
     o1, c1 = _week_run(4, day_offset=0)
     o2, c2 = _week_run(4, day_offset=1)
@@ -130,17 +130,17 @@ def test_season_page_hides_the_other_column_when_filtered_to_one_section(client,
     _insert_show(db, society_id, "Sul One", o2, c2, section="Sullivan")
     db.commit()
 
-    unfiltered = client.get("/season?season=26/27").get_data(as_text=True)
+    unfiltered = client.get("/season/calendar?season=26/27").get_data(as_text=True)
     assert "Gilbert (1)" in unfiltered
     assert "Sullivan (1)" in unfiltered
 
-    gilbert_only = client.get("/season?season=26/27&tier=Gilbert").get_data(as_text=True)
+    gilbert_only = client.get("/season/calendar?season=26/27&tier=Gilbert").get_data(as_text=True)
     assert "Gilbert (1)" in gilbert_only
     assert "Sullivan (0)" not in gilbert_only
-    assert "None opening" not in gilbert_only
+    assert "Nothing opening this week" not in gilbert_only
 
 
-def test_season_page_section_filter_recomputes_congestion(client, db):
+def test_calendar_page_section_filter_recomputes_congestion(client, db):
     society_id = seed_society(db)
     o1, c1 = _week_run(5, day_offset=0)
     o2, c2 = _week_run(5, day_offset=1)
@@ -153,19 +153,16 @@ def test_season_page_section_filter_recomputes_congestion(client, db):
     db.commit()
 
     # Unfiltered: 4 Gilbert shows overlapping one week - congested.
-    combined = client.get("/season?season=26/27").get_data(as_text=True)
+    combined = client.get("/season/calendar?season=26/27").get_data(as_text=True)
     assert "week-row congested" in combined
 
     # Filtered to Eastern only: 2 shows - no longer congested.
-    eastern_only = client.get("/season?season=26/27&region=Eastern").get_data(as_text=True)
+    eastern_only = client.get("/season/calendar?season=26/27&region=Eastern").get_data(as_text=True)
     assert "week-row congested" not in eastern_only
     assert "Gilbert (2)" in eastern_only
 
 
-def test_season_page_hides_already_finished_weeks_for_current_season(client, db):
-    """Old Show still legitimately appears in the classic table further down
-    the page (that view is unchanged) - only the new calendar section above
-    it drops already-finished weeks, so the assertion is scoped there."""
+def test_calendar_page_hides_already_finished_weeks_for_current_season(client, db):
     society_id = seed_society(db)
     past_opening = (date.today() - timedelta(days=60)).isoformat()
     past_closing = (date.today() - timedelta(days=55)).isoformat()
@@ -174,10 +171,23 @@ def test_season_page_hides_already_finished_weeks_for_current_season(client, db)
     _insert_show(db, society_id, "New Show", future_opening, future_closing)
     db.commit()
 
+    body = client.get("/season/calendar?season=26/27").get_data(as_text=True)
+    assert "New Show" in body
+    assert "Old Show" not in body
+
+
+def test_season_page_no_longer_shows_the_calendar(client, db):
+    """/season kept the productions list when the calendar moved to its own
+    page (see ROADMAP, 2026-08-24) - guards against the split regressing."""
+    society_id = seed_society(db)
+    o1, c1 = _week_run(4, day_offset=0)
+    _insert_show(db, society_id, "Gil One", o1, c1)
+    db.commit()
+
     body = client.get("/season?season=26/27").get_data(as_text=True)
-    calendar_section = body.split("Season calendar")[1].split("Upcoming productions")[0]
-    assert "New Show" in calendar_section
-    assert "Old Show" not in calendar_section
+    assert "season-calendar" not in body
+    assert "week-split" not in body
+    assert 'href="/season/calendar' in body
 
 
 def test_homepage_never_shows_congestion_teaser(client, db):

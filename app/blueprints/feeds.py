@@ -173,6 +173,7 @@ def sitemap_xml():
     urls = [(url_for("public.index", _external=True), today)]
     urls.append((url_for("public.societies_list", _external=True), today))
     urls.append((url_for("info.season_summary", _external=True), today))
+    urls.append((url_for("info.season_calendar", _external=True), today))
     urls.append((url_for("info.stats", _external=True), today))
     urls.append((url_for("public.adjudicators_list", _external=True), today))
     # The rest of the public site - present in the app's own nav but missing

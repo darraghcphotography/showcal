@@ -47,10 +47,11 @@
       ordinary widths, and still had no room for Venues or Adjudicators, so
       both were footer-only and effectively invisible on desktop.
 
-      Built on <details>/<summary>, the same native disclosure already used on
-      /stats and /season, so the menus open and close with no JavaScript at
-      all. The script further down only adds close-on-outside-click and
-      close-on-Escape; with JS off or still loading the nav is fully usable.
+      Built on <details>/<summary>, the same native disclosure /stats already
+      uses for its own older-seasons collapse, so the menus open and close
+      with no JavaScript at all. The script further down only adds
+      close-on-outside-click and close-on-Escape; with JS off or still
+      loading the nav is fully usable.
 
       Home is a direct link and deliberately has no "Upcoming shows" twin in a
       menu - "/" IS the upcoming-productions list, and the brand logo already
@@ -59,7 +60,8 @@
     {% set nav_menus = [
       ('Explore', [
         ('public.titles_list',      'All Shows',    'Every title staged on the circuit'),
-        ('info.season_summary',     'Seasons',      'Any season week by week'),
+        ('info.season_summary',     'Seasons',      'Every show announced, by season'),
+        ('info.season_calendar',    'Season Calendar', 'Any season week by week'),
         ('public.societies_list',   'Societies',    'All member societies by region'),
         ('public.venues_index',     'Venues',       'Every stage a society has played'),
         ('public.reviews_index',    'Reviews',      'Every adjudicator review on file'),
@@ -140,6 +142,7 @@
          footer link isn't removed just because the header has one. #}
       <a href="{{ url_for('public.titles_list') }}">All Shows</a> &middot;
       <a href="{{ url_for('info.season_summary') }}">Seasons</a> &middot;
+      <a href="{{ url_for('info.season_calendar') }}">Season Calendar</a> &middot;
       {# The only path to this on a desktop browser. It used to be reachable
          solely from the More page, which is itself only linked from the mobile
          bottom bar - so the main thing a committee is meant to do here was

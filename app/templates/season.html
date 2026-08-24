@@ -32,30 +32,6 @@
   {% endfor %}
 {% endmacro %}
 
-{% macro season_chip(show) %}
-  <span class="chip {{ 'gilbert' if show['section'] == 'Gilbert' else ('sullivan' if show['section'] == 'Sullivan' else 'other') }}">
-    <span class="dot"></span>
-    <span class="chip-text">
-      <a class="show-name" href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-      <span class="chip-meta">
-        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
-        &middot; <span class="date-range">{{ show['opening_date']|date_range(show['closing_date']) }}</span>
-      </span>
-    </span>
-  </span>
-{% endmacro %}
-
-{% macro season_column(label, cls, shows, congested=False) %}
-  <div class="week-col {{ cls }}{{ ' congested' if congested else '' }}">
-    <div class="week-col-head">{{ label }} ({{ shows|length }}){% if congested %} &#9888;{% endif %}</div>
-    {% if shows %}
-      {% for show in shows %}{{ season_chip(show) }}{% endfor %}
-    {% else %}
-      <div class="week-col-empty">None opening</div>
-    {% endif %}
-  </div>
-{% endmacro %}
-
 {% macro show_cards(shows, past=False, with_review=True) %}
   {% for show in shows %}
     <div class="queue-item">
@@ -139,68 +115,7 @@
   <p class="hint">Gilbert and Sullivan are AIMS's two adjudication tiers, each with its own adjudicator -
     see <a href="{{ url_for('public.about') }}">About</a> for how societies are split between them.</p>
 
-  {% if weeks %}
-    <details class="season-calendar" {% if not is_past_season %}open{% endif %} title="Show or hide the week-by-week calendar">
-      <summary>Season calendar <span class="count">({{ calendar_show_count }} {{ 'productions across the season' if is_past_season else 'opening this season so far' }})</span></summary>
-      <p class="meta">
-        {%- if is_past_season %}How the season's busy weeks played out
-        {%- else %}{% if selected_tier %}{{ selected_tier }} shows, grouped by week{% else %}Gilbert on the left, Sullivan on the right, grouped by week{% endif %}
-        {%- endif %} - A &#9888; flag marks a
-        {%- if is_past_season %} week where several shows clashed.
-        {%- else %} busy week, several shows running at once, worth planning ahead if you want to catch more than one.
-        {%- endif %}</p>
-      <div class="legend">
-        {%- if not selected_tier or selected_tier == 'Gilbert' %}
-          <span class="legend-item"><span class="swatch gilbert"></span>Gilbert</span>
-        {%- endif %}
-        {%- if not selected_tier or selected_tier == 'Sullivan' %}
-          <span class="legend-item"><span class="swatch sullivan"></span>Sullivan</span>
-        {%- endif %}
-        <span class="legend-item"><span class="swatch congested"></span>Busy week</span>
-      </div>
-      {% for month_key, month_weeks in weeks|groupby('month_key') %}
-        {% set month_weeks = month_weeks|list %}
-        <div class="month-block">
-          <div class="month-heading">
-            <span>{{ month_weeks[0]['month_label'] }}</span>
-            <span class="count">{{ month_weeks|sum(attribute='open_count') }} opening{{ '' if month_weeks|sum(attribute='open_count') == 1 else 's' }}</span>
-          </div>
-          {% for week in month_weeks %}
-            <div class="week-row{{ ' congested' if week['congested'] else '' }}">
-              <div class="week-row-top">
-                <span class="week-label">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</span>
-                {% if week['congestion_notes'] %}
-                  <span class="week-flag">
-                    {% for note in week['congestion_notes'] %}
-                      &#9888; Busy for {{ note['label'] }} &mdash; {{ note['overlap'] }} shows running{% if not loop.last %} &middot; {% endif %}
-                    {% endfor %}
-                  </span>
-                {% endif %}
-              </div>
-              {% if selected_tier == 'Gilbert' %}
-                <div class="week-split week-split-solo">
-                  {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
-                </div>
-              {% elif selected_tier == 'Sullivan' %}
-                <div class="week-split week-split-solo">
-                  {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
-                </div>
-              {% else %}
-                <div class="week-split">
-                  {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
-                  <div class="week-divider"></div>
-                  {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
-                </div>
-              {% endif %}
-              {% if week['other'] %}
-                <div class="week-other">{{ season_column('Non-AIMS', '', week['other']) }}</div>
-              {% endif %}
-            </div>
-          {% endfor %}
-        </div>
-      {% endfor %}
-    </details>
-  {% endif %}
+  <p><a href="{{ url_for('info.season_calendar', season=season, region=selected_region, tier=selected_tier) }}">See {{ season }} week by week, with busy weekends flagged &rarr;</a></p>
 
   {% if is_past_season %}
     <h2>Past productions</h2>
