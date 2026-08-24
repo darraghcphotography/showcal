@@ -41,6 +41,17 @@ spreadsheet and upserts it unconditionally on every import, with none of the pro
 Cancelled flags. The feature (schema column, admin/society checkboxes, tag rendering, the CSV read
 path) is being removed entirely, not just the data cleared, so this can't recur.
 
+**Second thread started today: a UI-polish plan** (Fable's read on "the site feels dated," plan at
+`C:\Users\Darragh\.claude\plans\hello-1-are-sunny-hippo.md`, executing phase by phase). **Phase 0
+done, pushed, not yet deployed:** colour was already tokenised in `style.css` but spacing/radius
+weren't - added `--space-*`/`--radius-*` tokens and consolidated five near-identical card
+components (venue/resident/adj/lb/stat) and three "hero" gradient cards (explorer/trends-callout/
+era-card) that were each independently re-declaring the same border/background/shadow, plus ~11
+duplicate `border-radius: 999px` pill declarations. Every substitution is value-identical to what
+it replaced - zero rendered-output change, 612 tests green, safe to redeploy whenever convenient
+(no rush, purely cosmetic-neutral). Phases 1-3 (bare-page consistency pass, a motion/icon pass,
+typography/colour experiment) still to come.
+
 # Roadmap
 
 Tracks the current phase of work and genuinely open items, so a new session (after `/clear` or a fresh
