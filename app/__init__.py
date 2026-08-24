@@ -1,3 +1,4 @@
+import mimetypes
 import os
 import secrets
 from pathlib import Path
@@ -14,6 +15,15 @@ from .rate_limit import limiter
 BASE_DIR = Path(__file__).resolve().parent.parent
 csrf = CSRFProtect()
 compress = Compress()
+
+# The container's Python has no .webp entry in its mimetypes table at all
+# (confirmed on production, 2026-08-24: mimetypes.guess_type('x.webp') ->
+# (None, None)) - every poster save_poster produces is WebP now, and
+# send_from_directory (public.uploaded_file) falls back to
+# application/octet-stream without this, which every browser refuses to
+# render as an image behind this app's own X-Content-Type-Options: nosniff
+# header. Registered at import time, once, rather than per-request.
+mimetypes.add_type("image/webp", ".webp")
 
 
 def create_app(test_config=None):
