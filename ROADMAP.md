@@ -117,14 +117,18 @@ executed, awaiting Darragh's go-ahead. Nothing else is queued for deploy.
   before/after sizes). 654 tests green (5 new, first time any test exercised real image bytes
   through save_poster). Housekeeping's "image-content validation" item can reuse this same Pillow
   dependency once picked up.
-- **Theme-polish micro-batch** (from the same run-through, all small): (1) date formats disagree -
-  homepage says "28-29 Aug 2026", a title page's productions table says "20-04-2027 - 25-04-2027";
-  human form should win everywhere. (2) venue cards print "Dublin, Dublin" when town == county.
-  (3) title-case normalizer produces "The 25Th Annual Putnam County Spelling Bee" - capitalizes
-  after a digit; ordinals are common in titles. (4) society show-history prints literal "None" in
-  the Review column where Awards uses an em-dash. (5) society detail hero leaves its right column
-  empty at desktop - region/tier line sits above the logo and badges below it, unlike the show
-  page's proper two-column hero.
+- **Theme-polish micro-batch - built and pushed** (`0ca3d95`), awaiting the same Portainer redeploy
+  as everything else this session. All five from the run-through: dates now use `date_range`
+  everywhere (was mixing in `irish_date`'s numeric form on the title page and society dashboard);
+  a new `place_label` filter drops the repeat when a venue's town and county share a name; the
+  literal `'None'` `review_status` value now renders as an em-dash via the existing `destub` filter
+  (society and show detail pages); `extract_historical_reviews.py`'s title-casing no longer
+  capitalizes after a digit (ordinals); the society detail hero's region/tier line and trophy case
+  now live inside its right column instead of outside the hero grid. 661 tests green (7 new).
+  **One follow-up still needed once deployed**: `fix_ordinal_titlecasing.py` corrects 7
+  already-affected `historical_reviews`/`shows` rows (`42nd Street`, `The 25th Annual Putnam County
+  Spelling Bee`) - run with `--dry-run` first, then for real, same pattern as every other one-off
+  script here.
 - **Venue categorization (`venue_type` column + directory filter)** - data gathering done
   (2026-08-24: 82 venues now have a researched `venue_type` sitting in
   `enrichment/venues_worklist.json`, not yet written anywhere - see START HERE). What's left is the
