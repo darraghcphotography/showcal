@@ -192,7 +192,7 @@ def create_app(test_config=None):
 
     @app.errorhandler(413)
     def too_large(e):
-        flash("That file is too large - posters must be under 8 MB.", "error")
+        flash("That file is too large - images must be under 8 MB.", "error")
         return redirect(request.referrer or url_for("public.index")), 302
 
     from flask import render_template

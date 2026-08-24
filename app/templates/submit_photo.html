@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Share an old photo - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Share an old photo</h1>
+  <p>Got an old newspaper review clipping (especially anything before 2009, which our own archive
+     doesn't cover) or a photo from a past production - a programme, a cast shot, anything? Send it
+     in. It goes to a moderator, who'll use it to fill in gaps in the record by hand - nothing here
+     gets published automatically.</p>
+
+  <form method="post" class="stacked-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- honeypot: hidden from real visitors via CSS, bots that fill every field will trip it -->
+    <div class="honeypot" aria-hidden="true">
+      <label>Leave this field blank
+        <input type="text" name="website" tabindex="-1" autocomplete="off">
+      </label>
+    </div>
+
+    <fieldset>
+      <legend>What is this?</legend>
+      <label class="radio-label">
+        <input type="radio" name="kind" value="review" {% if form.get('kind') == 'review' %}checked{% endif %} required>
+        A review clipping (newspaper/magazine)
+      </label>
+      <label class="radio-label">
+        <input type="radio" name="kind" value="production_photo" {% if form.get('kind') == 'production_photo' %}checked{% endif %}>
+        A production photo or programme
+      </label>
+    </fieldset>
+
+    <label>
+      Photo
+      <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif" required>
+    </label>
+
+    <p class="meta">JPG, PNG, WEBP, or GIF, max 8&nbsp;MB.</p>
+
+    <label>
+      Society, if known
+      <input type="text" name="society_guess" list="society-options" value="{{ form.get('society_guess', '') }}"
+             placeholder="Start typing..." autocomplete="off">
+      <datalist id="society-options">
+        {% for s in societies %}
+          <option value="{{ s['name'] }}">
+        {% endfor %}
+      </datalist>
+    </label>
+
+    <label>
+      Show/production, if known
+      <input type="text" name="show_guess" value="{{ form.get('show_guess', '') }}">
+    </label>
+
+    <label>
+      Roughly when, if known
+      <input type="text" name="date_guess" placeholder="e.g. 1987, or &quot;sometime in the 90s&quot;"
+             value="{{ form.get('date_guess', '') }}">
+    </label>
+
+    <label>
+      Tell us about it
+      <textarea name="notes" rows="4" required placeholder="What is it, where's it from (publication name for a review clipping), who's pictured, anything else worth knowing">{{ form.get('notes', '') }}</textarea>
+    </label>
+
+    <label>
+      Your name (optional)
+      <input type="text" name="submitter_name" value="{{ form.get('submitter_name', '') }}">
+    </label>
+
+    <label>
+      Your email (optional, in case we have a question)
+      <input type="email" name="submitter_email" value="{{ form.get('submitter_email', '') }}">
+    </label>
+
+    <button type="submit">Submit photo</button>
+  </form>
+{% endblock %}

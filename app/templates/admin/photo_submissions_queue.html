@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Photo submissions - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Photo submissions</h1>
+  <p>{{ pending|length }} pending. Nothing here matches an existing show automatically - read the
+     photo and whatever the submitter wrote, then enter what it confirms into the real record
+     yourself (show info, a review, a show's own edit form, whichever fits), and mark the row below
+     once you're done with it.</p>
+
+  {% for p in pending %}
+    <article class="queue-item">
+      <h2>{{ 'Review clipping' if p['kind'] == 'review' else 'Production photo' }}</h2>
+      <p class="meta">Submitted {{ p['created_at']|irish_datetime }}
+        {% if p['submitter_name'] %}by {{ p['submitter_name'] }}{% endif %}
+        {% if p['submitter_email'] %}({{ p['submitter_email'] }}){% endif %}</p>
+      <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=p['filename']) }}" alt="Submitted photo">
+      <dl class="detail-list compact">
+        <dt>Society guess</dt>
+        <dd>{{ p['society_guess'] or '—' }}</dd>
+        <dt>Show guess</dt>
+        <dd>{{ p['show_guess'] or '—' }}</dd>
+        <dt>Date guess</dt>
+        <dd>{{ p['date_guess'] or '—' }}</dd>
+        <dt>Notes</dt>
+        <dd>{{ p['notes'] or '—' }}</dd>
+      </dl>
+      <div class="actions">
+        <form method="post" action="{{ url_for('admin.mark_photo_submission_done', submission_id=p['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="moderator_notes" placeholder="What did you do with this? (optional)">
+          <button type="submit" class="button-primary">Mark done</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.reject_photo_submission', submission_id=p['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button-danger">Reject</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <p>Nothing waiting for review.</p>
+  {% endfor %}
+
+  {% if recent_done %}
+    <h2 class="admin-group-label">Recently actioned</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Kind</th><th>Status</th><th>Notes</th><th>By</th><th>When</th></tr>
+      </thead>
+      <tbody>
+        {% for p in recent_done %}
+          <tr>
+            <td>{{ 'Review clipping' if p['kind'] == 'review' else 'Production photo' }}</td>
+            <td>{{ p['status'] }}</td>
+            <td>{{ p['moderator_notes'] or '—' }}</td>
+            <td>{{ p['moderated_by'] }}</td>
+            <td>{{ p['moderated_at']|irish_datetime }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

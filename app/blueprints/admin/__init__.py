@@ -31,6 +31,7 @@ from . import duplicates  # noqa: E402,F401
 from . import reviews  # noqa: E402,F401
 from . import awards  # noqa: E402,F401
 from . import adjudicators  # noqa: E402,F401
+from . import photo_submissions  # noqa: E402,F401
 
 # Re-exported: tests/test_adjudicators.py imports this by dotted path.
 from .adjudicators import _adjudicator_grid_seasons  # noqa: E402,F401

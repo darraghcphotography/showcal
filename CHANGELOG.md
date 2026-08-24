@@ -1,3 +1,7 @@
+Got an old newspaper review clipping or a photo from a past production sitting in a drawer? There's now a "Share an old photo" link in the footer - no login needed - that sends it straight to a moderator to fill gaps in the record
+
+---
+
 A big batch of research landed across the site: 135 societies now show a Facebook/Instagram link and an "about" blurb, 87 venues gained a capacity, map pin, website and auditorium type, and 239 show titles picked up a synopsis and licensing info on their Shows A-Z page
 
 ---

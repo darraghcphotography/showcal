@@ -35,6 +35,16 @@
         <td>{{ historical_reviews_pending_count }}</td>
         <td><a href="{{ url_for('admin.historical_reviews_queue') }}">Historical reviews</a></td>
       </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if photo_submissions_pending_count else 'admin-dot-off' }}"></span>
+            Photo submissions (old reviews/production photos from the public)
+          </span>
+        </td>
+        <td>{{ photo_submissions_pending_count }}</td>
+        <td><a href="{{ url_for('admin.photo_submissions_queue') }}">Photo submissions</a></td>
+      </tr>
       {% if awards_pending_season %}
         <tr>
           <td>

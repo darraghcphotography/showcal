@@ -446,6 +446,35 @@ CREATE INDEX IF NOT EXISTS idx_historical_reviews_show_id ON historical_reviews(
 CREATE INDEX IF NOT EXISTS idx_historical_reviews_moderation_status ON historical_reviews(moderation_status);
 CREATE INDEX IF NOT EXISTS idx_historical_reviews_season_tier ON historical_reviews(season, tier);
 
+-- A public, no-login "here's an old photo" intake for material this archive
+-- has no other way to collect: pre-2009 ShowTimes review clippings (older
+-- than the digitized PDF archive extract_historical_reviews.py works from)
+-- and old production/programme photos for shows with a thin record. Open to
+-- anyone, deliberately - unlike historical_reviews or shows, nothing here is
+-- required to match an existing society/show/production; society_guess/
+-- show_guess/date_guess are free text a moderator reads and acts on by hand,
+-- same trust model as everywhere else in this repo. Nothing here writes to
+-- shows/historical_reviews/show_info automatically - a moderator does that
+-- themselves once they've looked at the photo, then marks the row 'done'.
+CREATE TABLE IF NOT EXISTS photo_submissions (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind             TEXT NOT NULL CHECK (kind IN ('review', 'production_photo')),
+    filename         TEXT NOT NULL,     -- under the uploads dir, same convention as shows.poster_filename
+    society_guess    TEXT,
+    show_guess       TEXT,
+    date_guess       TEXT,              -- free text - "1987" or "sometime in the 90s" is a valid answer
+    notes            TEXT,              -- submitter's own description (publication name, who's pictured, etc.)
+    submitter_name   TEXT,
+    submitter_email  TEXT,
+    status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done', 'rejected')),
+    moderator_notes  TEXT,
+    moderated_by     TEXT,
+    moderated_at     TEXT,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_photo_submissions_status ON photo_submissions(status);
+
 -- One row per real staging: one show, by one society, in one season. This is
 -- the thing every "how many productions are on record" / "is this production
 -- reviewed" question on the site is actually about, and until this table

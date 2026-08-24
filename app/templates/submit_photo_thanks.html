@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Thanks - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Thanks!</h1>
+  <p>Your photo has been sent to a moderator, who'll use it to fill in the record by hand.</p>
+  <p><a href="{{ url_for('submit.photo') }}">Share another photo</a></p>
+{% endblock %}

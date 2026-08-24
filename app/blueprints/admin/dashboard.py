@@ -143,6 +143,10 @@ def dashboard():
     ).fetchone()[0]
     mismatched_skeleton_shows_count = len(find_mismatched_skeleton_shows(db))
 
+    photo_submissions_pending_count = db.execute(
+        "SELECT COUNT(*) FROM photo_submissions WHERE status = 'pending'"
+    ).fetchone()[0]
+
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
     # still no historical_results row for its award year, those results
@@ -178,6 +182,11 @@ def dashboard():
             "label": "Historical reviews awaiting moderation",
             "count": historical_reviews_pending_count,
             "url": url_for("admin.historical_reviews_queue"),
+        },
+        {
+            "label": "Photo submissions awaiting moderation",
+            "count": photo_submissions_pending_count,
+            "url": url_for("admin.photo_submissions_queue"),
         },
         {
             "label": "Historical societies with a region awaiting confirmation",
@@ -230,6 +239,7 @@ def dashboard():
         mismatched_skeleton_shows_count=mismatched_skeleton_shows_count,
         awards_pending_season=awards_pending_season,
         historical_reviews_pending_count=historical_reviews_pending_count,
+        photo_submissions_pending_count=photo_submissions_pending_count,
         quick_win=quick_win,
     )
 

@@ -8,11 +8,12 @@ from ..db import get_db
 from ..rate_limit import limiter
 from ..season import current_season, next_season
 from ..similarity import find_close_title
-from ..uploads import save_poster
+from ..uploads import save_photo_submission, save_poster
 
 bp = Blueprint("submit", __name__, url_prefix="/submit")
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+PHOTO_KINDS = ("review", "production_photo")
 
 
 def _season_options(db):
@@ -164,3 +165,73 @@ def new():
 @bp.route("/thanks")
 def thanks():
     return render_template("submit_thanks.html")
+
+
+@bp.route("/photo", methods=("GET", "POST"))
+@limiter.limit("5 per minute")
+def photo():
+    """Open to the public, no invite code - unlike submit.new, an old
+    review clipping or production photo isn't something only a society
+    officer would have lying around. Deliberately doesn't require matching
+    an existing society/show: society_guess/show_guess/date_guess are free
+    text a moderator reads by hand (see admin/photo_submissions.py), same
+    trust model as everywhere else member-contributed content lands here."""
+    db = get_db()
+    societies = db.execute("SELECT name FROM societies ORDER BY name").fetchall()
+
+    if request.method == "POST":
+        # Honeypot: a real visitor never fills this hidden field in.
+        if request.form.get("website", ""):
+            return redirect(url_for("submit.photo_thanks"))
+
+        errors = []
+        kind = request.form.get("kind", "")
+        if kind not in PHOTO_KINDS:
+            errors.append("Choose what kind of photo this is.")
+        notes = request.form.get("notes", "").strip()
+        if not notes:
+            errors.append("Tell us a little about the photo - what it is, and anything you know about it.")
+
+        filename = None
+        photo_file = request.files.get("photo")
+        try:
+            filename = save_photo_submission(photo_file, current_app.config["UPLOAD_DIR"])
+        except ValueError as e:
+            errors.append(str(e))
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template("submit_photo.html", societies=societies, form=request.form)
+
+        db.execute(
+            """
+            INSERT INTO photo_submissions (
+                kind, filename, society_guess, show_guess, date_guess, notes, submitter_name, submitter_email
+            ) VALUES (:kind, :filename, :society_guess, :show_guess, :date_guess, :notes, :submitter_name, :submitter_email)
+            """,
+            {
+                "kind": kind,
+                "filename": filename,
+                "society_guess": request.form.get("society_guess", "").strip() or None,
+                "show_guess": request.form.get("show_guess", "").strip() or None,
+                "date_guess": request.form.get("date_guess", "").strip() or None,
+                "notes": notes,
+                "submitter_name": request.form.get("submitter_name", "").strip() or None,
+                "submitter_email": request.form.get("submitter_email", "").strip() or None,
+            },
+        )
+        db.commit()
+        notify.send(
+            "New photo submission",
+            f"A {kind.replace('_', ' ')} was just submitted.\n\n"
+            f"Review it: {notify.link(url_for('admin.photo_submissions_queue'))}",
+        )
+        return redirect(url_for("submit.photo_thanks"))
+
+    return render_template("submit_photo.html", societies=societies, form={})
+
+
+@bp.route("/photo/thanks")
+def photo_thanks():
+    return render_template("submit_photo_thanks.html")
