@@ -28,7 +28,7 @@ def test_housekeeping_notices_sit_below_the_listings_but_not_last(client):
     the page, so it still sits above "Recently shipped" rather than going back
     to the bottom."""
     body = client.get("/").get_data(as_text=True)
-    listings_pos = body.index("<h1>What's on</h1>")
+    listings_pos = body.index("What's on</h1>")
     suggest_pos = body.index("Please suggest it")
     login_ask_pos = body.index("he'll issue you a login code")
 

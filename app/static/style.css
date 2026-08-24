@@ -44,7 +44,7 @@
     --bg: #17161a;
     --muted: #a4a0a8;
     --border: #38343c;
-    --accent: #f0a8c0;
+    --accent: #d45e81;
     --accent-contrast: #2a0f18;
     --gold: #dcb84f;
     --silver: #b9bfc8;
@@ -66,7 +66,7 @@
   --bg: #17161a;
   --muted: #a4a0a8;
   --border: #38343c;
-  --accent: #f0a8c0;
+  --accent: #d45e81;
   --accent-contrast: #2a0f18;
   --gold: #dcb84f;
   --silver: #b9bfc8;
@@ -100,6 +100,26 @@ body {
   background: var(--bg);
   margin: 0;
   line-height: 1.5;
+}
+
+/* Phase 3 typography experiment (see the "Programme Notes" mockup) - a
+   self-hosted display serif for one heading only, the homepage's. Every
+   other h1/h2 on the site stays system-ui until/unless this goes wider.
+   Self-hosted because the CSP (app/__init__.py) blocks Google Fonts and any
+   other CDN font outright, at both the stylesheet and font-file level. */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/fraunces-600.woff2") format("woff2");
+}
+.hero-heading {
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  font-size: 2.2rem;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .container {

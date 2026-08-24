@@ -43,7 +43,7 @@
 {% endmacro %}
 
 {% block content %}
-  <h1>What's on</h1>
+  <h1 class="hero-heading">What's on</h1>
   {% if upcoming_total %}
     <p>{{ upcoming_total }} production{{ '' if upcoming_total == 1 else 's' }} announced
        {%- if upcoming_region %} in {{ upcoming_region }}{% else %} across Ireland{% endif %},
