@@ -13,7 +13,14 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - where things stand (2026-08-24, evening)
+## START HERE - where things stand (2026-08-24, night)
+
+**`/season` page weight, measured and closed** - the next item on the list asked for a real
+measurement (Playwright + CDP throttling, same method as the `/titles` check) rather than assuming
+the site-wide compression fix from earlier today covered it. It does: 66.7KB over the wire (down
+from an uncompressed ~197KB), 16,276px tall, 2.7s interactive on a genuine Slow 3G profile -
+comparable to `/titles`'s own post-fix numbers (79KB, 3.3s). No pagination or further work needed;
+removed from the open-items list below.
 
 **Everything is shipped, deployed and verified live as of this evening.** The morning queue, all
 four phases of the UI-polish plan, and all 8 items of the Second Act backlog (homepage poster
@@ -29,10 +36,6 @@ item below makes sense, without a deploy step first.
 
 ## Next feasible things, roughly in order
 
-- **`/season` page weight** - 123KB, no pagination (the `/reviews` half of this same finding was
-  fixed 2026-08-24 alongside `/titles`, via response compression - see the archive). Worth a real
-  measurement (Playwright + CDP throttling, same method as the `/titles` check) before assuming it
-  needs anything more than compression already fixed.
 - **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are
   near me). Smallest self-contained new page on the list. Confirmed not built yet (`/faq` still
   404s on the live site).

@@ -3565,6 +3565,15 @@ region" option, venue map directions - is also confirmed live the same way: Town
 Galway reads 21 productions with a 400-seat capacity and a "Get directions" link, 124 of 143
 active societies now carry a `default_venue` (up from 39/194 before this backlog started).
 
+**Follow-up, same night: `/season` page weight measured, no further work needed.** The roadmap's
+next open item asked whether `/season` needed anything beyond the compression fix above (item 7),
+since it was flagged in the same 2026-08-23 UX audit as `/reviews` (123KB, no pagination) but only
+`/reviews` got a fix that session. Measured the same way as `/titles` (Playwright + CDP network
+throttling, mobile viewport, local dev server): `/season` is 16,276px tall, 66.7KB over the wire
+(compression already covers it site-wide, same as every other route), 2.7s interactive on a
+genuine Slow 3G profile - in the same range as `/titles`'s own post-fix numbers (79KB, 3.3s).
+Closed without a code change; removed from `ROADMAP.md`'s open-items list.
+
 ## Google Maps integration proposal - sections 1-2 adopted, verified live; section 3 still open
 
 Gemini-generated, three sections, assessed 2026-08-24. Section 1 (Google Maps directions) shipped
