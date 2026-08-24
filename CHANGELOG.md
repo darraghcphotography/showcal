@@ -1,3 +1,13 @@
+49 venues that showed just a bare county or town name - "Belfast", "Antrim", "Tipperary" - now show the real theatre, hall or arts centre a society actually performs at, researched and cross-checked against the archive
+
+---
+
+Societies now show as a card grid with a logo (or an initial if none's been uploaded yet), same look as Venues. Shows A-Z is rebuilt: a "most-staged, archive-wide" strip, three quick filters (on stage this season, revival candidates, rare gems staged only once), and a letter scrubber instead of a sort dropdown and page-by-page paging. Section (Gilbert/Sullivan) shows a small coloured dot everywhere it used to be plain text
+Cards and buttons across the site now transition smoothly on hover instead of snapping instantly. A handful of icons (map pin, ticket, calendar, external link) appear next to the links they belong to - directions, tickets, the season calendar, a society's social links
+The homepage's heading, and every public page's headings, now use a self-hosted display typeface; the accent colour in dark mode is less pale than before, closer to how it actually looks in light mode
+
+---
+
 The week-by-week season calendar has its own page now - Season Calendar, alongside Seasons in the nav - instead of sharing /season with the productions list. A week where nothing's opening for Gilbert or Sullivan now shows as an actual blank card instead of italic "None opening" text
 
 ---
