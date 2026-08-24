@@ -15,6 +15,25 @@ again.
 
 ## START HERE - where things stand (2026-08-24, night)
 
+**Rehearsal Room theme shipped site-wide, pushed not yet deployed (`48c4044`).** Darragh greenlit
+it after reviewing a fuller mockup (7 real page types, not just the homepage comparison from
+earlier). Warm paper instead of white, one restrained ink accent instead of burgundy-and-gold,
+Archivo replacing Fraunces for headings - all token-driven in `style.css`, no template changes.
+Also fixed a stray hardcoded color found along the way (mobile nav's active-tab red wasn't using
+`var(--accent)`) and retuned `--gold` to match the new palette (the old goldenrod clashed once
+tried against the new background for real). 639 tests green, verified locally with Playwright
+screenshots (home light/dark, Awards, a title's circuit-intelligence page). **Needs a Portainer
+redeploy to go live** - same pattern as everything else in this repo, not something Claude can
+trigger. Also fixed the same session, separately: the 4+4 "Orphaned title data" rows from the
+admin data-quality page (`Beauty and the Beast` etc. vs the site's Title-Case-everywhere
+convention) - corrected directly on the production database (renamed, not deleted, so the real
+synopsis/rights/Wikipedia content attached to them is live again), verified via WebFetch against
+the real page. Found a real bug while fixing it: the "Edit" link that page points to for
+`show_info` can't actually change the title (the form only edits synopsis/rights fields, keyed by
+the existing title), and "Clear" for `show_links` only deletes - so neither affordance can
+actually fix what the page describes. Not fixed this session; worth a small admin-UI job later so
+the next orphaned title doesn't need an SSH session.
+
 **`/season` page weight, measured and closed** - the next item on the list asked for a real
 measurement (Playwright + CDP throttling, same method as the `/titles` check) rather than assuming
 the site-wide compression fix from earlier today covered it. It does: 66.7KB over the wire (down
@@ -31,11 +50,20 @@ production - checked directly against the real site, not assumed from a `git pus
 `ROADMAP_ARCHIVE.md` under "Morning queue, 2026-08-24," "UI-polish plan," and "Second Act backlog"
 - nothing below duplicates it.
 
-**Nothing is queued for deploy right now.** The next session can start straight into whichever open
-item below makes sense, without a deploy step first.
+**The Rehearsal Room theme (`48c4044`) is queued for deploy** - a Portainer redeploy is the only
+thing standing between it and going live. Everything else below can start without a deploy step
+first.
 
 ## Next feasible things, roughly in order
 
+- **`/admin/data-quality`'s Orphaned title data section can't actually fix what it describes** -
+  found 2026-08-24 while resolving a real instance of it. The "Edit" link for `show_info` only
+  edits synopsis/rights fields (keyed by the existing title, no rename field); "Clear" for
+  `show_links` only deletes. Neither can correct a title-casing mismatch, which is the entire
+  premise of that section's own hint text. A small job: add a way to rename the `show` key on both
+  tables (to a real match already in `shows`/`historical_results`, not a free-text field - keeps
+  the site's no-fuzzy-matching rule intact) so the next orphaned title doesn't need direct database
+  access to fix.
 - **FAQ page** - real questions already gathered (what is AIMS, how do I join, which societies are
   near me). Smallest self-contained new page on the list. Confirmed not built yet (`/faq` still
   404s on the live site).
