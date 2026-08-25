@@ -73,7 +73,8 @@ the same check: Ballywillan (timeout - retry, it may be transient and it is the 
 - **`/admin/historical-society-links`.** 69 printed names awaiting a decision. Deployed and unused.
   Expect ~9 to have any suggestion and most to be "no current society", which is bulk-selectable -
   probably 10 minutes of clicking. Worth him doing before the next awards re-import.
-- **Posters.** Still 41 against ~200 current-era shows. Gates any poster-led design work.
+- **Posters.** 44 against ~200 current-era shows - and concentrated in **12 societies of 194**, so
+  the gap is who has been asked, not who is willing. Gates any poster-led design work.
 
 ### The delegation finding - read before handing Antigravity anything again
 
@@ -107,11 +108,18 @@ backlog interrogation" section below for the full verdicts and reasoning). Darra
 merit. 22 items in, 9 kept, 13 closed. The live backlog is now that section's numbered list of 9,
 in priority order, headed by internal-only person identity resolution.
 
-Two things came out of it that outlast the individual verdicts:
+**One verdict was reversed the same day** (costume/prop listings - now item 2), and the interrogation's
+own headline finding was withdrawn, both for the same reason: it argued about user demand without
+consulting the demand record. Read the corrected section below, not the original claims.
 
-- **The binding constraint is society-supplied content, not engineering time** (41 posters against
-  ~200 current-era shows, after months). A third of the backlog was blocked behind that same
-  assumption. Judge new feature ideas by whether they move that number rather than depend on it.
+Three things came out of it that outlast the individual verdicts:
+
+- **Ask about demand, don't infer it.** `feature_suggestions` holds real user requests with a triage
+  lane; Darragh's own conversations with committees and adjudicators leave no trace in this repo at
+  all. Claude closed an item the PM had personally marked **Planned**. Query the table and ask him.
+- **Poster supply is an outreach gap, not unwillingness** - production has 44 posters across just
+  **12 societies of 194**. 182 have never engaged at all. This does not support blocking features on
+  "societies won't maintain data"; it supports item 7 (society profile completion).
 - **Rejected ideas were being laundered back in** via new audit docs - the watchlist / map /
   "On This Day" / embeddable-JSON group was ruled skip on 2026-08-20 and re-entered as "genuinely
   new, unclaimed" on 2026-08-24. **Diff any future audit doc against prior rulings before entering
@@ -161,10 +169,27 @@ Three large untracked `.md` proposals sit in the repo root. Two are confirmed su
   from every venue worklist and deliberately never classified, but the underlying show rows still
   carry them.
 
-- **3 venues with no map pin: St. Mary's College Arklow, The Abbey Clane, Loughrea Temperance Hall.**
-  All confirmed real; OpenStreetMap simply has no entry findable by name, and Eircodes don't help
-  (Nominatim doesn't index them and fuzzy-matches to unrelated addresses). Needs a different source,
-  not another search.
+- **3 venues with no map pin - coordinates now supplied by Antigravity and partially verified
+  (2026-08-25).** Delegated deliberately because coordinates self-verify, and the check was run:
+
+  | Venue | Supplied | Reverse-geocodes to | Verdict |
+  |---|---|---|---|
+  | St. Mary's College Arklow | 52.79582, -6.15852 | St Michaels GNS, Collins Street, **Arklow** | Right town, nearest feature is a *different school* - weakest of the three |
+  | The Abbey, Clane | 53.29252, -6.68722 | Serenity Hair Salon, **Main Street, Clane** | Right town + right street, lands on a salon |
+  | Loughrea Temperance Hall | 53.19748, -8.56864 | **Barrack Street, Loughrea** | Right town + right street, no conflicting building - cleanest |
+
+  Both cited websites return **HTTP 200** (`stmarysarklow.ie`, `clanecommunity.ie`) - a real
+  improvement on the founding-years run where 19 of 34 domains didn't resolve, and evidence the
+  self-verifying task design works. **But none is confirmed at building level.** That's partly
+  expected: these three are unpinnable precisely *because* OSM has no entry for them, so "nearest
+  mapped feature is a hair salon" shows the building is absent from OSM, not that the coordinate is
+  wrong. Street-level accuracy is likely good enough - `venue_detail.html` uses the pin only for the
+  optional "See the exact spot" link, while "Get directions" is name+town based either way.
+  **Before importing: Darragh should confirm the Arklow pin** (a different school 100m away is the
+  plausible failure mode) **and confirm "The Abbey Clane" really means The Abbey Community Centre on
+  Main Street** - that identification was Antigravity's interpretation of an ambiguous name, not
+  something it read off a page. The named "verification sources" (CEIST, community directories) came
+  without URLs and should not be treated as checked.
 
 - **Society founding years beyond the 6 confirmed.** The column, admin field and public display all
   shipped; 6 of 194 are set, each verified against a real source. A crude scrape of the 74 societies
@@ -196,14 +221,24 @@ that **"no one has asked for this" is not on its own enough to close an item** -
 argued for and against. 22 items in, 9 out. Every "already delivered" verdict below was checked
 against the actual code, not against this file's own summary of it.
 
-**The finding that reorganises the rest:** the site's binding constraint is not engineering capacity,
-it's **society-supplied content**. Posters are the live experiment - 41 against ~200 current-era shows
-after months. Roughly a third of the backlog was either blocked behind that same unproven assumption
-(societies will fill things in) or was an attempt to work around it. So the useful question isn't
-"which feature next", it's "does anything move the content-supply number" - and exactly one backlog
-item attacks it head-on rather than depending on it (the social card generator, below).
+**The finding that reorganises the rest - CORRECTED 2026-08-25, read the correction not the original.**
+The original claim was that the binding constraint is society-supplied content, evidenced by the
+poster count, and that this justified blocking several items. Checked against **production** rather
+than the stale local copy, the numbers are **44 posters across just 12 societies of 194**. That is
+the opposite of what was argued: it isn't 194 societies declining to supply content, it's 12 who
+were asked or who found it, and 182 who have never engaged at all. That's an **outreach gap, not
+evidence of unwillingness** - so it cannot carry the weight of blocking a feature. Item 7 (society
+profile completion) is the real work here; the blocking argument is withdrawn.
 
-Second finding, process rather than product: **rejected ideas were being laundered back in.** The
+**Second finding, and the important one: demand data existed and was never consulted.** The whole
+interrogation argued about what users want without querying `feature_suggestions` - a table of real
+submissions from the live site, with a triage lane Darragh maintains. Six rows, and one of them is
+a direct request for costume/prop listings that he had already marked **Planned**. It was closed
+anyway. **Before arguing demand for anything, query that table** (and ask Darragh, whose own
+conversations with committees and adjudicators are a demand channel that leaves no trace in the
+repo at all). "No evidence in the artifacts I can see" is not "no one asked".
+
+Third finding, process rather than product: **rejected ideas were being laundered back in.** The
 watchlist / Leaflet map / "On This Day" / embeddable-JSON group was ruled skip on 2026-08-20 with
 reasons. All four returned to Parked on 2026-08-24 labelled "genuinely new, unclaimed", because they
 arrived inside a *different* audit doc. Any future audit doc gets diffed against prior rulings before
@@ -217,34 +252,44 @@ its suggestions are entered here.
    more free-text names, so it grows while untouched. Darragh's privacy objection was to *public
    person pages*, which stays honoured - the agreed path is canonical names + aliases, moderator-
    reviewed, reusing `dedupe.find_candidates`, **no new public surface**. Top of the list.
-2. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
+2. **Costume / prop / set listings for sale or rent.** The **only item on this list with a written,
+   attributable origin from a real user**, and it was wrongly closed on 2026-08-25 before that was
+   checked. `feature_suggestions` row 4 (2026-08-04): *"Perhaps a section for each show for societies
+   to list for costumes/ props/ sets for sale or rent?"* - triaged **Planned** by Darragh on
+   2026-08-23 with the note *"Will revisit this in future - could be good to add ot society pages!"*.
+   The archive had also flagged it as "a live demand signal". It is still the biggest lift on the
+   list (new data model, new admin UI, a matching concept) so it wants its own scoping session - but
+   "societies won't maintain it" was an assumption, contradicted by the fact that the request came
+   from someone volunteering to list things. Note the requester said *per show*; Darragh's note says
+   *society pages* - that difference is the first thing to settle when scoping.
+3. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
    from a throwaway line to a real candidate because it's the one item that *gives* societies
    something instead of asking them for something - plausibly the lever that gets posters uploaded
    ("upload your poster, get a card you can post"). Pillow landed 2026-08-24 for the poster pipeline,
    so the rendering dependency already exists. Needs a mockup pass before any build.
-3. **`match_show_for_edit` exact-match bug.** Verified real: `app/blueprints/admin/historical_reviews.py:650`
+4. **`match_show_for_edit` exact-match bug.** Verified real: `app/blueprints/admin/historical_reviews.py:650`
    matches `society_id + season + show` on an exact string. Systemic version of a title-mismatch bug
    already fixed once for a specific case. Small, contained, already bit us.
-4. **Society edit audit log - scope cut to the cheap 80%.** Kept because the hole is real and
+5. **Society edit audit log - scope cut to the cheap 80%.** Kept because the hole is real and
    structural, not a feature wish: societies share one login code, so there is no way to tell who
    made an edit or to undo it. Cut: build the append-only log (who/when/field/old/new), **drop the
    revert UI** - that's the expensive half, and a moderator can restore by hand from the log.
-5. **Repertoire finder** (the "what show should we do next" hub) - the single survivor of *both*
+6. **Repertoire finder** (the "what show should we do next" hub) - the single survivor of *both*
    deleted audit docs, and the only feature idea either produced with a real audience: volunteer
    committees genuinely do spend months choosing a title. Builds on columns that already exist
    (amateur rights status, licensing house on `show_info`). Its "which other societies staged this
    recently" sub-idea also fits the collaborative ethos the design audit itself insisted on. Still
    needs Darragh to confirm it solves a problem a committee has actually raised to him.
-6. **Society profile completion** - merges the old "empty vs. filled society page" sliver with the
+7. **Society profile completion** - merges the old "empty vs. filled society page" sliver with the
    whole outreach/onboarding track, because they're one problem: a nudge on a thin profile, 2-3
    exemplar societies filled in completely as a reference, a draft message to a committee, a "claim
    your page" route. Mostly Darragh's lever, not a coding task.
-7. **Poster lightbox/zoom** - kept but explicitly *not standalone*: bundle it into the next piece of
-   poster work. At 41 posters it currently affects few pages.
-8. **Removable filter chips - redirected.** The idea shipped on `/awards`; the roadmap kept it open
+8. **Poster lightbox/zoom** - kept but explicitly *not standalone*: bundle it into the next piece of
+   poster work. At 44 posters (12 societies) it currently affects few pages.
+9. **Removable filter chips - redirected.** The idea shipped on `/awards`; the roadmap kept it open
    for `/season`/`/stats`, but the page that now actually earns it is **`/reviews`**, which carries
    four filters (free-text `q`, season, tier, adjudicator). Retarget if picked up.
-9. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
+10. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
    (AIMS musical-theatre circuit specifically) with "may get their own category in the future".
    It's a scope decision about what the site *is*, and only Darragh can make it.
 
@@ -284,11 +329,10 @@ its suggestions are entered here.
   don't have. Against: homepage real estate for a novelty, aimed at a daily-returning audience this
   site doesn't have. Killed as a homepage widget; the underlying data is better spent feeding the
   social cards (item 2).
-- **Costume/prop rental listings.** Merit: societies really do lend to each other - this is genuine
-  amateur-theatre behaviour, not an invented need. Against: it's the biggest lift on the whole list
-  (new data model, new admin UI, a matching concept) and it lives or dies on societies maintaining
-  it - the exact thing 41 posters says they don't yet do. **Blocked behind the content-supply
-  finding, not on merit.** Revisit if profile completion moves.
+- ~~**Costume/prop rental listings.**~~ **CLOSURE REVERSED same day - see the Kept list, item 2.**
+  It was closed on an inference about societies not maintaining data, in ignorance of the fact that
+  a real user asked for it and Darragh had already triaged it Planned. Left here as a record of the
+  mistake, not as a verdict.
 - **Historical-posters gallery + programme-cover museum.** Two entries for one idea; merged and
   closed for now on the same content-supply argument. **Trigger: ~100 posters.**
 - **Staging/test environment.** Merit: a bad change can hit the live site. Against: 718 tests already
@@ -307,7 +351,7 @@ its suggestions are entered here.
 
 ## Waiting on Darragh, not a coding task
 
-- **Posters** - 41 exist against ~200 current-era shows. Gates the whole visual redesign (type/palette
+- **Posters** - 44 exist against ~200 current-era shows, from 12 societies. Gates the whole visual redesign (type/palette
   pass, then per-page components) - a poster-led design would be mostly empty frames without more of
   these.
 
@@ -342,6 +386,13 @@ its suggestions are entered here.
   and get sign-off before editing, rather than fixing things as found.
 - Lessons that matter beyond one session go in `docs/`, not just chat -
   already the habit for this repo, keep it up.
+- **Check the demand record before arguing demand** (added 2026-08-25, learned the hard way).
+  `feature_suggestions` in the live DB holds real user submissions with a triage lane Darragh
+  maintains; the archive also records origins for some ideas ("a live demand signal", "an
+  adjudicator's actual complaint"). An entire backlog interrogation ran without consulting either,
+  and closed an item the PM had personally triaged **Planned**. Claude's view of demand is limited
+  to what's written down - Darragh's conversations with committees, adjudicators and AIMS itself
+  are a real channel that leaves no trace in this repo. **Ask, don't infer.**
 - **Diff any new audit/proposal doc against prior rulings and against the actual code before
   entering its suggestions in this file** (added 2026-08-25). Three separate generated audit docs
   have now been found to re-propose things that were either already shipped or already argued down
