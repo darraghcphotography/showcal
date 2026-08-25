@@ -118,8 +118,11 @@ Do citation-dependent work in-house. Never accept a `source_url` without opening
 The planned interrogation of the UX-audit slivers and the Parked list **was carried out** (see "The
 backlog interrogation" section below for the full verdicts and reasoning). Darragh's rule for it:
 "no one has asked for this" was **not** enough on its own to close an item - each was argued on
-merit. 22 items in, 9 kept, 13 closed. The live backlog is now that section's numbered list, in
-priority order - since joined by Darragh's own checklist-grid request at item 1.
+merit. **Then Darragh was re-questioned on everything closed on inferred demand, and five of seven
+verdicts were overturned** - costume listings, the share button and the `.ics` export all reinstated,
+the repertoire finder validated, the poster museum confirmed wanted-but-gated. Only "On This Day" and
+the embeddable widget survived as closures. The live backlog is now that section's numbered list of
+12, headed by Darragh's own checklist-grid request.
 
 **One verdict was reversed the same day** (costume/prop listings - now item 3), and the interrogation's
 own headline finding was withdrawn, both for the same reason: it argued about user demand without
@@ -132,7 +135,7 @@ Three things came out of it that outlast the individual verdicts:
   all. Claude closed an item the PM had personally marked **Planned**. Query the table and ask him.
 - **Poster supply is an outreach gap, not unwillingness** - production has 44 posters across just
   **12 societies of 194**. 182 have never engaged at all. This does not support blocking features on
-  "societies won't maintain data"; it supports item 8 (society profile completion).
+  "societies won't maintain data"; it supports item 9 (society profile completion).
 - **Rejected ideas were being laundered back in** via new audit docs - the watchlist / map /
   "On This Day" / embeddable-JSON group was ruled skip on 2026-08-20 and re-entered as "genuinely
   new, unclaimed" on 2026-08-24. **Diff any future audit doc against prior rulings before entering
@@ -231,8 +234,25 @@ Three large untracked `.md` proposals sit in the repo root. Two are confirmed su
 
 The UX-audit slivers and the Parked list were interrogated item by item, on Darragh's explicit rule
 that **"no one has asked for this" is not on its own enough to close an item** - each got a real case
-argued for and against. 22 items in, 9 out. Every "already delivered" verdict below was checked
-against the actual code, not against this file's own summary of it.
+argued for and against. Every "already delivered" verdict below was checked against the actual code,
+not against this file's own summary of it.
+
+**Then Darragh was re-questioned on every item that had been closed on inferred demand, and the
+inferences lost badly.** Of the items where Claude guessed at demand rather than asking:
+
+| Item | Claude's verdict | Darragh's answer |
+|---|---|---|
+| Costume / prop listings | closed | **reversed** - a real user asked, he'd triaged it Planned |
+| Share button on show pages | closed | **reversed** - real backing |
+| Season watchlist / `.ics` export | closed | **reversed** - real backing |
+| Repertoire finder | kept, unvalidated | **promoted** - committees have raised it to him |
+| Poster / programme museum | closed (blocked) | **wanted**, genuinely gated on poster count |
+| "On This Day" widget | closed | closure confirmed |
+| Embeddable widget / JSON feed | closed | closure confirmed |
+
+Five of seven wrong. The lesson is not "be more generous when triaging" - it's that **Claude has no
+visibility into the demand channel that matters** (Darragh's conversations with committees,
+adjudicators and AIMS), so inferring demand is guessing dressed as analysis. Ask.
 
 **The finding that reorganises the rest - CORRECTED 2026-08-25, read the correction not the original.**
 The original claim was that the binding constraint is society-supplied content, evidenced by the
@@ -294,34 +314,46 @@ its suggestions are entered here.
    "societies won't maintain it" was an assumption, contradicted by the fact that the request came
    from someone volunteering to list things. Note the requester said *per show*; Darragh's note says
    *society pages* - that difference is the first thing to settle when scoping.
-4. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
+4. **Share affordance on show pages, and a season `.ics` export.** Both **reinstated on
+   2026-08-25 after Darragh confirmed real backing** - both had been closed on Claude's inference.
+   The share button was the weakest closure of the day ("the URL is the share mechanism"), which
+   ignored that a one-tap share to WhatsApp or Instagram is how a cast actually spreads its own show
+   - and that is the same audience the social card generator (item 5) serves, so **scope the two
+   together**. The `.ics` export is the genuinely useful half of the old "My Season Watchlist" idea;
+   the zero-login localStorage wrapper around it remains unwanted, so build the export first and
+   treat bookmarking as a separate question. Both are small next to items 1-3.
+5. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
    from a throwaway line to a real candidate because it's the one item that *gives* societies
    something instead of asking them for something - plausibly the lever that gets posters uploaded
    ("upload your poster, get a card you can post"). Pillow landed 2026-08-24 for the poster pipeline,
    so the rendering dependency already exists. Needs a mockup pass before any build.
-5. **`match_show_for_edit` exact-match bug.** Verified real: `app/blueprints/admin/historical_reviews.py:650`
+6. **`match_show_for_edit` exact-match bug.** Verified real: `app/blueprints/admin/historical_reviews.py:650`
    matches `society_id + season + show` on an exact string. Systemic version of a title-mismatch bug
    already fixed once for a specific case. Small, contained, already bit us.
-6. **Society edit audit log - scope cut to the cheap 80%.** Kept because the hole is real and
+7. **Society edit audit log - scope cut to the cheap 80%.** Kept because the hole is real and
    structural, not a feature wish: societies share one login code, so there is no way to tell who
    made an edit or to undo it. Cut: build the append-only log (who/when/field/old/new), **drop the
    revert UI** - that's the expensive half, and a moderator can restore by hand from the log.
-7. **Repertoire finder** (the "what show should we do next" hub) - the single survivor of *both*
+8. **Repertoire finder** (the "what show should we do next" hub) - the single survivor of *both*
    deleted audit docs, and the only feature idea either produced with a real audience: volunteer
    committees genuinely do spend months choosing a title. Builds on columns that already exist
    (amateur rights status, licensing house on `show_info`). Its "which other societies staged this
-   recently" sub-idea also fits the collaborative ethos the design audit itself insisted on. Still
-   needs Darragh to confirm it solves a problem a committee has actually raised to him.
-8. **Society profile completion** - merges the old "empty vs. filled society page" sliver with the
+   recently" sub-idea also fits the collaborative ethos the design audit itself insisted on.
+   **Validated 2026-08-25: Darragh confirms committees have raised this to him directly**, which
+   moves it from a plausible bet to one of only three items here with a real attributable origin.
+   **Before scoping, get from him what committees actually asked for** - Claude's version (rights
+   status + regional gap + recent stagings) is a guess at the shape, and the real ask may be
+   narrower or completely different.
+9. **Society profile completion** - merges the old "empty vs. filled society page" sliver with the
    whole outreach/onboarding track, because they're one problem: a nudge on a thin profile, 2-3
    exemplar societies filled in completely as a reference, a draft message to a committee, a "claim
    your page" route. Mostly Darragh's lever, not a coding task.
-9. **Poster lightbox/zoom** - kept but explicitly *not standalone*: bundle it into the next piece of
+10. **Poster lightbox/zoom** - kept but explicitly *not standalone*: bundle it into the next piece of
    poster work. At 44 posters (12 societies) it currently affects few pages.
-10. **Removable filter chips - redirected.** The idea shipped on `/awards`; the roadmap kept it open
+11. **Removable filter chips - redirected.** The idea shipped on `/awards`; the roadmap kept it open
    for `/season`/`/stats`, but the page that now actually earns it is **`/reviews`**, which carries
    four filters (free-text `q`, season, tier, adjudicator). Retarget if picked up.
-11. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
+12. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
    (AIMS musical-theatre circuit specifically) with "may get their own category in the future".
    It's a scope decision about what the site *is*, and only Darragh can make it.
 
@@ -344,7 +376,7 @@ its suggestions are entered here.
 
 ### Closed - argued on merit and lost
 
-- **Embeddable per-society JSON feed / widget.** Real merit: a society embedding "our upcoming shows"
+- **Embeddable per-society JSON feed / widget.** **Closure confirmed by Darragh 2026-08-25** - no society has asked. Real merit: a society embedding "our upcoming shows"
   on its own site is useful and drives adoption. Against: a new unauthenticated public surface with
   no rate-limiting built for it, on a single-moderator site, for zero requests. The 2026-08-20 ruling
   survives the re-argument. **Trigger to reopen: one named society asks to embed something.**
@@ -352,11 +384,13 @@ its suggestions are entered here.
   Against: it would be the first JS-library dependency on a deliberately no-build-step site, and the
   existing Near-me list already answers the question a map would. **Trigger: pin coverage near
   complete AND a request.**
-- **"My Season Watchlist".** Merit: the `.ics` export half is a real hook. Against: the watchlist
+- ~~**"My Season Watchlist".**~~ **PARTLY REVERSED 2026-08-25 - the `.ics` export is now item 4.**
+  Darragh confirmed real backing. The reasoning below was right about which half is valuable and
+  wrong to close the whole thing. Merit: the `.ics` export half is a real hook. Against: the watchlist
   wrapper is invisible to Darragh (no login means no data, no signal), evaporates when a browser is
   cleared, and duplicates bookmarks for a site people visit a few times a season. **Killed, but the
   `.ics` half is salvageable on its own** - a season/society calendar export is small and standalone.
-- **"On This Day in AIMS History" widget.** Merit, and better than the earlier ruling credited: with
+- **"On This Day in AIMS History" widget.** **Closure confirmed by Darragh 2026-08-25.** Merit, and better than the earlier ruling credited: with
   4,879 `historical_results` rows it would have real content most days, which is an asset most sites
   don't have. Against: homepage real estate for a novelty, aimed at a daily-returning audience this
   site doesn't have. Killed as a homepage widget; the underlying data is better spent feeding the
@@ -365,8 +399,13 @@ its suggestions are entered here.
   It was closed on an inference about societies not maintaining data, in ignorance of the fact that
   a real user asked for it and Darragh had already triaged it Planned. Left here as a record of the
   mistake, not as a verdict.
-- **Historical-posters gallery + programme-cover museum.** Two entries for one idea; merged and
-  closed for now on the same content-supply argument. **Trigger: ~100 posters.**
+- **Historical-posters gallery + programme-cover museum.** Two entries for one idea. **Darragh
+  confirms it is wanted** (2026-08-25) but genuinely gated on having enough posters - so this is a
+  real blocker, not the withdrawn content-supply argument it was originally closed on. Currently 44
+  posters from 12 societies. **Trigger: ~100 posters - Claude's proposed number, not Darragh's;
+  confirm it.** Getting there is items 5 and 9 (social cards as the carrot, profile completion as
+  the outreach). Also still open: plain gallery vs. the designer-credited archive framing - different
+  builds, decide when it unblocks.
 - **Staging/test environment.** Merit: a bad change can hit the live site. Against: 718 tests already
   run against a fresh temp DB, and Portainer's git-backed stack gives a rollback path. More to the
   point, the failure mode this project has *actually* suffered is data damage (a management script
@@ -378,8 +417,11 @@ its suggestions are entered here.
   page already has a free-text search plus season, tier and adjudicator dropdowns; season grouping is
   only the *default browse view*. The genuine remaining question is whether that default landing view
   should be grouped-by-season at all, which is a one-line change to decide by looking at the page.
-- **Show-page share affordance.** No case for it beyond "sites have one" - the URL is the share
-  mechanism, and OG tags for link previews are already in `base.html`.
+- ~~**Show-page share affordance.**~~ **REVERSED 2026-08-25 - now item 4.** Darragh confirmed real
+  backing. The original reasoning ("no case beyond 'sites have one' - the URL is the share mechanism,
+  and OG tags are already in `base.html`") was the weakest call of the day: it treated a technical
+  capability as if it were an affordance, and ignored that a cast sharing its own show to WhatsApp or
+  Instagram is the site's most natural growth loop.
 
 ## Waiting on Darragh, not a coding task
 
