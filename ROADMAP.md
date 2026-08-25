@@ -15,9 +15,12 @@ again.
 
 ## START HERE - where things stand (2026-08-25, end of session)
 
-**751 tests green, no known bugs. Two commits made after the last deploy check are NOT yet confirmed
-live** (`3f35355` season calendar, `87b7b3d` titles rights/licensing filters) - re-verify against
-`darraghc.ie/showcal` before assuming they're deployed, same way `2a11272` was checked earlier today.
+**759 tests green, no known bugs. FOUR commits are NOT yet confirmed live - a redeploy is needed
+before any of this is real for a visitor:** `3f35355` (season calendar), `87b7b3d` (titles filters),
+`f3e8561` (society next-show highlight fix), `b1ddceb` (venues card redesign + map, `cdd44c4`'s
+TRUSTED-list code change too, though that one's DB write already landed). Checked directly against
+the running container earlier tonight for the first two - confirmed absent. Re-verify all four the
+same way after the next Portainer redeploy, don't assume.
 
 The 2026-08-25 session, in order: interrogated the backlog; built the three ready backlog items
 (`f07bd11`); scored Gemini's two remaining deliverables and rejected both (see the delegation
@@ -26,12 +29,16 @@ redirect on the 413 handler (`2a11272`) - confirmed deployed and live; then a fr
 Darragh's own screenshots of the live site:
 - **Season calendar** - a week with openings on only one tier no longer shows an empty "Nothing
   opening this week" placeholder for the other side (`3f35355`).
-- **Venues page** - two mockups sent (`mockups/venues_card_redesign.html`,
-  `mockups/venues_map.html`), not yet built into the app: a centered card redesign, and a real
-  interactive Leaflet map with all 108 pinnable venues, keyless CartoDB tiles, matching the live
-  Rehearsal Room theme. **The map's long-parked trigger condition (pin coverage near-complete + a
-  real request) is now genuinely met** - 108/118 venues have coordinates - see the delegation
-  section's note on this ruling. Awaiting Darragh's reaction to the mockups before either is built.
+- ~~**Venues page**~~ - **DONE, built and pushed (`b1ddceb`), NOT yet confirmed deployed.** Card
+  redesign (centered, pin indicator, real mapped-count line) plus a real `/venues/map` route -
+  actual Leaflet map, real pinned venues, not the 9 fabricated ones the old parked prototype used.
+  Needed a scoped CSP relaxation (unpkg.com + basemaps.cartocdn.com, only on that one route) to
+  actually load - flagged in the commit message since it's a real security-boundary change, not a
+  routine one. Along the way, fixed a genuine bug in the pre-existing (never-rendered-until-now)
+  `mapped_count`: it was computed after the list was already paginated, silently undercounting.
+- ~~**Society next-show highlight**~~ - **DONE, built and pushed (`f3e8561`).** The "Future
+  announced show" callout was season-based, not date-based, so a show dated later in the *current*
+  season (the common case) never got it. Now date-based. See its own section below for the full note.
 - **Titles page** - rights-availability and licensing-house filters shipped (`87b7b3d`), extending
   the exact existing onstage/revival/gems chip pattern. Genre filtering was scoped but deliberately
   **not built** - it needs a new schema column, a taxonomy decision, and a Gemini task under the
@@ -84,24 +91,31 @@ and confirmed absent on the live site too (`Rights available` doesn't appear on
 visitor. The historical_results import (Killarney/Castlebar, `cdd44c4`) does NOT need a redeploy -
 that was a direct DB write via SSH, already live regardless of container state.
 
-**A real gap found while checking the society page, 2026-08-25 (not yet fixed, Darragh's call):**
-the "Future announced show" highlight (`society_detail.html:102-123`, the gold "Tickets on sale"
-callout) only fires for a show in a season *after* the current one
-(`public.py:969`: `s["season"] > current`). A show dated months from now but still within the
-*current* season - the common case, since AIMS seasons span an autumn-to-summer year - gets no
-highlight at all and just blends into the plain history table below. Confirmed live: Jack Cunningham
-Productions' West Side Story (Sep 2026, season 26/27, the society's own current season) renders as
-an ordinary row. **Fix would be date-based instead of season-based** (`opening_date >= today`) -
-small, contained, but changes what counts as "history" vs "upcoming" everywhere this page uses that
-split, so flagging rather than just changing it.
+~~**A real gap found while checking the society page**~~ - **FIXED same session, `f3e8561`.** The
+"Future announced show" highlight only fired for a show in a season *after* the current one, so a
+show dated months from now but still within the *current* season - the common case - got no
+highlight and blended into plain history. Confirmed live on Jack Cunningham Productions before the
+fix. Now date-based (`opening_date >= today`, with a fallback for a future-season show that's
+announced but has no date yet - a pure date check alone can't catch that case).
 
-**Logo discovery handed to Gemini/Antigravity, 2026-08-25.** Only 7 of 192 societies have a logo on
-file; 71 have a website and no logo. `enrichment/LOGO_SCRAPE_BRIEF.md` + `enrichment/logo_worklist.json`
-(both gitignored) sent - find a direct image URL per society, `found: false` is a fine answer for a
-text-only site, Darragh reviews and approves/rejects each `logo_url` himself. Deliberately **a
-discovery worklist, not an import** - no bulk-logo-import script exists (today's uploads are all
-one-at-a-time via `/admin/societies`, through `save_poster()`'s decode/resize path) - build the real
-import path once we see how many candidates actually survive review.
+**Logo discovery handed to Gemini/Antigravity, 2026-08-25 - not yet returned, check `enrichment/`
+next session.** Only 7 of 192 societies have a logo on file; 71 have a website and no logo.
+`enrichment/LOGO_SCRAPE_BRIEF.md` + `enrichment/logo_worklist.json` (both gitignored) sent - find a
+direct image URL per society, `found: false` is a fine answer for a text-only site, Darragh reviews
+and approves/rejects each `logo_url` himself. Deliberately **a discovery worklist, not an import** -
+no bulk-logo-import script exists (today's uploads are all one-at-a-time via `/admin/societies`,
+through `save_poster()`'s decode/resize path) - build the real import path once we see how many
+candidates actually survive review.
+
+**Two decisions recorded for later, from a final round of questions before Darragh headed out
+(2026-08-25):**
+- **Society checklist grid, when built: status starts pre-filled with the heuristic's best guess,
+  Darragh confirms/corrects each one** - not blank. His call, traded a little accuracy risk (a wrong
+  guess rubber-stamped) for speed across 194 rows. Not built yet - still needs its own session.
+- **Costume/prop listings, if built: per show, not per society** - matches the original request's
+  literal wording ("a section for each show"), overriding the earlier triage note that had assumed
+  per-society. Not built yet - still the biggest lift on the whole backlog (new data model, new
+  admin UI, a matching concept), this only settles the shape, not the schedule.
 
 **Three jobs are genuinely ready to start** - pick by appetite:
 the archive transcription immediately below (data work, well-understood, high certainty of value -
@@ -498,10 +512,10 @@ its suggestions are entered here.
      not AIMS centrally. The in-person route means **the grid must work on a phone**: a filtered list
      he can pull up at a festival to know who to corner and what to ask them for.
 
-   **Still open before code:** whether the heuristic-suggested status is pre-filled for him to
-   confirm or starts blank (the mockup pre-fills to show the shape, but a wrong pre-fill that gets
-   rubber-stamped is worse than a blank); whether status needs an "as of" year like `section_as_of`;
-   and whether Closed/Out-of-scope rows drop off the grid or just sort last.
+   **Decided 2026-08-25: status starts pre-filled with the heuristic's guess, Darragh confirms each
+   one** (not blank) - see the note near the top of this file for the full reasoning. **Still open
+   before code:** whether status needs an "as of" year like `section_as_of`; and whether
+   Closed/Out-of-scope rows drop off the grid or just sort last.
 2. **Person identity resolution, internal only.** The only parked item with *measured* harm rather
    than a hypothesis: 1,730 distinct award nominee names, 746 credit names, **217 credit names are
    also an award nominee by exact match alone**, and `/admin/backfill-credits` is actively adding
@@ -516,8 +530,9 @@ its suggestions are entered here.
    The archive had also flagged it as "a live demand signal". It is still the biggest lift on the
    list (new data model, new admin UI, a matching concept) so it wants its own scoping session - but
    "societies won't maintain it" was an assumption, contradicted by the fact that the request came
-   from someone volunteering to list things. Note the requester said *per show*; Darragh's note says
-   *society pages* - that difference is the first thing to settle when scoping.
+   from someone volunteering to list things. **Scope settled 2026-08-25: per show**, per Darragh -
+   the requester's literal wording wins over the earlier triage note that had assumed per-society.
+   Still not built - this only settles the shape, not the schedule.
 4. **Share affordance on show pages.** **Reinstated 2026-08-25 after Darragh confirmed real
    backing** - closed that morning on Claude's inference, which was the weakest closure of the day
    ("the URL is the share mechanism"). Ignored that a one-tap share to WhatsApp or Instagram is how
