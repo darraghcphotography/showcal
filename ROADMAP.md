@@ -15,17 +15,27 @@ again.
 
 ## START HERE - where things stand (2026-08-25, end of session)
 
-**Everything is built, committed, deployed and verified live. 744 tests green, no known bugs.** The
-2026-08-25 session interrogated the backlog, then (on Sonnet, same day): built the three ready items
-(`f07bd11`), scored Gemini's two remaining deliverables and rejected both (see the delegation
-section), and fixed two real findings from a concurrent security/architecture review - unsafe
-rate-limit key behind Cloudflare Tunnel, and an open redirect on the 413 handler (`2a11272`).
-**Deployed and verified live on darraghc.ie/showcal** - container recreated 2026-08-25 15:46 BST;
-confirmed `CF-Connecting-IP` and the `?society=`/`?season=` params present in the running container's
-own files, and `/reviews?tier=Gilbert` (renders `filter-chips`) and `/calendar.ics?section=Gilbert`
-both returning 200 against real production data. Next up: whichever of the numbered live backlog
-items appeals - items 4 (share half only), 6 and 11 are now done and struck through in place rather
-than removed, so the numbering stays stable mid-session.
+**751 tests green, no known bugs. Two commits made after the last deploy check are NOT yet confirmed
+live** (`3f35355` season calendar, `87b7b3d` titles rights/licensing filters) - re-verify against
+`darraghc.ie/showcal` before assuming they're deployed, same way `2a11272` was checked earlier today.
+
+The 2026-08-25 session, in order: interrogated the backlog; built the three ready backlog items
+(`f07bd11`); scored Gemini's two remaining deliverables and rejected both (see the delegation
+section); fixed two real security findings - unsafe rate-limit key behind Cloudflare Tunnel, an open
+redirect on the 413 handler (`2a11272`) - confirmed deployed and live; then a fresh round from
+Darragh's own screenshots of the live site:
+- **Season calendar** - a week with openings on only one tier no longer shows an empty "Nothing
+  opening this week" placeholder for the other side (`3f35355`).
+- **Venues page** - two mockups sent (`mockups/venues_card_redesign.html`,
+  `mockups/venues_map.html`), not yet built into the app: a centered card redesign, and a real
+  interactive Leaflet map with all 108 pinnable venues, keyless CartoDB tiles, matching the live
+  Rehearsal Room theme. **The map's long-parked trigger condition (pin coverage near-complete + a
+  real request) is now genuinely met** - 108/118 venues have coordinates - see the delegation
+  section's note on this ruling. Awaiting Darragh's reaction to the mockups before either is built.
+- **Titles page** - rights-availability and licensing-house filters shipped (`87b7b3d`), extending
+  the exact existing onstage/revival/gems chip pattern. Genre filtering was scoped but deliberately
+  **not built** - it needs a new schema column, a taxonomy decision, and a Gemini task under the
+  calibration protocol; see the delegation section.
 
 **Three jobs are genuinely ready to start** - pick by appetite:
 the archive transcription immediately below (data work, well-understood, high certainty of value);
@@ -489,6 +499,15 @@ its suggestions are entered here.
 12. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
    (AIMS musical-theatre circuit specifically) with "may get their own category in the future".
    It's a scope decision about what the site *is*, and only Darragh can make it.
+13. **Genre filtering on `/titles`** - added 2026-08-25, part of the same "no one goes alphabetically"
+   conversation that shipped rights/licensing filters (item text above, `87b7b3d`). No genre data
+   exists anywhere in the schema - this is real new work, not a quick add. Needed before any build:
+   a `show_info.genre` column via `COLUMN_MIGRATIONS` (`app/db.py`, per CLAUDE.md); a small **fixed
+   taxonomy**, not free text - Darragh's own call, likely based on what MTI/Concord/TRW themselves
+   use on their own listing pages, not invented here; and a Gemini task under the **same calibration
+   protocol** used for founding years today (hidden controls, two canaries, batch-discard scoring,
+   citation required per tag). Do not skip the controls - the founding-years v2 file proved today
+   that skipping them lets fabrication back in even after a clean calibration run.
 
 ### Closed - already delivered (verified in code, this file was simply stale)
 
@@ -513,10 +532,14 @@ its suggestions are entered here.
   on its own site is useful and drives adoption. Against: a new unauthenticated public surface with
   no rate-limiting built for it, on a single-moderator site, for zero requests. The 2026-08-20 ruling
   survives the re-argument. **Trigger to reopen: one named society asks to embed something.**
-- **Fuller interactive Leaflet/OSM pin map.** Merit: a map genuinely beats a list for 118 venues.
-  Against: it would be the first JS-library dependency on a deliberately no-build-step site, and the
-  existing Near-me list already answers the question a map would. **Trigger: pin coverage near
-  complete AND a request.**
+- ~~**Fuller interactive Leaflet/OSM pin map.**~~ **TRIGGER FIRED 2026-08-25 - closure reversed.**
+  Merit: a map genuinely beats a list for 118 venues. Against: it would be the first JS-library
+  dependency on a deliberately no-build-step site, and the existing Near-me list already answers the
+  question a map would. **Trigger: pin coverage near complete AND a request.** Both fired: 108/118
+  venues (91%) have coordinates, and Darragh directly asked for map ideas on `/venues`. A real
+  mockup was built and sent (`mockups/venues_map.html`, real data, keyless CartoDB tiles) - the "new
+  JS dependency" cost is real and still worth weighing, but it's no longer blocked on data-readiness.
+  Awaiting Darragh's reaction before building it into the app.
 - ~~**"My Season Watchlist".**~~ **PARTLY REVERSED 2026-08-25 - the `.ics` export is now item 4.**
   Darragh confirmed real backing. The reasoning below was right about which half is valuable and
   wrong to close the whole thing. Merit: the `.ics` export half is a real hook. Against: the watchlist
