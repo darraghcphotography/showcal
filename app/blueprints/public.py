@@ -1262,6 +1262,7 @@ def titles_list():
     db = get_db()
     q = request.args.get("q", "").strip()
     flt = request.args.get("filter", "")
+    house = request.args.get("house", "").strip()
 
     # One row per real staging, straight off the productions table. The old
     # union counted historical_results rows, which are one per award
@@ -1285,6 +1286,16 @@ def titles_list():
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
     has_info = {r[0] for r in db.execute("SELECT show FROM show_info").fetchall()}
+    rights_info = {
+        r["show"]: {"rights_status": r["rights_status"], "licensing_house": r["licensing_house"]}
+        for r in db.execute("SELECT show, rights_status, licensing_house FROM show_info").fetchall()
+    }
+    licensing_houses = [
+        r[0] for r in db.execute(
+            "SELECT DISTINCT licensing_house FROM show_info"
+            " WHERE licensing_house IS NOT NULL AND licensing_house <> '' ORDER BY licensing_house"
+        ).fetchall()
+    ]
 
     # Nominations/wins per title, bulk rather than per-title (circuit_intelligence.
     # award_tally does this one title at a time for title_detail, which is fine for
@@ -1337,6 +1348,7 @@ def titles_list():
             )
             on_stage_text = f"\U0001f525 {len(up)} productions in {span}" if span else f"\U0001f525 {len(up)} productions"
 
+        info = rights_info.get(title, {})
         all_shows.append({
             "title": title,
             "count": n,
@@ -1351,6 +1363,8 @@ def titles_list():
             "is_revival": is_revival,
             "revival_last_year": last_year if is_revival else None,
             "on_stage_text": on_stage_text,
+            "rights_status": info.get("rights_status"),
+            "licensing_house": info.get("licensing_house"),
             "sort_key": _az_sort_key(title),
             "letter": _az_letter(title),
         })
@@ -1360,6 +1374,9 @@ def titles_list():
         "onstage": sum(1 for s in all_shows if s["on_stage_text"]),
         "revival": sum(1 for s in all_shows if s["is_revival"]),
         "gems": sum(1 for s in all_shows if s["is_gem"]),
+        "available": sum(1 for s in all_shows if s["rights_status"] == "Available"),
+        "contact": sum(1 for s in all_shows if s["rights_status"] == "Contact publisher"),
+        "restricted": sum(1 for s in all_shows if s["rights_status"] == "Restricted"),
     }
 
     if flt == "onstage":
@@ -1368,9 +1385,23 @@ def titles_list():
         visible = [s for s in all_shows if s["is_revival"]]
     elif flt == "gems":
         visible = [s for s in all_shows if s["is_gem"]]
+    elif flt == "available":
+        visible = [s for s in all_shows if s["rights_status"] == "Available"]
+    elif flt == "contact":
+        visible = [s for s in all_shows if s["rights_status"] == "Contact publisher"]
+    elif flt == "restricted":
+        visible = [s for s in all_shows if s["rights_status"] == "Restricted"]
     else:
         flt = ""
         visible = all_shows
+
+    # Licensing house is a separate dropdown, not a quick-filter chip (12
+    # distinct houses is too many for the chip row) - combines with whichever
+    # chip is active rather than replacing it, same as /reviews' season/tier/
+    # adjudicator dropdowns all narrow the same result set together.
+    if house:
+        visible = [s for s in visible if s["licensing_house"] == house]
+
     visible.sort(key=lambda s: (s["sort_key"], s["title"].lower()))
 
     letter_groups = [
@@ -1395,6 +1426,7 @@ def titles_list():
         "titles_list.html", letter_groups=letter_groups, staples=staples,
         available_letters=available_letters, q=q, flt=flt,
         total=total, filter_counts=filter_counts,
+        licensing_houses=licensing_houses, selected_house=house,
     )
 
 
