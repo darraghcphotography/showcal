@@ -15,14 +15,17 @@ again.
 
 ## START HERE - where things stand (2026-08-25, end of session)
 
-**Everything is built and committed, not yet deployed. 744 tests green, no known bugs.** The
+**Everything is built, committed, deployed and verified live. 744 tests green, no known bugs.** The
 2026-08-25 session interrogated the backlog, then (on Sonnet, same day): built the three ready items
 (`f07bd11`), scored Gemini's two remaining deliverables and rejected both (see the delegation
 section), and fixed two real findings from a concurrent security/architecture review - unsafe
 rate-limit key behind Cloudflare Tunnel, and an open redirect on the 413 handler (`2a11272`).
-**Not yet deployed to the NAS** - the usual redeploy-via-Portainer step is still needed. Next up:
-whichever of the numbered live backlog items appeals - items 4 (share half only), 6 and 11 are now
-done and struck through in place rather than removed, so the numbering stays stable mid-session.
+**Deployed and verified live on darraghc.ie/showcal** - container recreated 2026-08-25 15:46 BST;
+confirmed `CF-Connecting-IP` and the `?society=`/`?season=` params present in the running container's
+own files, and `/reviews?tier=Gilbert` (renders `filter-chips`) and `/calendar.ics?section=Gilbert`
+both returning 200 against real production data. Next up: whichever of the numbered live backlog
+items appeals - items 4 (share half only), 6 and 11 are now done and struck through in place rather
+than removed, so the numbering stays stable mid-session.
 
 **Three jobs are genuinely ready to start** - pick by appetite:
 the archive transcription immediately below (data work, well-understood, high certainty of value);
