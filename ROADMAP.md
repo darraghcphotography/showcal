@@ -21,6 +21,11 @@ venue categorization (`venue_type` + `/venues` filter + badge), the orphaned-tit
 award-archive society links. Wikidata was dropped as superseded. The full reasoning, options and
 trade-offs are in `C:\Users\Darragh\.claude\plans\ok-i-ve-done-a-nifty-star.md`.
 
+**Standing rules now live in `enrichment/RULES.md`** (gitignored with the rest of that folder), sent
+to Antigravity 2026-08-25 and applying to every batch rather than being restated per brief. It states
+the blank-beats-a-guess rule, bans editing values we supply, defines what "verify" means, lists the
+mechanical checks we run, and names both failures below as concrete examples.
+
 **READ THIS BEFORE DELEGATING RESEARCH AGAIN.** Antigravity's four returned worklists split cleanly
 by task type, and one was fabricated:
 
@@ -286,7 +291,13 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
   venues (5 known artifacts/slash-combos excluded) against OpenStreetMap, plus find a website for
   the 19 that don't have one. Sections 1-2 of the same proposal are already adopted.
 
-- **Society founding years - needs a different method, not another delegated pass.** The
+- **Society founding years - re-run handed to Antigravity 2026-08-25** with a method that makes a
+  guess fail visibly: `society_founding_years_v2.json` carries a hard `must_be_on_or_before` per row
+  (119 of 143), derived from our own earliest award record for that society, and requires a verbatim
+  `evidence_quote` from the page stating the year. Two rows are effectively known-answer controls -
+  Tullamore and Castlerea are independently corroborated at 1954 and 1968 from the programme photos
+  already read, so their answers can be checked without fetching anything. **Background on why the
+  first attempt was rejected:** The
   `founded_year` column, admin field and public display all shipped (`52f0562`), but the researched
   data was rejected: 18 of 143 claimed a year later than a production we already hold, a 12-19%
   demonstrable error rate in both the Facebook-sourced and own-website-sourced halves. Two are
