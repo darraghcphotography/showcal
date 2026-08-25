@@ -314,10 +314,35 @@ its suggestions are entered here.
      (have shows but nothing for 2025/26), 26 unverified, 6 closed, 5 out of scope. The 27 dormant
      are the actionable ones for a season-entry push.
 
-   **Still needs Darragh before code:** whether the heuristic-suggested status should be pre-filled
-   for him to confirm or start blank (the mockup pre-fills to show the shape, but a wrong pre-fill
-   that gets rubber-stamped is worse than a blank); whether status needs an "as of" year like the
-   existing `section_as_of`; and whether Closed/Out-of-scope rows drop off the grid or just sort last.
+   **Second purpose, confirmed by Darragh 2026-08-25: this is a society call-out tool**, not just a
+   coverage view. That changes the scope, and measuring first found the real bottleneck:
+
+   - **There is no email field on `societies` at all** - contact is only `website_url` /
+     `facebook_url` / `instagram_url` / `tiktok_url`. Of the 27 priority call-out targets (history on
+     record, nothing entered for 2025/26): **11 have a social, 3 have a website, 16 have neither**.
+     We cannot currently reach 16 of the 27 from data we hold.
+   - **Only 14 invite codes exist across 194 societies**, so "let them fill it in themselves" is not
+     yet a route for ~180 of them.
+
+   Darragh's decisions:
+   - **Add proper contact fields** (committee email, named contact) - **admin-only, never public**,
+     via `COLUMN_MIGRATIONS` in `app/db.py`. **Flag when scoping:** these are named volunteers'
+     personal details, not organisational data, and the same privacy instinct that parked public
+     person pages applies. Decide retention and who can see them *before* building the field.
+   - **A call-out issues an invite code** as part of the action, so the ask becomes "here's your
+     code, fill in your own page" rather than "send me your info". Self-service scales; keying in
+     194 societies by hand does not.
+   - **No call-out tracking table** - he'll track that himself. Worth noting he gets most of it free
+     anyway: `invite_codes` already stores `created_at`, `created_by` and `label`, so "which
+     societies have I chased, and when" is derivable from code issuance without a new column.
+   - Contact routes are **his own email contacts, Facebook/Instagram DM, and in person at events** -
+     not AIMS centrally. The in-person route means **the grid must work on a phone**: a filtered list
+     he can pull up at a festival to know who to corner and what to ask them for.
+
+   **Still open before code:** whether the heuristic-suggested status is pre-filled for him to
+   confirm or starts blank (the mockup pre-fills to show the shape, but a wrong pre-fill that gets
+   rubber-stamped is worse than a blank); whether status needs an "as of" year like `section_as_of`;
+   and whether Closed/Out-of-scope rows drop off the grid or just sort last.
 2. **Person identity resolution, internal only.** The only parked item with *measured* harm rather
    than a hypothesis: 1,730 distinct award nominee names, 746 credit names, **217 credit names are
    also an award nominee by exact match alone**, and `/admin/backfill-credits` is actively adding
