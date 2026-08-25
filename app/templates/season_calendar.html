@@ -122,7 +122,15 @@
                 <div class="week-split week-split-solo">
                   {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
                 </div>
-              {% else %}
+              {% elif week['gilbert'] and not week['sullivan'] %}
+                <div class="week-split week-split-solo">
+                  {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
+                </div>
+              {% elif week['sullivan'] and not week['gilbert'] %}
+                <div class="week-split week-split-solo">
+                  {{ season_column('Sullivan', 'sullivan-col', week['sullivan'], week['sullivan_congested']) }}
+                </div>
+              {% elif week['gilbert'] or week['sullivan'] %}
                 <div class="week-split">
                   {{ season_column('Gilbert', 'gilbert-col', week['gilbert'], week['gilbert_congested']) }}
                   <div class="week-divider"></div>

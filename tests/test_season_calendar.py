@@ -140,6 +140,26 @@ def test_calendar_page_hides_the_other_column_when_filtered_to_one_section(clien
     assert "Nothing opening this week" not in gilbert_only
 
 
+def test_calendar_collapses_the_empty_side_for_a_lopsided_week_even_unfiltered(client, db):
+    """A week with shows on only one side shouldn't waste space on an empty
+    'Nothing opening this week' column - added 2026-08-25 after Darragh
+    pointed out the screenshot showed exactly this. Reuses the same
+    week-split-solo layout the tier= filter already gets, just triggered per
+    week instead of only from the dropdown."""
+    society_id = seed_society(db)
+    o1, c1 = _week_run(6, day_offset=0)
+    o2, c2 = _week_run(6, day_offset=1)
+    _insert_show(db, society_id, "Gil One", o1, c1)
+    _insert_show(db, society_id, "Gil Two", o2, c2)
+    db.commit()
+
+    body = client.get("/season/calendar?season=26/27").get_data(as_text=True)
+    assert "Gilbert (2)" in body
+    assert "Sullivan (0)" not in body
+    assert "Nothing opening this week" not in body
+    assert "week-split-solo" in body
+
+
 def test_calendar_page_section_filter_recomputes_congestion(client, db):
     society_id = seed_society(db)
     o1, c1 = _week_run(5, day_offset=0)
