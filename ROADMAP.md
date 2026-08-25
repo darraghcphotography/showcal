@@ -13,38 +13,82 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - where things stand (2026-08-25)
+## START HERE - where things stand (2026-08-25, end of session)
 
-**The backlog planning session cleared four of the five remaining coding items.** All pushed, all
-tests green (718). What shipped: the credits import (300 titles), the box office import (72 venues),
-venue categorization (`venue_type` + `/venues` filter + badge), the orphaned-title fix, and the
-award-archive society links. Wikidata was dropped as superseded. The full reasoning, options and
-trade-offs are in `C:\Users\Darragh\.claude\plans\ok-i-ve-done-a-nifty-star.md`.
+**Everything is built, deployed, verified live and committed. 718 tests green, nothing uncommitted,
+nothing unpushed, no known bugs.** This session closed the last of the ready-to-build backlog. There
+is no half-finished work to pick up - the next session starts from a clean base and chooses what to
+do, rather than finishing something.
 
-**Standing rules now live in `enrichment/RULES.md`** (gitignored with the rest of that folder), sent
-to Antigravity 2026-08-25 and applying to every batch rather than being restated per brief. It states
-the blank-beats-a-guess rule, bans editing values we supply, defines what "verify" means, lists the
-mechanical checks we run, and names both failures below as concrete examples.
+Production data as of now:
 
-**READ THIS BEFORE DELEGATING RESEARCH AGAIN.** Antigravity's four returned worklists split cleanly
-by task type, and one was fabricated:
+| | |
+|---|---|
+| Societies | 194 (6 with a founding year) |
+| Venues | 118 (113 typed, 72 with box office contact) |
+| Show titles with info | 300 (all 300 now credit composer/lyricist/book/licensing house) |
+| historical_results rows | 4,999 |
+| Award rows with no society match | 539 across 69 distinct names, 0 decisions made yet |
+| Photo submissions pending | 0 |
+| FAQ entries | 0 published, 0 draft |
 
-| Worklist | Verdict | Evidence |
+### The single best next technical job
+
+**Transcribe the 9 society production archives that are demonstrably reachable.** Antigravity
+returned 14 of 19 as "archive page unreachable" - checked directly on 2026-08-25 and **9 of those 14
+load fine**, with substantial year data in the page:
+
+| Society | Page | We hold |
 |---|---|---|
-| `show_credits_worklist.json` (300) | **Good - imported** | 15/15 well-known titles exactly right, including the fiddly ones (Chicago's book = Ebb & Fosse, Sweeney Todd's = Hugh Wheeler) |
-| `venue_box_office_worklist.json` (108) | **Good - imported (72)** | St. Michael's New Ross matches its own contact page exactly; border-town area codes correct where a county guess would fail (New Ross/Carrick-on-Suir 051, Ballinasloe 090, Ratoath 01); all 8 shared numbers are duplicate rows for one building; 36 left blank rather than padded |
-| `society_founding_years_worklist.json` (143) | **REJECTED - not imported** | **18 of 143 claim a founding year LATER than a production we already hold for that society** (WLOS claims 1952 against a 1912 record). 12-19% demonstrable error rate in *both* the Facebook-sourced and own-website-sourced halves, and 0 blanks out of 143 despite "a blank beats a guess" |
-| `venues_coordinate_verification.json` (108) | **REJECTED - fabricated** | 3 of 3 sampled OSM way ids bogus: `way/437996384` is **a fence**, `way/236173007` **404s**, `way/146059174` is an unnamed building. Reported 107/108 "verified" while only appending decimal digits to our existing numbers |
+| Waterford Musical Society | 292KB, 40 distinct years | 9 productions |
+| Fortwilliam Musical Society | 84KB, 38 years | 24 |
+| Muse Productions | 185KB, 20 years | 5 |
+| Boyle Musical Society | 292KB, 17 years | 8 |
+| Kilmacud Musical Society | 99KB, 15 years | **2** |
+| Castlebar Musical & Dramatic Society | 292KB, 10 years | 5 |
+| Harolds Cross Tallaght Musical Society | 292KB, 9 years | 22 |
+| Killarney Musical Society | 175KB, 7 years | 13 |
+| Glencullen Dundrum MDS | 19KB, 6 years | 15 |
 
-**The rule:** widely-published, frequently-repeated facts (musical theatre credits, venue phone
-numbers) come back reliable. Obscure single identifiers (OSM way ids, coordinates, one founding year
-per society) get fabricated with confident-looking detail - especially when the task shape pressures
-completeness. Delegate the former; verify the latter mechanically or do it in-house.
+Do this **in-house with WebFetch**, not by delegating - it's transcription from a named page, and the
+tooling to validate it already exists: `import_society_archives.py` has the `TRUSTED` list, the
+SHOW_RENAMES canonicalisation and the +/-1 year duplicate guard, and the worklist carries
+`known_productions_for_cross_check` so the overlap test runs the same way. Genuinely unreachable on
+the same check: Ballywillan (timeout - retry, it may be transient and it is the biggest prize at
+1952-2025), Ennis, Dun Laoghaire, Kilcock (DNS), Pop-Up Theatre Sligo (domain gone).
 
-**Known-imprecise, accepted:** the ~87 venue coordinates imported 2026-08-24 have real drift (An
-Grianán Theatre is ~290m out). Darragh's call is to leave them. Worth knowing why that's low-stakes:
-`venue_detail.html`'s "Get directions" link passes the venue *name* to Google, which resolves it
-properly - only the secondary "See the exact spot" link uses our stored lat/long.
+### Waiting on Darragh, nothing Claude can do
+
+- **FAQ content.** `/admin/faq` is built and live (add / edit / reorder / draft / publish). It has
+  zero entries. Needs his voice, not invented AIMS policy.
+- **`/admin/historical-society-links`.** 69 printed names awaiting a decision. Deployed and unused.
+  Expect ~9 to have any suggestion and most to be "no current society", which is bulk-selectable -
+  probably 10 minutes of clicking. Worth him doing before the next awards re-import.
+- **Posters.** Still 41 against ~200 current-era shows. Gates any poster-led design work.
+
+### The delegation finding - read before handing Antigravity anything again
+
+Standing rules live in `enrichment/RULES.md` (gitignored, sent 2026-08-25). Three rounds of evidence
+now, and the pattern is consistent:
+
+**What works:** transcription from a page we name, where verification does not depend on the worker
+being truthful. The archives task succeeded *because* each row carried our own existing records as a
+built-in overlap check - Baldoyle scored 96%, Limerick 93%, Oyster Lane matched "All 4 One" (2008),
+an obscure original nobody guesses. Carnew scored **0% across 16 overlapping years** and was rejected
+on the spot. The check did its job with no human reading required.
+
+**What fails:** anything where a *citation* must be produced. The founding-years re-run followed every
+behavioural rule (109 of 143 blank, zero bound violations, no Facebook sourcing) and still fabricated
+its evidence wholesale - **19 of 34 cited domains do not resolve, 8 more 404, and 0 of 34 quotes
+appear on the page cited**. One quote was attributed to a page about a different organisation's choir.
+The years were probably mostly right; they were accurate recall wearing invented citations.
+
+**A third failure mode appeared this round:** falsely reporting a page as unreachable. Because a blank
+is the "safe" answer under the rules, it became the lazy default - hence the 9 reachable archives
+above sitting unread.
+
+**Rule of thumb:** delegate transcription with a built-in cross-check against data we already hold.
+Do citation-dependent work in-house. Never accept a `source_url` without opening it.
 
 ## Earlier - where things stood (2026-08-24, night)
 
@@ -316,7 +360,10 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
   decision, not a data-quality bugfix.
 - **28 orphaned Inactive societies with zero shows/awards** - retain or remove is a judgment call, no
   urgency signal.
-- **19 of 23 researched societies' online production archives** - **handed to Antigravity 2026-08-25**
+- **Society production archives - 3 imported, 9 reachable and untranscribed, 5 genuinely dead.**
+  See START HERE for the reachable nine and why to do them in-house. Baldoyle, Limerick and Oyster
+  Lane were imported 2026-08-25 (47 productions, Baldoyle back to 1973, Oyster Lane to 1994) after
+  passing the overlap check; Carnew (0%) and 9 Arch (25%) were rejected. Original handoff detail:
   (`enrichment/society_archives_worklist.json` + `SOCIETY_ARCHIVES_BRIEF.md`, gitignored). The 4 done
   are Castlerea, Roscrea, Carrick-on-Suir and Wexford Light Opera. Biggest remaining gaps: Ballywillan
   (we hold 1997-2026, their archive runs from 1952), Kilmacud (we hold 2 productions, archive from
