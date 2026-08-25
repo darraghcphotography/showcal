@@ -305,8 +305,17 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
   decision, not a data-quality bugfix.
 - **28 orphaned Inactive societies with zero shows/awards** - retain or remove is a judgment call, no
   urgency signal.
-- **19 of 23 researched societies' online production archives not yet backfilled** (research inventory
-  exists, only 4 done so far).
+- **19 of 23 researched societies' online production archives** - **handed to Antigravity 2026-08-25**
+  (`enrichment/society_archives_worklist.json` + `SOCIETY_ARCHIVES_BRIEF.md`, gitignored). The 4 done
+  are Castlerea, Roscrea, Carrick-on-Suir and Wexford Light Opera. Biggest remaining gaps: Ballywillan
+  (we hold 1997-2026, their archive runs from 1952), Kilmacud (we hold 2 productions, archive from
+  1982), Boyle (from 1984), Killarney, Ennis, Dun Laoghaire, Carnew, Kilcock, Harolds Cross.
+  Deliberately shaped as a *transcription* task rather than research - the URLs were already vetted by
+  an earlier pass, and each row carries the productions we already hold as a built-in overlap check:
+  if their transcription of known years matches ours, the unknown years are credible; if it doesn't,
+  that society is rejected wholesale rather than half-trusted. A second small file
+  (`venue_websites_worklist.json`, 23 venues) went with it, framed so blanks are the expected answer -
+  most are parish/GAA/school halls with no site of their own.
 - **~112 stale orphaned `historical_reviews` rows** - cross-referenced as real, but explicitly not
   deleted pending a more rigorous verification method than what was used to find them.
 
