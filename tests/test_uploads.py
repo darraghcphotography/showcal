@@ -72,3 +72,51 @@ def test_save_photo_submission_accepts_heic_and_converts_to_jpeg(tmp_path):
     with Image.open(tmp_path / filename) as img:
         assert img.format == "JPEG"
         assert img.size == (2000, 3000)  # full resolution, not resized
+
+
+# --- content validation on the photo-submission path (added 2026-08-25) -------
+# save_poster was always safe (its resize re-encodes, so a lie about the format
+# can't survive), but save_photo_submission passes bytes through unchanged and
+# used to do so without ever decoding them - an extension was taken at face
+# value. Anything named .jpg was stored and later served into the admin queue.
+
+
+def test_save_photo_submission_rejects_a_non_image_named_jpg(tmp_path):
+    bad = FileStorage(stream=io.BytesIO(b"<html><body>not an image</body></html>"),
+                      filename="photo.jpg")
+    try:
+        save_photo_submission(bad, str(tmp_path))
+        assert False, "expected ValueError"
+    except ValueError as e:
+        assert "doesn't look like a valid image" in str(e)
+
+
+def test_save_photo_submission_rejects_svg_named_jpg(tmp_path):
+    # SVG is the one that actually matters: it's a document, it can carry
+    # script, and a browser will happily execute it if served inline.
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+    bad = FileStorage(stream=io.BytesIO(svg), filename="poster.jpg")
+    try:
+        save_photo_submission(bad, str(tmp_path))
+        assert False, "expected ValueError"
+    except ValueError as e:
+        assert "doesn't look like a valid image" in str(e)
+
+
+def test_save_photo_submission_saves_a_mislabelled_png_under_its_real_extension(tmp_path):
+    # A genuine image whose extension lies is saved correctly rather than
+    # rejected - phones and screenshot tools do this routinely.
+    filename = save_photo_submission(
+        _fake_image_file(name="photo.jpg", size=(300, 400), fmt="PNG"), str(tmp_path))
+    assert filename.endswith(".png")
+    with Image.open(tmp_path / filename) as img:
+        assert img.format == "PNG"
+        assert img.size == (300, 400)
+
+
+def test_save_photo_submission_converts_a_heic_mislabelled_as_jpg(tmp_path):
+    filename = save_photo_submission(
+        _fake_image_file(name="photo.jpg", size=(800, 600), fmt="HEIF"), str(tmp_path))
+    assert filename.endswith(".jpg")
+    with Image.open(tmp_path / filename) as img:
+        assert img.format == "JPEG"

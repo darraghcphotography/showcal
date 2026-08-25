@@ -60,16 +60,41 @@ def _resized_webp_bytes(fileobj, ext):
     return buf.getvalue(), "webp"
 
 
-def _viewable_bytes(fileobj, ext):
+# The real image formats we'll store, mapped to the extension we save them
+# under. Keyed on what Pillow actually decoded, never on the uploaded
+# filename - see _viewable_bytes.
+_PASSTHROUGH_FORMATS = {"jpeg": "jpg", "png": "png", "webp": "webp", "gif": "gif"}
+
+
+def _viewable_bytes(fileobj):
     """Passes a browser-renderable format straight through unchanged; a
     HEIC/HEIF source (no browser renders that directly - see ALLOWED_
     EXTENSIONS) is re-encoded to full-resolution JPEG instead, no resizing,
-    so a moderator can actually see it in the admin queue."""
-    if ext not in ("heic", "heif"):
-        fileobj.seek(0)
-        return fileobj.read(), ext
+    so a moderator can actually see it in the admin queue.
 
+    The passthrough branch still decodes the file first even though it then
+    discards the decoded image and writes the original bytes. That decode is
+    the only thing standing between a moderator and an arbitrary file: unlike
+    save_poster (where the resize re-encodes, so a lie about the format can't
+    survive), nothing here would otherwise look inside the file at all, and a
+    filename extension is a claim by the uploader rather than evidence. Without
+    it, HTML or SVG named .jpg is stored and later served into the admin queue.
+
+    Dispatch is on the format Pillow actually decoded, not the claimed
+    extension, so a mislabelled-but-genuine image (a HEIC shot named .jpg, a
+    PNG saved as .jpeg - both common straight off a phone) is saved correctly
+    under its real extension instead of being rejected.
+    """
     img = _open_image(fileobj)
+    img.load()  # force a full decode; truncated or non-image data raises here
+    fmt = (img.format or "").lower()
+
+    if fmt in _PASSTHROUGH_FORMATS:
+        fileobj.seek(0)
+        return fileobj.read(), _PASSTHROUGH_FORMATS[fmt]
+    if fmt not in ("heif", "heic"):
+        raise ValueError("Unsupported image format: %s" % (img.format or "unknown"))
+
     if img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGB")
     if img.mode == "RGBA":
@@ -122,7 +147,11 @@ def save_photo_submission(file_storage, upload_dir):
     only throw away detail a moderator might need to read (a name, a small
     print run credit). A HEIC/HEIF upload is still re-encoded to JPEG (see
     _viewable_bytes) - full resolution, format only - since no browser can
-    display HEIC directly and the admin queue needs to actually show it."""
+    display HEIC directly and the admin queue needs to actually show it.
+
+    The extension check below is only a cheap early reject on an uploader's
+    claim; _viewable_bytes is what actually proves the file is an image, and
+    decides the extension it's saved under."""
     if not file_storage or not file_storage.filename:
         raise ValueError("Choose a photo to upload.")
 
@@ -131,7 +160,7 @@ def save_photo_submission(file_storage, upload_dir):
         raise ValueError("Photo must be a JPG, PNG, WEBP, GIF, or HEIC image.")
 
     try:
-        data, out_ext = _viewable_bytes(file_storage.stream, ext)
+        data, out_ext = _viewable_bytes(file_storage.stream)
     except Exception:
         raise ValueError("That file doesn't look like a valid image - try a different one.")
     os.makedirs(upload_dir, exist_ok=True)

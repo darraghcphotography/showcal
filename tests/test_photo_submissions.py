@@ -4,6 +4,8 @@ on by hand (see schema.sql and admin/photo_submissions.py). Nothing here is
 expected to match an existing show/society."""
 import io
 
+from PIL import Image
+
 from conftest import seed_user
 
 
@@ -13,7 +15,14 @@ def login_as(client, user_id):
 
 
 def _photo_file(name="clipping.jpg"):
-    return (io.BytesIO(b"fake image bytes"), name)
+    """A real (tiny) JPEG, not a placeholder byte string. Uploads are decoded
+    on the way in as of 2026-08-25 (app/uploads.py's _viewable_bytes), so
+    b"fake image bytes" named .jpg is now correctly rejected - which is the
+    whole point of that change, and used to be what this fixture handed in."""
+    buf = io.BytesIO()
+    Image.new("RGB", (40, 60), color=(120, 30, 30)).save(buf, format="JPEG")
+    buf.seek(0)
+    return (buf, name)
 
 
 def test_get_renders_form(client):
