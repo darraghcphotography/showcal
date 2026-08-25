@@ -43,6 +43,27 @@ def duplicate_titles():
     )
 
 
+# show_info and show_links are keyed by the title string itself (both have
+# `show` as their PRIMARY KEY - see schema.sql), so they don't follow a retitle
+# the way a foreign key would. Until this existed, every merge left its
+# synopsis/rights/Wikipedia link stranded under the old spelling, rendering
+# nowhere and showing up later in /admin/data-quality's "Orphaned title data" -
+# i.e. the merge tool was quietly manufacturing the very rows that page exists
+# to report. Same drop-vs-carry rule as the shows loop above: if the canonical
+# title already has a row the "other" one is redundant, otherwise rename it.
+TITLE_KEYED_TABLES = ("show_info", "show_links")
+
+
+def move_title_keyed_rows(db, canonical, other):
+    for table in TITLE_KEYED_TABLES:
+        if not db.execute(f"SELECT 1 FROM {table} WHERE show = ?", (other,)).fetchone():
+            continue
+        if db.execute(f"SELECT 1 FROM {table} WHERE show = ?", (canonical,)).fetchone():
+            db.execute(f"DELETE FROM {table} WHERE show = ?", (other,))
+        else:
+            db.execute(f"UPDATE {table} SET show = ? WHERE show = ?", (canonical, other))
+
+
 def _merge_titles(db, canonical, other):
     # shows has a UNIQUE index on (society_id, season, show) - if the same
     # society already logged both the canonical and "other" title for the
@@ -74,6 +95,7 @@ def _merge_titles(db, canonical, other):
         else:
             db.execute("UPDATE shows SET show = ? WHERE id = ?", (canonical, row["id"]))
     db.execute("UPDATE historical_results SET show = ? WHERE show = ?", (canonical, other))
+    move_title_keyed_rows(db, canonical, other)
     db.execute(
         "DELETE FROM dismissed_duplicate_pairs WHERE title_a IN (?, ?) OR title_b IN (?, ?)",
         (canonical, other, canonical, other),

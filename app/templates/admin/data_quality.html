@@ -38,13 +38,43 @@
   <p class="meta">A synopsis, rights link, or confirmed Wikipedia link whose title doesn't exactly
      match anything in <code>shows</code>/<code>historical_results</code> - usually a spelling/
      punctuation drift (e.g. "Fiddler On The Roof" vs "Fiddler on the Roof") - so it silently never
-     renders anywhere on the site. Fix the title's spelling via Edit, or clear it if it's not worth
-     keeping.</p>
+     renders anywhere on the site. Point it at the real title to bring it back, edit its contents,
+     or clear it if it isn't worth keeping.</p>
+
+  {# One datalist for both lists below - every title that's actually on a
+     production. The rename target is re-checked against the same set server
+     side; this only makes it typeable. #}
+  <datalist id="real-titles">
+    {% for t in all_titles %}<option value="{{ t }}">{% endfor %}
+  </datalist>
+
+  {% macro rename_form(table, show) %}
+    <form method="post" action="{{ url_for('admin.rename_orphaned_title') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="table" value="{{ table }}">
+      <input type="hidden" name="old" value="{{ show }}">
+      <input type="text" name="new" list="real-titles" placeholder="Point at&hellip;" required autocomplete="off">
+      <button type="submit" class="button-primary">Re-point</button>
+    </form>
+  {% endmacro %}
+
   {% if orphaned_info %}
     <h3>Show info ({{ orphaned_info|length }})</h3>
     <ul class="plain-list">
       {% for row in orphaned_info %}
-        <li>{{ row['show'] }} &mdash; <a href="{{ url_for('admin.edit_show_info', title=row['show']) }}">Edit &rarr;</a></li>
+        <li>
+          {{ row['show'] }}
+          <div class="actions">
+            {{ rename_form('show_info', row['show']) }}
+            <a href="{{ url_for('admin.edit_show_info', title=row['show']) }}">Edit contents &rarr;</a>
+            <form method="post" action="{{ url_for('admin.clear_show_info', title=row['show']) }}" class="inline-form"
+                  data-confirm="Delete the show info for &quot;{{ row['show'] }}&quot;?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="admin.data_quality">
+              <button type="submit" class="button-danger">Clear</button>
+            </form>
+          </div>
+        </li>
       {% endfor %}
     </ul>
   {% endif %}
@@ -54,11 +84,16 @@
       {% for row in orphaned_links %}
         <li>
           {{ row['show'] }} &mdash; <a href="{{ row['url'] }}" rel="noopener" target="_blank">{{ row['url'] }}</a>
-          <form method="post" action="{{ url_for('admin.clear_show_link') }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="show" value="{{ row['show'] }}">
-            <button type="submit" class="button-danger">Clear</button>
-          </form>
+          <div class="actions">
+            {{ rename_form('show_links', row['show']) }}
+            <form method="post" action="{{ url_for('admin.clear_show_link') }}" class="inline-form"
+                  data-confirm="Delete the link for &quot;{{ row['show'] }}&quot;?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="show" value="{{ row['show'] }}">
+              <input type="hidden" name="next" value="admin.data_quality">
+              <button type="submit" class="button-danger">Clear</button>
+            </form>
+          </div>
         </li>
       {% endfor %}
     </ul>

@@ -12,6 +12,17 @@ from ...uploads import save_poster
 from . import bp
 from ._shared import DATE_RE, NEEDS_REVIEW_WHERE, needs_review_params
 
+# Admin-only, single-segment allowlist. A "come back where I was" redirect that
+# trusted the submitted value outright is an open-redirect hole (?next=https://
+# elsewhere), so the form posts an endpoint *name* and this resolves it - a
+# value that isn't on the list is ignored rather than followed.
+_RETURNABLE_ENDPOINTS = {"admin.data_quality", "admin.duplicate_titles", "admin.shows_list"}
+
+
+def _back_to(default):
+    endpoint = request.form.get("next", "")
+    return url_for(endpoint) if endpoint in _RETURNABLE_ENDPOINTS else default
+
 
 @bp.route("/queue")
 @login_required
@@ -599,7 +610,7 @@ def clear_show_link():
     if show:
         get_db().execute("DELETE FROM show_links WHERE show = ?", (show,))
         get_db().commit()
-    return redirect(url_for("public.titles_list"))
+    return redirect(_back_to(url_for("public.titles_list")))
 
 
 @bp.route("/titles/<path:title>/info", methods=("GET", "POST"))
@@ -670,4 +681,7 @@ def clear_show_info(title):
     get_db().execute("DELETE FROM show_info WHERE show = ?", (title,))
     get_db().commit()
     flash("Show info cleared.", "success")
-    return redirect(url_for("public.title_detail", title=title))
+    # Default lands on the title's own page, which is right when this was
+    # invoked from there - but an orphaned title has no page worth landing on,
+    # so /admin/data-quality passes ?next= to come back to its own list.
+    return redirect(_back_to(url_for("public.title_detail", title=title)))

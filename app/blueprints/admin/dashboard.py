@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from flask import flash, redirect, render_template, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 
 from ...auth import login_required
 from ...db import get_db
@@ -8,6 +8,7 @@ from ...dedupe import find_candidates
 from ...season import current_season, historical_results_year
 from . import bp
 from ._shared import MISSING_DATES_WHERE, NEEDS_REVIEW_WHERE, needs_review_params
+from .duplicates import TITLE_KEYED_TABLES, move_title_keyed_rows
 from .historical_reviews import find_mismatched_skeleton_shows
 
 
@@ -244,6 +245,18 @@ def dashboard():
     )
 
 
+def _real_titles(db):
+    """Every title that actually exists on a production, sorted - the set an
+    orphaned row has to be pointed back at. Same union _orphaned_titles checks
+    against, so the two can never disagree about what "real" means."""
+    return sorted(
+        r[0] for r in db.execute(
+            "SELECT show FROM shows WHERE show IS NOT NULL AND moderation_status = 'approved' "
+            "UNION SELECT show FROM historical_results WHERE show IS NOT NULL"
+        ).fetchall()
+    )
+
+
 @bp.route("/data-quality")
 @login_required
 def data_quality():
@@ -254,7 +267,51 @@ def data_quality():
         duplicate_rows=_duplicate_historical_rows(db),
         orphaned_info=orphaned_info,
         orphaned_links=orphaned_links,
+        all_titles=_real_titles(db),
     )
+
+
+@bp.route("/data-quality/orphaned/rename", methods=("POST",))
+@login_required
+def rename_orphaned_title():
+    """Re-point an orphaned show_info/show_links row at a title that really
+    exists, which is what the section's own hint text has always promised and
+    nothing could actually do: the "Edit" link only edits a row's *contents*
+    (it's keyed by the title in the URL, with no rename field), and "Clear"
+    only deletes. Fixing a casing drift meant a database shell.
+
+    The target is constrained to a real existing title rather than free text -
+    a free-text rename could just as easily create a second orphan, and this
+    site's no-fuzzy-matching rule means the match has to be exact to work.
+    The datalist on the form only suggests, so it's re-checked here."""
+    db = get_db()
+    table = request.form.get("table", "")
+    old = request.form.get("old", "").strip()
+    new = request.form.get("new", "").strip()
+
+    if table not in TITLE_KEYED_TABLES:
+        abort(400)
+    if not old or not new:
+        flash("Pick the title this should point at.", "error")
+        return redirect(url_for("admin.data_quality"))
+    if new not in _real_titles(db):
+        flash(f'"{new}" isn\'t a title on any production - pick one from the list.', "error")
+        return redirect(url_for("admin.data_quality"))
+    if not db.execute(f"SELECT 1 FROM {table} WHERE show = ?", (old,)).fetchone():
+        abort(404)
+
+    # Same drop-vs-carry rule the merge tool uses: `show` is the PRIMARY KEY on
+    # both tables, so renaming onto a title that already has a row would be a
+    # collision, and in that case the orphan is the redundant one.
+    collided = bool(db.execute(f"SELECT 1 FROM {table} WHERE show = ?", (new,)).fetchone())
+    move_title_keyed_rows(db, new, old)
+    db.commit()
+    if collided:
+        flash(f'"{new}" already had its own {table.replace("_", " ")} row, so the orphaned '
+              f'"{old}" one was removed rather than overwriting it.', "success")
+    else:
+        flash(f'Re-pointed "{old}" to "{new}" - it renders on that title\'s page now.', "success")
+    return redirect(url_for("admin.data_quality"))
 
 
 @bp.route("/data-quality/historical/<int:row_id>/delete", methods=("POST",))
