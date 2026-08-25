@@ -380,6 +380,39 @@ CREATE TABLE IF NOT EXISTS historical_society_regions (
     updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- A moderator's answer to "which current society is this historical award
+-- record's printed name?" - the sibling of historical_society_regions above,
+-- and needed for the same reason it is: many of the names in
+-- historical_results.society_name never matched a societies row on import.
+--
+-- WHY THIS IS A SIDE TABLE AND NOT JUST historical_results.society_id:
+-- import_awards.py wipes and reloads every source='import' row on each run
+-- (DELETE FROM historical_results WHERE source = 'import'), re-deriving
+-- society_id from an exact name match. Every one of the ~540 unmatched rows is
+-- source='import', so a society_id set by hand there is destroyed on the next
+-- awards import, silently. export_awards.py doesn't carry society_id either,
+-- so the CSV round-trip can't preserve it. society_name is the only identifier
+-- that survives both, which is why it's the key here. import_awards.py reads
+-- this table and overlays it onto its own name->id map, so a confirmed link
+-- re-applies itself on every future import.
+--
+-- Filling in society_id also re-keys productions (app/productions.py's
+-- society_key() prefers society_id over the name), so linking merges award
+-- history onto the matched society's public page - which is the point, and
+-- also why a wrong link matters and every action here is reversible.
+CREATE TABLE IF NOT EXISTS historical_society_links (
+    society_name    TEXT PRIMARY KEY,   -- exactly as it appears in historical_results.society_name
+    society_id      INTEGER REFERENCES societies(id),
+    -- Settled as "no current society is this one", rather than a link nobody
+    -- has made yet. Most of these societies are genuinely defunct, so this is
+    -- the common answer, not the exception - same reasoning as no_region above,
+    -- and deliberately not a sentinel value in society_id.
+    no_match        INTEGER NOT NULL DEFAULT 0,
+    note            TEXT,
+    decided_by      TEXT,
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- One row per person who has adjudicated for AIMS. Built up as
 -- adjudicator_assignments below is filled in, so a name typed once (e.g.
 -- "Jane Smith") stays consistent across every season they judged rather than

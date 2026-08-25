@@ -148,16 +148,40 @@ def normalize_society(value):
     return SOCIETY_RENAMES.get(value, value)
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", default=str(ROOT / "aims.db"))
     parser.add_argument("--csv", default=str(ROOT / "AIMS_Awards - Results.csv"))
-    args = parser.parse_args()
+    # argv is threaded through (rather than always reading sys.argv) so the
+    # re-import durability test can drive this against a temp database - that
+    # test is the one that catches society links being silently wiped.
+    args = parser.parse_args(argv)
 
     conn = sqlite3.connect(args.db)
     conn.executescript((ROOT / "schema.sql").read_text(encoding="utf-8"))
 
     name_to_id = dict(conn.execute("SELECT name, id FROM societies").fetchall())
+
+    # Overlay the moderator-confirmed links for printed names that don't match a
+    # societies row exactly (see historical_society_links in schema.sql). Without
+    # this, the DELETE below would throw away every hand-made link on every run,
+    # silently - all of the unmatched rows are source='import'. Applied to the
+    # name->id map rather than as a post-insert UPDATE sweep so it can't drift
+    # from the insert path, and so it covers the SHOW_SPLITS two-row branch free.
+    live_ids = set(name_to_id.values())
+    links = conn.execute(
+        "SELECT society_name, society_id FROM historical_society_links WHERE society_id IS NOT NULL"
+    ).fetchall()
+    for society_name, society_id in links:
+        if society_id in live_ids:
+            name_to_id[society_name] = society_id
+        else:
+            # The society was deleted or merged away since the link was made.
+            # Skipping beats writing a dangling foreign key.
+            print(f"  ! confirmed link for {society_name!r} points at society id {society_id}, "
+                  "which no longer exists - skipping it")
+    if links:
+        print(f"Applied {len(links)} moderator-confirmed society link(s) from historical_society_links")
 
     with open(args.csv, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))

@@ -10,6 +10,7 @@ from . import bp
 from ._shared import MISSING_DATES_WHERE, NEEDS_REVIEW_WHERE, needs_review_params
 from .duplicates import TITLE_KEYED_TABLES, move_title_keyed_rows
 from .historical_reviews import find_mismatched_skeleton_shows
+from .historical_society_links import undecided_name_count
 
 
 def _duplicate_historical_rows(db):
@@ -148,6 +149,14 @@ def dashboard():
         "SELECT COUNT(*) FROM photo_submissions WHERE status = 'pending'"
     ).fetchone()[0]
 
+    # Distinct printed names still awaiting a link decision. Deliberately NOT a
+    # replacement for unmatched_award_societies_count below: that's a *row*
+    # count which is correctly permanent (most of these societies are defunct
+    # and will never match), whereas this one genuinely reaches zero, because
+    # "no current society" is a real answer that clears a name. Two counters
+    # saying two different true things.
+    unlinked_society_names_count = undecided_name_count(db)
+
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
     # still no historical_results row for its award year, those results
@@ -193,6 +202,11 @@ def dashboard():
             "label": "Historical societies with a region awaiting confirmation",
             "count": historical_regions_pending_count,
             "url": url_for("admin.historical_societies"),
+        },
+        {
+            "label": "Award-archive society names awaiting a link decision",
+            "count": unlinked_society_names_count,
+            "url": url_for("admin.historical_society_links_queue"),
         },
         {
             "label": "Shows missing a date",
@@ -241,6 +255,7 @@ def dashboard():
         awards_pending_season=awards_pending_season,
         historical_reviews_pending_count=historical_reviews_pending_count,
         photo_submissions_pending_count=photo_submissions_pending_count,
+        unlinked_society_names_count=unlinked_society_names_count,
         quick_win=quick_win,
     )
 

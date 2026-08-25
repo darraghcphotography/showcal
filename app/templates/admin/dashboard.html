@@ -45,6 +45,16 @@
         <td>{{ photo_submissions_pending_count }}</td>
         <td><a href="{{ url_for('admin.photo_submissions_queue') }}">Photo submissions</a></td>
       </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if unlinked_society_names_count else 'admin-dot-off' }}"></span>
+            Award-archive society names awaiting a link decision
+          </span>
+        </td>
+        <td>{{ unlinked_society_names_count }}</td>
+        <td><a href="{{ url_for('admin.historical_society_links_queue') }}">Society links</a></td>
+      </tr>
       {% if awards_pending_season %}
         <tr>
           <td>
@@ -162,7 +172,9 @@
   <table class="data-table">
     <tbody>
       <tr>
-        <td>Award records with no society match <span class="hint">(mostly genuinely defunct societies - won't reach 0; see "awaiting confirmation" above for what's actually actionable)</span></td>
+        <td>Award records with no society match <span class="hint">(mostly genuinely defunct societies - won't reach 0. The actionable half is
+          <a href="{{ url_for('admin.historical_society_links_queue') }}">Society links</a> above: one decision per printed
+          name, and "no current society" is a real answer there)</span></td>
         <td>{{ unmatched_award_societies_count }}</td>
         <td><a href="{{ url_for('admin.awards_list', unmatched=1) }}">Awards</a></td>
       </tr>
@@ -192,6 +204,7 @@
         <li><a href="{{ url_for('admin.backfill_credits') }}">Backfill credits</a></li>
         <li><a href="{{ url_for('admin.bulk_historical_productions') }}">Bulk add historical productions</a></li>
         <li><a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a></li>
+        <li><a href="{{ url_for('admin.historical_society_links_queue') }}">Award-archive society links</a></li>
         <li><a href="{{ url_for('admin.society_corrections') }}">Society name corrections</a></li>
         <li><a href="{{ url_for('admin.data_quality') }}">Data quality</a></li>
       </ul>

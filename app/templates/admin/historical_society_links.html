@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Award-archive society links - DC Show Tracker{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to admin</a></p>
+  <h1>Award-archive society links</h1>
+  <p class="meta">{{ entries|length }} printed name{{ '' if entries|length == 1 else 's' }}
+     ({{ total_rows }} award record{{ '' if total_rows == 1 else 's' }}) that never matched a current
+     society. Linking one publishes its whole award history on that society's public page, so a wrong
+     link is worth more than a missing one &mdash; everything here is reversible.</p>
+
+  <div class="site-notice">
+    <p><strong>Most of these have no answer, and that's fine.</strong> These names are mostly genuinely
+       defunct societies, so <em>“no current society”</em> is the usual outcome rather than a failure.
+       Tick them and clear them in a batch; the queue is designed around that, not around finding
+       matches.</p>
+    <p class="meta">Careful with a suggestion marked <span class="tag tag-warning">town name only</span>:
+       the matcher compares names with words like “Musical”/“Choral”/“Society” stripped out, so two
+       different societies in the same town score as a perfect match. “Headford Choral Society” and
+       “Headford Musical Society” both reduce to just “headford”.</p>
+  </div>
+
+  <datalist id="society-options">
+    {% for s in societies %}<option value="{{ s['name'] }}">{% endfor %}
+  </datalist>
+
+  {% if entries %}
+    <form method="post" action="{{ url_for('admin.mark_no_match') }}"
+          data-confirm="Mark every ticked name as having no current society?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <table class="data-table table-wide">
+        <thead>
+          <tr>
+            <th><span class="visually-hidden">No match</span></th>
+            <th>Printed name</th>
+            <th>Records</th>
+            <th>Years</th>
+            <th>Suggested match</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entries %}
+            <tr>
+              <td><input type="checkbox" name="society_name" value="{{ e['society_name'] }}"
+                         aria-label="No current society for {{ e['society_name'] }}"></td>
+              <td>
+                {{ e['society_name'] }}
+                {% if e['town_only'] %}<span class="tag tag-warning">town name only</span>{% endif %}
+              </td>
+              <td>{{ e['row_count'] }}</td>
+              <td class="meta">{{ e['first_year'] }}{% if e['last_year'] != e['first_year'] %}&ndash;{{ e['last_year'] }}{% endif %}</td>
+              <td>
+                {% if e['exact_match'] %}
+                  {# Exact on the name, or on the part before a comma - a much
+                     stronger signal than any fuzzy score, so it's shown apart. #}
+                  <form method="post" action="{{ url_for('admin.link_historical_society') }}" class="inline-form" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="society_name" value="{{ e['society_name'] }}">
+                    <input type="hidden" name="society_id" value="{{ e['exact_match']['id'] }}">
+                    <button type="submit" class="button-primary"
+                            data-confirm="Link all {{ e['row_count'] }} award record(s) printed as &quot;{{ e['society_name'] }}&quot; to &quot;{{ e['exact_match']['name'] }}&quot;? This publishes them on that society's page.">
+                      Exact: {{ e['exact_match']['name'] }}
+                    </button>
+                  </form>
+                {% endif %}
+                {% for name, score, section in e['candidates'] %}
+                  <form method="post" action="{{ url_for('admin.link_historical_society') }}" class="inline-form" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="society_name" value="{{ e['society_name'] }}">
+                    <input type="hidden" name="society_id" value="{{ societies|selectattr('name', 'equalto', name)|map(attribute='id')|first }}">
+                    <button type="submit"
+                            data-confirm="Link all {{ e['row_count'] }} award record(s) printed as &quot;{{ e['society_name'] }}&quot; to &quot;{{ name }}&quot;? This publishes them on that society's page.">
+                      {{ name }} ({{ (score * 100)|round|int }}%)
+                    </button>
+                  </form>
+                  {% if section == 'Inactive' %}<span class="tag tag-past">defunct</span>{% endif %}
+                {% endfor %}
+                {% if not e['exact_match'] and not e['candidates'] %}
+                  <span class="meta">No close match.</span>
+                {% endif %}
+
+                {# Always available - 60 of these names have no suggestion at
+                   all, and for some of them a human still knows the answer. #}
+                <details class="manual-pick">
+                  <summary class="meta">Pick manually</summary>
+                  <form method="post" action="{{ url_for('admin.link_historical_society') }}" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="society_name" value="{{ e['society_name'] }}">
+                    {# A shared datalist, not a <select> per row - 69 rows x 194
+                       societies made this page 1.5MB. The typed name is
+                       resolved and re-checked server side. #}
+                    <input type="text" name="society" list="society-options" required autocomplete="off"
+                           placeholder="Type a society&hellip;">
+                    <button type="submit"
+                            data-confirm="Link all {{ e['row_count'] }} award record(s) printed as &quot;{{ e['society_name'] }}&quot; to the chosen society?">
+                      Link
+                    </button>
+                  </form>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="submit" class="button-primary">Mark ticked as “no current society”</button>
+    </form>
+  {% else %}
+    <p>Every printed name has been decided. </p>
+  {% endif %}
+
+  {% if decided %}
+    <details>
+      <summary><h2 class="admin-group-label" style="display:inline">Already decided ({{ decided|length }})</h2></summary>
+      <table class="data-table">
+        <thead><tr><th>Printed name</th><th>Decision</th><th>Records</th><th>By</th><th></th></tr></thead>
+        <tbody>
+          {% for d in decided %}
+            <tr>
+              <td>{{ d['society_name'] }}</td>
+              <td>
+                {% if d['no_match'] %}<span class="tag tag-past">no current society</span>
+                {% else %}<span class="tag tag-gold">{{ d['society_name_linked'] or '(society since removed)' }}</span>{% endif %}
+              </td>
+              <td>{{ d['row_count'] }}</td>
+              <td class="meta">{{ d['decided_by'] or '—' }}</td>
+              <td>
+                <form method="post" action="{{ url_for('admin.clear_historical_society_link') }}" class="inline-form"
+                      data-confirm="Undo this decision and put &quot;{{ d['society_name'] }}&quot; back in the queue?">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="society_name" value="{{ d['society_name'] }}">
+                  <button type="submit" class="button-danger">Undo</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% endif %}
+{% endblock %}
