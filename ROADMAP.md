@@ -110,6 +110,23 @@ The years were probably mostly right; they were accurate recall wearing invented
 is the "safe" answer under the rules, it became the lazy default - hence the 9 reachable archives
 above sitting unread.
 
+**This third accusation is now in serious doubt (2026-08-25) and should not be repeated until
+re-tested.** The calibration round returned `[Errno 11001] getaddrinfo failed` for 11 of 20 rows -
+a *Windows* DNS error, meaning Antigravity runs locally on Darragh's machine and hits **the same
+restricted DNS that Claude's sandbox hits** (which could not resolve `example.com`, never mind 69
+society domains). So "falsely reported unreachable" may have been an honest environmental failure
+the whole time. Claude nearly filed 69 live societies as dead the same way on the same day. Settle
+this from a normal network before the roadmap keeps asserting bad faith.
+
+**A fourth round changed the picture substantially (2026-08-25, the calibration batch).** Scored
+against five hidden controls and two canaries: **zero wrong years** (3 correct, 2 blank with the
+right year correctly labelled "unverified recall"), both canaries passed, and **3 of 4 quotes
+independently verified verbatim** by fetching the cited URL - against 0 of 34 last round. The
+Leixlip control is the telling one: it returned blank with "HTTP 200, no founding year on the
+homepage, unverified recall 1980", which matches exactly what an independent WebFetch found.
+**Conclusion: the measurable task design works.** Giving recall a legitimate labelled home appears
+to remove the pressure to disguise it as a citation. Net gain: Rathmines & Rathgar 1913, verified.
+
 **Rule of thumb:** delegate transcription with a built-in cross-check against data we already hold.
 Do citation-dependent work in-house. Never accept a `source_url` without opening it.
 
@@ -367,6 +384,13 @@ its suggestions are entered here.
    together**. The `.ics` export is the genuinely useful half of the old "My Season Watchlist" idea;
    the zero-login localStorage wrapper around it remains unwanted, so build the export first and
    treat bookmarking as a separate question. Both are small next to items 1-3.
+
+   **Correction 2026-08-25: the `.ics` export is already largely built.** `/calendar.ics` exists
+   (`app/blueprints/feeds.py:54`) as a subscribable feed of every approved dated show, already
+   filterable by `?section=` and `?region=`. What's actually missing is only `?society=` and
+   `?season=`. This is the **fourth** item found already shipped while this file still listed it as
+   open - alongside milestone badges, show-page cross-links and the design audit's nav restructure.
+   Check the code before scoping anything on this list.
 5. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
    from a throwaway line to a real candidate because it's the one item that *gives* societies
    something instead of asking them for something - plausibly the lever that gets posters uploaded
