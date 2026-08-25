@@ -1,6 +1,10 @@
-"""Loads Antigravity's enrichment pass for titles with no synopsis/rights data
-(`enrichment/shows_worklist.json`, see `enrichment/ENRICHMENT_BRIEF.md` and
-ROADMAP.md) into `show_info`.
+"""Loads an enrichment worklist for show titles into `show_info` - synopsis,
+rights, premiere and creative-credit fields (see `enrichment/ENRICHMENT_BRIEF.md`
+and `enrichment/CREDITS_AND_CONTACTS_BRIEF.md`).
+
+Handles both worklist shapes, since they share a `title` key and differ only in
+which of FIELDS they carry: `shows_worklist.json` (synopsis/rights/premiere) and
+`show_credits_worklist.json` (composer/lyricist/book_author/licensing_house).
 
 Matches on the exact title string against shows/historical_results, same as
 enrich_show_info.py - show_info.show is a plain TEXT primary key, no fuzzy
@@ -18,7 +22,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 
-FIELDS = ("synopsis", "rights_url", "rights_status", "premiere_year", "premiere_place")
+FIELDS = (
+    "synopsis", "rights_url", "rights_status", "premiere_year", "premiere_place",
+    # Creative credits, added 2026-08-25 - the columns shipped after this
+    # script was first written, so a worklist carrying them was silently
+    # dropping four fields on the floor until they were listed here.
+    "composer", "lyricist", "book_author", "licensing_house",
+)
 VALID_RIGHTS_STATUS = ("Available", "Contact publisher", "Restricted")
 
 
@@ -60,11 +70,15 @@ def main():
             if not changing:
                 skipped.append(title)
                 continue
+            # Built from `changing` rather than a hardcoded column list, so
+            # adding a field to FIELDS is the only change a new column needs -
+            # the hardcoded version silently ignored four columns once already.
+            columns = ", ".join(changing)
+            placeholders = ", ".join(f":{f}" for f in changing)
             db.execute(
-                "INSERT INTO show_info (show, synopsis, rights_url, rights_status, "
-                "premiere_year, premiere_place, updated_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))",
-                (title, changing.get("synopsis"), changing.get("rights_url"),
-                 changing.get("rights_status"), changing.get("premiere_year"), changing.get("premiere_place")),
+                f"INSERT INTO show_info (show, {columns}, updated_at) "
+                f"VALUES (:show, {placeholders}, datetime('now'))",
+                dict(changing, show=title),
             )
         else:
             changing = {f: row[f] for f in FIELDS if row.get(f) is not None and not current[f]}
