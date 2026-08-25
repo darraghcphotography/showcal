@@ -99,3 +99,54 @@ def test_other_routes_keep_the_strict_csp_with_no_map_hosts(client, db):
     venues_csp = client.get("/venues").headers["Content-Security-Policy"]
     assert "unpkg.com" not in venues_csp
     assert "basemaps.cartocdn.com" not in venues_csp
+
+
+def test_map_page_has_region_county_and_society_quick_filters(client, db):
+    a = seed_society(db, id=1, name="Alpha Musical Society")
+    b = seed_society(db, id=2, name="Beta Musical Society")
+    add_show(db, a, "Oliver!", "Alpha Theatre", season="24/25")
+    add_show(db, b, "Oklahoma!", "Beta Hall", season="24/25")
+    client.get("/venues")
+    db.execute("UPDATE venues SET latitude = 53.35, longitude = -6.26, county = 'Wicklow' WHERE name = 'Alpha Theatre'")
+    db.execute("UPDATE venues SET latitude = 53.40, longitude = -6.30, county = 'Wexford' WHERE name = 'Beta Hall'")
+    db.commit()
+
+    body = client.get("/venues/map").get_data(as_text=True)
+    # Region/county dropdowns, populated from the real mapped set.
+    assert 'id="map-filter-region"' in body
+    assert 'id="map-filter-county"' in body
+    assert '<option value="Wicklow">Wicklow</option>' in body
+    assert '<option value="Wexford">Wexford</option>' in body
+    # Society is a free-text search, not a dropdown - real per-venue resident
+    # society names are baked into the pin data for the JS filter to search.
+    assert 'id="map-filter-society"' in body
+    assert "Alpha Musical Society" in body
+    assert "Beta Musical Society" in body
+    assert '"county": "Wicklow"' in body or '"county":"Wicklow"' in body
+
+
+def test_map_page_picks_theme_at_load_and_reacts_to_a_live_toggle(client, db):
+    """Added after real feedback: the map tiles were hardcoded to light-only,
+    so unlike the rest of the page (which follows CSS custom properties and
+    repaints for free) the actual map background stayed light in dark mode.
+    CartoDB ships separate light_all/dark_all tile sets, so this has to be
+    picked in JS - both at initial load and live if the toggle is used while
+    the page is already open."""
+    society_id = seed_society(db)
+    add_show(db, society_id, "Oliver!", "Pinned Theatre")
+    client.get("/venues")
+    set_coords(db, "Pinned Theatre", 53.35, -6.26)
+
+    body = client.get("/venues/map").get_data(as_text=True)
+    assert "dark_all" in body and "light_all" in body
+    assert "currentTheme" in body
+    # The toggle listener must be attached, or a live theme switch while
+    # already on the map page would leave the tiles stuck on whichever
+    # theme was active at load.
+    assert "theme-toggle" in body
+    assert "tiles.setUrl" in body
+    # Marker colour uses a live var() reference, not a JS-computed value
+    # baked in once - the opposite bug (going stale on live toggle) for the
+    # pin colour specifically.
+    assert "var(--accent)" in body
+    assert "getComputedStyle" not in body

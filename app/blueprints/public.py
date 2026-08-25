@@ -1632,19 +1632,42 @@ def venues_map():
         """
     ).fetchone()[0]
 
+    # Resident societies per mapped venue - bulk query rather than N+1
+    # (same reasoning as titles_list()'s tally/upcoming dicts above), and
+    # only the venues actually on the map, not every society ever anywhere.
+    residents = defaultdict(set)
+    for r in db.execute(
+        """
+        SELECT DISTINCT shows.venue_id AS venue_id, societies.name AS society_name
+          FROM shows JOIN societies ON societies.id = shows.society_id
+         WHERE shows.moderation_status = 'approved' AND NOT societies.hidden
+           AND shows.venue_id IS NOT NULL
+        """
+    ):
+        residents[r["venue_id"]].add(r["society_name"])
+
     pins = [
         {
             "name": v["name"],
             "place": place_label(v["town"], v["county"]),
+            "county": v["county"] or "",
             "region": v["region"] or "",
             "lat": v["latitude"], "lng": v["longitude"],
             "capacity": v["capacity"],
             "n": v["n"], "soc_n": v["soc_n"],
+            "societies": sorted(residents.get(v["id"], ())),
             "url": url_for("public.venue_detail", venue=v["slug"]),
         }
         for v in venues
     ]
-    return render_template("venues_map.html", pins=pins, mapped_count=len(pins), total=total_venues)
+
+    counties = sorted({p["county"] for p in pins if p["county"]})
+    regions_present = sorted({p["region"] for p in pins if p["region"]})
+
+    return render_template(
+        "venues_map.html", pins=pins, mapped_count=len(pins), total=total_venues,
+        counties=counties, regions_present=regions_present,
+    )
 
 
 @bp.route("/venues/<path:venue>")
