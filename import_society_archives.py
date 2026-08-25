@@ -15,6 +15,19 @@ known years either matches ours or it doesn't.
     plausible musical) and 9 Arch 25% - both rejected, not imported.
   * 13 of the 19 societies were correctly returned blank as unreachable.
 
+Round 2 (2026-08-25, after a redo of the 14 originally-blank rows with a
+firmer "no bare unreachable" instruction):
+
+  * Killarney 100% (7/7) and Castlebar 100% (5/5) - clean, added to TRUSTED.
+  * Harolds Cross Tallaght 0% (0/5) and Muse Productions 0% (0/3) - same red
+    flag as Carnew, rejected.
+  * Fortwilliam 55% (17/31) and Glencullen 47% (8/17) - too mixed to trust,
+    rejected.
+  * Kilmacud, Boyle and Waterford returned real transcriptions but share zero
+    overlapping years with anything already on record, so the cross-check
+    has nothing to test them against - genuinely unverifiable by this method,
+    not the same as passing. Not imported; would need a different check.
+
 Two corrections applied to incoming titles/years:
 
   * SHOW_RENAMES from import_awards.py, so a title lands in the same canonical
@@ -47,6 +60,8 @@ TRUSTED = {
     "Baldoyle Musical Society",
     "Limerick Musical Society",
     "Oyster Lane Theatre Group",
+    "Killarney Musical Society",
+    "Castlebar Musical & Dramatic Society",
 }
 
 REASON = "From the society's own published production archive (2026-08-25)"
