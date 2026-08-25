@@ -21,10 +21,11 @@ remaining backlog** rather than building (no code changed - the only edit was th
 half-finished work to pick up: the next session starts from a clean base and picks from the numbered
 live backlog below.
 
-**Two jobs are genuinely ready to start**, and they're different in kind - pick by appetite:
-the archive transcription immediately below (data work, well-understood, high certainty of value),
-or item 1 of the interrogated backlog (internal-only person identity resolution - the item with
-measured harm that grows while untouched).
+**Three jobs are genuinely ready to start** - pick by appetite:
+the archive transcription immediately below (data work, well-understood, high certainty of value);
+**item 1, the society coverage checklist grid** (Darragh's own request, needs a plan + mockups
+first); or item 2, internal-only person identity resolution (the item with measured harm that grows
+while untouched).
 
 One security gap worth knowing about before either: **unvalidated photo-submission uploads** (see
 "Next feasible things") - small fix, one function.
@@ -62,9 +63,21 @@ load fine**, with substantial year data in the page:
 Do this **in-house with WebFetch**, not by delegating - it's transcription from a named page, and the
 tooling to validate it already exists: `import_society_archives.py` has the `TRUSTED` list, the
 SHOW_RENAMES canonicalisation and the +/-1 year duplicate guard, and the worklist carries
-`known_productions_for_cross_check` so the overlap test runs the same way. Genuinely unreachable on
-the same check: Ballywillan (timeout - retry, it may be transient and it is the biggest prize at
-1952-2025), Ennis, Dun Laoghaire, Kilcock (DNS), Pop-Up Theatre Sligo (domain gone).
+`known_productions_for_cross_check` so the overlap test runs the same way.
+
+**The "genuinely unreachable" five are now in doubt** (2026-08-25). Ballywillan, Ennis, Dun Laoghaire,
+Kilcock and Pop-Up Theatre Sligo were recorded as timeout/DNS failures - but a later attempt to
+HTTP-test all 69 society websites from Claude's sandbox returned "could not resolve host" for **all
+69**, including sites confirmed live minutes earlier, and could not resolve `example.com` either.
+That is a restricted-DNS artifact of the environment, not evidence about the sites. So the original
+five may well be alive. **Claude cannot settle this from here** - it's in the calibration brief as a
+task for Antigravity (`enrichment/CALIBRATION_BRIEF.md`, Task 3), or Darragh can just open them in a
+browser. Ballywillan matters most: 1952-2025 is the largest single prize outstanding, musicals only
+(their first 35+ years are pantomime, out of scope).
+
+Note the irony worth remembering: this is the same "falsely reported unreachable" failure that got
+Antigravity's last round rejected, and Claude nearly filed 69 live societies as dead the same way.
+**Never record a reachability finding without checking that the environment can reach anything.**
 
 ### Waiting on Darragh, nothing Claude can do
 
@@ -105,10 +118,10 @@ Do citation-dependent work in-house. Never accept a `source_url` without opening
 The planned interrogation of the UX-audit slivers and the Parked list **was carried out** (see "The
 backlog interrogation" section below for the full verdicts and reasoning). Darragh's rule for it:
 "no one has asked for this" was **not** enough on its own to close an item - each was argued on
-merit. 22 items in, 9 kept, 13 closed. The live backlog is now that section's numbered list of 9,
-in priority order, headed by internal-only person identity resolution.
+merit. 22 items in, 9 kept, 13 closed. The live backlog is now that section's numbered list, in
+priority order - since joined by Darragh's own checklist-grid request at item 1.
 
-**One verdict was reversed the same day** (costume/prop listings - now item 2), and the interrogation's
+**One verdict was reversed the same day** (costume/prop listings - now item 3), and the interrogation's
 own headline finding was withdrawn, both for the same reason: it argued about user demand without
 consulting the demand record. Read the corrected section below, not the original claims.
 
@@ -119,7 +132,7 @@ Three things came out of it that outlast the individual verdicts:
   all. Claude closed an item the PM had personally marked **Planned**. Query the table and ask him.
 - **Poster supply is an outreach gap, not unwillingness** - production has 44 posters across just
   **12 societies of 194**. 182 have never engaged at all. This does not support blocking features on
-  "societies won't maintain data"; it supports item 7 (society profile completion).
+  "societies won't maintain data"; it supports item 8 (society profile completion).
 - **Rejected ideas were being laundered back in** via new audit docs - the watchlist / map /
   "On This Day" / embeddable-JSON group was ruled skip on 2026-08-20 and re-entered as "genuinely
   new, unclaimed" on 2026-08-24. **Diff any future audit doc against prior rulings before entering
@@ -227,7 +240,7 @@ poster count, and that this justified blocking several items. Checked against **
 than the stale local copy, the numbers are **44 posters across just 12 societies of 194**. That is
 the opposite of what was argued: it isn't 194 societies declining to supply content, it's 12 who
 were asked or who found it, and 182 who have never engaged at all. That's an **outreach gap, not
-evidence of unwillingness** - so it cannot carry the weight of blocking a feature. Item 7 (society
+evidence of unwillingness** - so it cannot carry the weight of blocking a feature. Item 8 (society
 profile completion) is the real work here; the blocking argument is withdrawn.
 
 **Second finding, and the important one: demand data existed and was never consulted.** The whole
@@ -246,13 +259,32 @@ its suggestions are entered here.
 
 ### Kept - the live backlog, in priority order
 
-1. **Person identity resolution, internal only.** The only parked item with *measured* harm rather
+1. **Society coverage checklist grid + lifecycle status (admin).** **Darragh's own request,
+   2026-08-25** - highest-confidence origin on this list, and it unblocks his own data work rather
+   than adding a public feature. Two parts, one page:
+   - **A checklist grid over all 194 societies**, one row per society, columns for the things we
+     gather (production history backfilled? upcoming season entered? profile/about? logo? poster?
+     contact/socials? venue set? founding year?), tickable so he can work through them and see
+     coverage at a glance. Most columns can be **derived** from data we already hold rather than
+     hand-ticked - the tick is only needed where "we checked and there is genuinely nothing".
+   - **A lifecycle status per society** - Active / Dormant-Hiatus / Closed. Today `societies` has
+     only `section` and a `hidden` flag, which conflates "gone" with "hide from the public list".
+     Many historical societies no longer exist but still carry real history that must stay visible;
+     others are on hiatus and may return. Needs a real column (`COLUMN_MIGRATIONS` in `app/db.py`,
+     per CLAUDE.md) plus a decision on how each state renders publicly.
+
+   **Plan + mockups before any code**, per Darragh and per the repo's mockup-first agreement. Open
+   questions for the plan: which columns are derived vs manually ticked; whether status is one field
+   or two (status + "as of" year, like the existing `section_as_of`); whether Closed societies drop
+   out of the checklist entirely; and how this relates to the 28 orphaned Inactive societies already
+   flagged under data-accuracy follow-ups - this feature may be the tool that resolves that item.
+2. **Person identity resolution, internal only.** The only parked item with *measured* harm rather
    than a hypothesis: 1,730 distinct award nominee names, 746 credit names, **217 credit names are
    also an award nominee by exact match alone**, and `/admin/backfill-credits` is actively adding
    more free-text names, so it grows while untouched. Darragh's privacy objection was to *public
    person pages*, which stays honoured - the agreed path is canonical names + aliases, moderator-
    reviewed, reusing `dedupe.find_candidates`, **no new public surface**. Top of the list.
-2. **Costume / prop / set listings for sale or rent.** The **only item on this list with a written,
+3. **Costume / prop / set listings for sale or rent.** The **only item on this list with a written,
    attributable origin from a real user**, and it was wrongly closed on 2026-08-25 before that was
    checked. `feature_suggestions` row 4 (2026-08-04): *"Perhaps a section for each show for societies
    to list for costumes/ props/ sets for sale or rent?"* - triaged **Planned** by Darragh on
@@ -262,34 +294,34 @@ its suggestions are entered here.
    "societies won't maintain it" was an assumption, contradicted by the fact that the request came
    from someone volunteering to list things. Note the requester said *per show*; Darragh's note says
    *society pages* - that difference is the first thing to settle when scoping.
-3. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
+4. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
    from a throwaway line to a real candidate because it's the one item that *gives* societies
    something instead of asking them for something - plausibly the lever that gets posters uploaded
    ("upload your poster, get a card you can post"). Pillow landed 2026-08-24 for the poster pipeline,
    so the rendering dependency already exists. Needs a mockup pass before any build.
-4. **`match_show_for_edit` exact-match bug.** Verified real: `app/blueprints/admin/historical_reviews.py:650`
+5. **`match_show_for_edit` exact-match bug.** Verified real: `app/blueprints/admin/historical_reviews.py:650`
    matches `society_id + season + show` on an exact string. Systemic version of a title-mismatch bug
    already fixed once for a specific case. Small, contained, already bit us.
-5. **Society edit audit log - scope cut to the cheap 80%.** Kept because the hole is real and
+6. **Society edit audit log - scope cut to the cheap 80%.** Kept because the hole is real and
    structural, not a feature wish: societies share one login code, so there is no way to tell who
    made an edit or to undo it. Cut: build the append-only log (who/when/field/old/new), **drop the
    revert UI** - that's the expensive half, and a moderator can restore by hand from the log.
-6. **Repertoire finder** (the "what show should we do next" hub) - the single survivor of *both*
+7. **Repertoire finder** (the "what show should we do next" hub) - the single survivor of *both*
    deleted audit docs, and the only feature idea either produced with a real audience: volunteer
    committees genuinely do spend months choosing a title. Builds on columns that already exist
    (amateur rights status, licensing house on `show_info`). Its "which other societies staged this
    recently" sub-idea also fits the collaborative ethos the design audit itself insisted on. Still
    needs Darragh to confirm it solves a problem a committee has actually raised to him.
-7. **Society profile completion** - merges the old "empty vs. filled society page" sliver with the
+8. **Society profile completion** - merges the old "empty vs. filled society page" sliver with the
    whole outreach/onboarding track, because they're one problem: a nudge on a thin profile, 2-3
    exemplar societies filled in completely as a reference, a draft message to a committee, a "claim
    your page" route. Mostly Darragh's lever, not a coding task.
-8. **Poster lightbox/zoom** - kept but explicitly *not standalone*: bundle it into the next piece of
+9. **Poster lightbox/zoom** - kept but explicitly *not standalone*: bundle it into the next piece of
    poster work. At 44 posters (12 societies) it currently affects few pages.
-9. **Removable filter chips - redirected.** The idea shipped on `/awards`; the roadmap kept it open
+10. **Removable filter chips - redirected.** The idea shipped on `/awards`; the roadmap kept it open
    for `/season`/`/stats`, but the page that now actually earns it is **`/reviews`**, which carries
    four filters (free-text `q`, season, tier, adjudicator). Retarget if picked up.
-10. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
+11. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
    (AIMS musical-theatre circuit specifically) with "may get their own category in the future".
    It's a scope decision about what the site *is*, and only Darragh can make it.
 
