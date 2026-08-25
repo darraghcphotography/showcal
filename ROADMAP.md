@@ -27,8 +27,31 @@ the archive transcription immediately below (data work, well-understood, high ce
 first); or item 2, internal-only person identity resolution (the item with measured harm that grows
 while untouched).
 
-One security gap worth knowing about before either: **unvalidated photo-submission uploads** (see
-"Next feasible things") - small fix, one function.
+~~One security gap worth knowing about~~ - **FIXED and pushed 2026-08-25 (`fc3fbb2`).** Photo
+submissions are now decoded before being written, so a file named `.jpg` that is really HTML or SVG
+is rejected instead of being served into the admin queue. Full suite 722 passing.
+
+### NEXT SESSION - do this on Sonnet, in a fresh session
+
+Written down deliberately: the 2026-08-25 session ran long (five workstreams in one thread, 93% of
+usage above 150k context), so the handoff lives on disk rather than in chat.
+
+1. **Build the three ready items** - the spec is complete and needs no further decisions:
+   `C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`. Filter chips on `/reviews`,
+   `?society=`/`?season=` on the existing `/calendar.ics`, and the `match_show_for_edit`
+   normalisation fix. Baseline is **722 tests passing**. Two traps are called out in the plan -
+   read them, they are not obvious: the match fix is *not* fuzzy matching (CLAUDE.md forbids it),
+   and `find_close_title` inside the bulk loop is an O(n^2) trap that caused a live 524 in August.
+2. **Score Gemini's other two deliverables** - mechanical, no judgement needed. The calibration
+   batch already passed (see the delegation section) but these have not been checked:
+   - `enrichment/society_archives_worklist.json` - 160 claimed transcriptions. Run the existing
+     overlap cross-check in `import_society_archives.py`. **Carnew needs particular attention:** it
+     scored 0% across 16 overlapping years last round and was rejected outright, so its
+     reappearance must clear the check before anything is imported.
+   - `enrichment/society_founding_years_v2.json` - 34 claimed years with quotes, 5 conflict notes,
+     104 blanks. Fetch every `source_url` and string-match the quote; never accept one unopened.
+3. **Leave the checklist grid (item 1) for a flagship session** - its two open questions are real
+   judgement calls, especially the privacy pass on storing named volunteers' contact details.
 
 Production data as of now:
 
