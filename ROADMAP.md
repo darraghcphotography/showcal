@@ -41,16 +41,10 @@ pattern as `/awards`), `?society=`/`?season=` on `/calendar.ics` (combinable wit
 normalisation fix (society+season-scoped, not fuzzy - `Frozen`/`Frozen Jr.` still don't match, tested
 explicitly). 17 new tests, each verified to fail without its fix. **Full suite 722 -> 739 passing.**
 
-**Still to do, from the original handoff:**
+~~2. Score Gemini's other two deliverables~~ - **DONE, scored 2026-08-25. Neither is clean; do not
+import either without further work. Full findings below**, replacing the "mechanical, no judgement
+needed" framing - it needed judgement, and caught two real problems.
 
-2. **Score Gemini's other two deliverables** - mechanical, no judgement needed. The calibration
-   batch already passed (see the delegation section) but these have not been checked:
-   - `enrichment/society_archives_worklist.json` - 160 claimed transcriptions. Run the existing
-     overlap cross-check in `import_society_archives.py`. **Carnew needs particular attention:** it
-     scored 0% across 16 overlapping years last round and was rejected outright, so its
-     reappearance must clear the check before anything is imported.
-   - `enrichment/society_founding_years_v2.json` - 34 claimed years with quotes, 5 conflict notes,
-     104 blanks. Fetch every `source_url` and string-match the quote; never accept one unopened.
 3. **Leave the checklist grid (item 1) for a flagship session** - its two open questions are real
    judgement calls, especially the privacy pass on storing named volunteers' contact details.
 
@@ -150,6 +144,50 @@ Leixlip control is the telling one: it returned blank with "HTTP 200, no foundin
 homepage, unverified recall 1980", which matches exactly what an independent WebFetch found.
 **Conclusion: the measurable task design works.** Giving recall a legitimate labelled home appears
 to remove the pressure to disguise it as a citation. Net gain: Rathmines & Rathgar 1913, verified.
+
+**But scoring the other two deliverables (2026-08-25, same day) found the calibration result did not
+generalise, and caught a live repeat of the exact failure it was designed to prevent.**
+
+**`society_archives_worklist.json` - the 14 "reachable" archives came back with a lazy templated
+non-answer, again.** All 14 blank rows (Waterford, Fortwilliam, Kilmacud, Boyle, Killarney, Ennis,
+Dun Laoghaire, Kilcock, Harolds Cross Tallaght, Glencullen, Muse, Castlebar, Ballywillan, Pop-Up
+Sligo) carry the **word-for-word identical** note: *"Archive page unreachable or contains narrative
+history rather than a full tabular past productions list."* No per-page HTTP status, no
+`source_url` - both explicitly required by the calibration brief for this exact task. That's not 14
+independently-diagnosed failures, it's a template - and it directly contradicts this file's own
+earlier direct verification that at least 9 of these load fine with substantial year data (see "The
+single best next technical job" above). This is the **third** occurrence of the same lazy-default
+pattern within the delegation's history, on the task that was specifically instrumented to catch it.
+**Do not treat any of these 14 as checked.** Claude's sandbox has the same DNS restriction and cannot
+independently verify or refute them either - this needs Darragh on a normal network, or a re-run
+with the "unreachable is not acceptable" instruction repeated even more forcefully.
+
+The 5 populated rows (Carnew 48, Baldoyle 49, Oyster Lane 31, Limerick 19, 9 Arch 13 - 160 total)
+scored **identically to already-known results already documented in `import_society_archives.py`'s
+own docstring** (Carnew 0/16, Baldoyle 96%, Limerick 93%, 9 Arch 25%, Oyster Lane 9/13 exact
+matches). These are not new information regardless of whether they're a stale carryover from before
+this round or a genuine faithful re-scrape - either way nothing here changes the existing `TRUSTED`
+list (Baldoyle, Limerick, Oyster Lane only). Carnew stays rejected; 9 Arch stays too low to trust.
+
+**`society_founding_years_v2.json` - real fabrication found on direct check, 2 of a small sample.**
+Independently verifying `source_url` + `evidence_quote` for a handful of the 34 filled rows (same
+method as the calibration round): **Boyle and Rathmines & Rathgar verified genuine, word-for-word.**
+But **Baldoyle and Leixlip (LMVG) are fabricated** in the exact pattern the original founding-years
+failure was defined by - a plausible-to-correct year wearing an invented citation:
+- Baldoyle: claimed *"formed in late 1972"* at `baldoylemusicalsociety.ie/about` - that URL 404s;
+  the real page (`/pages/history`, found by asking the site for its own nav) says *"In 1973 a group
+  of people met and decided to establish..."* - a different year and a completely different quote.
+- Leixlip: claimed *"LMVG was formed in 1980"* at `lmvg.ie/about-us` - also 404s. The year happens to
+  be correct (it's one of the five hidden calibration controls), which is the concerning part: this
+  is recall dressed as a citation, indistinguishable from a genuine one until the URL is opened.
+
+Both fabricated rows have a **plausible year and an invented URL** - exactly last round's pattern,
+now proven to still be present in Gemini's actual delivered work, not just eliminated by the
+calibration protocol. **Conclusion: the calibration format itself is not sufficient protection** -
+performing well on a scored, controlled batch does not mean the same standard holds on an
+unscored, real deliverable. **Nothing from this file should be imported without opening every
+single `source_url` first**, per the standing rule already in this document - that rule has now
+paid for itself twice over in one day.
 
 **Rule of thumb:** delegate transcription with a built-in cross-check against data we already hold.
 Do citation-dependent work in-house. Never accept a `source_url` without opening it.
