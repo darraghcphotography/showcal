@@ -37,11 +37,22 @@ Darragh's own screenshots of the live site:
   **not built** - it needs a new schema column, a taxonomy decision, and a Gemini task under the
   calibration protocol; see the delegation section.
 
+**Session ended on a usage limit (2026-08-25) - handed to Gemini rather than left half-done.**
+`enrichment/REDO_BRIEF_2026-08-25.md` was sent covering two re-dos from today's rejected work:
+(1) the 14 archive pages that came back with an identical templated "unreachable" note, now with a
+firmer instruction and a real per-page status required, plus a retest of the 5 archives recorded
+dead by the DNS-broken check (Ballywillan matters most, 1952-2025); (2) Leixlip's fabricated founding
+citation (Baldoyle's is already fixed - we have the real answer, 1973, no redo needed). **Next
+session: check whether Gemini's redo has landed in `enrichment/`, and score it the same way as
+before** (fetch every `source_url`, string-match the quote, run the overlap cross-check on the
+archives) - do not import anything on trust, per the standing rule that's now paid for itself three
+times in one day.
+
 **Three jobs are genuinely ready to start** - pick by appetite:
-the archive transcription immediately below (data work, well-understood, high certainty of value);
-**item 1, the society coverage checklist grid** (Darragh's own request, needs a plan + mockups
-first); or item 2, internal-only person identity resolution (the item with measured harm that grows
-while untouched).
+the archive transcription immediately below (data work, well-understood, high certainty of value -
+now also queued with Gemini, see above); **item 1, the society coverage checklist grid** (Darragh's
+own request, needs a plan + mockups first); or item 2, internal-only person identity resolution (the
+item with measured harm that grows while untouched).
 
 ~~One security gap worth knowing about~~ - **FIXED and pushed 2026-08-25 (`fc3fbb2`).** Photo
 submissions are now decoded before being written, so a file named `.jpg` that is really HTML or SVG
