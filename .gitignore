@@ -63,3 +63,7 @@ venues_report.md
 # above: inputs, reviewed via ROADMAP.md, not repo content.
 VENUE_CATEGORIZATION_PROPOSAL.md
 DATA_ENRICHMENT_AND_SCRAPING_OPPORTUNITIES.md
+
+# Throwaway working files - scratch_*.json etc. get created while checking
+# something against production and are never repo content.
+scratch_*

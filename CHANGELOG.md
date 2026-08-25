@@ -2,6 +2,18 @@
 
 ---
 
+Venues are now sorted into types - Theatre, Arts Centre, School or College, Community or Parish Hall - shown as a badge on each venue and filterable on the Venues directory, so you can find just the real theatres or just the parish halls
+
+---
+
+Every show title now credits who actually wrote it: composer, lyricist, and book writer, plus which licensing house handles it. 300 titles filled in
+
+---
+
+Venue pages now list a box office phone number and booking link where the venue has one - 72 venues so far
+
+---
+
 A society's page can now show when it was founded, a title's own page can credit its composer/lyricist/book writer and licensing house, and a venue's page can list a box office phone number and booking link - three small new fields, populated as moderators fill them in
 
 ---
