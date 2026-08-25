@@ -83,6 +83,13 @@ shell there:
   rather than refuse, consistent with QNAP's own firewall app blocking it rather than the service
   being down. Triggering "pull and redeploy" still needs to go through the Portainer UI (or Darragh's
   phone/Chrome Remote Desktop) for now - this was investigated once and not solved, not untried.
+- **GitOps updates enabled 2026-08-25 (Polling, 5m interval)** - a push to `main` now reaches
+  production **on its own within ~5 minutes**, with no manual "pull and redeploy" click and no human
+  review step in between. This is a real change to how much autonomy a push has: previously Darragh's
+  own redeploy click was the last checkpoint before anything shipped went live; now there isn't one.
+  Weigh that when deciding whether to push something uncertain versus flagging it first. Also: any
+  config change made by hand in the Portainer UI (env vars, etc.) gets silently overwritten on the
+  next poll - anything that needs to persist has to live in `docker-compose.yml` in git instead.
 - The `aims.db` file itself lives at `/share/CACHEDEV1_DATA/Data/config/aims-web/aims.db` on the NAS
   host - safe to `scp` down read-only for analysis (a live production audit doesn't need to run
   inside the container), but never edit that copy and push it back; use the container's own management
