@@ -69,12 +69,12 @@ in it:**
 | Muse Productions | 3 | 0 | **0% - same red flag as Carnew** (small sample) |
 | Kilmacud, Boyle, Waterford | 0 | - | no overlapping years - **unverifiable by this method**, not passed |
 
-**Action: add Killarney and Castlebar to `TRUSTED` in `import_society_archives.py` and import them -
-they've cleared the identical bar Baldoyle/Limerick/Oyster Lane already did.** Everything else in
-this file stays untrusted. Kilmacud/Boyle/Waterford aren't rejected, just unverifiable this way -
-would need a different check (e.g. Darragh's own knowledge of a specific claimed production) before
-being trusted on faith. Not yet run - this needs Darragh's go-ahead before writing to the live DB,
-same as every other import today.
+~~**Action: add Killarney and Castlebar to TRUSTED and import them**~~ - **DONE, 2026-08-25
+(`cdd44c4`).** Ran against production after a dry-run confirmed exactly 11 new rows with no
+surprises (6 Killarney, 5 Castlebar); verified live afterward - all 11 present, 58 total rows now
+carry this import's reason tag. Everything else stays untrusted. Kilmacud/Boyle/Waterford aren't
+rejected, just unverifiable this way - would need a different check (e.g. Darragh's own knowledge
+of a specific claimed production) before being trusted on faith.
 
 **Three jobs are genuinely ready to start** - pick by appetite:
 the archive transcription immediately below (data work, well-understood, high certainty of value -
@@ -108,7 +108,7 @@ Production data as of now:
 | Societies | 194 (6 with a founding year) |
 | Venues | 118 (113 typed, 72 with box office contact) |
 | Show titles with info | 300 (all 300 now credit composer/lyricist/book/licensing house) |
-| historical_results rows | 4,999 |
+| historical_results rows | 5,010 (was 4,999; +11 from Killarney/Castlebar archives, 2026-08-25) |
 | Award rows with no society match | 539 across 69 distinct names, 0 decisions made yet |
 | Photo submissions pending | 0 |
 | FAQ entries | 0 published, 0 draft |
