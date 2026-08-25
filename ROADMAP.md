@@ -37,16 +37,44 @@ Darragh's own screenshots of the live site:
   **not built** - it needs a new schema column, a taxonomy decision, and a Gemini task under the
   calibration protocol; see the delegation section.
 
-**Session ended on a usage limit (2026-08-25) - handed to Gemini rather than left half-done.**
-`enrichment/REDO_BRIEF_2026-08-25.md` was sent covering two re-dos from today's rejected work:
-(1) the 14 archive pages that came back with an identical templated "unreachable" note, now with a
-firmer instruction and a real per-page status required, plus a retest of the 5 archives recorded
-dead by the DNS-broken check (Ballywillan matters most, 1952-2025); (2) Leixlip's fabricated founding
-citation (Baldoyle's is already fixed - we have the real answer, 1973, no redo needed). **Next
-session: check whether Gemini's redo has landed in `enrichment/`, and score it the same way as
-before** (fetch every `source_url`, string-match the quote, run the overlap cross-check on the
-archives) - do not import anything on trust, per the standing rule that's now paid for itself three
-times in one day.
+**The redo came back and was scored (2026-08-25) - genuinely mixed, not the clean pass Gemini's own
+"all tasks completed and verified" summary implied.** Two real, distinct results:
+
+**The citation fixes are both genuine.** Leixlip now cites `lmvg.ie/about-lmvg/` with the quote
+*"Established in Leixlip in 1980..."* - independently fetched and confirmed word-for-word, page
+loads (no 404, unlike the invented `/about-us` last time). Baldoyle was also quietly redone (not
+asked for) and landed on the answer already independently found - 1973, `/pages/history`. Both
+fabrications from earlier today are now fixed with real, checkable sources.
+
+**The archive reachability half genuinely improved - no more templated non-answer.** All 14 rows now
+carry distinct, specific notes instead of one copy-pasted line: real HTTP/SSL/DNS error strings for
+the 4 still genuinely dead (`SSLV3_ALERT_HANDSHAKE_FAILURE` for Ennis, `UNEXPECTED_EOF_WHILE_READING`
+for Dun Laoghaire - though `www.dmds.ie` itself is reachable, worth a manual look - TLS mismatch +
+DNS failure for Kilcock, plain DNS failure for Pop-Up Sligo), and real transcriptions/facts for the
+other 10, including Ballywillan (no production list - the "past productions" subpage turned out to
+be an image gallery, not transcribable text - but its narrative page confirms the 1952 founding and
+1996 first musical (Oliver!), consistent with what this file already believed).
+
+**But "HTTP-verified" is not the same test as "the content is right," and running the actual overlap
+cross-check on the newly-transcribed data - the same check that caught Carnew - found real problems
+in it:**
+
+| Society | Overlap years | Matched | Verdict |
+|---|---|---|---|
+| Killarney Musical Society | 7 | 7 | **100% - clean pass** |
+| Castlebar Musical & Dramatic Society | 5 | 5 | **100% - clean pass** |
+| Fortwilliam Musical Society | 31 | 17 | 55% - too mixed to trust |
+| Glencullen Dundrum MDS | 17 | 8 | 47% - too mixed to trust |
+| Harolds Cross Tallaght Musical Society | 5 | 0 | **0% - same red flag as Carnew** |
+| Muse Productions | 3 | 0 | **0% - same red flag as Carnew** (small sample) |
+| Kilmacud, Boyle, Waterford | 0 | - | no overlapping years - **unverifiable by this method**, not passed |
+
+**Action: add Killarney and Castlebar to `TRUSTED` in `import_society_archives.py` and import them -
+they've cleared the identical bar Baldoyle/Limerick/Oyster Lane already did.** Everything else in
+this file stays untrusted. Kilmacud/Boyle/Waterford aren't rejected, just unverifiable this way -
+would need a different check (e.g. Darragh's own knowledge of a specific claimed production) before
+being trusted on faith. Not yet run - this needs Darragh's go-ahead before writing to the live DB,
+same as every other import today.
 
 **Three jobs are genuinely ready to start** - pick by appetite:
 the archive transcription immediately below (data work, well-understood, high certainty of value -
