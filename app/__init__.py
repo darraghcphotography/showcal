@@ -198,12 +198,22 @@ def create_app(test_config=None):
             "csp_nonce": g.csp_nonce,
         }
 
+    from urllib.parse import urlparse
+
     from flask import flash, redirect, request, url_for
 
     @app.errorhandler(413)
     def too_large(e):
         flash("That file is too large - images must be under 8 MB.", "error")
-        return redirect(request.referrer or url_for("public.index")), 302
+        # request.referrer is a client-supplied header - redirecting straight
+        # to it is an open redirect (a crafted Referer pointing off-site would
+        # send this app's own visitors there). Only follow it if it actually
+        # points back at this site; otherwise fall back to the homepage, same
+        # as when there's no referrer at all.
+        target = request.referrer
+        if target and urlparse(target).netloc != urlparse(request.host_url).netloc:
+            target = None
+        return redirect(target or url_for("public.index")), 302
 
     from flask import render_template
 
