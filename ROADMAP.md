@@ -15,12 +15,18 @@ again.
 
 ## START HERE - where things stand (2026-08-25, end of session)
 
-**759 tests green, no known bugs. FOUR commits are NOT yet confirmed live - a redeploy is needed
-before any of this is real for a visitor:** `3f35355` (season calendar), `87b7b3d` (titles filters),
-`f3e8561` (society next-show highlight fix), `b1ddceb` (venues card redesign + map, `cdd44c4`'s
-TRUSTED-list code change too, though that one's DB write already landed). Checked directly against
-the running container earlier tonight for the first two - confirmed absent. Re-verify all four the
-same way after the next Portainer redeploy, don't assume.
+**769 tests green, no known bugs.** A Portainer redeploy at 22:12 BST confirmed live everything
+through `b1ddceb` (season calendar, titles filters, next-show fix, venues card+map - checked
+directly against the running container). **Two more commits since then are NOT yet deployed:**
+`8b120ad` (map dark mode + region/county/society filters, both from live feedback right after the
+map shipped) and `37c7e61` (the logo-candidate review queue, see below). Re-verify both the same way
+after the next redeploy.
+
+**Important - the logo review queue needs one more step after it's deployed, not just a redeploy.**
+`37c7e61` builds `/admin/logo-candidates`, but the table is empty until `import_logo_candidates.py`
+actually runs against production (same copy-into-container method used for every other import
+tonight - the script + `enrichment/logo_worklist.json`, which already has the 11 verified `found:
+true` rows, aren't in the container automatically). Nothing to review will appear until that runs.
 
 The 2026-08-25 session, in order: interrogated the backlog; built the three ready backlog items
 (`f07bd11`); scored Gemini's two remaining deliverables and rejected both (see the delegation
