@@ -86,6 +86,30 @@
     with its own adjudicator - see <a href="{{ url_for('public.about') }}">About</a> for how societies are
     split between them.</p>
 
+  {# Same pattern as awards.html: each chip is the current URL with just that
+     one filter's query param removed - a plain link, no JS. Dropdowns/search
+     are still how a filter gets set; chips are only a summary/removal layer
+     once one's applied. #}
+  {% set active_filters = [] %}
+  {% if q %}{% set _ = active_filters.append(('q', 'Search: “' ~ q ~ '”')) %}{% endif %}
+  {% if selected_season %}{% set _ = active_filters.append(('season', 'Season: ' ~ selected_season)) %}{% endif %}
+  {% if selected_tier %}{% set _ = active_filters.append(('tier', 'Tier: ' ~ selected_tier)) %}{% endif %}
+  {% if selected_adjudicator %}
+    {% set adj_name = (adjudicators|selectattr('id', 'equalto', selected_adjudicator)|first)['name'] %}
+    {% set _ = active_filters.append(('adjudicator', 'Adjudicator: ' ~ adj_name)) %}
+  {% endif %}
+  {% if active_filters %}
+    <div class="filter-chips">
+      {% for key, label in active_filters %}
+        {% set remove_args = request.args.to_dict() %}
+        {% set _ = remove_args.pop(key, none) %}
+        {% set _ = remove_args.pop('page', none) %}
+        <a class="filter-chip" href="{{ url_for('public.reviews_index', **remove_args) }}">{{ label }} <span class="x" aria-hidden="true">&times;</span></a>
+      {% endfor %}
+      <a class="filter-chip filter-chip-clear" href="{{ url_for('public.reviews_index') }}">Clear all</a>
+    </div>
+  {% endif %}
+
   {% if q %}
     <p class="meta">{{ result_count }} result{{ '' if result_count == 1 else 's' }} for &ldquo;{{ q }}&rdquo;</p>
     {% if flat_reviews %}

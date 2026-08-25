@@ -92,6 +92,37 @@ def test_reviews_render_as_a_card_grid(client, db):
     assert '<div class="review-card-top">' in body
 
 
+def test_filter_chips_shown_for_each_active_filter_and_drop_only_their_own_param(client, db):
+    """Same pattern as /awards: a chip per active filter, each a plain link
+    to the current URL with just that one param removed."""
+    society_id = seed_society(db)
+    adjudicator_id = seed_adjudicator(db, "Jane Smith")
+    assign(db, "22/23", "Sullivan", adjudicator_id)
+    add_full_text_review(db, society_id, "The Addams Family", season="22/23", tier="Sullivan",
+                          adjudicator_id=adjudicator_id)
+
+    body = client.get(
+        f"/reviews?season=22/23&tier=Sullivan&adjudicator={adjudicator_id}"
+    ).get_data(as_text=True)
+
+    assert 'class="filter-chips"' in body
+    assert "Season: 22/23" in body
+    assert "Tier: Sullivan" in body
+    assert "Adjudicator: Jane Smith" in body
+
+    # The season chip's link drops only "season", keeping tier and adjudicator.
+    assert f"?tier=Sullivan&amp;adjudicator={adjudicator_id}" in body \
+        or f"?adjudicator={adjudicator_id}&amp;tier=Sullivan" in body
+
+
+def test_no_filter_chips_shown_with_no_active_filters(client, db):
+    society_id = seed_society(db)
+    add_full_text_review(db, society_id, "The Addams Family", season="22/23")
+
+    body = client.get("/reviews").get_data(as_text=True)
+    assert 'class="filter-chips"' not in body
+
+
 def test_search_result_card_shows_season_in_the_meta_line(client, db):
     """Search-result mode has no season <details> grouping to carry the
     season/tier, so it's folded into the card's own society/meta line

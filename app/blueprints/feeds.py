@@ -56,23 +56,40 @@ def calendar_ics():
     """Subscribable calendar feed of every approved, dated show - the full
     history, not just upcoming ones, since calendar apps handle past events
     fine and it keeps this simple (no separate "upcoming-only" feed to
-    maintain). Optional ?section=Gilbert/Sullivan and/or ?region=<region>
-    narrow it - same feed mechanism, just filtered (and combinable, e.g.
-    ?section=Gilbert&region=Eastern), so e.g. an adjudicator who only covers
-    one tier, or a visitor who only cares about their own region, can
-    subscribe to just their own shows and have it genuinely auto-update
+    maintain). Optional ?section=Gilbert/Sullivan, ?region=<region>,
+    ?society=<id> and/or ?season=<season> narrow it - same feed mechanism,
+    just filtered (and combinable, e.g. ?society=12&season=25/26), so e.g. an
+    adjudicator who only covers one tier, a visitor who only cares about
+    their own region, or a society wanting just its own production history
+    can subscribe to exactly that and have it genuinely auto-update
     (calendar apps periodically re-fetch a subscribed .ics URL) rather than
     needing a one-off export. Any other/missing value falls back to
     unfiltered on that dimension, same "invalid param -> default" convention
     as the rest of the site."""
+    db = get_db()
+
     section = request.args.get("section")
     if section not in ("Gilbert", "Sullivan"):
         section = None
     region = request.args.get("region")
     if region not in REGIONS:
         region = None
+    society_id = request.args.get("society", type=int)
+    society_name = None
+    if society_id is not None:
+        society_row = db.execute(
+            "SELECT name FROM societies WHERE id = ? AND NOT hidden", (society_id,)
+        ).fetchone()
+        if society_row is None:
+            society_id = None
+        else:
+            society_name = society_row["name"]
+    season = request.args.get("season")
+    if season is not None and db.execute(
+        "SELECT 1 FROM shows WHERE season = ? LIMIT 1", (season,)
+    ).fetchone() is None:
+        season = None
 
-    db = get_db()
     query = """
         SELECT shows.*, societies.name AS society_name
         FROM shows JOIN societies ON societies.id = shows.society_id
@@ -87,10 +104,16 @@ def calendar_ics():
     if region:
         query += " AND shows.region = ?"
         params.append(region)
+    if society_id:
+        query += " AND shows.society_id = ?"
+        params.append(society_id)
+    if season:
+        query += " AND shows.season = ?"
+        params.append(season)
     query += " ORDER BY shows.opening_date"
     rows = db.execute(query, params).fetchall()
 
-    calname_bits = [b for b in (section, region) if b]
+    calname_bits = [b for b in (section, region, society_name, season) if b]
     calname = f"DC Show Tracker - {' - '.join(calname_bits)}" if calname_bits else "DC Show Tracker"
     stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
     lines = [

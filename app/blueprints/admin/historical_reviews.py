@@ -644,10 +644,38 @@ def apply_show_title_match(show_id):
 
 
 def match_show_for_edit(db, society_id, season, show_raw):
+    """Exact match first, then a normalization-insensitive match (case/
+    punctuation/whitespace only - see similarity.normalize_title) against
+    that same society+season's own shows, so 'RENT' vs 'Rent' or a stray
+    trailing space doesn't wrongly fall through to no_show_match. Not fuzzy
+    matching - CLAUDE.md forbids that (e.g. Frozen vs Frozen Jr. must stay
+    distinct) - normalize_title only ever equates strings that are the same
+    title once case/punctuation/whitespace differences are stripped.
+
+    Scoped to this society+season (usually a handful of rows, at most a
+    season's worth of productions) rather than calling find_close_title's
+    all-shows query, since this is called once per review in a bulk-apply
+    loop (see bulk_historical_reviews below) and an unscoped per-row query
+    over the whole shows table there is exactly the O(n^2)-in-a-loop pattern
+    that caused a live 524 in August 2026."""
     if society_id is None:
         return None
     row = db.execute(
         "SELECT id FROM shows WHERE society_id = ? AND season = ? AND show = ? AND moderation_status = 'approved'",
         (society_id, season, show_raw),
     ).fetchone()
-    return row[0] if row else None
+    if row:
+        return row[0]
+
+    norm = normalize_title(show_raw)
+    if not norm:
+        return None
+    candidates = db.execute(
+        "SELECT id, show FROM shows WHERE society_id = ? AND season = ? AND moderation_status = 'approved'"
+        " AND show IS NOT NULL",
+        (society_id, season),
+    ).fetchall()
+    for candidate in candidates:
+        if normalize_title(candidate["show"]) == norm:
+            return candidate["id"]
+    return None
