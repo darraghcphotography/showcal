@@ -13,7 +13,35 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - where things stand (2026-08-24, night)
+## START HERE - where things stand (2026-08-25)
+
+**The backlog planning session cleared four of the five remaining coding items.** All pushed, all
+tests green (718). What shipped: the credits import (300 titles), the box office import (72 venues),
+venue categorization (`venue_type` + `/venues` filter + badge), the orphaned-title fix, and the
+award-archive society links. Wikidata was dropped as superseded. The full reasoning, options and
+trade-offs are in `C:\Users\Darragh\.claude\plans\ok-i-ve-done-a-nifty-star.md`.
+
+**READ THIS BEFORE DELEGATING RESEARCH AGAIN.** Antigravity's four returned worklists split cleanly
+by task type, and one was fabricated:
+
+| Worklist | Verdict | Evidence |
+|---|---|---|
+| `show_credits_worklist.json` (300) | **Good - imported** | 15/15 well-known titles exactly right, including the fiddly ones (Chicago's book = Ebb & Fosse, Sweeney Todd's = Hugh Wheeler) |
+| `venue_box_office_worklist.json` (108) | **Good - imported (72)** | St. Michael's New Ross matches its own contact page exactly; border-town area codes correct where a county guess would fail (New Ross/Carrick-on-Suir 051, Ballinasloe 090, Ratoath 01); all 8 shared numbers are duplicate rows for one building; 36 left blank rather than padded |
+| `society_founding_years_worklist.json` (143) | **REJECTED - not imported** | **18 of 143 claim a founding year LATER than a production we already hold for that society** (WLOS claims 1952 against a 1912 record). 12-19% demonstrable error rate in *both* the Facebook-sourced and own-website-sourced halves, and 0 blanks out of 143 despite "a blank beats a guess" |
+| `venues_coordinate_verification.json` (108) | **REJECTED - fabricated** | 3 of 3 sampled OSM way ids bogus: `way/437996384` is **a fence**, `way/236173007` **404s**, `way/146059174` is an unnamed building. Reported 107/108 "verified" while only appending decimal digits to our existing numbers |
+
+**The rule:** widely-published, frequently-repeated facts (musical theatre credits, venue phone
+numbers) come back reliable. Obscure single identifiers (OSM way ids, coordinates, one founding year
+per society) get fabricated with confident-looking detail - especially when the task shape pressures
+completeness. Delegate the former; verify the latter mechanically or do it in-house.
+
+**Known-imprecise, accepted:** the ~87 venue coordinates imported 2026-08-24 have real drift (An
+Grianán Theatre is ~290m out). Darragh's call is to leave them. Worth knowing why that's low-stakes:
+`venue_detail.html`'s "Get directions" link passes the venue *name* to Google, which resolves it
+properly - only the secondary "See the exact spot" link uses our stored lat/long.
+
+## Earlier - where things stood (2026-08-24, night)
 
 **Antigravity enrichment pass: spot-checked and imported to production, done.** Three worklists
 Claude generated from real production gaps (`societies_worklist.json` - 189 societies with zero
@@ -151,11 +179,16 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
 
 ## Next feasible things, roughly in order
 
-- **Historical awards linkage (570 `historical_results` rows missing `society_id`, 172 missing
-  `production_id`)** - real gap Antigravity's audit found (numbers verified against production), but
-  needs doing directly with this repo's own tools (the same fuzzy-matching machinery behind the
-  historical-reviews queue), not handed to an external worklist - `production_id` especially is a
-  derived field the app computes itself and must never be hand-assigned. Not started.
+- ~~**Historical awards linkage**~~ - **built 2026-08-25** (`54b7609`), awaiting redeploy. The real
+  bug turned out to be silent data loss, not the missing links: `import_awards.py` wipes and reloads
+  every `source='import'` row, which is *all* 540 of them, so any `society_id` set by hand was
+  destroyed on the next import. Now stored in a `historical_society_links` side table keyed on the
+  printed name and re-applied by the importer. New `/admin/historical-society-links` queue: 69
+  distinct names, not 540 rows. Expect a small yield - only 9 names get any suggestion, and several
+  of those are false positives (`distinctive_score` scores "Headford Choral" vs "Headford Musical" at
+  1.00, since both reduce to a bare town name) - so the queue is built around bulk "no current
+  society", with warnings and a mandatory Undo. `production_id` deliberately untouched: it's derived,
+  and the rebuild recomputes it once a link marks productions stale.
 
 - **Poster thumbnail pipeline - built, awaiting redeploy + backfill run.** `save_poster` now
   downscales to 600px and re-encodes as WebP at upload time (`beead5b`, pushed); Pillow added to
@@ -177,10 +210,15 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
   already-affected `historical_reviews`/`shows` rows (`42nd Street`, `The 25th Annual Putnam County
   Spelling Bee`) - run with `--dry-run` first, then for real, same pattern as every other one-off
   script here.
-- **Venue categorization (`venue_type` column + directory filter)** - data gathering done
-  (2026-08-24: 82 venues now have a researched `venue_type` sitting in
-  `enrichment/venues_worklist.json`, not yet written anywhere - see START HERE). What's left is the
-  actual feature: the worthwhile core of Antigravity's `VENUE_CATEGORIZATION_PROPOSAL.md`
+- ~~**Venue categorization**~~ - **built 2026-08-25** (`0f97e39`), awaiting redeploy. Five types
+  (Theatre / Arts Centre / School or College / Community or Parish Hall / Other), a `/venues` type
+  filter with removable chips, and a neutral `.tag-tier` badge on cards and venue pages. Types are
+  derived from the venue's own *name* by `classify_venue_types.py`, not from the enrichment
+  worklist - that came from the same delegated pass whose coordinate half was fabricated, and its
+  categories never once used "Arts Centre" despite a dozen venues being named that. Name-derivation
+  is deterministic, auditable and can't invent anything; 82 of 118 classify cleanly, 7 need an
+  explicit override, and the archive's place-name artifacts are never typed. Historical detail on the
+  original proposal: the worthwhile core of Antigravity's `VENUE_CATEGORIZATION_PROPOSAL.md`
   (2026-08-24, gitignored input doc, reviewed same day) is the 5-category schema idea, the
   `/venues` filter, badges on venue pages - fits the existing tier-badge/filter-chip patterns, and
   the doc correctly identified that `venues` is a derived table needing `CURATED_COLUMNS`
@@ -199,14 +237,12 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
   fuzzy matching), and piping scraped society archives "directly into shows" (conflicts with the
   moderation-first/skeleton-row pattern; the archive-backfill item above already tracks this
   properly). Its Ticketsolve ticket_url idea is plausible for a later pass.
-- **`/admin/data-quality`'s Orphaned title data section can't actually fix what it describes** -
-  found 2026-08-24 while resolving a real instance of it. The "Edit" link for `show_info` only
-  edits synopsis/rights fields (keyed by the existing title, no rename field); "Clear" for
-  `show_links` only deletes. Neither can correct a title-casing mismatch, which is the entire
-  premise of that section's own hint text. A small job: add a way to rename the `show` key on both
-  tables (to a real match already in `shows`/`historical_results`, not a free-text field - keeps
-  the site's no-fuzzy-matching rule intact) so the next orphaned title doesn't need direct database
-  access to fix.
+- ~~**`/admin/data-quality`'s Orphaned title data section**~~ - **fixed 2026-08-25** (`07171fe`),
+  awaiting redeploy. Turned out to be two bugs: the section couldn't rename (no route anywhere could
+  touch `show_info`/`show_links`' `show` primary key), *and* `_merge_titles` was manufacturing fresh
+  orphans on every merge by retitling shows/historical_results while leaving the title-keyed tables
+  behind. Both fixed - a Re-point action constrained to a real existing title, and a shared
+  `move_title_keyed_rows()` the merge tool now calls.
 - **FAQ page - built and pushed** (`0bf084b`), awaiting redeploy. Admin-managed rather than
   hardcoded, per Darragh's ask: `/admin/faq` add/edit/reorder/publish, a question stays a draft
   until explicitly published, public `/faq` only shows published ones in order. No actual questions
@@ -222,10 +258,11 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
   enrichment import). **`Peter Pan` / `Peter Pan, A Musical Adventure` deliberately left alone** -
   no overlapping society, and the latter is a real distinct licensed title (Piers Chater-Robinson) -
   needs Darragh's own knowledge of the two productions, not more digging.
-- **Show/title enrichment, Source C follow-ups** - Source C (circuit intelligence) already shipped.
-  Source A (Wikidata) has a real bug in its proposed query (`wdt:P58` should be `wdt:P87`) and only
-  reliably resolves 48 of 306 titles without fuzzy title-matching, which this repo avoids - fix the
-  query before building. Source B (licensing-house specs) isn't a pipeline, it's manual data entry.
+- ~~**Show/title enrichment, Source A (Wikidata)**~~ - **dropped 2026-08-25 as superseded.** It
+  targeted exactly the fields the credits worklist has now filled correctly for all 300 titles
+  (composer/lyricist/book_author/licensing_house), and it was always capped at 48 of 306 titles by
+  this repo's exact-title-matching rule. Source C (circuit intelligence) shipped long ago; Source B
+  (licensing-house specs) was never a pipeline, just manual data entry.
 - **Venue research, the long tail - mostly closed by this session's enrichment import.** Re-checked
   2026-08-24 evening: only 13 real venues (excluding known artifacts and slash-joined dual-venue
   names) still have a gap, and every one of them now has capacity/coordinates/auditorium type
@@ -248,6 +285,16 @@ folder with `CREDITS_AND_CONTACTS_BRIEF.md`.
   being trusted either way. The homework is broader than just those flagged 2: verify all 108 real
   venues (5 known artifacts/slash-combos excluded) against OpenStreetMap, plus find a website for
   the 19 that don't have one. Sections 1-2 of the same proposal are already adopted.
+
+- **Society founding years - needs a different method, not another delegated pass.** The
+  `founded_year` column, admin field and public display all shipped (`52f0562`), but the researched
+  data was rejected: 18 of 143 claimed a year later than a production we already hold, a 12-19%
+  demonstrable error rate in both the Facebook-sourced and own-website-sourced halves. Two are
+  independently corroborated from the programme photos already read (Castlerea 1968, Tullamore 1954)
+  and could be entered by hand. A workable automated approach would be to only accept a year that a
+  society's own site states explicitly *and* that doesn't contradict our earliest record for them -
+  that contradiction check is cheap and already written, and it's a genuine floor: a society with a
+  1912 award record was demonstrably founded on or before 1912.
 
 ## Data-accuracy follow-ups (from the 2026-08-23 report check), need Darragh's input or real research
 
