@@ -1,3 +1,7 @@
+Six societies now show their founding year, and Baldoyle and Oyster Lane's production histories go back decades further - Baldoyle to 1973 and Oyster Lane to 1994, 47 productions added from the societies' own published archives
+
+---
+
 "Share an old photo" is now "Submit society history", reachable on mobile from the More page (it was desktop-footer only before), and accepts iPhone photos properly - a real upload was failing outright since iPhones save photos in a format the site didn't understand or could display back
 
 ---
