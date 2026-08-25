@@ -293,11 +293,31 @@ its suggestions are entered here.
      others are on hiatus and may return. Needs a real column (`COLUMN_MIGRATIONS` in `app/db.py`,
      per CLAUDE.md) plus a decision on how each state renders publicly.
 
-   **Plan + mockups before any code**, per Darragh and per the repo's mockup-first agreement. Open
-   questions for the plan: which columns are derived vs manually ticked; whether status is one field
-   or two (status + "as of" year, like the existing `section_as_of`); whether Closed societies drop
-   out of the checklist entirely; and how this relates to the 28 orphaned Inactive societies already
-   flagged under data-accuracy follow-ups - this feature may be the tool that resolves that item.
+   **Mockup built 2026-08-25: `mockups/society_checklist_grid.html`** - all 192 visible societies,
+   real production data, status chips that filter, gap-count sort. Three findings from measuring the
+   data first, which shaped it:
+
+   - **Every column is derivable; nothing needs hand-ticking.** Coverage today: region 100%, socials
+     71%, about 70%, default venue 65%, website 38%, poster 6%, logo 4%, founded year 3%. So the grid
+     is a *view*, not a new data-entry surface. The only state worth storing per cell is
+     **"checked, and there is genuinely nothing to get"** - which is what stops a permanent gap from
+     nagging forever. That's the one new concept the feature actually introduces.
+   - **Active/Dormant/Closed is not enough - five states are needed.** Of the 37 societies with zero
+     shows, **5 are pantomime companies** (Arklow Panto Creations, Ballinasloe Panto Company,
+     Castlebar Pantomime, Renmore Pantomime Society, Rush Panto Society) which will never have shows
+     because panto is out of scope, 6 are youth/education groups, and of the remaining 26, **20 have
+     no shows *and* no awards** - almost certainly the 28 orphaned Inactive societies on the
+     data-accuracy list. "Gone", "out of scope" and "we never gathered it" are three different
+     things and one status field must not conflate them. Suggested: Active / Dormant / Closed /
+     Out of scope / **Unverified** (the default, meaning nobody has looked yet).
+   - **The chase list is smaller than it looks.** On the mockup's heuristic: 128 active, 27 dormant
+     (have shows but nothing for 2025/26), 26 unverified, 6 closed, 5 out of scope. The 27 dormant
+     are the actionable ones for a season-entry push.
+
+   **Still needs Darragh before code:** whether the heuristic-suggested status should be pre-filled
+   for him to confirm or start blank (the mockup pre-fills to show the shape, but a wrong pre-fill
+   that gets rubber-stamped is worse than a blank); whether status needs an "as of" year like the
+   existing `section_as_of`; and whether Closed/Out-of-scope rows drop off the grid or just sort last.
 2. **Person identity resolution, internal only.** The only parked item with *measured* harm rather
    than a hypothesis: 1,730 distinct award nominee names, 746 credit names, **217 credit names are
    also an award nominee by exact match alone**, and `/admin/backfill-credits` is actively adding
