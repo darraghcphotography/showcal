@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Venues map - DC Show Tracker{% endblock %}
+{% block og_description %}Every AIMS venue we can place precisely, on a map.{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
+
+{% block content %}
+  <h1>Venues map</h1>
+  <p class="meta" style="max-width: 68ch;">
+    <strong>{{ mapped_count }}</strong> of {{ total }} venue{{ '' if total == 1 else 's' }} have a
+    map pin - every AIMS production venue we can place precisely. Click a pin or a sidebar row for
+    details, or see the <a href="{{ url_for('public.venues_index') }}">full list</a>.
+  </p>
+
+  <div class="map-layout">
+    <div class="map-sidebar">
+      <h2>{{ mapped_count }} venue{{ '' if mapped_count == 1 else 's' }}</h2>
+      <div id="map-sidebar-list"></div>
+    </div>
+    <div id="venues-map" role="application" aria-label="Map of AIMS venues"></div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script nonce="{{ csp_nonce }}">
+    (function () {
+      var pins = {{ pins|tojson }};
+      var map = L.map('venues-map', { scrollWheelZoom: false }).setView([53.35, -7.8], 7);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd', maxZoom: 19
+      }).addTo(map);
+
+      var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2b3a42';
+      var bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#faf8f3';
+      var icon = L.divIcon({
+        className: '', iconSize: [12, 12], iconAnchor: [6, 6],
+        html: '<div style="width:12px;height:12px;border-radius:50%;background:' + accent +
+          ';border:2px solid ' + bg + ';box-shadow:0 0 0 1px rgba(0,0,0,.25);"></div>'
+      });
+
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      var sidebar = document.getElementById('map-sidebar-list');
+      pins.forEach(function (v) {
+        var marker = L.marker([v.lat, v.lng], { icon: icon }).addTo(map);
+        var meta = [v.place, v.region].filter(Boolean).map(esc).join(' &middot; ') +
+          (v.capacity ? ' &middot; ' + esc(v.capacity) + ' seats' : '');
+        marker.bindPopup(
+          '<div class="popup-title">' + esc(v.name) + '</div>' +
+          '<div class="popup-meta">' + meta + '</div>' +
+          '<div class="popup-meta">' + v.n + ' production' + (v.n === 1 ? '' : 's') + ' &middot; ' +
+          v.soc_n + ' societ' + (v.soc_n === 1 ? 'y' : 'ies') + '</div>' +
+          '<a class="popup-link" href="' + esc(v.url) + '">See venue &rarr;</a>'
+        );
+
+        var row = document.createElement('div');
+        row.className = 'map-sidebar-row';
+        row.innerHTML = '<div class="nm"></div><div class="meta"></div>';
+        row.querySelector('.nm').textContent = v.name;
+        row.querySelector('.meta').textContent = [v.place, v.region].filter(Boolean).join(' · ');
+        row.addEventListener('click', function () {
+          map.setView([v.lat, v.lng], 13);
+          marker.openPopup();
+        });
+        sidebar.appendChild(row);
+      });
+    })();
+  </script>
+{% endblock %}

@@ -23,6 +23,7 @@
   <meta property="og:description" content="{% block og_description %}Browse AIMS member societies' show history, upcoming productions, and the AIMS awards archive.{% endblock %}">
   <meta name="description" content="{{ self.og_description() }}">
   {% block og_image %}{% endblock %}
+  {% block head_extra %}{% endblock %}
 </head>
 {% set mobile_chrome = request.blueprint not in ('admin', 'society') %}
 <body class="{{ 'has-bottom-nav public-chrome' if mobile_chrome }}">

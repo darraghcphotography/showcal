@@ -18,6 +18,7 @@ from ..circuit_intelligence import (
 )
 from ..constants import REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES, VENUE_TYPES
 from ..db import get_db
+from ..filters import place_label
 from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
 from ..search import build_phrase_query, fts_match_ids
@@ -1580,16 +1581,70 @@ def venues_index():
     venues = db.execute(query, params).fetchall()
 
     total = len(venues)
+    # Counted before pagination slices the list - this is "how many of the
+    # filtered set are mapped", not "how many on this page happen to be" -
+    # the latter was this line's original behaviour when mapped_count was
+    # computed but never actually rendered anywhere (fixed 2026-08-25, the
+    # first time a template used it).
+    mapped_count = sum(1 for v in venues if v["latitude"] is not None and v["longitude"] is not None)
+
     per_page, page, total_pages = paginate_args(total)
     venues = venues[(page - 1) * per_page:page * per_page]
 
-    mapped = [v for v in venues if v["latitude"] is not None and v["longitude"] is not None]
     return render_template(
         "venues_list.html", venues=venues, q=q, regions=REGIONS, selected_region=region,
         venue_types=VENUE_TYPES, selected_venue_type=venue_type,
-        mapped_count=len(mapped),
+        mapped_count=mapped_count,
         page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=LIST_PAGE_SIZES,
     )
+
+
+@bp.route("/venues/map")
+def venues_map():
+    """Real interactive map, real pin coordinates - the parked Leaflet
+    prototype (mockups/ireland_theatre_map.html) used 9 entirely fabricated
+    venues; this reuses its layout (sidebar + map, keyless CartoDB tiles)
+    against every venue that actually has a lat/lon on record. Separate page
+    rather than folded into /venues itself - a map needs the full unfiltered
+    set to be useful (a filtered subset with 3 pins isn't), and loading
+    Leaflet only where it's actually used keeps the plain card grid light."""
+    db = get_db()
+    venues = db.execute(
+        """
+        SELECT venues.*,
+               COUNT(shows.id) AS n,
+               COUNT(DISTINCT shows.society_id) AS soc_n
+          FROM venues
+          JOIN shows ON shows.venue_id = venues.id
+          JOIN societies ON societies.id = shows.society_id
+         WHERE shows.moderation_status = 'approved' AND NOT societies.hidden
+           AND venues.latitude IS NOT NULL AND venues.longitude IS NOT NULL
+         GROUP BY venues.id ORDER BY venues.name COLLATE NOCASE
+        """
+    ).fetchall()
+
+    total_venues = db.execute(
+        """
+        SELECT COUNT(DISTINCT venues.id)
+          FROM venues JOIN shows ON shows.venue_id = venues.id
+          JOIN societies ON societies.id = shows.society_id
+         WHERE shows.moderation_status = 'approved' AND NOT societies.hidden
+        """
+    ).fetchone()[0]
+
+    pins = [
+        {
+            "name": v["name"],
+            "place": place_label(v["town"], v["county"]),
+            "region": v["region"] or "",
+            "lat": v["latitude"], "lng": v["longitude"],
+            "capacity": v["capacity"],
+            "n": v["n"], "soc_n": v["soc_n"],
+            "url": url_for("public.venue_detail", venue=v["slug"]),
+        }
+        for v in venues
+    ]
+    return render_template("venues_map.html", pins=pins, mapped_count=len(pins), total=total_venues)
 
 
 @bp.route("/venues/<path:venue>")

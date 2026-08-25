@@ -1520,14 +1520,15 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
 
 .data-table th.num, .data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* /venues - a plain card grid, deliberately thin (name + production/society
-   counts only). No capacity/type/map fields - that structured data doesn't
-   exist anywhere in the schema; a fuller version is a separate decision, not
-   quietly implied here by matching the look of a richer page. */
+/* /venues - a card grid. Capacity/type/auditorium already exist on the
+   schema and render as pills below the name; a fuller map view lives on
+   /venues/map (a separate decision, not implied here just by adding fields
+   this page already had the data for). Centered 2026-08-25 - reads better
+   for a grid of short name/pill/count blocks than left-aligned text does. */
 .venue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .venue-card {
-  display: block; text-decoration: none; color: inherit;
-  border-radius: var(--radius-xl); padding: 1rem 1.1rem;
+  display: block; text-decoration: none; color: inherit; text-align: center;
+  border-radius: var(--radius-xl); padding: 1.1rem 1.2rem;
 }
 .venue-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 /* The card's pill row (venue type, capacity, auditorium type). .tag carries a
@@ -1535,12 +1536,24 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
    here - zeroed and replaced with a real gap, same as .award-badges and
    .trophy-case already do. .county is the place/region line above it. */
 .venue-card .county { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.4rem; }
-.venue-card .specs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
+.venue-card .specs { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem; margin-bottom: 0.5rem; }
 .venue-card .specs .tag { margin-left: 0; }
 
-.venue-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent); }
-.venue-card .stat-line { font-size: 0.82rem; color: var(--muted); }
+.venue-card h3 {
+  margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent);
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+}
+.venue-card .pin-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+  display: inline-block; flex: none;
+}
+.venue-card .stat-line {
+  font-size: 0.82rem; color: var(--muted); padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
 .venue-card .stat-line strong { color: var(--fg); }
+.mapped-line { color: var(--muted); font-size: 0.88rem; margin-bottom: 1rem; }
+.mapped-line strong { color: var(--fg); }
 
 /* /societies - a card grid replacing the old bare data-table (see
    societies_list.html). .grid-note spans the full grid width for the
@@ -1728,3 +1741,37 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
+
+/* /venues/map - real Leaflet map, real pins. Sidebar list mirrors the
+   marker set so a keyboard/touch user isn't stuck clicking tiny pins - the
+   same content is reachable as a scrollable, clickable list. */
+.map-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1rem; align-items: start; }
+@media (max-width: 860px) { .map-layout { grid-template-columns: 1fr; } }
+.map-sidebar {
+  border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--bg);
+  box-shadow: var(--shadow); padding: 1rem; max-height: 640px; overflow-y: auto;
+}
+.map-sidebar h2 {
+  font-size: 0.95rem; margin: 0 0 0.75rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.map-sidebar-row {
+  padding: 0.55rem 0.4rem; border-radius: var(--radius-md); cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.map-sidebar-row:last-child { border-bottom: none; }
+.map-sidebar-row:hover { background: var(--row-alt); }
+.map-sidebar-row .nm { font-weight: 600; color: var(--fg); font-size: 0.88rem; }
+.map-sidebar-row .meta { font-size: 0.76rem; color: var(--muted); margin-top: 0.1rem; }
+#venues-map {
+  height: 640px; border-radius: var(--radius-xl); border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.leaflet-popup-content-wrapper {
+  background: var(--bg); color: var(--fg);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+}
+.leaflet-popup-tip { background: var(--bg); }
+.popup-title { font-weight: 700; margin-bottom: 0.2rem; }
+.popup-meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.3rem; }
+.popup-link { font-size: 0.82rem; }

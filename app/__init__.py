@@ -259,11 +259,28 @@ def create_app(test_config=None):
         # inline style="..." attributes (some with a dynamically-computed
         # width, e.g. the venues page's progress bar) aren't a nonce-able
         # shape, and a CSS-only injection is a much smaller risk than script.
+        # /venues/map is the one page on the site that needs a third-party
+        # resource at all - Leaflet's JS/CSS from unpkg (SRI-pinned on the
+        # <script>/<link> tags themselves as a second layer) and CartoDB's
+        # tile images. Vendoring Leaflet into /static instead of a CDN would
+        # avoid this entirely, but there's no safe way here to fetch and
+        # verify an exact binary-correct copy of a minified JS library to
+        # commit - a CDN with SRI hashes both loads and verifies it in one
+        # step. Scoped to just this route rather than loosened site-wide, so
+        # everywhere else keeps the fully strict policy.
+        if request.endpoint == "public.venues_map":
+            script_src = f"'self' 'nonce-{g.csp_nonce}' https://unpkg.com"
+            style_src = "'self' 'unsafe-inline' https://unpkg.com"
+            img_src = "'self' data: https://*.basemaps.cartocdn.com"
+        else:
+            script_src = f"'self' 'nonce-{g.csp_nonce}'"
+            style_src = "'self' 'unsafe-inline'"
+            img_src = "'self' data:"
         response.headers.setdefault("Content-Security-Policy", (
             "default-src 'self'; "
-            f"script-src 'self' 'nonce-{g.csp_nonce}'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
+            f"script-src {script_src}; "
+            f"style-src {style_src}; "
+            f"img-src {img_src}; "
             "font-src 'self'; "
             "connect-src 'self'; "
             "frame-ancestors 'none'; "
