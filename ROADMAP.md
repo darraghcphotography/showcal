@@ -15,11 +15,13 @@ again.
 
 ## START HERE - where things stand (2026-08-25, end of session)
 
-**Everything is built, deployed, verified live and committed. 718 tests green, no known bugs.** The
-ready-to-build backlog was closed out on 2026-08-24; the 2026-08-25 session then **interrogated the
-remaining backlog** rather than building (no code changed - the only edit was this file). There is no
-half-finished work to pick up: the next session starts from a clean base and picks from the numbered
-live backlog below.
+**Everything is built and committed, not yet deployed. 739 tests green, no known bugs.** The
+2026-08-25 session interrogated the backlog, then (on Sonnet, same day) built the three items that
+were genuinely ready: filter chips on `/reviews`, `?society=`/`?season=` on `/calendar.ics`, and the
+`match_show_for_edit` fix (`f07bd11`). **Not yet deployed to the NAS** - the usual redeploy-via-
+Portainer step is still needed. Next up is scoring Gemini's two remaining deliverables (see below),
+then whichever of the numbered live backlog items appeals - items 4 (share half only), 6 and 11 are
+now done and struck through in place rather than removed, so the numbering stays stable mid-session.
 
 **Three jobs are genuinely ready to start** - pick by appetite:
 the archive transcription immediately below (data work, well-understood, high certainty of value);
@@ -31,17 +33,16 @@ while untouched).
 submissions are now decoded before being written, so a file named `.jpg` that is really HTML or SVG
 is rejected instead of being served into the admin queue. Full suite 722 passing.
 
-### NEXT SESSION - do this on Sonnet, in a fresh session
+### Session continuation (Sonnet, 2026-08-25) - step 1 of the handoff done
 
-Written down deliberately: the 2026-08-25 session ran long (five workstreams in one thread, 93% of
-usage above 150k context), so the handoff lives on disk rather than in chat.
+~~1. Build the three ready items~~ - **DONE, pushed `f07bd11`.** Filter chips on `/reviews` (same
+pattern as `/awards`), `?society=`/`?season=` on `/calendar.ics` (combinable with the existing
+`?section=`/`?region=`, invalid values fall back to unfiltered), and the `match_show_for_edit`
+normalisation fix (society+season-scoped, not fuzzy - `Frozen`/`Frozen Jr.` still don't match, tested
+explicitly). 17 new tests, each verified to fail without its fix. **Full suite 722 -> 739 passing.**
 
-1. **Build the three ready items** - the spec is complete and needs no further decisions:
-   `C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`. Filter chips on `/reviews`,
-   `?society=`/`?season=` on the existing `/calendar.ics`, and the `match_show_for_edit`
-   normalisation fix. Baseline is **722 tests passing**. Two traps are called out in the plan -
-   read them, they are not obvious: the match fix is *not* fuzzy matching (CLAUDE.md forbids it),
-   and `find_close_title` inside the bulk loop is an O(n^2) trap that caused a live 524 in August.
+**Still to do, from the original handoff:**
+
 2. **Score Gemini's other two deliverables** - mechanical, no judgement needed. The calibration
    batch already passed (see the delegation section) but these have not been checked:
    - `enrichment/society_archives_worklist.json` - 160 claimed transcriptions. Run the existing
@@ -399,29 +400,27 @@ its suggestions are entered here.
    "societies won't maintain it" was an assumption, contradicted by the fact that the request came
    from someone volunteering to list things. Note the requester said *per show*; Darragh's note says
    *society pages* - that difference is the first thing to settle when scoping.
-4. **Share affordance on show pages, and a season `.ics` export.** Both **reinstated on
-   2026-08-25 after Darragh confirmed real backing** - both had been closed on Claude's inference.
-   The share button was the weakest closure of the day ("the URL is the share mechanism"), which
-   ignored that a one-tap share to WhatsApp or Instagram is how a cast actually spreads its own show
-   - and that is the same audience the social card generator (item 5) serves, so **scope the two
-   together**. The `.ics` export is the genuinely useful half of the old "My Season Watchlist" idea;
-   the zero-login localStorage wrapper around it remains unwanted, so build the export first and
-   treat bookmarking as a separate question. Both are small next to items 1-3.
+4. **Share affordance on show pages.** **Reinstated 2026-08-25 after Darragh confirmed real
+   backing** - closed that morning on Claude's inference, which was the weakest closure of the day
+   ("the URL is the share mechanism"). Ignored that a one-tap share to WhatsApp or Instagram is how
+   a cast actually spreads its own show - and that is the same audience the social card generator
+   (item 5) serves, so **scope the two together**. Still open.
 
-   **Correction 2026-08-25: the `.ics` export is already largely built.** `/calendar.ics` exists
-   (`app/blueprints/feeds.py:54`) as a subscribable feed of every approved dated show, already
-   filterable by `?section=` and `?region=`. What's actually missing is only `?society=` and
-   `?season=`. This is the **fourth** item found already shipped while this file still listed it as
-   open - alongside milestone badges, show-page cross-links and the design audit's nav restructure.
-   Check the code before scoping anything on this list.
+   ~~and a season `.ics` export~~ - **DONE, pushed `f07bd11`** (same session). Turned out to be
+   mostly already built: `/calendar.ics` (`app/blueprints/feeds.py:54`) already existed, filterable
+   by `?section=`/`?region=`; added `?society=` and `?season=`, combinable with the existing params,
+   invalid values falling back to unfiltered per the feed's own convention. This was the **fourth**
+   item found already shipped while this file still listed it as open - alongside milestone badges,
+   show-page cross-links and the design audit's nav restructure. Check the code before scoping
+   anything on this list.
 5. **Social card generator** (per show: poster + society logo + opening countdown + QR). Promoted
    from a throwaway line to a real candidate because it's the one item that *gives* societies
    something instead of asking them for something - plausibly the lever that gets posters uploaded
    ("upload your poster, get a card you can post"). Pillow landed 2026-08-24 for the poster pipeline,
    so the rendering dependency already exists. Needs a mockup pass before any build.
-6. **`match_show_for_edit` exact-match bug.** Verified real: `app/blueprints/admin/historical_reviews.py:650`
-   matches `society_id + season + show` on an exact string. Systemic version of a title-mismatch bug
-   already fixed once for a specific case. Small, contained, already bit us.
+6. ~~**`match_show_for_edit` exact-match bug.**~~ **DONE, pushed `f07bd11`.** Now also tries a
+   normalization-insensitive match (society+season-scoped) when the exact match misses - not fuzzy
+   matching, `Frozen`/`Frozen Jr.` still don't match, tested explicitly.
 7. **Society edit audit log - scope cut to the cheap 80%.** Kept because the hole is real and
    structural, not a feature wish: societies share one login code, so there is no way to tell who
    made an edit or to undo it. Cut: build the append-only log (who/when/field/old/new), **drop the
@@ -442,9 +441,9 @@ its suggestions are entered here.
    your page" route. Mostly Darragh's lever, not a coding task.
 10. **Poster lightbox/zoom** - kept but explicitly *not standalone*: bundle it into the next piece of
    poster work. At 44 posters (12 societies) it currently affects few pages.
-11. **Removable filter chips - redirected.** The idea shipped on `/awards`; the roadmap kept it open
-   for `/season`/`/stats`, but the page that now actually earns it is **`/reviews`**, which carries
-   four filters (free-text `q`, season, tier, adjudicator). Retarget if picked up.
+11. ~~**Removable filter chips - redirected.**~~ **DONE, pushed `f07bd11`.** Built on `/reviews`
+   (the page that actually earned it, with four filters: free-text `q`, season, tier, adjudicator),
+   same pattern as `/awards`, reusing its existing CSS.
 12. **A pantomime category** - not a build item and never was. Pantomimes were ruled out of scope
    (AIMS musical-theatre circuit specifically) with "may get their own category in the future".
    It's a scope decision about what the site *is*, and only Darragh can make it.
