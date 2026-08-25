@@ -533,6 +533,32 @@ CREATE TABLE IF NOT EXISTS photo_submissions (
 
 CREATE INDEX IF NOT EXISTS idx_photo_submissions_status ON photo_submissions(status);
 
+-- Candidate society logos found by a delegated web search (2026-08-25's
+-- LOGO_SCRAPE_BRIEF.md), staged here for a moderator to approve/reject one
+-- at a time rather than importing anything unreviewed. The source_url is
+-- fetched and decoded (same Pillow validation as an admin-uploaded poster,
+-- see uploads.py's fetch_logo_candidate) at import time, not review time -
+-- filename is the already-processed local copy the review queue actually
+-- shows, so a candidate renders correctly (or explains why it doesn't) the
+-- moment it's imported, and doesn't depend on a third-party site still
+-- being up when a moderator gets around to looking at it.
+CREATE TABLE IF NOT EXISTS logo_candidates (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    society_id       INTEGER NOT NULL REFERENCES societies(id),
+    source_url       TEXT NOT NULL,
+    source_page_url  TEXT,
+    notes            TEXT,               -- the finder's own note on what/where this is
+    filename         TEXT,               -- under the uploads dir; NULL if fetch_error is set
+    fetch_error      TEXT,               -- set instead of filename if the source_url didn't decode as an image
+    status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    moderator_notes  TEXT,
+    moderated_by     TEXT,
+    moderated_at     TEXT,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_logo_candidates_status ON logo_candidates(status);
+
 -- One row per real staging: one show, by one society, in one season. This is
 -- the thing every "how many productions are on record" / "is this production
 -- reviewed" question on the site is actually about, and until this table

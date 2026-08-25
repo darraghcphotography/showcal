@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Logo candidates - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Logo candidates</h1>
+  <p>{{ pending|length }} pending. Each one was already fetched and decoded when it was imported -
+     what you see below is a real image already sitting in this site's own uploads, not a live link
+     to someone else's site. Approve sets it as that society's logo immediately; reject just clears
+     the row.</p>
+
+  {% for c in pending %}
+    <article class="queue-item">
+      <h2>{{ c['society_name'] }}</h2>
+      {% if c['filename'] %}
+        <a href="{{ url_for('public.uploaded_file', filename=c['filename']) }}" target="_blank" rel="noopener">
+          <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=c['filename']) }}" alt="Candidate logo for {{ c['society_name'] }} - click to view full size">
+        </a>
+      {% else %}
+        <p class="meta">Couldn't be fetched: {{ c['fetch_error'] }} -
+          <a href="{{ c['source_url'] }}" target="_blank" rel="noopener">try the original URL</a> yourself.</p>
+      {% endif %}
+      <dl class="detail-list compact">
+        <dt>Found on</dt>
+        <dd>{% if c['source_page_url'] %}<a href="{{ c['source_page_url'] }}" target="_blank" rel="noopener">{{ c['source_page_url'] }}</a>{% else %}—{% endif %}</dd>
+        <dt>Notes</dt>
+        <dd>{{ c['notes'] or '—' }}</dd>
+      </dl>
+      <div class="actions">
+        <form method="post" action="{{ url_for('admin.approve_logo_candidate', candidate_id=c['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button-primary"{% if not c['filename'] %} disabled{% endif %}>Approve</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.reject_logo_candidate', candidate_id=c['id']) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="moderator_notes" placeholder="Why? (optional)">
+          <button type="submit" class="button-danger">Reject</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <p>Nothing waiting for review.</p>
+  {% endfor %}
+
+  {% if recent_done %}
+    <h2 class="admin-group-label">Recently actioned</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Society</th><th>Status</th><th>Notes</th><th>By</th><th>When</th></tr>
+      </thead>
+      <tbody>
+        {% for c in recent_done %}
+          <tr>
+            <td>{{ c['society_name'] }}</td>
+            <td>{{ c['status'] }}</td>
+            <td>{{ c['moderator_notes'] or '—' }}</td>
+            <td>{{ c['moderated_by'] }}</td>
+            <td>{{ c['moderated_at']|irish_datetime }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

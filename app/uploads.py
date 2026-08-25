@@ -1,5 +1,6 @@
 import io
 import os
+import urllib.request
 import uuid
 
 import pillow_heif
@@ -21,6 +22,11 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "heic", "heif"}
 MAX_POSTER_DIMENSION = 600
 WEBP_QUALITY = 82
 JPEG_QUALITY = 90
+
+# A candidate logo is a small brand mark, not a poster scan - 10MB is
+# generous headroom while still refusing to stream an unbounded response
+# from a URL nothing here controls.
+MAX_LOGO_FETCH_BYTES = 10 * 1024 * 1024
 
 
 def _extension(filename):
@@ -133,6 +139,44 @@ def save_poster(file_storage, upload_dir):
     filename = f"{uuid.uuid4().hex}.{out_ext}"
     with open(os.path.join(upload_dir, filename), "wb") as f:
         f.write(data)
+    return filename
+
+
+def fetch_logo_candidate(url, upload_dir):
+    """Fetches a candidate logo from an external URL (a delegated web search's
+    finding, never a moderator's own upload) and validates it exactly like
+    save_poster() does - the URL and whatever Content-Type header the remote
+    server sends are both just claims, same as a browser-supplied filename
+    extension always has been in this module. Only what Pillow actually
+    decodes decides whether this is really an image and what format it's in.
+
+    Raises ValueError with a short reason on any failure (network, too large,
+    not a real image) - the caller records that reason against the candidate
+    row rather than silently dropping it, so a moderator can see *why* a
+    given URL didn't work instead of it just not being there.
+    """
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; AIMS-ShowTracker/1.0)"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = resp.read(MAX_LOGO_FETCH_BYTES + 1)
+    except Exception as e:
+        raise ValueError(f"Could not fetch {url}: {e}")
+    if len(data) > MAX_LOGO_FETCH_BYTES:
+        raise ValueError(f"{url} is larger than {MAX_LOGO_FETCH_BYTES // (1024 * 1024)}MB")
+
+    try:
+        # ext="" deliberately - there's no filename to (mis)trust here at
+        # all, so this always goes through the same resize/re-encode path
+        # rather than save_poster()'s animated-GIF passthrough, which exists
+        # for an actual uploaded filename's claimed extension.
+        out_data, out_ext = _resized_webp_bytes(io.BytesIO(data), ext="")
+    except Exception:
+        raise ValueError(f"{url} doesn't look like a valid image")
+
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.{out_ext}"
+    with open(os.path.join(upload_dir, filename), "wb") as f:
+        f.write(out_data)
     return filename
 
 

@@ -149,6 +149,10 @@ def dashboard():
         "SELECT COUNT(*) FROM photo_submissions WHERE status = 'pending'"
     ).fetchone()[0]
 
+    logo_candidates_pending_count = db.execute(
+        "SELECT COUNT(*) FROM logo_candidates WHERE status = 'pending'"
+    ).fetchone()[0]
+
     # Distinct printed names still awaiting a link decision. Deliberately NOT a
     # replacement for unmatched_award_societies_count below: that's a *row*
     # count which is correctly permanent (most of these societies are defunct
@@ -197,6 +201,11 @@ def dashboard():
             "label": "Photo submissions awaiting moderation",
             "count": photo_submissions_pending_count,
             "url": url_for("admin.photo_submissions_queue"),
+        },
+        {
+            "label": "Logo candidates awaiting approval",
+            "count": logo_candidates_pending_count,
+            "url": url_for("admin.logo_candidates_queue"),
         },
         {
             "label": "Historical societies with a region awaiting confirmation",
@@ -255,6 +264,7 @@ def dashboard():
         awards_pending_season=awards_pending_season,
         historical_reviews_pending_count=historical_reviews_pending_count,
         photo_submissions_pending_count=photo_submissions_pending_count,
+        logo_candidates_pending_count=logo_candidates_pending_count,
         unlinked_society_names_count=unlinked_society_names_count,
         quick_win=quick_win,
     )

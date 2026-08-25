@@ -32,6 +32,7 @@ from . import reviews  # noqa: E402,F401
 from . import awards  # noqa: E402,F401
 from . import adjudicators  # noqa: E402,F401
 from . import photo_submissions  # noqa: E402,F401
+from . import logo_candidates  # noqa: E402,F401
 from . import faq  # noqa: E402,F401
 from . import historical_society_links  # noqa: E402,F401
 

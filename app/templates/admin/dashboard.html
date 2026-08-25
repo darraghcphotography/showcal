@@ -48,6 +48,16 @@
       <tr>
         <td>
           <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if logo_candidates_pending_count else 'admin-dot-off' }}"></span>
+            Logo candidates (found by a delegated search, awaiting approval)
+          </span>
+        </td>
+        <td>{{ logo_candidates_pending_count }}</td>
+        <td><a href="{{ url_for('admin.logo_candidates_queue') }}">Logo candidates</a></td>
+      </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
             <span class="admin-dot {{ 'admin-dot-on' if unlinked_society_names_count else 'admin-dot-off' }}"></span>
             Award-archive society names awaiting a link decision
           </span>
