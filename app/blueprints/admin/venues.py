@@ -1,7 +1,7 @@
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 
 from ...auth import login_required
-from ...constants import REGIONS
+from ...constants import REGIONS, VENUE_TYPES
 from ...db import get_db
 from ...venues import looks_unresolved, merge_candidates, merge_venue_into
 from . import bp
@@ -10,7 +10,7 @@ from ._shared import URL_RE
 VENUE_FIELDS = (
     "name", "town", "county", "region", "capacity", "auditorium_type",
     "latitude", "longitude", "website_url", "tech_spec_url", "notes",
-    "box_office_phone", "box_office_url",
+    "box_office_phone", "box_office_url", "venue_type",
 )
 AUDITORIUM_TYPES = ["Proscenium", "Thrust", "End-on", "Flat floor", "In the round", "Other"]
 
@@ -139,6 +139,8 @@ def edit_venue_record(venue_id):
             errors.append("A venue needs a name.")
         if fields["region"] and fields["region"] not in REGIONS:
             errors.append("That isn't one of the AIMS regions.")
+        if fields["venue_type"] and fields["venue_type"] not in VENUE_TYPES:
+            errors.append("That isn't one of the venue types.")
         for numeric, label, cast in (("capacity", "Capacity", int),
                                      ("latitude", "Latitude", float),
                                      ("longitude", "Longitude", float)):
@@ -157,7 +159,7 @@ def edit_venue_record(venue_id):
                 flash(message, "error")
             return render_template(
                 "admin/venue_form.html", venue=venue, form=request.form,
-                regions=REGIONS, auditorium_types=AUDITORIUM_TYPES,
+                regions=REGIONS, auditorium_types=AUDITORIUM_TYPES, venue_types=VENUE_TYPES,
             )
 
         assignments = ", ".join(f"{f} = :{f}" for f in VENUE_FIELDS)
@@ -171,7 +173,7 @@ def edit_venue_record(venue_id):
 
     return render_template(
         "admin/venue_form.html", venue=venue, form=dict(venue),
-        regions=REGIONS, auditorium_types=AUDITORIUM_TYPES,
+        regions=REGIONS, auditorium_types=AUDITORIUM_TYPES, venue_types=VENUE_TYPES,
     )
 
 

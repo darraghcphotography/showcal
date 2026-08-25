@@ -621,6 +621,17 @@ CREATE TABLE IF NOT EXISTS venues (
 
     capacity         INTEGER,
     auditorium_type  TEXT,
+    -- What kind of building this is, for the /venues filter and a badge on the
+    -- venue's own page. Mostly derived from the venue's own name by
+    -- classify_venue_types.py (a purpose-built hall, a school, an arts centre
+    -- etc. almost always say so), then moderator-correctable like any other
+    -- curated field. NULL means "nobody has classified this yet", which is a
+    -- real state - the archive's place-name artifacts ("Cork", "Wexford") name
+    -- no building at all and must never be given a type.
+    venue_type       TEXT CHECK (venue_type IN (
+                          'Theatre', 'Arts Centre', 'School or College',
+                          'Community or Parish Hall', 'Other'
+                      ) OR venue_type IS NULL),
     latitude         REAL,
     longitude        REAL,
     website_url      TEXT,

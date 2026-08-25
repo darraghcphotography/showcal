@@ -1,0 +1,14 @@
+{#- Shared venue-type badge (Theatre / Arts Centre / School or College /
+    Community or Parish Hall / Other). Deliberately neutral: reuses .tag-tier's
+    grey pill rather than colour-coding, because a venue's type isn't a status
+    and the only spare colour tokens (--tier-gilbert/--tier-sullivan) mean the
+    AIMS adjudication sections everywhere else on the site - borrowing them here
+    would say something that isn't true. An unclassified venue renders nothing
+    at all rather than an "Unknown" pill: NULL means nobody has looked yet, and
+    for the archive's place-name artifacts ("Cork") there is no building to
+    classify. -#}
+{% macro venue_type_badge(value) %}
+  {%- if value -%}
+    <span class="tag tag-tier">{{ value }}</span>
+  {%- endif -%}
+{% endmacro %}

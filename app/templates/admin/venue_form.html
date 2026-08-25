@@ -43,6 +43,17 @@
         {% endfor %}
       </select>
     </label>
+    <label>Venue type
+      <select name="venue_type">
+        <option value="">Not set</option>
+        {% for t in venue_types %}
+          <option value="{{ t }}" {% if form['venue_type'] == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="meta">What kind of building it is, as opposed to the auditorium's shape above. Drives
+       the type filter and badge on the public /venues directory. Most were classified from the
+       venue's own name; correct it where that guessed wrong.</p>
 
     <label>Latitude
       <input type="text" name="latitude" value="{{ form['latitude'] if form['latitude'] is not none else '' }}"

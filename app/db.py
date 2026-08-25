@@ -118,6 +118,12 @@ COLUMN_MIGRATIONS = [
     # territory (see app/venues_build.py), same as capacity/auditorium_type.
     ("venues", "box_office_phone", "ALTER TABLE venues ADD COLUMN box_office_phone TEXT"),
     ("venues", "box_office_url", "ALTER TABLE venues ADD COLUMN box_office_url TEXT"),
+    # No CHECK constraint here, unlike schema.sql's own definition: SQLite
+    # can't add a constrained column to an existing table via ALTER TABLE, and
+    # rebuilding the table just for this isn't worth it. The application layer
+    # (VENUE_TYPES in app/blueprints/admin/venues.py) is the real gate, same as
+    # it is for every other enum this admin form writes.
+    ("venues", "venue_type", "ALTER TABLE venues ADD COLUMN venue_type TEXT"),
 ]
 
 

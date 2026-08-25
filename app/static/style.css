@@ -1530,6 +1530,14 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
   border-radius: var(--radius-xl); padding: 1rem 1.1rem;
 }
 .venue-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+/* The card's pill row (venue type, capacity, auditorium type). .tag carries a
+   default margin-left for inline use after text, which indents the first pill
+   here - zeroed and replaced with a real gap, same as .award-badges and
+   .trophy-case already do. .county is the place/region line above it. */
+.venue-card .county { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.4rem; }
+.venue-card .specs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
+.venue-card .specs .tag { margin-left: 0; }
+
 .venue-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent); }
 .venue-card .stat-line { font-size: 0.82rem; color: var(--muted); }
 .venue-card .stat-line strong { color: var(--fg); }

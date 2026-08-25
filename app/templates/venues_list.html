@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_pagination.html" as pg %}
+{% import "_venue_type.html" as vt %}
 {% block title %}Venues - DC Show Tracker{% endblock %}
 {% block og_description %}Every venue an AIMS member society has staged a production in.{% endblock %}
 {% block content %}
@@ -21,10 +22,39 @@
         {% endfor %}
       </select>
     </label>
+    <label>Type
+      <select name="venue_type" data-auto-submit>
+        <option value="">All types</option>
+        {% for t in venue_types %}
+          <option value="{{ t }}" {% if t == selected_venue_type %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+        <option value="unclassified" {% if selected_venue_type == 'unclassified' %}selected{% endif %}>Unclassified</option>
+      </select>
+    </label>
     {{ pg.per_page_field(per_page, page_sizes) }}
     <button type="submit">Filter</button>
-    {% if q or selected_region %}<a href="{{ url_for('public.venues_index') }}">Clear</a>{% endif %}
+    {% if q or selected_region or selected_venue_type %}<a href="{{ url_for('public.venues_index') }}">Clear</a>{% endif %}
   </form>
+
+  {# Same removable-chip pattern as /awards: each chip is the current URL with
+     just that one filter's param dropped, so it's a plain link with no JS. #}
+  {% set active_filters = [] %}
+  {% if q %}{% set _ = active_filters.append(('q', 'Search: “' ~ q ~ '”')) %}{% endif %}
+  {% if selected_region %}{% set _ = active_filters.append(('region', 'Region: ' ~ selected_region)) %}{% endif %}
+  {% if selected_venue_type %}
+    {% set _ = active_filters.append(('venue_type', 'Type: ' ~ ('Unclassified' if selected_venue_type == 'unclassified' else selected_venue_type))) %}
+  {% endif %}
+  {% if active_filters %}
+    <div class="filter-chips">
+      {% for key, label in active_filters %}
+        {% set remove_args = request.args.to_dict() %}
+        {% set _ = remove_args.pop(key, none) %}
+        {% set _ = remove_args.pop('page', none) %}
+        <a class="filter-chip" href="{{ url_for('public.venues_index', **remove_args) }}">{{ label }} <span class="x" aria-hidden="true">&times;</span></a>
+      {% endfor %}
+      <a class="filter-chip filter-chip-clear" href="{{ url_for('public.venues_index') }}">Clear all</a>
+    </div>
+  {% endif %}
 
   {% if venues %}
     <div class="venue-grid">
@@ -35,8 +65,9 @@
           {% if place or v['region'] %}
             <div class="county">{{ place }}{% if place and v['region'] %} &middot; {% endif %}{{ v['region'] or '' }}</div>
           {% endif %}
-          {% if v['capacity'] or v['auditorium_type'] %}
+          {% if v['capacity'] or v['auditorium_type'] or v['venue_type'] %}
             <div class="specs">
+              {{ vt.venue_type_badge(v['venue_type']) }}
               {% if v['capacity'] %}<span class="tag">{{ v['capacity'] }} seats</span>{% endif %}
               {% if v['auditorium_type'] %}<span class="tag">{{ v['auditorium_type'] }}</span>{% endif %}
             </div>

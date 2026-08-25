@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
+{% import "_venue_type.html" as vt %}
 {% block title %}{{ venue['name'] }} - DC Show Tracker{% endblock %}
 {% block og_description %}{{ production_count }} AIMS production{{ '' if production_count == 1 else 's' }} staged at {{ venue['name'] }}.{% endblock %}
 {% block content %}
@@ -7,8 +8,9 @@
   <h1>{{ venue['name'] }}</h1>
 
   {% set place = venue['town']|place_label(venue['county']) %}
-  {% if place or venue['region'] %}
-    <p class="meta">{{ place }}{% if place and venue['region'] %} &middot; {% endif %}{% if venue['region'] %}{{ venue['region'] }} region{% endif %}</p>
+  {% if place or venue['region'] or venue['venue_type'] %}
+    <p class="meta">{{ place }}{% if place and venue['region'] %} &middot; {% endif %}{% if venue['region'] %}{{ venue['region'] }} region{% endif %}
+      {{ vt.venue_type_badge(venue['venue_type']) }}</p>
   {% endif %}
 
   {# Each detail is shown only once it has been filled in - a venue with none

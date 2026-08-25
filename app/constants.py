@@ -15,6 +15,15 @@ SHOW_SECTIONS = ["Gilbert", "Sullivan", "Non-AIMS"]
 
 REVIEW_STATUSES = ["Published", "Scheduled", "Not adjudicated", "None"]
 
+# venues.venue_type - what kind of building it is, as opposed to
+# AUDITORIUM_TYPES (app/blueprints/admin/venues.py), which is the shape of the
+# room. Deliberately coarse: these are the distinctions a society actually
+# cares about when scanning the directory ("is this a real theatre or a parish
+# hall?"), and a finer split would need judgement calls the venue's own name
+# can't settle. Most rows were classified from that name by
+# classify_venue_types.py; NULL means nobody has looked yet.
+VENUE_TYPES = ["Theatre", "Arts Centre", "School or College", "Community or Parish Hall", "Other"]
+
 # Result values as they appear in historical_results (AIMS awards archive).
 AWARD_RESULTS = ["Winner", "Second Place", "Third Place", "Nominee"]
 

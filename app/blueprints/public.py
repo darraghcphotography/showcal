@@ -16,7 +16,7 @@ from ..circuit_intelligence import (
     regional_distribution, revival_candidate, signature_categories,
     _is_revival_candidate,
 )
-from ..constants import REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES
+from ..constants import REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES, VENUE_TYPES
 from ..db import get_db
 from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
@@ -1490,6 +1490,12 @@ def venues_index():
     region = request.args.get("region", "")
     if region not in REGIONS:
         region = ""
+    # "unclassified" is a real, selectable answer rather than a hidden state -
+    # a venue with no type is either genuinely unlooked-at or one of the
+    # archive's place-name artifacts, and both are worth being able to find.
+    venue_type = request.args.get("venue_type", "")
+    if venue_type not in VENUE_TYPES and venue_type != "unclassified":
+        venue_type = ""
 
     # Reads the venues table rather than grouping the free-text shows.venue
     # column: the same building is typed several different ways across the
@@ -1517,6 +1523,11 @@ def venues_index():
     if region:
         query += " AND venues.region = ?"
         params.append(region)
+    if venue_type == "unclassified":
+        query += " AND (venues.venue_type IS NULL OR venues.venue_type = '')"
+    elif venue_type:
+        query += " AND venues.venue_type = ?"
+        params.append(venue_type)
     # Most-used first, not alphabetical - the venue field still has real noise
     # in it (an anniversary note where a venue name should be, a bare county
     # name), and alphabetical order put exactly that at the very top. Sorting
@@ -1532,6 +1543,7 @@ def venues_index():
     mapped = [v for v in venues if v["latitude"] is not None and v["longitude"] is not None]
     return render_template(
         "venues_list.html", venues=venues, q=q, regions=REGIONS, selected_region=region,
+        venue_types=VENUE_TYPES, selected_venue_type=venue_type,
         mapped_count=len(mapped),
         page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=LIST_PAGE_SIZES,
     )

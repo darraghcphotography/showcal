@@ -36,10 +36,16 @@ class VenueBuildError(AssertionError):
 # from the name, region from the productions staged there), so treating them
 # as evidence of curation would make every venue permanent and nothing would
 # ever be cleaned up. They're re-derivable, so losing them costs nothing.
+# venue_type is included deliberately, with a consequence worth stating: a
+# venue nothing points at any more now survives the stale sweep permanently
+# once someone has classified it. That's the right trade for a moderator-set
+# field (same as auditorium_type), but it does mean bulk-classifying every
+# venue makes the sweep a no-op - which is why classify_venue_types.py
+# deliberately leaves the archive's place-name artifacts untyped.
 CURATED_COLUMNS = (
     "county", "capacity", "auditorium_type",
     "latitude", "longitude", "website_url", "tech_spec_url", "notes",
-    "box_office_phone", "box_office_url",
+    "box_office_phone", "box_office_url", "venue_type",
 )
 
 
