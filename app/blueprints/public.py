@@ -960,14 +960,25 @@ def society_detail(society_id):
         (society_id,),
     ).fetchall()
 
-    # Season strings sort correctly as text (see schema.sql's design note).
-    # A future-season row with no title yet is just a "slotted, TBA" placeholder -
-    # not worth a blank line in the history table. One that's already been
-    # announced gets pulled out into its own "coming up" block instead of
-    # blending into the history below it.
+    # Date-based, not season-based (fixed 2026-08-25 - season > current used
+    # to be the whole test, so a show dated later in the *current* season -
+    # the common case, since a season spans autumn to summer - never got
+    # pulled into the "coming up" callout and just blended into history
+    # below it). A titled show counts as "coming up" if it has a real date
+    # in the future, or if it's in a genuinely future season and doesn't
+    # have a date yet (announced, TBA - the one case a date check alone
+    # can't catch). An untitled future-season row is still just a "slotted,
+    # TBA" placeholder, not worth a blank line either way.
     current = current_season(db)
-    future_shows = [s for s in shows if s["season"] > current and s["show"] is not None]
-    shows = [s for s in shows if s["season"] <= current]
+    today_iso = date.today().isoformat()
+    future_shows = [
+        s for s in shows if s["show"] is not None and (
+            (s["opening_date"] and s["opening_date"] >= today_iso)
+            or (not s["opening_date"] and s["season"] > current)
+        )
+    ]
+    future_ids = {s["id"] for s in future_shows}
+    shows = [s for s in shows if s["id"] not in future_ids]
 
     # Every award/nomination record for this society, keyed on the production
     # it belongs to - one row per category, so a single production can have
