@@ -98,14 +98,30 @@ highlight and blended into plain history. Confirmed live on Jack Cunningham Prod
 fix. Now date-based (`opening_date >= today`, with a fallback for a future-season show that's
 announced but has no date yet - a pure date check alone can't catch that case).
 
-**Logo discovery handed to Gemini/Antigravity, 2026-08-25 - not yet returned, check `enrichment/`
-next session.** Only 7 of 192 societies have a logo on file; 71 have a website and no logo.
-`enrichment/LOGO_SCRAPE_BRIEF.md` + `enrichment/logo_worklist.json` (both gitignored) sent - find a
-direct image URL per society, `found: false` is a fine answer for a text-only site, Darragh reviews
-and approves/rejects each `logo_url` himself. Deliberately **a discovery worklist, not an import** -
-no bulk-logo-import script exists (today's uploads are all one-at-a-time via `/admin/societies`,
-through `save_poster()`'s decode/resize path) - build the real import path once we see how many
-candidates actually survive review.
+**Logo discovery came back and was scored, 2026-08-25 - 11 verified good, 60 sent back for a redo.**
+Only 7 of 192 societies had a logo on file; 71 have a website and no logo, so that was the target
+list. Result: 11 `found: true`, 60 `found: false`.
+
+**All 11 found logos independently verified** - every `logo_url` fetched directly (not taken on
+Gemini's word), every one a real image with a matching content-type: Baldoyle, Belfast Operatic,
+Belfast School of Performing Arts, Boyle, Fortwilliam, Killarney, Leixlip (LMVG), Malahide,
+Rathmines & Rathgar, St. Agnes Choral, St. Michael's Theatre. **Ready for Darragh to review and
+approve/reject each one via `/admin/societies`** - no bulk-logo-import script exists (today's
+uploads are all one-at-a-time, through `save_poster()`'s decode/resize path), so approving one
+means uploading it there by hand for now; a real import path is worth building once we see how many
+survive review across a bigger batch.
+
+**The 60 "not found" rows all carried the identical templated line** - "Site has no distinct logo,
+header is text-only or site is unreachable," word for word, all 60. Same shape of problem as two
+other tasks today (the 14 archive pages, the founding-years file) - reads as a default, not 60
+independently-checked results. Worth noting the severity is lower here than those two: a false
+negative (missed logo) is recoverable, not fabrication. Tried to spot-check reachability directly
+and hit the same DNS-restricted-sandbox limitation flagged earlier today, so couldn't independently
+confirm which of the 60 are genuine misses. **Sent back for a redo**:
+`enrichment/LOGO_REDO_BRIEF_2026-08-25.md` + `enrichment/logo_worklist_redo.json` (both gitignored,
+the same 60 rows reset to blank) - same firmer instruction as the archive redo, no bare
+"unreachable," a real per-site observation or a real HTTP status required. **Not yet returned -
+check `enrichment/` next session.**
 
 **Two decisions recorded for later, from a final round of questions before Darragh headed out
 (2026-08-25):**
