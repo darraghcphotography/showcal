@@ -68,6 +68,18 @@ Carousel 2008, Fiddler on the Roof 2010, Sister Act 2020) straight to production
 the society's own page. Real validation that this whole pipeline (submission -> read -> cross-check
 -> backfill) works end to end on a real example, not just in theory.
 
+**Second real batch, 2026-08-24 night: Tullamore and Castlerea Musical Societies' own anniversary
+programmes** (3 photos, one a duplicate of another - marked rejected). Same pipeline, bigger scale -
+an initial by-hand cross-check undercounted the real gap by nearly 3x (27 vs 76), caught by
+re-checking programmatically against the database before writing anything.
+`tullamore_castlerea_history_backfill.py` (`214debb`) added 42 Tullamore productions (mostly
+1955-1976, years this database's award records never covered for them) and 34 Castlerea productions
+(mostly 1968-1999, same story) - bare "this happened" rows, no award/category detail even though
+both programmes have it, Darragh's call to match the Naas backfill's scope. Verified live on both
+societies' pages. Left alone: Tullamore's 2018 "Sister Act" (conflicts with an existing "The Wizard
+of Oz" record for that season - needs a human look, not a guess) and a couple of ±1-year date drifts
+already covered within a year either way (same recorded-a-year-later pattern seen elsewhere).
+
 **After the enrichment import, the next three items are scoped and ready for a Sonnet session**
 (not Fable - implementation work, no open design questions left): the poster thumbnail pipeline,
 the theme-polish micro-batch, and the duplicate-title merges. All three are written up in full
