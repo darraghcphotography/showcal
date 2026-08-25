@@ -76,6 +76,33 @@ carry this import's reason tag. Everything else stays untrusted. Kilmacud/Boyle/
 rejected, just unverifiable this way - would need a different check (e.g. Darragh's own knowledge
 of a specific claimed production) before being trusted on faith.
 
+**Deploy check, 2026-08-25 later that evening: two more commits confirmed NOT live.** Grepped the
+running container directly (not just its restart timestamp) - `3f35355` (season calendar collapse)
+and `87b7b3d` (titles rights/licensing filters) are both absent from `/app` inside the container,
+and confirmed absent on the live site too (`Rights available` doesn't appear on
+`darraghc.ie/showcal/titles`). **A redeploy via Portainer is needed** before either is real for a
+visitor. The historical_results import (Killarney/Castlebar, `cdd44c4`) does NOT need a redeploy -
+that was a direct DB write via SSH, already live regardless of container state.
+
+**A real gap found while checking the society page, 2026-08-25 (not yet fixed, Darragh's call):**
+the "Future announced show" highlight (`society_detail.html:102-123`, the gold "Tickets on sale"
+callout) only fires for a show in a season *after* the current one
+(`public.py:969`: `s["season"] > current`). A show dated months from now but still within the
+*current* season - the common case, since AIMS seasons span an autumn-to-summer year - gets no
+highlight at all and just blends into the plain history table below. Confirmed live: Jack Cunningham
+Productions' West Side Story (Sep 2026, season 26/27, the society's own current season) renders as
+an ordinary row. **Fix would be date-based instead of season-based** (`opening_date >= today`) -
+small, contained, but changes what counts as "history" vs "upcoming" everywhere this page uses that
+split, so flagging rather than just changing it.
+
+**Logo discovery handed to Gemini/Antigravity, 2026-08-25.** Only 7 of 192 societies have a logo on
+file; 71 have a website and no logo. `enrichment/LOGO_SCRAPE_BRIEF.md` + `enrichment/logo_worklist.json`
+(both gitignored) sent - find a direct image URL per society, `found: false` is a fine answer for a
+text-only site, Darragh reviews and approves/rejects each `logo_url` himself. Deliberately **a
+discovery worklist, not an import** - no bulk-logo-import script exists (today's uploads are all
+one-at-a-time via `/admin/societies`, through `save_poster()`'s decode/resize path) - build the real
+import path once we see how many candidates actually survive review.
+
 **Three jobs are genuinely ready to start** - pick by appetite:
 the archive transcription immediately below (data work, well-understood, high certainty of value -
 now also queued with Gemini, see above); **item 1, the society coverage checklist grid** (Darragh's
