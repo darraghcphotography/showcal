@@ -15,6 +15,28 @@ again.
 
 ## START HERE - where things stand (2026-08-25, end of session)
 
+> ### ▶ NEXT SESSION: execute the approved plan, don't re-plan
+>
+> **`C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`** — approved 2026-08-27, written
+> to be run by a session with no memory of the conversation behind it. Ten items: six bugs Darragh
+> reported after a day's real use, three backlog items he picked, and one data import.
+>
+> Start there, not with the backlog list further down this file — that list is still accurate for
+> *what's open*, but the plan supersedes it for *what's next*. Its own "Starting fresh?" header has
+> the SSH/read-only commands for re-deriving any figure in it.
+>
+> **Three things that need saying early:**
+> - **The Oyster Lane data was wrong** (plan item 1). A society reported it and it's real — the
+>   archive import's cross-check was structurally unable to catch it. That's the trust issue; do it
+>   first.
+> - **1 pending photo submission Darragh has never seen** — he landed on the wrong admin queue
+>   (plan item 5).
+> - The 26/27 Gilbert schedule is in **`gilbert_2627_schedule.csv`** (repo root, tracked) — 48 rows,
+>   already matched against production, 21 agree exactly. Plan item 10 says what to do with the rest.
+>
+> **GitOps is on (5-minute poll)** — a push goes live by itself, no manual redeploy gate. Data
+> scripts still need running by hand with `--db /data/aims.db`.
+
 **769 tests green, no known bugs.** A Portainer redeploy at 22:12 BST confirmed live everything
 through `b1ddceb` (season calendar, titles filters, next-show fix, venues card+map - checked
 directly against the running container). **Two more commits since then are NOT yet deployed:**
@@ -198,6 +220,13 @@ Do this **in-house with WebFetch**, not by delegating - it's transcription from 
 tooling to validate it already exists: `import_society_archives.py` has the `TRUSTED` list, the
 SHOW_RENAMES canonicalisation and the +/-1 year duplicate guard, and the worklist carries
 `known_productions_for_cross_check` so the overlap test runs the same way.
+
+**Scope Rule (Crucial for transcription & imports)**: Exclude straight plays (e.g. *Sive*, *The Field*,
+*The Plough and the Stars*, *The Weir*, *Steel Magnolias*, *A Few Good Men*, *Stones in his Pockets*,
+*One Act Nights*, pantomimes, non-musical concerts) from society production histories. AIMS tracker
+is strictly focused on musical theatre productions. Societies with "Musical & Dramatic" in their name
+often list both; only musical theatre productions should be kept.
+
 
 **The "genuinely unreachable" five are now in doubt** (2026-08-25). Ballywillan, Ennis, Dun Laoghaire,
 Kilcock and Pop-Up Theatre Sligo were recorded as timeout/DNS failures - but a later attempt to
