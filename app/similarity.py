@@ -46,14 +46,33 @@ def find_award_record_match(db, society_id, title, season):
     an award-archive record (any category, any result) for the same season
     under a normalized-matching title, or None. A society adding this same
     production again via self-service would otherwise double-count it: once
-    from the old award import, once from this new submission."""
+    from the old award import, once from this new submission.
+
+    An award record with no approved `shows` row of its own does NOT match.
+    That case is a society filling a real gap, not creating a duplicate, and
+    blocking it was a live trap (Maynooth's PRO could not add Into the Woods
+    22/23: the award records existed, no `shows` row did, so the production
+    was invisible in the society page's own Show history *and* the form said
+    it was already there). Nothing double-counts either, because the society
+    page's "other productions" list already hides any production that has an
+    approved `shows` row (public.historical_timeline) - so adding the show
+    moves the production up into Show history rather than listing it twice.
+    """
     norm = normalize_title(title)
     if not norm:
         return None
 
     year = historical_results_year(season)
     rows = db.execute(
-        "SELECT DISTINCT show FROM historical_results WHERE society_id = ? AND year = ? AND show IS NOT NULL",
+        """
+        SELECT DISTINCT historical_results.show
+        FROM historical_results
+        WHERE historical_results.society_id = ? AND historical_results.year = ?
+          AND historical_results.show IS NOT NULL
+          AND EXISTS (SELECT 1 FROM shows
+                       WHERE shows.production_id = historical_results.production_id
+                         AND shows.moderation_status = 'approved')
+        """,
         (society_id, year),
     ).fetchall()
     for row in rows:

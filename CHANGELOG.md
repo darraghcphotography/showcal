@@ -1,3 +1,7 @@
+Societies can now add a production the awards archive already knows about. If a show had an award record but no page of its own, the form used to say it was already there and refuse - but it was not on the society's own history at all, so there was no way to add it. Reported by a society that hit exactly this trying to add its own missing show
+
+---
+
 The 26/27 season now has real dates - 46 productions from the official Gilbert schedule, 25 of which had no dates at all before. Two societies running across two weekends (Athlone's The Wedding Singer, Newcastle Glees' Sweeney Todd) show the full run rather than just one weekend, and Clane's 26/27 show is corrected to Jekyll and Hyde
 
 ---
