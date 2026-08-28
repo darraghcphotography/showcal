@@ -956,10 +956,16 @@ def society_detail(society_id):
         FROM shows
         LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE society_id = ? AND moderation_status = 'approved'
-        ORDER BY season DESC, show
         """,
         (society_id,),
     ).fetchall()
+    # Sorted here rather than via SQL's own ORDER BY season DESC - a plain
+    # text sort on "yy/yy" breaks across the 1999/2000 rollover (a society
+    # with old skeleton rows from the 1970s/80s, season strings like
+    # "79/80", sorted as text ABOVE the real current season "27/28" because
+    # '7' > '2' - the exact bug season_start_year()'s own docstring warns
+    # about, just not yet fixed on this query).
+    shows = sorted(shows, key=lambda s: (-season_start_year(s["season"]), s["show"] or ""))
 
     # Date-based, not season-based (fixed 2026-08-25 - season > current used
     # to be the whole test, so a show dated later in the *current* season -
@@ -971,11 +977,12 @@ def society_detail(society_id):
     # can't catch). An untitled future-season row is still just a "slotted,
     # TBA" placeholder, not worth a blank line either way.
     current = current_season(db)
+    current_start_year = season_start_year(current)
     today_iso = date.today().isoformat()
     future_shows = [
         s for s in shows if s["show"] is not None and (
             (s["opening_date"] and s["opening_date"] >= today_iso)
-            or (not s["opening_date"] and s["season"] > current)
+            or (not s["opening_date"] and season_start_year(s["season"]) > current_start_year)
         )
     ]
     future_ids = {s["id"] for s in future_shows}
@@ -984,8 +991,10 @@ def society_detail(society_id):
     # that ordering exists for the history table below, not this list, so
     # sorted() re-derives "soonest" properly: a real date beats a dateless
     # TBA in the same or a later season, and a dateless placeholder falls
-    # back to its season string.
-    future_shows.sort(key=lambda s: (s["opening_date"] or "9999-99-99", s["season"]))
+    # back to its season's real start year - plain string comparison on
+    # "yy/yy" breaks across the 1999/2000 rollover ('79/80' sorts after
+    # '26/27' as text despite being decades earlier).
+    future_shows.sort(key=lambda s: (s["opening_date"] or "9999-99-99", season_start_year(s["season"])))
 
     # Every award/nomination record for this society, keyed on the production
     # it belongs to - one row per category, so a single production can have

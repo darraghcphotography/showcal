@@ -1,3 +1,7 @@
+Fixed: a society page with old undated shows on record (Thurles Musical Society's 1970s-90s productions, for example) was listing decades-old shows as "Also announced" upcoming productions, above the real next show - a text comparison read "79/80" as later than "26/27". Those shows now correctly sit in Show history, in the right order
+
+---
+
 "Submit society history" now accepts several photos in one go instead of just one - a phone submission with multiple pages used to silently keep only one of them. A show's Awards & nominations no longer disappear on phones (they were vanishing below a certain screen width). Show pages also gained a share button and a tap-to-enlarge poster, and a society's own page now has a quick way to flag anything that looks wrong
 
 ---
