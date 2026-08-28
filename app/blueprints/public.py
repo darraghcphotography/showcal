@@ -996,6 +996,38 @@ def society_detail(society_id):
     # '26/27' as text despite being decades earlier).
     future_shows.sort(key=lambda s: (s["opening_date"] or "9999-99-99", season_start_year(s["season"])))
 
+    # A titleless row for the current or a future season (no date, no venue
+    # either) carries zero real information - just a slot AIMS's own
+    # schedule assigned before the society picked a show, imported ahead of
+    # time so a moderator has something to attach details to later. Public
+    # visitors have nothing to do with it (no show to click, no date to
+    # read), so it renders as a blank "TBA" row at the very top of Show
+    # history - confusing, since it reads like the top of the list is the
+    # most recent *production* rather than an empty future slot. A logged-in
+    # moderator still sees it (and its Edit link), since for them it's a
+    # real to-do rather than noise. A titleless row for a season that has
+    # already happened stays visible either way - "Not recorded" is a real
+    # historical gap, not an empty slot.
+    if not viewer:
+        shows = [
+            s for s in shows if not (
+                s["show"] is None and s["opening_date"] is None and s["venue"] is None
+                and season_start_year(s["season"]) >= current_start_year
+            )
+        ]
+    # "Not recorded" (a real historical gap) vs "TBA" (not yet announced) -
+    # computed here rather than as `show['season'] < current_season` in the
+    # template, which was the same season-string bug as above: a titled but
+    # dateless show from the 1970s/80s would compare as "later" than the
+    # current season and wrongly read "TBA", implying an upcoming show
+    # rather than a genuine gap in old records.
+    shows = [
+        dict(s, blank_date_label=(
+            "Not recorded" if season_start_year(s["season"]) < current_start_year else "TBA"
+        ))
+        for s in shows
+    ]
+
     # Every award/nomination record for this society, keyed on the production
     # it belongs to - one row per category, so a single production can have
     # several. Grouped once here and handed to both tables below, so a

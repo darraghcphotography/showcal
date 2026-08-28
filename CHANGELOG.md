@@ -1,3 +1,7 @@
+Society pages no longer show an empty placeholder row at the top of Show history. Where a society has a season slot on record but has not announced what they are staging yet, that blank row was rendering as a confusing "TBA" line above their actual most recent production - 142 of them across the site. Moderators still see them, since for them it is a prompt to fill in
+
+---
+
 Fixed: a society page with old undated shows on record (Thurles Musical Society's 1970s-90s productions, for example) was listing decades-old shows as "Also announced" upcoming productions, above the real next show - a text comparison read "79/80" as later than "26/27". Those shows now correctly sit in Show history, in the right order
 
 ---
