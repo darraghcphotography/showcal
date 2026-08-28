@@ -112,47 +112,6 @@ shell there:
    check that file if you need past reasoning/detail behind something, not for everyday pickup.
    When a session fully resolves an open item, move its entry out of `ROADMAP.md` rather than
    letting resolved items accumulate there again.
-5. **Write to ASD-STE100 rules, with one deliberate exemption.** See the section below.
-
-## Writing style: ASD-STE100 (Simplified Technical English)
-
-Apply the writing rules of ASD-STE100 to instructions, procedures, steps, summaries, commit
-messages, changelog entries and documentation.
-
-**What this does not claim.** ASD-STE100 pairs its writing rules with a controlled dictionary of
-approximately 900 approved words, each locked to one meaning and one part of speech. That
-dictionary is a licensed document and is not held here. **Do not describe any output as
-"STE-compliant" or "ASD-STE100 compliant"** - the rules are applied, the vocabulary is not
-verified. Certified compliance needs a checker tool (HyperSTE, Congree).
-
-### The rules to apply
-
-- Write one idea in one sentence. Write one instruction in one sentence.
-- Use a maximum of 20 words in a procedural sentence, and 25 in a descriptive sentence.
-- Use a maximum of 6 sentences in a procedural paragraph.
-- Use simple tenses only. Do not use progressive ("-ing") forms as verbs.
-- Use the active voice. Use the passive voice only when the actor is genuinely unknown.
-- Use the same word for the same thing every time. Do not vary vocabulary for style.
-- Keep articles. Do not write "Run script" for "Run the script".
-- Use a maximum of three words in a noun cluster.
-- Put a warning or a caution before the step it applies to, never after it.
-- Do not use idioms, slang or figurative language.
-- Start an instruction with the verb.
-
-### The exemption, and why it exists
-
-**Reasoning, argument and trade-off discussion stay in normal prose.** This includes:
-
-- Why a decision was made, and what was rejected.
-- Evidence for and against a backlog item.
-- Anything recording *why* something is built the way it is.
-
-This repo's `ROADMAP.md`, `ROADMAP_ARCHIVE.md` and its commit messages carry most of their value in
-recorded argument - a closure with its reason and a reopen trigger, a data import with the
-cross-check that validated it. STE is built for maintenance procedures and flattens that kind of
-writing. Applying it there would cost more than it gains.
-
-The practical split: **the steps are STE, the case for them is not.**
 
 ## Things worth knowing before editing
 
