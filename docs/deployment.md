@@ -45,8 +45,16 @@ it would via the `docker compose` CLI.
    reachable at `127.0.0.1:8000` on the NAS itself - not on your LAN or the
    internet - with `aims.db` and uploaded posters persisted under the
    absolute host path in `docker-compose.yml`'s `volumes:` line (currently
-   `/share/CACHEDEV1_DATA/Data/config/aims-web`), so redeploying or
+   `/share/CACHEDEV2_DATA/Data/config/aims-web`), so redeploying or
    rebuilding the image never touches your data.
+
+   > **The volume moved on 2026-08-28**, from `CACHEDEV1_DATA` to
+   > `CACHEDEV2_DATA`, when two M.2 drives went in as a RAID pair and all
+   > container config moved onto them. A full stale copy of the old folder
+   > is still on `CACHEDEV1_DATA`, complete with its own `aims.db` and
+   > `backups/`. Anything still pointing at the old path keeps working and
+   > reads plausible, out-of-date data without erroring, so check the path
+   > before trusting a copy.
 
    **This must be an absolute path, never a relative one like `./data`.**
    Portainer resolves a stack's relative volume paths against its own
@@ -133,7 +141,7 @@ Two layers, both required - one alone isn't enough:
    because `/data` is now a real absolute host path (see the volume note
    above) - it would not have under the old relative-path mount.
 2. **An off-NAS copy**, via Hybrid Backup Sync (HBS3): a one-way **Backup
-   Job** (not "Sync") from `/share/CACHEDEV1_DATA/Data/config/aims-web` (the
+   Job** (not "Sync") from `/share/CACHEDEV2_DATA/Data/config/aims-web` (the
    whole folder, not just `backups/`, so `uploads/` - poster images - is
    covered too) to a cloud destination, scheduled to run shortly after the
    nightly local backup above. This is the layer that actually protects
@@ -153,7 +161,7 @@ file exists yet at that path. Don't assume the data is gone; check first:
    docker inspect aims-web --format '{{json .Mounts}}'
    ```
    The `Source` should be the absolute path from `docker-compose.yml`
-   (`/share/CACHEDEV1_DATA/Data/config/aims-web`). If it's anything else,
+   (`/share/CACHEDEV2_DATA/Data/config/aims-web`). If it's anything else,
    that's the bug - fix the compose file's `volumes:` line first (must be an
    absolute path, never a relative one - see the note above), redeploy, and
    re-check this before doing anything else.

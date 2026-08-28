@@ -514,7 +514,7 @@ into the scratch directory instead (never into the repo):
 
 ```bash
 scp -i ~/.ssh/claudeshowcal_ed25519 \
-  claudeshowcal@dc-qnap-2:/share/CACHEDEV1_DATA/Data/config/aims-web/aims.db \
+  claudeshowcal@dc-qnap-2:/share/CACHEDEV2_DATA/Data/config/aims-web/aims.db \
   "$SCRATCH/prod-check.db"
 ```
 

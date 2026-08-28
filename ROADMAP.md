@@ -70,33 +70,23 @@ again.
 > as a separate pass — and note submission #6/#7 is live evidence a real member already hit the
 > limit and lost data to it.
 >
-> #### 📋 FIRST JOB NEXT SESSION: two AI code reviews are waiting, unread
+> #### ✅ DONE: the two AI code reviews are read and triaged (2026-08-28)
 >
 > Darragh had Antigravity generate two independent reviews of the whole codebase on 2026-08-28, from
-> **two different models**, and asked to go through them together. **Neither has been read beyond
-> identifying it** — that review is the first job of the next session, not a background task.
+> **two different models**. Both are now read, and every checkable claim was diffed against the code
+> per this file's own working agreement. **The prediction held.** `enrichment/feedback.md` (2KB,
+> GPT-OSS 120B) produced **nothing** — FTS5, `requirements-dev.txt`, exact version pins, asset
+> cache-busting and the viewport meta were all already shipped. `enrichment/feedback_opus.md` (15KB,
+> Claude Opus 4.6 Thinking) held the residue: 7 real items, plus one bug neither review found
+> (a double Pillow pin). **The surviving items are queued as R1–R8 below** — nothing started.
 >
-> - **`enrichment/feedback_opus.md`** (15KB, Claude Opus 4.6 Thinking) — the substantial one. A
->   structured review with sections on architecture, security, data model, testing, frontend,
->   deployment and code quality, each split into strengths vs. concerns, ending in a summary table.
->   Opens by calling the codebase unusually well-reasoned but flags that it has *"accumulated
->   significant complexity for a small Flask app"* — 1,845 lines in `public.py`, 794 lines of schema
->   with 46 column migrations, 91 test files. That complexity point is worth taking seriously; it's
->   the first outside read we've had on it.
-> - **`enrichment/feedback.md`** (2KB, GPT-OSS 120B) — a short strengths/improvements checklist.
->   Much thinner, and **several of its suggestions look already-done on a first glance** (it proposes
->   "evaluate SQLite FTS5" — we already use it; "maintain a requirements-dev.txt" — exists; asset
->   cache-busting — already implemented, and it lists that as a strength elsewhere in the same file).
->
-> **⚠ Apply this file's own working agreement before entering anything from either into the
-> backlog:** *diff any new audit/proposal doc against prior rulings and against the actual code.*
-> Three generated audit docs have already been caught re-proposing things that were shipped or
-> argued down with reasons. Expect a real chunk of both files to be in that category — the value is
-> in the residue that survives the diff, and the Opus one is far likelier to hold that residue.
+> The one thing worth keeping from the Opus framing: it is the first outside read on the complexity
+> point (1,844 lines in `public.py`, 72KB of CSS). That is R8, and it is a judgment call rather than
+> a defect — it must not jump the queue ahead of the 8 remaining plan items.
 >
 > **Both files are gitignored** (`.gitignore:60`, `/enrichment/`), so they exist only on Darragh's
 > machine at `d:\showdb\enrichment\` — they will not be in a fresh clone, and nothing about them is
-> recoverable from git history.
+> recoverable from git history. The triage in R1–R8 is the durable record.
 
 ---
 
@@ -105,7 +95,34 @@ again.
 Everything genuinely open, highest-value first. The approved plan supersedes the older numbered
 backlog further down this file; both are listed here so nothing gets lost across the `/clear`.
 
-**Read the two AI code reviews first** (above) — Darragh asked for that explicitly.
+**The two AI code reviews are DONE** (read and diffed 2026-08-28) — see the queued section below.
+
+### From the two AI code reviews — queued, not started
+
+Both files (`enrichment/feedback_opus.md`, `enrichment/feedback.md`) were read and every checkable
+claim was diffed against the code. **The GPT-OSS file produced nothing** — FTS5, `requirements-dev.txt`,
+exact version pins, asset cache-busting and the viewport meta are all already shipped, and it listed
+cache-busting as a strength and a gap in the same file. The residue below is what survived, all of it
+verified against the code, plus one item neither review found.
+
+| # | Item | Verified state |
+|---|---|---|
+| R1 | **`.replace()` count query is fragile** (`app/blueprints/public.py:99-106`) | Real latent bug. Rebuilds a COUNT by exact-matching a two-line SELECT clause with its literal indentation. A reformat makes the replace a silent no-op, and `.fetchone()[0]` then returns `shows.id` as the "announced" count. Wrong number, no error. |
+| R2 | **Pillow is pinned twice, to different versions** | **Neither review found this.** `requirements.txt` pins 12.3.0; `requirements-dev.txt` pulls that in with `-r` then pins 11.1.0. Upload validation decodes with Pillow, so the tests do not exercise the production decoder. |
+| R3 | **No `Cache-Control` on static assets** | Confirmed: zero matches across `app/`. `asset_version` (mtime query string, `app/__init__.py:147`) already exists, which is exactly what makes a long `max-age` safe. The versioning is half a mechanism without the header. |
+| R4 | **No healthcheck in `docker-compose.yml`** | Confirmed absent. A wedged container stays wedged. |
+| R5 | **No log rotation** | `aims-backup` prints verification output every 24h forever, no `max-size` log option. |
+| R6 | **`SECRET_KEY` warns but starts anyway** (`app/__init__.py:61`) | Real. Compose passes `${SECRET_KEY}`; a missing `.env` on the NAS resolves it to an empty string, which is not the default value, so the warning does not even fire. **Decide first:** a fail-fast here can take the live site down if the NAS `.env` is wrong. |
+| R7 | **No CI, no coverage reporting** | No `.github/` at all. 92 test files run only when someone remembers. |
+| R8 | **File sizes**: `public.py` 1,844 lines, `style.css` 72KB | Both confirmed. A judgment call, not a defect. Admin is already a package; public is not. **Competes directly with the 8 remaining plan items** — do not start it ahead of them. |
+
+R1–R5 are small, independent and low-risk — one pass, roughly an hour. R6–R8 need a decision from
+Darragh before any code moves.
+
+Rejected on the diff, do not re-add: the `search.py` f-string (callers pass hardcoded table names,
+so there is no injection risk), and a numbered migration framework (42 startup PRAGMAs cost nothing;
+this is a preference, not a bug). Opus's `updated_at` trigger point does stand — all 9 triggers in
+`schema.sql` are FTS sync triggers, none touch `updated_at`.
 
 ### From the approved plan — 8 of 10 items remain
 
@@ -874,7 +891,7 @@ its suggestions are entered here.
 - A formal `LAUNCH.md` spec, written up retroactively (the site launched organically instead).
 - **Backups sit on the same volume as the database** (`/data/backups` beside `/data/aims.db`). They
   survive a bad script or a bad deploy, which is what they're mostly for - but not the disk. An
-  off-box copy (QNAP HBS3 pointed at `/share/CACHEDEV1_DATA/Data/config/aims-web`) is the missing
+  off-box copy (QNAP HBS3 pointed at `/share/CACHEDEV2_DATA/Data/config/aims-web`) is the missing
   half, and it's a NAS configuration job rather than a code one.
 
 ## Working agreements (from the 2026-08-03 process review)
