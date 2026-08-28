@@ -42,6 +42,27 @@
           {% endfor %}
         </tbody>
       </table>
+
+      <div class="table-cards">
+        {% for p in proposals %}
+          <div class="queue-item">
+            <div class="primary">
+              <label><input type="checkbox" name="show_id" value="{{ p['show_id'] }}" checked>
+                <a href="{{ url_for('admin.edit_show', show_id=p['show_id']) }}">{{ p['show'] or 'TBA' }}</a></label>
+            </div>
+            <div class="meta-chips">
+              <span>{{ p['society_name'] }}</span>
+              <span>&middot; {{ p['season'] }}</span>
+            </div>
+            <p class="meta" style="margin-top: 0.3rem;">
+              {% for field, value in p['fields']|dictsort %}
+                {{ field.replace('_', ' ') }}: <strong>{{ value }}</strong>{{ '' if loop.last else ' · ' }}
+              {% endfor %}
+            </p>
+          </div>
+        {% endfor %}
+      </div>
+
       <p><button type="submit" class="button-primary">Apply ticked</button></p>
     </form>
   {% endif %}

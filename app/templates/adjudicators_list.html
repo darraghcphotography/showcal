@@ -58,6 +58,6 @@
   {% endif %}
 
   {% if not current_card and not roster %}
-    <p>No adjudicators on record yet.</p>
+    <p>No adjudicators on record yet. <a href="{{ url_for('public.reviews_index') }}">See everything &rarr;</a></p>
   {% endif %}
 {% endblock %}

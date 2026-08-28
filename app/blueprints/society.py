@@ -5,7 +5,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 
 from ..auth import active_society_code, society_required
 from ..calendar_links import google_calendar_url
-from ..constants import SHOW_SECTIONS
+from ..constants import DATE_RE, SHOW_SECTIONS
 from ..db import get_db
 from ..rate_limit import limiter
 from ..season import season_range
@@ -16,7 +16,6 @@ from ..uploads import save_poster
 bp = Blueprint("society", __name__, url_prefix="/society")
 
 SEASON_RE = re.compile(r"^\d{2}/\d{2}$")
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 URL_RE = re.compile(r"^https?://")
 BULK_ROWS = 10
 
@@ -67,18 +66,24 @@ def dashboard():
     return render_template("society_dashboard.html", society=society, shows=shows)
 
 
-def _read_form(form):
+def _read_form(form, suffix=""):
+    """suffix lets the bulk-add form (society_bulk_form.html) reuse this on
+    fields named e.g. "season_3" for row 3, rather than re-implementing its
+    own field-by-field extraction."""
+    def get(key):
+        return form.get(f"{key}{suffix}", "").strip()
+
     return {
-        "season": form.get("season", "").strip(),
-        "show": form.get("show", "").strip(),
-        "section": form.get("section") or None,
-        "opening_date": form.get("opening_date", "").strip() or None,
-        "closing_date": form.get("closing_date", "").strip() or None,
-        "venue": form.get("venue", "").strip() or None,
-        "director": form.get("director", "").strip() or None,
-        "musical_director": form.get("musical_director", "").strip() or None,
-        "choreographer": form.get("choreographer", "").strip() or None,
-        "ticket_url": form.get("ticket_url", "").strip() or None,
+        "season": get("season"),
+        "show": get("show"),
+        "section": form.get(f"section{suffix}") or None,
+        "opening_date": get("opening_date") or None,
+        "closing_date": get("closing_date") or None,
+        "venue": get("venue") or None,
+        "director": get("director") or None,
+        "musical_director": get("musical_director") or None,
+        "choreographer": get("choreographer") or None,
+        "ticket_url": get("ticket_url") or None,
     }
 
 
@@ -355,36 +360,20 @@ def bulk_add():
         rows = []
         has_problems = False
         for i in range(BULK_ROWS):
-            season = request.form.get(f"season_{i}", "").strip()
-            show = request.form.get(f"show_{i}", "").strip()
-            opening_date = request.form.get(f"opening_date_{i}", "").strip() or None
-            closing_date = request.form.get(f"closing_date_{i}", "").strip() or None
-            venue = request.form.get(f"venue_{i}", "").strip() or None
-            director = request.form.get(f"director_{i}", "").strip() or None
-            musical_director = request.form.get(f"musical_director_{i}", "").strip() or None
-            choreographer = request.form.get(f"choreographer_{i}", "").strip() or None
+            fields = _read_form(request.form, suffix=f"_{i}")
 
-            if not any((season, show, opening_date, closing_date, venue, director, musical_director, choreographer)):
+            if not any(fields.values()):
                 rows.append(None)
                 continue
 
-            errors = []
-            if not show:
-                errors.append("Show title is required.")
-            if not SEASON_RE.match(season):
-                errors.append("Season must be in the form YY/YY, e.g. 04/05.")
-            for label, value in (("Opening date", opening_date), ("Closing date", closing_date)):
-                if value and not DATE_RE.match(value):
-                    errors.append(f"{label} must be a valid date.")
+            errors = _validate(fields, require_title=True)
 
             similar_title = None
-            if show and not request.form.get(f"confirm_{i}"):
-                similar_title = find_close_title(db, show)
+            if fields["show"] and not request.form.get(f"confirm_{i}"):
+                similar_title = find_close_title(db, fields["show"])
 
             rows.append({
-                "season": season, "show": show, "opening_date": opening_date, "closing_date": closing_date,
-                "venue": venue, "director": director, "musical_director": musical_director,
-                "choreographer": choreographer, "errors": errors, "similar_title": similar_title,
+                **fields, "errors": errors, "similar_title": similar_title,
             })
             if errors or similar_title:
                 has_problems = True

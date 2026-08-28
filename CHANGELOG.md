@@ -1,3 +1,7 @@
+"Submit society history" now accepts several photos in one go instead of just one - a phone submission with multiple pages used to silently keep only one of them. A show's Awards & nominations no longer disappear on phones (they were vanishing below a certain screen width). Show pages also gained a share button and a tap-to-enlarge poster, and a society's own page now has a quick way to flag anything that looks wrong
+
+---
+
 Carnew Musical Society's history now goes back to 1968 - 30 productions added from the society's own programme, sent in as a photo. Their list runs 1967 to 2022, and the 22 productions we already held all line up with it
 
 ---

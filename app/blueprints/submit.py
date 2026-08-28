@@ -1,9 +1,8 @@
-import re
-
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 
 from .. import notify
 from ..auth import active_invite_code, invite_required
+from ..constants import DATE_RE
 from ..db import get_db
 from ..rate_limit import limiter
 from ..season import current_season, next_season
@@ -12,7 +11,6 @@ from ..uploads import save_photo_submission, save_poster
 
 bp = Blueprint("submit", __name__, url_prefix="/submit")
 
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 PHOTO_KINDS = ("review", "production_photo")
 
 
@@ -192,40 +190,51 @@ def photo():
         if not notes:
             errors.append("Tell us a little about the photo - what it is, and anything you know about it.")
 
-        filename = None
-        photo_file = request.files.get("photo")
-        try:
-            filename = save_photo_submission(photo_file, current_app.config["UPLOAD_DIR"])
-        except ValueError as e:
-            errors.append(str(e))
+        photo_files = [f for f in request.files.getlist("photo") if f and f.filename]
+        filenames = []
+        if not photo_files:
+            errors.append("Choose a photo to upload.")
+        else:
+            try:
+                for photo_file in photo_files:
+                    filenames.append(save_photo_submission(photo_file, current_app.config["UPLOAD_DIR"]))
+            except ValueError as e:
+                # Reject the whole batch rather than keeping the files that
+                # decoded fine - a partial success that looks like a full one
+                # is how this feature's data loss started (see M1 in the
+                # small-items queue).
+                errors.append(str(e))
+                filenames = []
 
         if errors:
             for e in errors:
                 flash(e, "error")
             return render_template("submit_photo.html", societies=societies, form=request.form)
 
-        db.execute(
-            """
-            INSERT INTO photo_submissions (
-                kind, filename, society_guess, show_guess, date_guess, notes, submitter_name, submitter_email
-            ) VALUES (:kind, :filename, :society_guess, :show_guess, :date_guess, :notes, :submitter_name, :submitter_email)
-            """,
-            {
-                "kind": kind,
-                "filename": filename,
-                "society_guess": request.form.get("society_guess", "").strip() or None,
-                "show_guess": request.form.get("show_guess", "").strip() or None,
-                "date_guess": request.form.get("date_guess", "").strip() or None,
-                "notes": notes,
-                "submitter_name": request.form.get("submitter_name", "").strip() or None,
-                "submitter_email": request.form.get("submitter_email", "").strip() or None,
-            },
-        )
+        for filename in filenames:
+            db.execute(
+                """
+                INSERT INTO photo_submissions (
+                    kind, filename, society_guess, show_guess, date_guess, notes, submitter_name, submitter_email
+                ) VALUES (:kind, :filename, :society_guess, :show_guess, :date_guess, :notes, :submitter_name, :submitter_email)
+                """,
+                {
+                    "kind": kind,
+                    "filename": filename,
+                    "society_guess": request.form.get("society_guess", "").strip() or None,
+                    "show_guess": request.form.get("show_guess", "").strip() or None,
+                    "date_guess": request.form.get("date_guess", "").strip() or None,
+                    "notes": notes,
+                    "submitter_name": request.form.get("submitter_name", "").strip() or None,
+                    "submitter_email": request.form.get("submitter_email", "").strip() or None,
+                },
+            )
         db.commit()
         notify.send(
             "New photo submission",
-            f"A {kind.replace('_', ' ')} was just submitted.\n\n"
-            f"Review it: {notify.link(url_for('admin.photo_submissions_queue'))}",
+            f"A {kind.replace('_', ' ')} was just submitted"
+            + (f" ({len(filenames)} photos)" if len(filenames) > 1 else "")
+            + f".\n\nReview it: {notify.link(url_for('admin.photo_submissions_queue'))}",
         )
         return redirect(url_for("submit.photo_thanks"))
 

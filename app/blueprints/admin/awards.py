@@ -6,6 +6,7 @@ from ... import productions_build
 from ...auth import login_required
 from ...constants import AWARD_RESULTS
 from ...db import get_db
+from ...search import escape_like
 from ...similarity import find_close_title
 from . import bp
 
@@ -87,7 +88,7 @@ def awards_list():
     if q:
         query += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
                      OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = escape_like(q)
         like = f"%{escaped}%"
         params += [like, like, like, like]
     query += " ORDER BY year DESC, category_name, society_name"

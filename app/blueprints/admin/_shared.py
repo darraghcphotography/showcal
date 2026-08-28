@@ -8,9 +8,9 @@ risking a circular import through __init__.py itself.
 import re
 from datetime import date
 
+from ...constants import DATE_RE  # noqa: F401 - re-exported for admin submodules
 from ...season import current_season
 
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 URL_RE = re.compile(r"^https?://")
 
 

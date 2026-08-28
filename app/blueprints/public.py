@@ -21,7 +21,7 @@ from ..db import get_db
 from ..filters import place_label
 from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
-from ..search import build_phrase_query, fts_match_ids
+from ..search import build_phrase_query, escape_like, fts_match_ids
 from ..season import current_season, season_has_ended, season_range, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
@@ -96,12 +96,12 @@ def index():
     # How many there really are, before the limit - so the page can say "50
     # announced" and mean it, rather than implying the handful it shows is all
     # there is. Same WHERE, same params, so the two can't disagree.
+    # Wrapped rather than built by replacing the SELECT clause's exact text -
+    # that used to match the source file's own indentation/newlines, so any
+    # reformat of the query above turned it into a silent no-op that counted
+    # the full row width (fetchone()[0] became shows.id) instead of raising.
     upcoming_total = db.execute(
-        upcoming_query.replace(
-            "SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug,\n"
-            "               venues.latitude AS venue_lat, venues.longitude AS venue_lng",
-            "SELECT COUNT(*)", 1,
-        ),
+        f"SELECT COUNT(*) FROM ({upcoming_query})",
         upcoming_params,
     ).fetchone()[0]
 
@@ -194,7 +194,7 @@ def societies_list():
             params.extend(ids)
         else:
             query += " AND name LIKE ? ESCAPE '\\'"
-            escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            escaped = escape_like(q)
             params.append(f"%{escaped}%")
     # Non-AIMS societies sort last within whatever filters are active, rather
     # than being scattered alphabetically among real members - they're kept
@@ -294,7 +294,7 @@ def search():
     reviews = []
     awards = []
     if q:
-        escaped = q.translate(_QUOTE_CHARS).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = escape_like(q.translate(_QUOTE_CHARS))
 
         # FTS5 (typo/partial-word tolerant), falling back to a plain LIKE -
         # same pattern as societies_list()'s own search box.
@@ -980,6 +980,12 @@ def society_detail(society_id):
     ]
     future_ids = {s["id"] for s in future_shows}
     shows = [s for s in shows if s["id"] not in future_ids]
+    # Soonest first, not the ORDER BY season DESC the source query used -
+    # that ordering exists for the history table below, not this list, so
+    # sorted() re-derives "soonest" properly: a real date beats a dateless
+    # TBA in the same or a later season, and a dateless placeholder falls
+    # back to its season string.
+    future_shows.sort(key=lambda s: (s["opening_date"] or "9999-99-99", s["season"]))
 
     # Every award/nomination record for this society, keyed on the production
     # it belongs to - one row per category, so a single production can have
@@ -1291,7 +1297,7 @@ def titles_list():
     params = []
     if q:
         query += " AND title LIKE ? ESCAPE '\\'"
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = escape_like(q)
         params.append(f"%{escaped}%")
     query += " GROUP BY title_key"
     rows = db.execute(query, params).fetchall()
@@ -1560,7 +1566,7 @@ def venues_index():
     """
     params = []
     if q:
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = escape_like(q)
         query += (" AND (venues.name LIKE ? ESCAPE '\\' OR venues.town LIKE ? ESCAPE '\\'"
                   " OR venues.county LIKE ? ESCAPE '\\')")
         params += [f"%{escaped}%"] * 3
@@ -1801,7 +1807,16 @@ def suggest():
         )
         return redirect(url_for("public.suggest_thanks"))
 
-    return render_template("suggest.html", form={}, categories=SUGGESTION_CATEGORIES)
+    # Cheap prefill for a link into this form (e.g. a society page's
+    # "spot something wrong?" note) - only category/message, and only from
+    # the fixed category list, so a crafted link can't inject anything
+    # beyond what a user could type in by hand anyway.
+    prefill = {}
+    if request.args.get("category") in SUGGESTION_CATEGORIES:
+        prefill["category"] = request.args["category"]
+    if request.args.get("message"):
+        prefill["message"] = request.args["message"]
+    return render_template("suggest.html", form=prefill, categories=SUGGESTION_CATEGORIES)
 
 
 @bp.route("/suggest/thanks")

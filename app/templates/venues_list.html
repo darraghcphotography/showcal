@@ -89,7 +89,9 @@
       {% endfor %}
     </div>
   {% else %}
-    <p>No venues match.</p>
+    <p>No venues match.
+      {% if active_filters %}<a href="{{ url_for('public.venues_index') }}">Clear filters</a>{% endif %}
+    </p>
   {% endif %}
 
   {{ pg.pager('public.venues_index', page, total_pages) }}

@@ -100,29 +100,38 @@
   {% endif %}
 
   {% if future_shows %}
-    <h2>Future announced show{{ '' if future_shows|length == 1 else 's' }}</h2>
-    {% for show in future_shows %}
-      <div class="queue-item{{ ' next-production' if loop.first }}">
-        <div class="primary">
-          <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-          {% if loop.first and show['ticket_url'] %}<span class="tag tag-gold">Tickets on sale</span>{% endif %}
-        </div>
-        <div class="meta-chips">
-          <span>{{ show['season'] }}</span>
-          <span>&middot; {{ tier.tier_label(show['section']) }}</span>
-          <span>&middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}</span>
-          {% if show['venue'] %}
-            <span>&middot;
-              {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>{% else %}{{ show['venue'] }}{% endif %}
-            </span>
-          {% endif %}
-        </div>
-        {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit &rarr;</a></p>{% endif %}
+    {% set next_show = future_shows[0] %}
+    <h2>{{ 'Coming this season' if next_show['season'] == current_season else 'Next production' }}</h2>
+    <div class="queue-item next-production">
+      <div class="primary">
+        <a href="{{ url_for('public.show_detail', show_id=next_show['id']) }}">{{ next_show['show'] }}</a>
+        {% if next_show['ticket_url'] %}<span class="tag tag-gold">Tickets on sale</span>{% endif %}
       </div>
-    {% endfor %}
+      <div class="meta-chips">
+        <span>{{ next_show['season'] }}</span>
+        <span>&middot; {{ tier.tier_label(next_show['section']) }}</span>
+        <span>&middot; {% if next_show['opening_date'] %}{{ next_show['opening_date']|date_range(next_show['closing_date']) }}{% else %}TBA{% endif %}</span>
+        {% if next_show['venue'] %}
+          <span>&middot;
+            {% if next_show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=next_show['venue_slug']) }}">{{ next_show['venue'] }}</a>{% else %}{{ next_show['venue'] }}{% endif %}
+          </span>
+        {% endif %}
+      </div>
+      {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=next_show['id']) }}">Edit &rarr;</a></p>{% endif %}
+    </div>
+
+    {% if future_shows|length > 1 %}
+      <p class="meta">Also announced:
+        {% for show in future_shows[1:] %}
+          <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a> ({{ show['season'] }}){{ '' if loop.last else ', ' }}
+        {% endfor %}
+      </p>
+    {% endif %}
   {% endif %}
 
   <h2>Show history</h2>
+  <p class="meta">Spot something wrong below - a wrong date, a missing show, a typo?
+     <a href="{{ url_for('public.suggest', category='Data error', message='On the ' ~ society['name'] ~ ' page: ') }}">Tell us</a> - it worked before.</p>
   <table class="data-table table-wide">
     <thead>
       <tr><th>Season</th><th>Show</th><th>Section</th><th>Venue</th><th>Dates</th><th>Review</th><th>Awards</th>{% if current_user %}<th></th>{% endif %}</tr>
@@ -161,7 +170,8 @@
           {% if current_user %}<td><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit</a></td>{% endif %}
         </tr>
       {% else %}
-        <tr><td colspan="{{ 8 if current_user else 7 }}">No shows on record yet.</td></tr>
+        <tr><td colspan="{{ 8 if current_user else 7 }}">No shows on record yet.
+          <a href="{{ url_for('public.titles_list') }}">Browse all shows &rarr;</a></td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -201,7 +211,7 @@
         {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit &rarr;</a></p>{% endif %}
       </div>
     {% else %}
-      <p>No shows on record yet.</p>
+      <p>No shows on record yet. <a href="{{ url_for('public.titles_list') }}">Browse all shows &rarr;</a></p>
     {% endfor %}
   </div>
 

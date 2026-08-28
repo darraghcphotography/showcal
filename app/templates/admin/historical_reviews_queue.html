@@ -13,6 +13,25 @@
   </form>
 {% endmacro %}
 
+{% macro society_group_match(group) %}
+  {% if group['candidates'] %}
+    {% for name, score, section in group['candidates'][:3] %}
+      <form method="post" action="{{ url_for('admin.bulk_apply_historical_review_society_match') }}"
+            class="inline-form" style="display:inline"
+            {% if group['count'] > 1 %}data-confirm="Match all {{ group['count'] }} reviews printed as &quot;{{ group['society_raw'] }}&quot; to &quot;{{ name }}&quot;?"{% endif %}>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="society_raw" value="{{ group['society_raw'] }}">
+        <input type="hidden" name="name" value="{{ name }}">
+        <button type="submit" class="button-primary">Use "{{ name }}"
+          ({{ (score * 100)|round|int }}%){% if group['count'] > 1 %} &times;{{ group['count'] }}{% endif %}</button>
+      </form>
+      {% if section == 'Inactive' %}<span class="tag tag-past">defunct / inactive</span>{% endif %}
+    {% endfor %}
+  {% else %}
+    <span class="meta">No close match - use Edit fields on the review below.</span>
+  {% endif %}
+{% endmacro %}
+
 {% macro review_meta(review) %}
   <p class="meta">
     {{ review['matched_society_name'] or review['society_raw'] }} &middot;
@@ -72,28 +91,23 @@
             <tr>
               <td>{{ group['society_raw'] or '(blank)' }}</td>
               <td>{{ group['count'] }}</td>
-              <td>
-                {% if group['candidates'] %}
-                  {% for name, score, section in group['candidates'][:3] %}
-                    <form method="post" action="{{ url_for('admin.bulk_apply_historical_review_society_match') }}"
-                          class="inline-form" style="display:inline"
-                          {% if group['count'] > 1 %}data-confirm="Match all {{ group['count'] }} reviews printed as &quot;{{ group['society_raw'] }}&quot; to &quot;{{ name }}&quot;?"{% endif %}>
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <input type="hidden" name="society_raw" value="{{ group['society_raw'] }}">
-                      <input type="hidden" name="name" value="{{ name }}">
-                      <button type="submit" class="button-primary">Use "{{ name }}"
-                        ({{ (score * 100)|round|int }}%){% if group['count'] > 1 %} &times;{{ group['count'] }}{% endif %}</button>
-                    </form>
-                    {% if section == 'Inactive' %}<span class="tag tag-past">defunct / inactive</span>{% endif %}
-                  {% endfor %}
-                {% else %}
-                  <span class="meta">No close match - use Edit fields on the review below.</span>
-                {% endif %}
-              </td>
+              <td>{{ society_group_match(group) }}</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
+
+      <div class="table-cards">
+        {% for group in society_groups %}
+          <div class="queue-item">
+            <div class="primary">{{ group['society_raw'] or '(blank)' }}</div>
+            <div class="meta-chips">
+              <span>{{ group['count'] }} review{{ '' if group['count'] == 1 else 's' }}</span>
+            </div>
+            <p style="margin-top: 0.3rem;">{{ society_group_match(group) }}</p>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
 
     <details open>

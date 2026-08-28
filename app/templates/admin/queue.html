@@ -38,6 +38,30 @@
       </div>
     </article>
   {% else %}
-    <p>Nothing waiting for review.</p>
+    <p>Nothing waiting for review here - it may already have been actioned (see "Recently
+       actioned" below), or try another queue: <a href="{{ url_for('admin.historical_reviews_queue') }}">Historical reviews</a>,
+       <a href="{{ url_for('admin.photo_submissions_queue') }}">Photo submissions</a>, or the
+       <a href="{{ url_for('admin.dashboard') }}">admin dashboard</a> for everything else.</p>
   {% endfor %}
+
+  {% if recent_done %}
+    <h2 class="admin-group-label">Recently actioned</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Show</th><th>Society</th><th>Season</th><th>Status</th><th>By</th><th>When</th></tr>
+      </thead>
+      <tbody>
+        {% for show in recent_done %}
+          <tr>
+            <td><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">{{ show['show'] or '(no title given)' }}</a></td>
+            <td>{{ show['society_name'] }}</td>
+            <td>{{ show['season'] }}</td>
+            <td>{{ show['moderation_status'] }}</td>
+            <td>{{ show['moderated_by'] or '—' }}</td>
+            <td>{{ show['moderated_at']|irish_datetime }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 {% endblock %}

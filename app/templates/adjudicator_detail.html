@@ -54,6 +54,7 @@
       </details>
     {% endfor %}
   {% else %}
-    <p class="meta">No published reviews from {{ adjudicator['name'] }} yet.</p>
+    <p class="meta">No published reviews from {{ adjudicator['name'] }} yet.
+      <a href="{{ url_for('public.reviews_index') }}">See all reviews &rarr;</a></p>
   {% endif %}
 {% endblock %}

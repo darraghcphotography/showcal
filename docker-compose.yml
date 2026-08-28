@@ -43,6 +43,15 @@ services:
     # back through (hairpin NAT).
     networks:
       - media-net
+    # A wedged waitress process (hung, deadlocked) would otherwise stay
+    # "Up" forever with nothing to notice - python's own urllib rather than
+    # curl/wget, since the python:3.12-slim base image has neither installed.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/robots.txt', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Runs the nightly backup itself, entirely inside Docker - not via QNAP's
   # own Task Scheduler (not present in Control Panel or App Center on this
@@ -80,6 +89,14 @@ services:
         done
     volumes:
       - /share/CACHEDEV2_DATA/Data/config/aims-web:/data
+    # Prints verification output every ~24h forever with no rotation
+    # otherwise - bounded so the log can't grow unbounded on an
+    # unattended NAS.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Uncomment if you don't already have a cloudflared tunnel running
   # elsewhere on the NAS. Being in this same stack puts it on the same

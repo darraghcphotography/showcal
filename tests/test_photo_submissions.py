@@ -75,6 +75,46 @@ def test_valid_submission_is_stored_pending(client, db):
     assert row["filename"]
 
 
+def test_multiple_photos_create_one_row_each_sharing_notes(client, db):
+    """M1: a phone submission with several photos used to keep only one
+    (see #6/#7, #8/#9 in the small-items queue) - now every file becomes its
+    own photo_submissions row, all sharing the same notes/guesses."""
+    resp = client.post(
+        "/submit/photo",
+        data={
+            "kind": "review",
+            "notes": "Three pages from the same 1994 programme.",
+            "photo": [_photo_file("a.jpg"), _photo_file("b.jpg"), _photo_file("c.jpg")],
+        },
+        content_type="multipart/form-data",
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    rows = db.execute("SELECT * FROM photo_submissions").fetchall()
+    assert len(rows) == 3
+    filenames = {row["filename"] for row in rows}
+    assert len(filenames) == 3  # each file saved under its own name
+    assert all(row["notes"] == "Three pages from the same 1994 programme." for row in rows)
+
+
+def test_one_bad_file_rejects_the_whole_batch(client, db):
+    """A partial success that looks like a full one is how the data loss this
+    feature fixes started - so one undecodable file must reject everything,
+    not just skip that file."""
+    bad_file = (io.BytesIO(b"not actually an image"), "fake.jpg")
+    resp = client.post(
+        "/submit/photo",
+        data={
+            "kind": "review",
+            "notes": "A batch with one bad file in it.",
+            "photo": [_photo_file("a.jpg"), bad_file, _photo_file("c.jpg")],
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200  # re-renders the form with an error
+    assert db.execute("SELECT COUNT(*) FROM photo_submissions").fetchone()[0] == 0
+
+
 def test_honeypot_silently_drops_the_submission(client, db):
     resp = client.post(
         "/submit/photo",

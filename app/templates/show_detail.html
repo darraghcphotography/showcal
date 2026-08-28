@@ -10,7 +10,12 @@
 {% endblock %}
 {% block content %}
   <p><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">&larr; Back to {{ show['society_name'] }}</a></p>
-  <h1>{{ show['show'] }}</h1>
+  <div class="title-row">
+    <h1>{{ show['show'] }}</h1>
+    <button type="button" class="share-button" id="share-button" data-url="{{ url_for('public.show_detail', show_id=show['id'], _external=True) }}"
+            aria-label="Share this show">Share</button>
+  </div>
+  <span class="visually-hidden" id="share-status" role="status" aria-live="polite"></span>
   {% if circuit_summary %}
     <p class="meta">
       Staged {{ circuit_summary['count'] }} times{% if circuit_summary['since'] %} since {{ circuit_summary['since'] }}{% endif %}
@@ -35,7 +40,13 @@
 
   <div class="detail-hero">
     {% if show['poster_filename'] %}
-      <img class="poster" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
+      <button type="button" class="poster-lightbox-trigger" id="poster-lightbox-trigger" aria-label="View full-size poster">
+        <img class="poster" src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
+      </button>
+      <dialog class="poster-lightbox" id="poster-lightbox">
+        <button type="button" class="poster-lightbox-close" id="poster-lightbox-close" aria-label="Close">&times;</button>
+        <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="{{ show['show'] }} poster">
+      </dialog>
     {% else %}
       <div class="poster is-placeholder" aria-hidden="true"><span>{{ show['show']|initials }}</span></div>
     {% endif %}
@@ -155,5 +166,59 @@
         {% endfor %}
       </tbody>
     </table>
+
+    <div class="table-cards">
+      {% for row in award_history %}
+        <div class="queue-item">
+          <div class="primary">{{ row['category_name'] or '—' }}</div>
+          <div class="meta-chips">
+            <span>{{ tier.tier_label(row['tier']) }}</span>
+            <span>&middot; {{ row['result'] or '—' }}</span>
+            <span>&middot; {{ row['nominee_name']|destub or '—' }}{% if row['role']|destub %} ({{ row['role']|destub }}){% endif %}</span>
+          </div>
+          {% if row['reason']|destub %}
+            <p class="meta" style="margin-top: 0.3rem;"><em>{{ row['reason']|destub }}</em></p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
   {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% if show['poster_filename'] %}
+    <script nonce="{{ csp_nonce }}">
+      (function() {
+        var trigger = document.getElementById('poster-lightbox-trigger');
+        var dialog = document.getElementById('poster-lightbox');
+        var closeBtn = document.getElementById('poster-lightbox-close');
+        if (!trigger || !dialog || !closeBtn) return;
+        trigger.addEventListener('click', function() { dialog.showModal(); });
+        closeBtn.addEventListener('click', function() { dialog.close(); });
+        // Click on the dialog's own backdrop (outside the <img>) closes it too.
+        dialog.addEventListener('click', function(e) {
+          if (e.target === dialog) dialog.close();
+        });
+      })();
+    </script>
+  {% endif %}
+  <script nonce="{{ csp_nonce }}">
+    (function() {
+      var btn = document.getElementById('share-button');
+      if (!btn) return;
+      var status = document.getElementById('share-status');
+      var url = btn.dataset.url;
+      var title = document.title;
+      btn.addEventListener('click', function() {
+        if (navigator.share) {
+          navigator.share({ title: title, url: url }).catch(function() {});
+          return;
+        }
+        // No Web Share API (most desktop browsers) - copy the link instead.
+        navigator.clipboard.writeText(url).then(function() {
+          if (status) status.textContent = 'Link copied';
+        }).catch(function() {});
+      });
+    })();
+  </script>
 {% endblock %}

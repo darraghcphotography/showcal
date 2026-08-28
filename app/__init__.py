@@ -45,7 +45,7 @@ def create_app(test_config=None):
         SCHEMA_PATH=str(BASE_DIR / "schema.sql"),
         SOCIETY_CORRECTIONS_PATH=str(BASE_DIR / "society_gate_suggestions.json"),
         UPLOAD_DIR=os.environ.get("AIMS_UPLOAD_DIR", str(BASE_DIR / "uploads")),
-        MAX_CONTENT_LENGTH=8 * 1024 * 1024,  # 8 MB - generous for a poster photo, not for abuse
+        MAX_CONTENT_LENGTH=40 * 1024 * 1024,  # 40 MB - a programme's worth of pages, about a dozen phone photos in one photo submission
         # Secure only in Docker/production (signalled by AIMS_DB_PATH being
         # set, per docker-compose.yml - local dev per docs/deployment.md
         # never sets it) - the site is HTTPS-only there via Cloudflare
@@ -54,6 +54,10 @@ def create_app(test_config=None):
         SESSION_COOKIE_SECURE=bool(os.environ.get("AIMS_DB_PATH")),
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_HTTPONLY=True,
+        # Safe to cache long - static/<path> URLs already carry
+        # asset_version (below, mtime-based) as a query string, so a real
+        # change always gets a new URL rather than relying on this expiring.
+        SEND_FILE_MAX_AGE_DEFAULT=31536000,
     )
     if test_config:
         app.config.update(test_config)
@@ -204,7 +208,7 @@ def create_app(test_config=None):
 
     @app.errorhandler(413)
     def too_large(e):
-        flash("That file is too large - images must be under 8 MB.", "error")
+        flash("That upload is too large - photos together must be under 40 MB.", "error")
         # request.referrer is a client-supplied header - redirecting straight
         # to it is an open redirect (a crafted Referer pointing off-site would
         # send this app's own visitors there). Only follow it if it actually

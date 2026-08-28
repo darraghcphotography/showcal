@@ -15,7 +15,7 @@ from ..constants import (
     SOCIETY_AWARD_CATEGORY_NAMES,
 )
 from ..db import get_db
-from ..search import fts_match_ids
+from ..search import escape_like, fts_match_ids
 from ..season import current_season, season_start_year, season_weeks
 
 bp = Blueprint("info", __name__)
@@ -669,7 +669,7 @@ def awards():
         else:
             where += """ AND (society_name LIKE ? ESCAPE '\\' OR show LIKE ? ESCAPE '\\'
                          OR nominee_name LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\')"""
-            escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            escaped = escape_like(q)
             like = f"%{escaped}%"
             params += [like, like, like, like]
 

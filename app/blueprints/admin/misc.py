@@ -5,6 +5,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from ...auth import login_required
 from ...constants import REGIONS, SUGGESTION_CATEGORIES, SUGGESTION_STATUSES
 from ...db import get_db
+from ...search import escape_like
 from . import bp
 from ._shared import DATE_RE, MISSING_DATES_WHERE
 
@@ -67,7 +68,7 @@ def fix_dates():
     params = []
     if q:
         query += " AND (shows.show LIKE ? ESCAPE '\\' OR societies.name LIKE ? ESCAPE '\\')"
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = escape_like(q)
         like = f"%{escaped}%"
         params += [like, like]
     if season:

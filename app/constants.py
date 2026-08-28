@@ -4,6 +4,11 @@ Kept in one place so templates/routes build filter dropdowns from the same
 list the database enforces - if you ever add a region or tier, this is one
 of two places to update (the other is schema.sql).
 """
+import re
+
+# ISO date, as every date-typed form field on the site submits it (an
+# <input type="date">'s own wire format).
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 REGIONS = ["Eastern", "Western", "Northern", "South-West", "South-East", "Midlands"]
 

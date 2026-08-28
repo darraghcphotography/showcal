@@ -73,7 +73,11 @@
       {% endfor %}
     </div>
   {% else %}
-    <p>No societies match those filters.</p>
+    <p>No societies match those filters.
+      {% if selected_region or selected_section or q or show_inactive %}
+        <a href="{{ url_for('public.societies_list') }}">Clear filters</a>
+      {% endif %}
+    </p>
   {% endif %}
 
   {{ pg.pager('public.societies_list', page, total_pages) }}

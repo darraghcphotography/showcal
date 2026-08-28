@@ -6,6 +6,7 @@ from flask import abort, current_app, flash, redirect, render_template, request,
 from ...auth import current_user, login_required
 from ...constants import REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS
 from ...db import get_db
+from ...search import escape_like
 from ...production_credits import suggest_credits, suggest_venue
 from ...season import current_season, season_range
 from ...uploads import save_poster
@@ -36,7 +37,15 @@ def queue():
         ORDER BY shows.created_at
         """
     ).fetchall()
-    return render_template("admin/queue.html", shows=pending)
+    recent_done = db.execute(
+        """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.moderation_status IN ('approved', 'rejected') AND shows.moderated_at IS NOT NULL
+        ORDER BY shows.moderated_at DESC LIMIT 20
+        """
+    ).fetchall()
+    return render_template("admin/queue.html", shows=pending, recent_done=recent_done)
 
 
 @bp.route("/queue/<int:show_id>/approve", methods=("POST",))
@@ -99,7 +108,7 @@ def shows_list():
     params = needs_review_params(db)
     if q:
         query += " AND (shows.show LIKE :like ESCAPE '\\' OR societies.name LIKE :like ESCAPE '\\')"
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = escape_like(q)
         params["like"] = f"%{escaped}%"
     if needs_review:
         # Exactly the dashboard counter's own definition, so the number on the

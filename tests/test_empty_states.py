@@ -55,3 +55,67 @@ def test_one_off_productions_empty_state_names_the_region(client, db):
 
     body = client.get("/stats?region=Western").get_data(as_text=True)
     assert "No one-off productions on record for Western." in body
+
+
+# ------------------------------------------------------------------------
+# V2 (small-items queue): twelve public empty states said only "No X match"
+# with no way onward. Filtered lists now offer "Clear filters"; unfiltered
+# ones link to a fuller listing - following index.html's own "See
+# everything ->" pattern.
+
+def test_societies_list_empty_state_offers_clear_filters(client, db):
+    seed_society(db, region="Eastern")
+    db.commit()
+
+    body = client.get("/societies?region=Western").get_data(as_text=True)
+    assert "No societies match those filters." in body
+    assert "Clear filters" in body
+
+
+def test_venues_list_empty_state_offers_clear_filters(client, db):
+    body = client.get("/venues?q=zzz_no_such_venue").get_data(as_text=True)
+    assert "No venues match." in body
+    assert "Clear filters" in body
+
+
+def test_reviews_index_empty_state_offers_clear_filters(client, db):
+    body = client.get("/reviews?q=zzz_no_such_review").get_data(as_text=True)
+    assert "Clear filters" in body
+
+
+def test_awards_empty_state_offers_clear_filters(client, db):
+    body = client.get("/awards?year=1900").get_data(as_text=True)
+    assert "No award records match those filters." in body
+    assert "Clear filters" in body
+
+
+def test_adjudicators_empty_state_links_to_reviews(client, db):
+    body = client.get("/adjudicators").get_data(as_text=True)
+    assert "No adjudicators on record yet." in body
+    assert 'href="/reviews"' in body
+
+
+def test_faq_empty_state_links_to_suggest(client, db):
+    body = client.get("/faq").get_data(as_text=True)
+    assert "Nothing here yet" in body
+    assert 'href="/suggest"' in body
+
+
+def test_suggestions_board_empty_lane_links_to_suggest(client, db):
+    body = client.get("/suggestions").get_data(as_text=True)
+    assert body.count('href="/suggest"') >= 2  # intro paragraph + at least one empty lane
+
+
+def test_stats_trends_empty_state_links_to_awards(client, db):
+    body = client.get("/stats/trends").get_data(as_text=True)
+    assert "No awards-archive data on record yet." in body
+    assert 'href="/awards"' in body
+
+
+def test_society_with_no_shows_links_to_titles(client, db):
+    society_id = seed_society(db)
+    db.commit()
+
+    body = client.get(f"/societies/{society_id}").get_data(as_text=True)
+    assert "No shows on record yet." in body
+    assert 'href="/titles"' in body

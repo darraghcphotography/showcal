@@ -5,6 +5,7 @@ from flask import abort, current_app, flash, redirect, render_template, request,
 from ...auth import current_user, login_required
 from ...constants import REGIONS, SOCIETY_SECTIONS
 from ...db import get_db
+from ...search import escape_like
 from ...uploads import save_poster
 from . import bp
 from ._shared import URL_RE
@@ -30,7 +31,7 @@ def societies_list():
     params = []
     if q:
         query += " AND name LIKE ? ESCAPE '\\'"
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        escaped = escape_like(q)
         params.append(f"%{escaped}%")
     query += " ORDER BY name"
     societies = get_db().execute(query, params).fetchall()

@@ -113,7 +113,9 @@
           <tr class="row-note"><td colspan="7"><em>{{ r['reason']|destub }}</em></td></tr>
         {% endif %}
       {% else %}
-        <tr><td colspan="7">No award records match those filters.</td></tr>
+        <tr><td colspan="7">No award records match those filters.
+          {% if active_filters %}<a href="{{ url_for('info.awards') }}">Clear filters</a>{% endif %}
+        </td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -148,7 +150,9 @@
         {% if r['reason']|destub %}<p class="meta" style="margin-top: 0.3rem;"><em>{{ r['reason']|destub }}</em></p>{% endif %}
       </div>
     {% else %}
-      <p>No award records match those filters.</p>
+      <p>No award records match those filters.
+        {% if active_filters %}<a href="{{ url_for('info.awards') }}">Clear filters</a>{% endif %}
+      </p>
     {% endfor %}
   </div>
 

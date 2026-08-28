@@ -3,7 +3,7 @@
     through so paging never silently drops the active filters. -#}
 {% macro pager(endpoint, page, total_pages) %}
   {% if total_pages > 1 %}
-    <nav class="pagination">
+    <nav class="pagination" aria-label="Pagination">
       {% if page > 1 %}
         <a href="{{ url_for(endpoint, **dict(request.args, page=1)) }}">&laquo; First</a>
         <a href="{{ url_for(endpoint, **dict(request.args, page=page - 1)) }}">&lsaquo; Previous</a>

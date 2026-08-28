@@ -91,6 +91,21 @@
           {% endfor %}
         </tbody>
       </table>
+
+      <div class="table-cards">
+        {% for a in awards %}
+          <div class="queue-item">
+            <div class="primary">{{ a['nominee_name'] }}{% if a['role']|destub %} <span class="meta">({{ a['role']|destub }})</span>{% endif %}</div>
+            <div class="meta-chips">
+              <span>{{ a['category_name'] or '—' }}</span>
+              <span>&middot; {% if a['result'] == 'Winner' %}<span class="tag tag-gold">Winner</span>{% else %}{{ a['result'] or '—' }}{% endif %}</span>
+              <span>&middot; {% if a['show'] %}<a href="{{ url_for('public.title_detail', title=a['show']) }}">{{ a['show'] }}</a>{% else %}—{% endif %}</span>
+              <span>&middot; {% if a['society_id'] %}<a href="{{ url_for('public.society_detail', society_id=a['society_id']) }}">{{ a['society_name'] }}</a>{% else %}{{ a['society_name'] or '—' }}{% endif %}</span>
+              <span>&middot; {{ a['year'] }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
     {% else %}
       <p class="meta">No award nominee matches "{{ q }}".</p>
     {% endif %}

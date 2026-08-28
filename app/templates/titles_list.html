@@ -132,7 +132,11 @@
       </div>
     {% endfor %}
   {% else %}
-    <p>No shows match{% if q %} "{{ q }}"{% endif %}.</p>
+    <p>No shows match{% if q %} "{{ q }}"{% endif %}.
+      {% if q or selected_house %}
+        <a href="{{ url_for('public.titles_list', filter=flt) }}">Clear filters</a>
+      {% endif %}
+    </p>
   {% endif %}
   {{ btt.back_to_top() }}
 {% endblock %}

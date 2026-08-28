@@ -13,6 +13,13 @@ so partial words ("kilk mus") still match ("Kilkenny Musical Society").
 import sqlite3
 
 
+def escape_like(q):
+    """Escape a raw search string for a `LIKE ? ESCAPE '\\'` clause - the
+    backslash itself first, so a literal backslash in the input isn't later
+    mistaken for one of the escapes this adds."""
+    return q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def build_phrase_query(q):
     """Turn a raw search string into an FTS5 phrase-match MATCH argument, or
     None if there are no real search terms."""

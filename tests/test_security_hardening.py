@@ -30,7 +30,7 @@ def test_rate_limit_key_falls_back_to_remote_addr_without_the_header(app):
 
 
 def test_413_redirects_to_a_same_origin_referrer(client):
-    oversized = b"x" * (9 * 1024 * 1024)
+    oversized = b"x" * (41 * 1024 * 1024)
     resp = client.post(
         "/submit/photo",
         data={"photo": (__import__("io").BytesIO(oversized), "photo.jpg")},
@@ -41,7 +41,7 @@ def test_413_redirects_to_a_same_origin_referrer(client):
 
 
 def test_413_does_not_follow_an_off_site_referrer(client):
-    oversized = b"x" * (9 * 1024 * 1024)
+    oversized = b"x" * (41 * 1024 * 1024)
     resp = client.post(
         "/submit/photo",
         data={"photo": (__import__("io").BytesIO(oversized), "photo.jpg")},
@@ -52,7 +52,7 @@ def test_413_does_not_follow_an_off_site_referrer(client):
 
 
 def test_413_falls_back_to_homepage_with_no_referrer(client):
-    oversized = b"x" * (9 * 1024 * 1024)
+    oversized = b"x" * (41 * 1024 * 1024)
     resp = client.post(
         "/submit/photo",
         data={"photo": (__import__("io").BytesIO(oversized), "photo.jpg")},

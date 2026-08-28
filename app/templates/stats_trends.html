@@ -29,7 +29,8 @@
   </p>
 
   {% if not decades %}
-    <p class="meta">No awards-archive data on record yet.</p>
+    <p class="meta">No awards-archive data on record yet.
+       <a href="{{ url_for('info.awards') }}">Browse the awards archive &rarr;</a></p>
   {% else %}
     <div class="site-notice">
       <p><strong>Why the awards archive, not the shows catalogue:</strong> the show-by-show database only

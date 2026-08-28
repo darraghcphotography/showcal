@@ -9,6 +9,7 @@
       <p>{{ e['answer'] }}</p>
     </details>
   {% else %}
-    <p>Nothing here yet - check back soon.</p>
+    <p>Nothing here yet - check back soon. Got a question?
+       <a href="{{ url_for('public.suggest') }}">Ask us</a>.</p>
   {% endfor %}
 {% endblock %}
