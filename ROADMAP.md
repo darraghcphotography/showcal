@@ -69,19 +69,111 @@ again.
 > together with plan item 4** (which already reworks that same form down to three kinds) rather than
 > as a separate pass — and note submission #6/#7 is live evidence a real member already hit the
 > limit and lost data to it.
+>
+> #### 📋 FIRST JOB NEXT SESSION: two AI code reviews are waiting, unread
+>
+> Darragh had Antigravity generate two independent reviews of the whole codebase on 2026-08-28, from
+> **two different models**, and asked to go through them together. **Neither has been read beyond
+> identifying it** — that review is the first job of the next session, not a background task.
+>
+> - **`enrichment/feedback_opus.md`** (15KB, Claude Opus 4.6 Thinking) — the substantial one. A
+>   structured review with sections on architecture, security, data model, testing, frontend,
+>   deployment and code quality, each split into strengths vs. concerns, ending in a summary table.
+>   Opens by calling the codebase unusually well-reasoned but flags that it has *"accumulated
+>   significant complexity for a small Flask app"* — 1,845 lines in `public.py`, 794 lines of schema
+>   with 46 column migrations, 91 test files. That complexity point is worth taking seriously; it's
+>   the first outside read we've had on it.
+> - **`enrichment/feedback.md`** (2KB, GPT-OSS 120B) — a short strengths/improvements checklist.
+>   Much thinner, and **several of its suggestions look already-done on a first glance** (it proposes
+>   "evaluate SQLite FTS5" — we already use it; "maintain a requirements-dev.txt" — exists; asset
+>   cache-busting — already implemented, and it lists that as a strength elsewhere in the same file).
+>
+> **⚠ Apply this file's own working agreement before entering anything from either into the
+> backlog:** *diff any new audit/proposal doc against prior rulings and against the actual code.*
+> Three generated audit docs have already been caught re-proposing things that were shipped or
+> argued down with reasons. Expect a real chunk of both files to be in that category — the value is
+> in the residue that survives the diff, and the Opus one is far likelier to hold that residue.
+>
+> **Both files are gitignored** (`.gitignore:60`, `/enrichment/`), so they exist only on Darragh's
+> machine at `d:\showdb\enrichment\` — they will not be in a fresh clone, and nothing about them is
+> recoverable from git history.
 
-**769 tests green, no known bugs.** A Portainer redeploy at 22:12 BST confirmed live everything
-through `b1ddceb` (season calendar, titles filters, next-show fix, venues card+map - checked
-directly against the running container). **Two more commits since then are NOT yet deployed:**
-`8b120ad` (map dark mode + region/county/society filters, both from live feedback right after the
-map shipped) and `37c7e61` (the logo-candidate review queue, see below). Re-verify both the same way
-after the next redeploy.
+---
 
-**Important - the logo review queue needs one more step after it's deployed, not just a redeploy.**
-`37c7e61` builds `/admin/logo-candidates`, but the table is empty until `import_logo_candidates.py`
-actually runs against production (same copy-into-container method used for every other import
-tonight - the script + `enrichment/logo_worklist.json`, which already has the 11 verified `found:
-true` rows, aren't in the container automatically). Nothing to review will appear until that runs.
+## 📌 OUTSTANDING TO-DO, consolidated (2026-08-28, for a fresh session after `/clear`)
+
+Everything genuinely open, highest-value first. The approved plan supersedes the older numbered
+backlog further down this file; both are listed here so nothing gets lost across the `/clear`.
+
+**Read the two AI code reviews first** (above) — Darragh asked for that explicitly.
+
+### From the approved plan — 8 of 10 items remain
+
+| # | Item | Notes |
+|---|---|---|
+| 2 | **Submission trap + 273-production backfill** | The Maynooth bug: a society was *blocked* from adding its own missing show by a guard checking a table the page doesn't read. Biggest real-user impact left. |
+| 3 | **Re-match unmatched ShowTimes reviews** | Only **3 of 50** will clear — be honest about that, it does not fix the queue. |
+| 4 | **Photo form → three kinds** + **multi-upload** | Now two requests in one: the plan's three-kinds change, plus Darragh's 2026-08-28 multi-upload ask. Do them together. |
+| 5 | **Admin queue empty state** | The "blank page" from the email link. Small. Add "Recently actioned", like the photo queue already has. |
+| 6 | **Split "next production" from "future announced"** | Small, cosmetic, well-specified in the plan. |
+| 7 | **Society checklist grid + lifecycle status** | **Much the largest.** Mockup exists (`mockups/society_checklist_grid.html`). Includes admin-only contact fields — needs the privacy note in `docs/` and a test that they never leak publicly. |
+| 8 | **Share affordance on show pages** | Web Share API + copy-link fallback, nonced inline script, no third-party widgets. |
+| 9 | **Poster lightbox** | CSS/`<dialog>` only. No new JS dependency — the Leaflet CDN allowance stays scoped to `/venues/map`. |
+
+### Data / outreach, needing Darragh rather than code
+
+- **Go back to Brandon at Oyster Lane** for the rest of his archive (1998–2010). He offered; the
+  upload limit lost it. Highest-value single outreach on the list — it rebuilds the history we just
+  had to delete.
+- **Action the 3 pending photo submissions** (`/admin/photo-submissions`, *not* `/admin/queue`).
+- **FAQ content** — `/admin/faq` is built, live and empty. Needs his voice.
+- **`/admin/historical-society-links`** — 69 printed names awaiting a decision, ~10 minutes of
+  clicking, worth doing before the next awards re-import.
+- **Posters** — 44 across just 12 societies of 194. Gates the poster museum and poster-led design.
+
+### Still open from the older backlog (not in the plan, deliberately)
+
+Person identity resolution (measured harm, grows untouched); costume/prop listings (per show —
+scope settled, needs a data-model session); social card generator (needs a mockup); society edit
+audit log (ready to build, just not selected); repertoire finder (blocked until Darragh says what
+committees actually asked for); genre filtering on `/titles` (blocked on a taxonomy decision);
+pantomime category (his scope call); merge the 5 duplicate venue clusters; the 60-society logo redo
+still out with Gemini; `import_logo_candidates.py` still needs running against production before
+`/admin/logo-candidates` has anything in it.
+
+### Known-unfinished from earlier sessions, still true
+
+- **The 4 place-name artifacts** (`Cork`, `Wexford`, `Cork run`, `40th Anniversary (March run)`) are
+  `shows.venue` text naming no building.
+- **~112 stale orphaned `historical_reviews` rows** — real, but not deleted pending a better
+  verification method.
+- **297 `historical_results` rows with `category_name IS NULL`**, 274 pre-2001 — needs real archival
+  research, not a scrape.
+- **Off-box backup** — backups still sit on the same volume as the database. A NAS config job.
+
+---
+
+**774 tests green (769 + 5 new), no known bugs.**
+
+**Deploy state, checked directly against the running container 2026-08-28:** `8b120ad` (map dark
+mode + filters) and `37c7e61` (the logo-candidate review queue) **are now live** - GitOps picked
+them up on its own, which is what the old "not yet deployed, needs a Portainer click" note here was
+waiting for. That note is now resolved and has been removed.
+
+**Tonight's two commits (`658eb0a`, `7ef4b06`) had NOT deployed yet** when last checked ~20 minutes
+after the push - `/app/CHANGELOG.md` in the container still showed the previous top entry. Nothing
+is wrong: the data changes were direct DB writes and are already live regardless, and only the
+*changelog entries* are waiting on the container picking up the new files (`changelog_sync` runs on
+startup). **First thing next session: confirm the two new changelog entries are actually published
+on `/suggestions`** - the Oyster Lane correction is a public trust statement and should not sit
+unpublished.
+
+**The logo review queue still needs one more step, and it is not a redeploy.** `/admin/logo-candidates`
+is deployed and reachable, but **the table is empty until `import_logo_candidates.py` is actually run
+against production** - it plus `enrichment/logo_worklist.json` (which already holds the 11 verified
+`found: true` rows) have to be copied into the container the same way every other import is. Until
+that runs there is nothing to review. Note `enrichment/` is gitignored, so that JSON is only on
+Darragh's machine.
 
 The 2026-08-25 session, in order: interrogated the backlog; built the three ready backlog items
 (`f07bd11`); scored Gemini's two remaining deliverables and rejected both (see the delegation
