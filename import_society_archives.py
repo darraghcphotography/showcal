@@ -3,14 +3,30 @@
 "this happened", no award/category attached, same shape as the Naas and
 Tullamore/Castlerea programme backfills.
 
+*** READ THIS BEFORE TRUSTING ANY SOCIETY HERE (added 2026-08-28) ***
+
+The overlap check below is NOT sufficient on its own, and Oyster Lane proved
+it. The check validates a transcription against years we ALREADY HOLD award
+data for - which is precisely the set of years the import is not adding
+anything for. Every row that actually contributes new information is, by
+definition, in a year we had nothing to compare against, so it is never
+checked. A society reported wrong entries in its own history (2026-08-27);
+both bad rows were in that blind spot, and all 18 Oyster Lane rows were
+rolled back (`rollback_oyster_lane_archive.py`).
+
+A score below the 93-100% the other societies reached is also a signal in its
+own right: Oyster Lane scored 69% (9/13) and was left in TRUSTED anyway.
+
 ONLY the societies whose returned data passed the overlap check are listed in
 TRUSTED below. That check is the whole point of how the worklist was built:
 each row carried the productions we already hold, and a transcription of those
 known years either matches ours or it doesn't.
 
-  * Baldoyle 96%, Limerick 93%, Oyster Lane 9 exact matches including "All 4
-    One" (2008), an obscure original show - conclusive evidence of real
-    transcription, since those can't be guessed.
+  * Baldoyle 96%, Limerick 93% - strong.
+  * Oyster Lane 69% (9/13), including "All 4 One" (2008), an obscure original
+    show that can't be guessed - which is why it was trusted at the time. That
+    reasoning was wrong: real transcription of the checkable years does not
+    make the uncheckable years right. REJECTED 2026-08-28, rows deleted.
   * Carnew scored 0% across 16 overlapping years (every one a different,
     plausible musical) and 9 Arch 25% - both rejected, not imported.
   * 13 of the 19 societies were correctly returned blank as unreachable.
@@ -55,14 +71,20 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
 from import_awards import SHOW_RENAMES  # noqa: E402
+from app.similarity import normalize_title  # noqa: E402
 
 TRUSTED = {
     "Baldoyle Musical Society",
     "Limerick Musical Society",
-    "Oyster Lane Theatre Group",
     "Killarney Musical Society",
     "Castlebar Musical & Dramatic Society",
 }
+
+# Oyster Lane Theatre Group was in TRUSTED and was REMOVED on 2026-08-28 after
+# the society reported wrong entries in its own history. Its 18 imported rows
+# were rolled back (`rollback_oyster_lane_archive.py`). Do not re-add it without
+# a check that can actually test the rows being added - see the warning above
+# about what the overlap check cannot see.
 
 REASON = "From the society's own published production archive (2026-08-25)"
 
@@ -104,13 +126,24 @@ def main():
 
             # Same title already on record within a year either way - either the
             # exact row, or the same production dated by the other convention.
-            near = db.execute(
-                "SELECT year FROM historical_results "
-                " WHERE society_id = ? AND show = ? AND ABS(year - ?) <= 1",
-                (society["id"], title, year),
-            ).fetchone()
+            #
+            # Compared on normalize_title, not the raw string. An exact `show = ?`
+            # let case/punctuation variants straight past this guard and created
+            # redundant bare rows next to the award record they duplicated
+            # ("The Pirates of Penzance" vs "The Pirates Of Penzance", Limerick
+            # 2011; found and cleaned up 2026-08-28). Normalisation only, never
+            # fuzzy - the same distinction already settled for match_show_for_edit.
+            near = None
+            for row in db.execute(
+                "SELECT year, show FROM historical_results "
+                " WHERE society_id = ? AND show IS NOT NULL AND ABS(year - ?) <= 1",
+                (society["id"], year),
+            ):
+                if normalize_title(row["show"]) == normalize_title(title):
+                    near = row
+                    break
             if near:
-                print(f"  skip {year} {title!r} - already on record at {near['year']}")
+                print(f"  skip {year} {title!r} - already on record at {near['year']} as {near['show']!r}")
                 skipped_dupe += 1
                 continue
 

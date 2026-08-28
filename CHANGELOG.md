@@ -1,4 +1,12 @@
-Six societies now show their founding year, and Baldoyle and Oyster Lane's production histories go back decades further - Baldoyle to 1973 and Oyster Lane to 1994, 47 productions added from the societies' own published archives
+The 26/27 season now has real dates - 46 productions from the official Gilbert schedule, 25 of which had no dates at all before. Two societies running across two weekends (Athlone's The Wedding Singer, Newcastle Glees' Sweeney Todd) show the full run rather than just one weekend, and Clane's 26/27 show is corrected to Jekyll and Hyde
+
+---
+
+Correction: Oyster Lane Theatre Group's pre-2018 production history has been removed. A society got in touch to say some entries were wrong, and they were right - that history came from a bulk transcription we could not properly verify, so rather than leave entries we can't stand over, all 18 have been taken down. Oyster Lane's award records are untouched. If you spot anything else that looks wrong, please do tell us - it worked
+
+---
+
+Six societies now show their founding year, and Baldoyle's production history goes back decades further, to 1973
 
 ---
 

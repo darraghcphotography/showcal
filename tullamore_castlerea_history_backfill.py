@@ -26,9 +26,13 @@ Usage:
 """
 import argparse
 import sqlite3
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT))
+
+from app.similarity import normalize_title  # noqa: E402
 
 REASON = "From the society's own anniversary programme (photo submission, 2026-08-24)"
 
@@ -130,12 +134,22 @@ def main():
         if society is None:
             print(f"  NO SUCH SOCIETY: {society_name!r}")
             continue
-        existing = db.execute(
-            "SELECT 1 FROM historical_results WHERE year = ? AND show = ? AND society_id = ?",
-            (year, show, society["id"]),
-        ).fetchone()
+        # Compared on normalize_title, not the raw string - an exact `show = ?`
+        # let punctuation variants past and created redundant bare rows beside
+        # the award record they duplicated ("Oh! Susanna" vs "Oh Susanna!" 1990,
+        # "Hello! Dolly" vs "Hello, Dolly!" 2007; cleaned up 2026-08-28).
+        # Normalisation only, never fuzzy.
+        existing = None
+        for row in db.execute(
+            "SELECT show FROM historical_results "
+            " WHERE year = ? AND society_id = ? AND show IS NOT NULL",
+            (year, society["id"]),
+        ):
+            if normalize_title(row["show"]) == normalize_title(show):
+                existing = row
+                break
         if existing:
-            print(f"  already on record: {society_name}, {year} {show!r}")
+            print(f"  already on record: {society_name}, {year} {show!r} (as {existing['show']!r})")
             skipped += 1
             continue
         db.execute(

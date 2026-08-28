@@ -20,9 +20,13 @@ Usage:
 """
 import argparse
 import sqlite3
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT))
+
+from app.similarity import normalize_title  # noqa: E402
 
 SOCIETY_NAME = "Naas Musical Society"
 REASON = "From the society's own 30th-anniversary programme (photo submission, 2026-08-24)"
@@ -54,12 +58,21 @@ def main():
 
     inserted, skipped = 0, 0
     for year, show in PRODUCTIONS:
-        existing = db.execute(
-            "SELECT 1 FROM historical_results WHERE year = ? AND show = ? AND society_id = ?",
-            (year, show, society["id"]),
-        ).fetchone()
+        # Compared on normalize_title, not the raw string - see the same fix in
+        # tullamore_castlerea_history_backfill.py: an exact `show = ?` lets
+        # case/punctuation variants past and inserts a redundant bare row beside
+        # the award record it duplicates. Normalisation only, never fuzzy.
+        existing = None
+        for row in db.execute(
+            "SELECT show FROM historical_results "
+            " WHERE year = ? AND society_id = ? AND show IS NOT NULL",
+            (year, society["id"]),
+        ):
+            if normalize_title(row["show"]) == normalize_title(show):
+                existing = row
+                break
         if existing:
-            print(f"  already on record: {year} {show!r}")
+            print(f"  already on record: {year} {show!r} (as {existing['show']!r})")
             skipped += 1
             continue
         db.execute(
