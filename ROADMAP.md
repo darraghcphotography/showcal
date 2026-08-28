@@ -13,20 +13,39 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - where things stand (2026-08-28, mid-session)
+## START HERE - where things stand (2026-08-28, end of session)
 
-> ### ▶ Executing the approved plan — items 1 and 10 are DONE, 8 remain
+> ### ▶ THE ACTIVE QUEUE — 16 small items, approved and ready to execute
 >
-> **`C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`** — approved 2026-08-27. Ten
-> items: six bugs Darragh reported after a day's real use, three backlog items he picked, and one
-> data import. **Items 1 (Oyster Lane rollback) and 10 (Gilbert 26/27 dates) shipped 2026-08-28
-> (`658eb0a`), both run against production and verified.** Still to do, in the plan's own order:
-> **2** (submission trap + 273-production backfill), **3** (re-match ShowTimes reviews), **4**
-> (photo form → three kinds), **5** (admin queue empty state), **6** (next-production split), then
-> **7** (checklist grid — much the largest), **8** (share affordance), **9** (poster lightbox).
+> **`C:\Users\Darragh\.claude\plans\where-are-you-getting-purring-parasol.md`** — approved
+> 2026-08-28, intended for Sonnet to execute **one item at a time**. Sixteen small, independent
+> items with named files and line numbers: the small leftovers from the older plan, the five parked
+> code-review items (R1–R5), and what a fresh exploration found that night.
 >
-> Start there, not with the backlog list further down this file — that list is still accurate for
-> *what's open*, but the plan supersedes it for *what's next*.
+> **Take them in the plan's own suggested order.** Two are real defects rather than polish:
+> **V1** (`table.table-wide` is `display:none` below 600px, and five templates — including the
+> public show-detail awards table and search — were never given the `.table-cards` sibling that
+> replaces it, so that content is simply absent on any phone) and **T1** (the `.replace()`-built
+> count query at `public.py:99-106`, which fails silently to a wrong number).
+>
+> Read that plan's own collision warnings before starting: `docker-compose.yml` is the GitOps
+> deploy source, and three items touch `society_detail.html`.
+>
+> #### The older plan — 6 of 10 items remain, and two of them are deliberately NOT in the queue
+>
+> **`C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`** — approved 2026-08-27. Items 1
+> and 10 shipped in `658eb0a`; **item 2 shipped 2026-08-28** (`fdda83a`, trap fixed and 1,090-row
+> backfill run against production). Items 5, 6, 8 and 9 were absorbed into the queue above as F1–F4.
+>
+> That leaves **3** (re-match ShowTimes reviews — only 3 of 50 will clear), plus the two held back
+> from the queue for being genuinely large:
+>
+> - **4 — photo form → three kinds + multi-upload.** Needs a `CHECK` constraint migration and a real
+>   device test. **This is the highest-value item on the whole board and it is not in the queue, so
+>   it is the one most at risk of drifting.** Multi-upload has now silently lost data three separate
+>   times: Brandon's Oyster Lane pair (which cost us his 1998–2010 history), and Darragh's own
+>   Carnew pair on 2026-08-28. Every one was someone sending several images and keeping one.
+> - **7 — society checklist grid.** The largest item on the board. Mockup exists.
 >
 > **GitOps is on (5-minute poll)** — a push goes live by itself, no manual redeploy gate. Data
 > scripts still need running by hand with `--db /data/aims.db`.
