@@ -15,167 +15,71 @@ again.
 
 ## START HERE - where things stand (2026-08-28, end of session)
 
-> ### ▶ THE ACTIVE QUEUE — 16 small items, approved and ready to execute
+> ### ✅ THE 16-ITEM QUEUE IS DONE (`579beb2`, deployed and verified live)
 >
-> **`C:\Users\Darragh\.claude\plans\where-are-you-getting-purring-parasol.md`** — approved
-> 2026-08-28, intended for Sonnet to execute **one item at a time**. Sixteen small, independent
-> items with named files and line numbers: the small leftovers from the older plan, the five parked
-> code-review items (R1–R5), and what a fresh exploration found that night.
+> `C:\Users\Darragh\.claude\plans\where-are-you-getting-purring-parasol.md` — every item (M1, V1–V5,
+> T1–T5, F1–F4, C1–C4) shipped in one session, each with its own pytest test. Full suite green (825
+> passed, up from 776). Pushed to `main`; GitOps pulled it within seconds (confirmed via SSH -
+> `md5sum` on the NAS's live checkout matches the local file). `docker ps` shows `aims-web` and
+> `aims-backup` both `Up ... (healthy)` - the new healthcheck is live and passing. `curl` against the
+> live site confirms `Cache-Control: public, max-age=31536000` on static assets.
 >
-> **Take them in the plan's own suggested order.** Two are real defects rather than polish:
-> **V1** (`table.table-wide` is `display:none` below 600px, and five templates — including the
-> public show-detail awards table and search — were never given the `.table-cards` sibling that
-> replaces it, so that content is simply absent on any phone) and **T1** (the `.replace()`-built
-> count query at `public.py:99-106`, which fails silently to a wrong number).
+> **Two things only Darragh can verify, from his phone:**
+> - **M1 (multi-upload)** — attach several photos to `/submit/photo` and confirm they all land as
+>   separate rows in `/admin/photo-submissions`. This was the whole point of the queue (three real
+>   data-loss incidents), and it's the one thing pytest can't prove because the failure has always
+>   been in what a phone's file picker hands the form.
+> - **V1 (mobile awards table)** — open a show page with awards on a real phone and confirm the
+>   Awards & nominations content is now visible below 600px. Verified via curl/pytest that the
+>   `.table-cards` markup renders; the media query itself needs a real narrow viewport to confirm.
 >
-> Read that plan's own collision warnings before starting: `docker-compose.yml` is the GitOps
-> deploy source, and three items touch `society_detail.html`.
+> #### Still open, deliberately not in the queue (both genuinely large)
 >
-> #### The older plan — 6 of 10 items remain, and two of them are deliberately NOT in the queue
->
-> **`C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`** — approved 2026-08-27. Items 1
-> and 10 shipped in `658eb0a`; **item 2 shipped 2026-08-28** (`fdda83a`, trap fixed and 1,090-row
-> backfill run against production). Items 5, 6, 8 and 9 were absorbed into the queue above as F1–F4.
->
-> That leaves **3** (re-match ShowTimes reviews — only 3 of 50 will clear), plus the two held back
-> from the queue for being genuinely large:
->
-> - **4a — multi-upload. NOW THE FIRST ITEM IN THE QUEUE ABOVE, as M1.** It was held back for
->   needing a device test; Darragh will run that on his phone once it is live, so it is unblocked.
->   It has silently lost data three times: Brandon's Oyster Lane pair (which cost us his 1998–2010
->   history), Carnew's pair, and Darragh's own submission. Note the queue records a blocker found
->   while specifying it — `MAX_CONTENT_LENGTH` is 8 MB for the *whole request*, and real phone
->   photos are 3 MB each, so the limit must rise or the feature fails on its first real batch.
-> - **4b — photo form → three kinds.** Still open, still not in the queue: it needs a `CHECK`
->   constraint rebuild on `photo_submissions.kind`. Deliberately split from 4a so the data-loss fix
->   did not have to wait on a migration.
-> - **7 — society checklist grid.** The largest item on the board. Mockup exists.
+> - **4b — photo form → three kinds.** Needs a `CHECK` constraint rebuild on
+>   `photo_submissions.kind`. Split from M1 so the data-loss fix didn't wait on a migration.
+> - **7 — society checklist grid.** The largest item on the board. Mockup exists
+>   (`mockups/society_checklist_grid.html`). Includes admin-only contact fields — needs a privacy
+>   note in `docs/` and a test that they never leak publicly.
+> - **3 — re-match unmatched ShowTimes reviews.** Only 3 of 50 will clear — low value, not worth a
+>   session on its own.
 >
 > **GitOps is on (5-minute poll)** — a push goes live by itself, no manual redeploy gate. Data
 > scripts still need running by hand with `--db /data/aims.db`.
 >
-> #### ⚠ THREE PENDING PHOTO SUBMISSIONS, not the one the plan said
+> #### From the two AI code reviews (2026-08-28) — R1–R5 done as part of the queue above (T1–T5); R6–R8 still need a decision
 >
-> The plan said 1. There are **3** (ids 5, 6, 7) — two arrived 2026-08-26, after the plan was
-> written. Darragh has seen none of them; he landed on `/admin/queue` instead of
-> `/admin/photo-submissions` (plan item 5 fixes that dead-end).
+> | # | Item | State |
+> |---|---|---|
+> | R6 | `SECRET_KEY` warns but starts anyway (`app/__init__.py:61`) | Unblocked - `stack.env` on the NAS holds a real 64-char key, so a fail-fast can't take the live site down. Not yet done. |
+> | R7 | No CI, no coverage reporting | No `.github/` at all. 92 test files run only when someone remembers. Needs a decision on whether to add one. |
+> | R8 | File sizes: `public.py` 1,844 lines, `style.css` 72KB | A judgment call, not a defect. Competes with items 3/4b/7 above — don't start it ahead of them. |
 >
-> - **#6 and #7 — Oyster Lane, from "Brandon", and they are byte-for-byte identical** (same md5).
->   He submitted the same screenshot twice, two seconds apart, clearly *trying* to send several
->   images. Notes: *"Shows from Sweet Charity in 2010 back to 1994"* and *"I'll add old show posters
->   and production team members etc in next while!"* — a society volunteering real work.
->   **This is the single strongest argument for the multi-upload request** (see below): the gap cost
->   us the rest of his list.
-> - **#5 — Wexford Light Opera Society**, their complete printed history 1912–2025. **Checked with
->   the repo's own overlap test: 81/89 = 91% raw, ~97% once spelling variants are discounted**
->   (Scarlett/Scarlet, Show Boat/Showboat, Technicolour/Technicolor). Three genuine disagreements,
->   all one-year drift in 1974–76. **But it would add only ONE production (2015 Chess)** — we
->   already hold 90 for Wexford across 1912–2026. Its value is confirmation, not new data. Low
->   priority to action; do not spend a session on it.
+> Both review files (`enrichment/feedback.md`, `enrichment/feedback_opus.md`) are gitignored and
+> exist only on Darragh's machine — this table is the durable record of what survived triage.
 >
-> #### The Oyster Lane rollback was right, and there is now proof
+> #### Data/outreach still needing Darragh, not code (unchanged by this session)
 >
-> Submission #6/#7 is a screenshot of `oysterlane.wordpress.com`'s own archive — the page that 403s
-> for Claude and could never be fetched. It shows **1994 Grease, 1995 West Side Story, 1995 The
-> Plough and the Stars, 1996 Oliver!, 1997 Guys and Dolls**. The rows just deleted claimed **1994
-> Oliver!, 1995 Bugsy Malone, 1996 Annie, 1997 Grease**. The titles were largely real Oyster Lane
-> shows *attached to the wrong years* — a scrambled list, not a transcription. That is exactly the
-> failure the overlap check cannot see, and it is now evidenced rather than inferred.
->
-> **Only the tail of the list (1994–97) is legible in the screenshot we have** — the rest of
-> Brandon's history (1998–2010) never arrived, because of the multi-upload gap. Ask him for it.
-> Note *The Plough and the Stars* is a straight play and stays out of scope per the Scope Rule.
->
-> #### New request from Darragh (2026-08-28): multi-upload on the photo form
->
-> He has programme photos to submit for the backfill and wants to send several at once. **Scope it
-> together with plan item 4** (which already reworks that same form down to three kinds) rather than
-> as a separate pass — and note submission #6/#7 is live evidence a real member already hit the
-> limit and lost data to it.
->
-> #### ✅ DONE: the two AI code reviews are read and triaged (2026-08-28)
->
-> Darragh had Antigravity generate two independent reviews of the whole codebase on 2026-08-28, from
-> **two different models**. Both are now read, and every checkable claim was diffed against the code
-> per this file's own working agreement. **The prediction held.** `enrichment/feedback.md` (2KB,
-> GPT-OSS 120B) produced **nothing** — FTS5, `requirements-dev.txt`, exact version pins, asset
-> cache-busting and the viewport meta were all already shipped. `enrichment/feedback_opus.md` (15KB,
-> Claude Opus 4.6 Thinking) held the residue: 7 real items, plus one bug neither review found
-> (a double Pillow pin). **The surviving items are queued as R1–R8 below** — nothing started.
->
-> The one thing worth keeping from the Opus framing: it is the first outside read on the complexity
-> point (1,844 lines in `public.py`, 72KB of CSS). That is R8, and it is a judgment call rather than
-> a defect — it must not jump the queue ahead of the 8 remaining plan items.
->
-> **Both files are gitignored** (`.gitignore:60`, `/enrichment/`), so they exist only on Darragh's
-> machine at `d:\showdb\enrichment\` — they will not be in a fresh clone, and nothing about them is
-> recoverable from git history. The triage in R1–R8 is the durable record.
+> - **Pending photo submissions** at `/admin/photo-submissions` (not `/admin/queue`) — Oyster Lane
+>   (#6/#7, Brandon, byte-identical pair — only 1994–97 of his history ever arrived because of the
+>   multi-upload gap now fixed; worth asking him for 1998–2010 now that it's live), Wexford Light
+>   Opera (#5, low priority — 91% overlap with what's already on record, adds only one production),
+>   Carnew (#8/#9), and St. Mary's Choral Society Clonmel (#10).
+> - **`/admin/historical-society-links`** — 69 printed names awaiting a decision, ~10 minutes of
+>   clicking. Clearing it and re-running the awards import picks up 265 nominated productions
+>   currently missing only because their `society_id` is null.
+> - **FAQ content** — `/admin/faq` is built, live and empty. Needs Darragh's voice.
+> - **Posters** — 44 across just 12 societies of 194. Gates the poster museum and poster-led design.
 
 ---
 
-## 📌 OUTSTANDING TO-DO, consolidated (2026-08-28, for a fresh session after `/clear`)
+## 📌 OUTSTANDING TO-DO
 
-Everything genuinely open, highest-value first. The approved plan supersedes the older numbered
-backlog further down this file; both are listed here so nothing gets lost across the `/clear`.
+Everything genuinely open that isn't already covered in the START HERE block above.
 
-**The two AI code reviews are DONE** (read and diffed 2026-08-28) — see the queued section below.
-
-### From the two AI code reviews — queued, not started
-
-Both files (`enrichment/feedback_opus.md`, `enrichment/feedback.md`) were read and every checkable
-claim was diffed against the code. **The GPT-OSS file produced nothing** — FTS5, `requirements-dev.txt`,
-exact version pins, asset cache-busting and the viewport meta are all already shipped, and it listed
-cache-busting as a strength and a gap in the same file. The residue below is what survived, all of it
-verified against the code, plus one item neither review found.
-
-| # | Item | Verified state |
-|---|---|---|
-| R1 | **`.replace()` count query is fragile** (`app/blueprints/public.py:99-106`) | Real latent bug. Rebuilds a COUNT by exact-matching a two-line SELECT clause with its literal indentation. A reformat makes the replace a silent no-op, and `.fetchone()[0]` then returns `shows.id` as the "announced" count. Wrong number, no error. |
-| R2 | **Pillow is pinned twice, to different versions** | **Neither review found this.** `requirements.txt` pins 12.3.0; `requirements-dev.txt` pulls that in with `-r` then pins 11.1.0. Upload validation decodes with Pillow, so the tests do not exercise the production decoder. |
-| R3 | **No `Cache-Control` on static assets** | Confirmed: zero matches across `app/`. `asset_version` (mtime query string, `app/__init__.py:147`) already exists, which is exactly what makes a long `max-age` safe. The versioning is half a mechanism without the header. |
-| R4 | **No healthcheck in `docker-compose.yml`** | Confirmed absent. A wedged container stays wedged. |
-| R5 | **No log rotation** | `aims-backup` prints verification output every 24h forever, no `max-size` log option. |
-| R6 | **`SECRET_KEY` warns but starts anyway** (`app/__init__.py:61`) | Real. Compose passes `${SECRET_KEY}`; a missing `.env` on the NAS resolves it to an empty string, which is not the default value, so the warning does not even fire. **Decide first:** a fail-fast here can take the live site down if the NAS `.env` is wrong. |
-| R7 | **No CI, no coverage reporting** | No `.github/` at all. 92 test files run only when someone remembers. |
-| R8 | **File sizes**: `public.py` 1,844 lines, `style.css` 72KB | Both confirmed. A judgment call, not a defect. Admin is already a package; public is not. **Competes directly with the 8 remaining plan items** — do not start it ahead of them. |
-
-**PARKED until the end of the week** (Darragh, 2026-08-28) — deliberately, not forgotten. R1–R5 are
-small, independent and low-risk, about an hour together. R6 is now unblocked: `stack.env` on the NAS
-holds a real 64-character `SECRET_KEY`, so a fail-fast cannot take the site down. R7–R8 still need a
-decision.
-
-Rejected on the diff, do not re-add: the `search.py` f-string (callers pass hardcoded table names,
-so there is no injection risk), and a numbered migration framework (42 startup PRAGMAs cost nothing;
-this is a preference, not a bug). Opus's `updated_at` trigger point does stand — all 9 triggers in
-`schema.sql` are FTS sync triggers, none touch `updated_at`.
-
-### From the approved plan — 8 of 10 items remain
-
-| # | Item | Notes |
-|---|---|---|
-| ~~2~~ | ~~Submission trap + backfill~~ | **DONE 2026-08-28** (`fdda83a`). Trap fixed and live. Backfill ran against production: **1,090 rows, not the plan's 273** — the year cut-off was replaced by Darragh's rule that a nomination proves the production happened. 0 nominated productions remain without a page. |
-| 3 | **Re-match unmatched ShowTimes reviews** | Only **3 of 50** will clear — be honest about that, it does not fix the queue. |
-| 4 | **Photo form → three kinds** + **multi-upload** | Now two requests in one: the plan's three-kinds change, plus Darragh's 2026-08-28 multi-upload ask. Do them together. |
-| 5 | **Admin queue empty state** | The "blank page" from the email link. Small. Add "Recently actioned", like the photo queue already has. |
-| 6 | **Split "next production" from "future announced"** | Small, cosmetic, well-specified in the plan. |
-| 7 | **Society checklist grid + lifecycle status** | **Much the largest.** Mockup exists (`mockups/society_checklist_grid.html`). Includes admin-only contact fields — needs the privacy note in `docs/` and a test that they never leak publicly. |
-| 8 | **Share affordance on show pages** | Web Share API + copy-link fallback, nonced inline script, no third-party widgets. |
-| 9 | **Poster lightbox** | CSS/`<dialog>` only. No new JS dependency — the Leaflet CDN allowance stays scoped to `/venues/map`. |
-
-### Data / outreach, needing Darragh rather than code
-
-- ~~Go back to Brandon at Oyster Lane~~ — **closed 2026-08-28.** Darragh has Oyster Lane's history
-  from the society's own website directly, so the outreach is not needed.
-- **Action the pending photo submissions** (`/admin/photo-submissions`, *not* `/admin/queue`).
-  Now **5 distinct images across 6 rows** — Wexford (#5), Oyster Lane (#6/#7, identical pair),
-  Carnew (#8/#9, identical pair) and St. Mary's Choral Society Clonmel (#10).
-- **FAQ content** — `/admin/faq` is built, live and empty. Needs his voice.
-- **`/admin/historical-society-links`** — 69 printed names awaiting a decision, ~10 minutes of
-  clicking, worth doing before the next awards re-import. **Now has a measured payoff:** exactly 265
-  nominated productions carry `society_id IS NULL`, which is the only reason they were left out of
-  the 2026-08-28 backfill. Every nominated production whose society IS linked now has a page (the
-  remaining count is 0). Clearing this queue and re-running the script picks up those 265.
-- **Posters** — 44 across just 12 societies of 194. Gates the poster museum and poster-led design.
+Rejected on the 2026-08-28 code-review diff, do not re-add: the `search.py` f-string (callers pass
+hardcoded table names, so there is no injection risk), and a numbered migration framework (42
+startup PRAGMAs cost nothing; this is a preference, not a bug). Opus's `updated_at` trigger point
+does stand — all 9 triggers in `schema.sql` are FTS sync triggers, none touch `updated_at`.
 
 ### Still open from the older backlog (not in the plan, deliberately)
 
@@ -199,7 +103,9 @@ still out with Gemini; `import_logo_candidates.py` still needs running against p
 
 ---
 
-**774 tests green (769 + 5 new), no known bugs.**
+**825 tests green (as of `579beb2`, 2026-08-28), no known bugs.** (Everything below this line predates
+that commit and is kept only for the historical detail it still carries — see START HERE above for
+current state.)
 
 **Deploy state, checked directly against the running container 2026-08-28:** `8b120ad` (map dark
 mode + filters) and `37c7e61` (the logo-candidate review queue) **are now live** - GitOps picked
