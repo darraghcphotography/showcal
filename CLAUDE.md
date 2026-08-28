@@ -90,8 +90,19 @@ shell there:
   Weigh that when deciding whether to push something uncertain versus flagging it first. Also: any
   config change made by hand in the Portainer UI (env vars, etc.) gets silently overwritten on the
   next poll - anything that needs to persist has to live in `docker-compose.yml` in git instead.
-- **The config volume moved to `CACHEDEV2_DATA` on 2026-08-28** - Darragh installed two M.2 drives in
-  a RAID pair and moved all container config onto them. Only the *data* path moved: Container Station
+- **The deployed stack is readable, so verify against it rather than assuming.** This is Portainer
+  **Stack 8**, and its GitOps checkout of the whole repo sits at
+  `/share/CACHEDEV2_DATA/Data/config/portainer/compose/8/`. That folder is what actually got
+  deployed, so `md5sum` on a file there against the local copy answers "is production running my
+  code?" definitively, in one command. Use it after any push that matters. `stack.env` beside it
+  holds the real environment (`SECRET_KEY`, `URL_PREFIX`, `SMTP_USER`, `SMTP_PASSWORD`) - that, not
+  a `.env` anywhere on the host, is where those values live.
+- **The config volume moved to `CACHEDEV2_DATA` on 2026-08-28** - Darragh installed two Integral M.2
+  NVMe drives as a RAID 1 mirror (Storage Pool 2, `SSD_DATA`) and moved all container config onto
+  them, for speed and to stop the database queueing behind everything else on the spinning array.
+  The database now runs on SSD; the old volume is a 7.9TB array that sits at 96% full. A
+  pre-migration snapshot is kept at `C:\Users\Darragh\aims_backup_preshutdown.db`.
+  Only the *data* path moved: Container Station
   itself (`/share/CACHEDEV1_DATA/.qpkg/...`) and the `homes/darraghc/showcal/` folder above are both
   still on volume 1, so don't "fix" those to match.
   **⚠ A stale copy of the whole `aims-web` folder is still sitting at the old
