@@ -40,11 +40,15 @@ again.
 > That leaves **3** (re-match ShowTimes reviews — only 3 of 50 will clear), plus the two held back
 > from the queue for being genuinely large:
 >
-> - **4 — photo form → three kinds + multi-upload.** Needs a `CHECK` constraint migration and a real
->   device test. **This is the highest-value item on the whole board and it is not in the queue, so
->   it is the one most at risk of drifting.** Multi-upload has now silently lost data three separate
->   times: Brandon's Oyster Lane pair (which cost us his 1998–2010 history), and Darragh's own
->   Carnew pair on 2026-08-28. Every one was someone sending several images and keeping one.
+> - **4a — multi-upload. NOW THE FIRST ITEM IN THE QUEUE ABOVE, as M1.** It was held back for
+>   needing a device test; Darragh will run that on his phone once it is live, so it is unblocked.
+>   It has silently lost data three times: Brandon's Oyster Lane pair (which cost us his 1998–2010
+>   history), Carnew's pair, and Darragh's own submission. Note the queue records a blocker found
+>   while specifying it — `MAX_CONTENT_LENGTH` is 8 MB for the *whole request*, and real phone
+>   photos are 3 MB each, so the limit must rise or the feature fails on its first real batch.
+> - **4b — photo form → three kinds.** Still open, still not in the queue: it needs a `CHECK`
+>   constraint rebuild on `photo_submissions.kind`. Deliberately split from 4a so the data-loss fix
+>   did not have to wait on a migration.
 > - **7 — society checklist grid.** The largest item on the board. Mockup exists.
 >
 > **GitOps is on (5-minute poll)** — a push goes live by itself, no manual redeploy gate. Data
