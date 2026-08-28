@@ -27,7 +27,7 @@ services:
       # system partition instead - which doesn't survive a reboot the way
       # a real storage-pool path does. Match the other containers on this
       # NAS: mount a real, absolute path on the storage pool directly.
-      - /share/CACHEDEV1_DATA/Data/config/aims-web:/data
+      - /share/CACHEDEV2_DATA/Data/config/aims-web:/data
     ports:
       # Kept published on the NAS's LAN interface for convenience/direct
       # debugging - there's no router port-forward, so this is LAN-reachable
@@ -79,7 +79,7 @@ services:
           sleep 86400
         done
     volumes:
-      - /share/CACHEDEV1_DATA/Data/config/aims-web:/data
+      - /share/CACHEDEV2_DATA/Data/config/aims-web:/data
 
   # Uncomment if you don't already have a cloudflared tunnel running
   # elsewhere on the NAS. Being in this same stack puts it on the same

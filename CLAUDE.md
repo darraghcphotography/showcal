@@ -90,7 +90,18 @@ shell there:
   Weigh that when deciding whether to push something uncertain versus flagging it first. Also: any
   config change made by hand in the Portainer UI (env vars, etc.) gets silently overwritten on the
   next poll - anything that needs to persist has to live in `docker-compose.yml` in git instead.
-- The `aims.db` file itself lives at `/share/CACHEDEV1_DATA/Data/config/aims-web/aims.db` on the NAS
+- **The config volume moved to `CACHEDEV2_DATA` on 2026-08-28** - Darragh installed two M.2 drives in
+  a RAID pair and moved all container config onto them. Only the *data* path moved: Container Station
+  itself (`/share/CACHEDEV1_DATA/.qpkg/...`) and the `homes/darraghc/showcal/` folder above are both
+  still on volume 1, so don't "fix" those to match.
+  **⚠ A stale copy of the whole `aims-web` folder is still sitting at the old
+  `/share/CACHEDEV1_DATA/Data/config/aims-web/` path, and it looks completely plausible** - a real
+  `aims.db` of the same size, with its own `backups/` directory, frozen at 2026-08-28 13:02. Reading
+  it instead of the live one is a silent, entirely convincing failure: it gives you real data that is
+  merely out of date, with nothing to signal that anything is wrong. This already happened once, on
+  the day of the move, and cost most of a session's analysis. Check the mtime before trusting any
+  copy you pull down.
+- The `aims.db` file itself lives at `/share/CACHEDEV2_DATA/Data/config/aims-web/aims.db` on the NAS
   host - safe to `scp` down read-only for analysis (a live production audit doesn't need to run
   inside the container), but never edit that copy and push it back; use the container's own management
   scripts (with `--db /data/aims.db`, as above) for any real write.
