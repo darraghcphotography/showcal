@@ -13,29 +13,62 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - where things stand (2026-08-25, end of session)
+## START HERE - where things stand (2026-08-28, mid-session)
 
-> ### ▶ NEXT SESSION: execute the approved plan, don't re-plan
+> ### ▶ Executing the approved plan — items 1 and 10 are DONE, 8 remain
 >
-> **`C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`** — approved 2026-08-27, written
-> to be run by a session with no memory of the conversation behind it. Ten items: six bugs Darragh
-> reported after a day's real use, three backlog items he picked, and one data import.
+> **`C:\Users\Darragh\.claude\plans\ok-do-we-need-hazy-wombat.md`** — approved 2026-08-27. Ten
+> items: six bugs Darragh reported after a day's real use, three backlog items he picked, and one
+> data import. **Items 1 (Oyster Lane rollback) and 10 (Gilbert 26/27 dates) shipped 2026-08-28
+> (`658eb0a`), both run against production and verified.** Still to do, in the plan's own order:
+> **2** (submission trap + 273-production backfill), **3** (re-match ShowTimes reviews), **4**
+> (photo form → three kinds), **5** (admin queue empty state), **6** (next-production split), then
+> **7** (checklist grid — much the largest), **8** (share affordance), **9** (poster lightbox).
 >
 > Start there, not with the backlog list further down this file — that list is still accurate for
-> *what's open*, but the plan supersedes it for *what's next*. Its own "Starting fresh?" header has
-> the SSH/read-only commands for re-deriving any figure in it.
->
-> **Three things that need saying early:**
-> - **The Oyster Lane data was wrong** (plan item 1). A society reported it and it's real — the
->   archive import's cross-check was structurally unable to catch it. That's the trust issue; do it
->   first.
-> - **1 pending photo submission Darragh has never seen** — he landed on the wrong admin queue
->   (plan item 5).
-> - The 26/27 Gilbert schedule is in **`gilbert_2627_schedule.csv`** (repo root, tracked) — 48 rows,
->   already matched against production, 21 agree exactly. Plan item 10 says what to do with the rest.
+> *what's open*, but the plan supersedes it for *what's next*.
 >
 > **GitOps is on (5-minute poll)** — a push goes live by itself, no manual redeploy gate. Data
 > scripts still need running by hand with `--db /data/aims.db`.
+>
+> #### ⚠ THREE PENDING PHOTO SUBMISSIONS, not the one the plan said
+>
+> The plan said 1. There are **3** (ids 5, 6, 7) — two arrived 2026-08-26, after the plan was
+> written. Darragh has seen none of them; he landed on `/admin/queue` instead of
+> `/admin/photo-submissions` (plan item 5 fixes that dead-end).
+>
+> - **#6 and #7 — Oyster Lane, from "Brandon", and they are byte-for-byte identical** (same md5).
+>   He submitted the same screenshot twice, two seconds apart, clearly *trying* to send several
+>   images. Notes: *"Shows from Sweet Charity in 2010 back to 1994"* and *"I'll add old show posters
+>   and production team members etc in next while!"* — a society volunteering real work.
+>   **This is the single strongest argument for the multi-upload request** (see below): the gap cost
+>   us the rest of his list.
+> - **#5 — Wexford Light Opera Society**, their complete printed history 1912–2025. **Checked with
+>   the repo's own overlap test: 81/89 = 91% raw, ~97% once spelling variants are discounted**
+>   (Scarlett/Scarlet, Show Boat/Showboat, Technicolour/Technicolor). Three genuine disagreements,
+>   all one-year drift in 1974–76. **But it would add only ONE production (2015 Chess)** — we
+>   already hold 90 for Wexford across 1912–2026. Its value is confirmation, not new data. Low
+>   priority to action; do not spend a session on it.
+>
+> #### The Oyster Lane rollback was right, and there is now proof
+>
+> Submission #6/#7 is a screenshot of `oysterlane.wordpress.com`'s own archive — the page that 403s
+> for Claude and could never be fetched. It shows **1994 Grease, 1995 West Side Story, 1995 The
+> Plough and the Stars, 1996 Oliver!, 1997 Guys and Dolls**. The rows just deleted claimed **1994
+> Oliver!, 1995 Bugsy Malone, 1996 Annie, 1997 Grease**. The titles were largely real Oyster Lane
+> shows *attached to the wrong years* — a scrambled list, not a transcription. That is exactly the
+> failure the overlap check cannot see, and it is now evidenced rather than inferred.
+>
+> **Only the tail of the list (1994–97) is legible in the screenshot we have** — the rest of
+> Brandon's history (1998–2010) never arrived, because of the multi-upload gap. Ask him for it.
+> Note *The Plough and the Stars* is a straight play and stays out of scope per the Scope Rule.
+>
+> #### New request from Darragh (2026-08-28): multi-upload on the photo form
+>
+> He has programme photos to submit for the backfill and wants to send several at once. **Scope it
+> together with plan item 4** (which already reworks that same form down to three kinds) rather than
+> as a separate pass — and note submission #6/#7 is live evidence a real member already hit the
+> limit and lost data to it.
 
 **769 tests green, no known bugs.** A Portainer redeploy at 22:12 BST confirmed live everything
 through `b1ddceb` (season calendar, titles filters, next-show fix, venues card+map - checked
@@ -193,9 +226,10 @@ Production data as of now:
 | Societies | 194 (6 with a founding year) |
 | Venues | 118 (113 typed, 72 with box office contact) |
 | Show titles with info | 300 (all 300 now credit composer/lyricist/book/licensing house) |
-| historical_results rows | 5,010 (was 4,999; +11 from Killarney/Castlebar archives, 2026-08-25) |
+| historical_results rows | 4,989 (was 5,010; -21 in the Oyster Lane rollback + duplicate cleanup, 2026-08-28) |
+| 26/27 productions with real dates | 73 of 117 rows (46 set from the official Gilbert schedule, 2026-08-28) |
 | Award rows with no society match | 539 across 69 distinct names, 0 decisions made yet |
-| Photo submissions pending | 0 |
+| Photo submissions pending | **3** (ids 5, 6, 7 - see START HERE; #6/#7 are duplicates of one image) |
 | FAQ entries | 0 published, 0 draft |
 
 ### The single best next technical job
@@ -336,6 +370,18 @@ paid for itself twice over in one day.
 
 **Rule of thumb:** delegate transcription with a built-in cross-check against data we already hold.
 Do citation-dependent work in-house. Never accept a `source_url` without opening it.
+
+**The rule above is not enough, and Oyster Lane proved it (2026-08-28).** The overlap cross-check
+this whole section rests on **only validates years we already hold data for - precisely the years
+the import is adding nothing for.** Every row that actually contributes new information is, by
+construction, in a year with nothing to compare against, so it is never checked. Oyster Lane passed
+into `TRUSTED` on the strength of matching the checkable years and its *new* rows were still wrong
+(titles attached to the wrong years); a society reported it, and all 18 rows have been rolled back.
+Two corollaries, both learned the hard way:
+- **A score below the pack is a signal in itself.** Oyster Lane scored 69% when every other trusted
+  society scored 93-100%. That was printed at the time and moved past. It should have pulled it out.
+- **The check tells you the transcriber read the page, not that the data is right.** Those are
+  different claims. Treat a pass as "worth a human look", never as "safe to import unattended".
 
 ### The backlog interrogation - DONE 2026-08-25
 
