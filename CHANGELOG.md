@@ -1,3 +1,7 @@
+Carnew Musical Society's history now goes back to 1968 - 30 productions added from the society's own programme, sent in as a photo. Their list runs 1967 to 2022, and the 22 productions we already held all line up with it
+
+---
+
 Societies can now add a production the awards archive already knows about. If a show had an award record but no page of its own, the form used to say it was already there and refuse - but it was not on the society's own history at all, so there was no way to add it. Reported by a society that hit exactly this trying to add its own missing show
 
 ---
