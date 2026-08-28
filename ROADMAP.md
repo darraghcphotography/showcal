@@ -116,8 +116,10 @@ verified against the code, plus one item neither review found.
 | R7 | **No CI, no coverage reporting** | No `.github/` at all. 92 test files run only when someone remembers. |
 | R8 | **File sizes**: `public.py` 1,844 lines, `style.css` 72KB | Both confirmed. A judgment call, not a defect. Admin is already a package; public is not. **Competes directly with the 8 remaining plan items** — do not start it ahead of them. |
 
-R1–R5 are small, independent and low-risk — one pass, roughly an hour. R6–R8 need a decision from
-Darragh before any code moves.
+**PARKED until the end of the week** (Darragh, 2026-08-28) — deliberately, not forgotten. R1–R5 are
+small, independent and low-risk, about an hour together. R6 is now unblocked: `stack.env` on the NAS
+holds a real 64-character `SECRET_KEY`, so a fail-fast cannot take the site down. R7–R8 still need a
+decision.
 
 Rejected on the diff, do not re-add: the `search.py` f-string (callers pass hardcoded table names,
 so there is no injection risk), and a numbered migration framework (42 startup PRAGMAs cost nothing;
@@ -128,7 +130,7 @@ this is a preference, not a bug). Opus's `updated_at` trigger point does stand �
 
 | # | Item | Notes |
 |---|---|---|
-| 2 | **Submission trap + 273-production backfill** | The Maynooth bug: a society was *blocked* from adding its own missing show by a guard checking a table the page doesn't read. Biggest real-user impact left. |
+| ~~2~~ | ~~Submission trap + backfill~~ | **DONE 2026-08-28** (`fdda83a`). Trap fixed and live. Backfill ran against production: **1,090 rows, not the plan's 273** — the year cut-off was replaced by Darragh's rule that a nomination proves the production happened. 0 nominated productions remain without a page. |
 | 3 | **Re-match unmatched ShowTimes reviews** | Only **3 of 50** will clear — be honest about that, it does not fix the queue. |
 | 4 | **Photo form → three kinds** + **multi-upload** | Now two requests in one: the plan's three-kinds change, plus Darragh's 2026-08-28 multi-upload ask. Do them together. |
 | 5 | **Admin queue empty state** | The "blank page" from the email link. Small. Add "Recently actioned", like the photo queue already has. |
@@ -139,13 +141,17 @@ this is a preference, not a bug). Opus's `updated_at` trigger point does stand �
 
 ### Data / outreach, needing Darragh rather than code
 
-- **Go back to Brandon at Oyster Lane** for the rest of his archive (1998–2010). He offered; the
-  upload limit lost it. Highest-value single outreach on the list — it rebuilds the history we just
-  had to delete.
-- **Action the 3 pending photo submissions** (`/admin/photo-submissions`, *not* `/admin/queue`).
+- ~~Go back to Brandon at Oyster Lane~~ — **closed 2026-08-28.** Darragh has Oyster Lane's history
+  from the society's own website directly, so the outreach is not needed.
+- **Action the pending photo submissions** (`/admin/photo-submissions`, *not* `/admin/queue`).
+  Now **5 distinct images across 6 rows** — Wexford (#5), Oyster Lane (#6/#7, identical pair),
+  Carnew (#8/#9, identical pair) and St. Mary's Choral Society Clonmel (#10).
 - **FAQ content** — `/admin/faq` is built, live and empty. Needs his voice.
 - **`/admin/historical-society-links`** — 69 printed names awaiting a decision, ~10 minutes of
-  clicking, worth doing before the next awards re-import.
+  clicking, worth doing before the next awards re-import. **Now has a measured payoff:** exactly 265
+  nominated productions carry `society_id IS NULL`, which is the only reason they were left out of
+  the 2026-08-28 backfill. Every nominated production whose society IS linked now has a page (the
+  remaining count is 0). Clearing this queue and re-running the script picks up those 265.
 - **Posters** — 44 across just 12 societies of 194. Gates the poster museum and poster-led design.
 
 ### Still open from the older backlog (not in the plan, deliberately)
