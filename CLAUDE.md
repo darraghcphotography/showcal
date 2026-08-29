@@ -126,13 +126,15 @@ shell there:
   Only the *data* path moved: Container Station
   itself (`/share/CACHEDEV1_DATA/.qpkg/...`) and the `homes/darraghc/showcal/` folder above are both
   still on volume 1, so don't "fix" those to match.
-  **⚠ A stale copy of the whole `aims-web` folder is still sitting at the old
-  `/share/CACHEDEV1_DATA/Data/config/aims-web/` path, and it looks completely plausible** - a real
-  `aims.db` of the same size, with its own `backups/` directory, frozen at 2026-08-28 13:02. Reading
-  it instead of the live one is a silent, entirely convincing failure: it gives you real data that is
-  merely out of date, with nothing to signal that anything is wrong. This already happened once, on
-  the day of the move, and cost most of a session's analysis. Check the mtime before trusting any
-  copy you pull down.
+  **~~⚠ A stale copy of the whole `aims-web` folder is still sitting at the old
+  `/share/CACHEDEV1_DATA/Data/config/aims-web/` path~~ - GONE, verified 2026-08-29:**
+  `/share/CACHEDEV1_DATA/Data/config/` does not exist at all any more, so that specific hazard is
+  over. **The lesson stands and is worth more than the path was.** For a day after the volume move,
+  a complete, entirely plausible copy sat there - a real `aims.db` of the same size, its own
+  `backups/`, frozen at 2026-08-28 13:02 - and reading it instead of the live one was a silent,
+  convincing failure: real data, merely out of date, with nothing signalling anything was wrong. It
+  cost most of a session. **Check the mtime before trusting any database copy you pull down**, and
+  do not assume a path is live because it looks right.
 - The `aims.db` file itself lives at `/share/CACHEDEV2_DATA/Data/config/aims-web/aims.db` on the NAS
   host - safe to `scp` down read-only for analysis (a live production audit doesn't need to run
   inside the container), but never edit that copy and push it back; use the container's own management
@@ -155,6 +157,14 @@ shell there:
    check that file if you need past reasoning/detail behind something, not for everyday pickup.
    When a session fully resolves an open item, move its entry out of `ROADMAP.md` rather than
    letting resolved items accumulate there again.
+
+5. **Someone else may have been driving.** `AGENTS.md` is the handover written for Gemini
+   Antigravity (2026-08-29, while Darragh's Claude usage was reset), and `HANDBACK.md` is the
+   append-only log of what happened during any such stint - commits, what was verified against
+   production, what was written to the live database, and what was left for Darragh. **Read
+   `HANDBACK.md` after `ROADMAP.md`** whenever you are picking up cold; it covers the gap that
+   chat history doesn't survive. `AGENTS.md` deliberately does not restate this file - if a rule
+   here changes, it stays here, and `AGENTS.md` keeps pointing at it.
 
 ## Things worth knowing before editing
 
