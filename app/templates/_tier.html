@@ -10,3 +10,13 @@
     {{- value or '—' -}}
   {%- endif -%}
 {% endmacro %}
+
+{#- Dot only, no label - for a dense list where the tier is worth showing but
+    the word isn't: a society's own show history is almost entirely one tier,
+    so printing "Gilbert" on 30 consecutive rows was pure noise. The tier name
+    stays available as a tooltip and on the show's own page. -#}
+{% macro tier_dot(value) %}
+  {%- if value in ('Gilbert', 'Sullivan') -%}
+    <span class="tier-dot tier-dot-{{ value|lower }}" title="{{ value }}"></span>
+  {%- endif -%}
+{% endmacro %}

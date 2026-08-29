@@ -1055,6 +1055,30 @@ def society_detail(society_id):
         for r in shows if r["production_id"]
     }
 
+    # Show history grouped into decades (2026-08-29 redesign). A flat 37-row
+    # table had no spine; an era header with its own win count gives the page
+    # something to scan by, and matches how anyone actually talks about a
+    # society's history ("they had a great run in the 90s").
+    #
+    # Wins and nominations are split here rather than in the template because
+    # the whole point of the redesign is that they render *differently* - a
+    # win is a gold pill, nominations collapse to one count chip. Doing that
+    # split in Jinja would mean three selectattr passes per row.
+    eras = []
+    for start_year_dec, group in itertools.groupby(
+        shows, key=lambda s: (season_start_year(s["season"]) // 10) * 10
+    ):
+        rows = []
+        era_wins = 0
+        for s in group:
+            aw = awards_by_show.get(s["id"], [])
+            wins = [a for a in aw if a["result"] == "Winner"]
+            placed = [a for a in aw if a["result"] in ("Second Place", "Third Place")]
+            noms = [a for a in aw if a["result"] == "Nominee"]
+            era_wins += len(wins)
+            rows.append(dict(s, wins=wins, placed=placed, noms=noms))
+        eras.append({"decade": start_year_dec, "shows": rows, "wins": era_wins})
+
     # This society's other productions: the ones with no show page of their
     # own. Split on that rather than on an era - the old query had no year
     # filter at all despite a heading that promised "pre-23/24", so every
@@ -1132,7 +1156,7 @@ def society_detail(society_id):
     return render_template(
         "society_detail.html", society=society, shows=shows, future_shows=future_shows,
         historical_timeline=historical_timeline, person_awards=person_awards,
-        awards_by_show=awards_by_show,
+        awards_by_show=awards_by_show, eras=eras,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
         society_login_url=society_login_url, badges=badges, current_season=current,

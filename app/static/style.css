@@ -39,6 +39,25 @@
   --radius-2xl: 12px;
   --radius-3xl: 14px;
   --radius-pill: 999px;
+
+  /* Type scale. Before this the site had exactly three sizes - h1 1.7rem,
+     h2 1.2rem, body 1rem - which is most of why every page read flat:
+     nothing was ever allowed to be genuinely large. Headings below use
+     these; existing component font-sizes were left as they were rather
+     than churned wholesale. */
+  --t-xs: 0.75rem;
+  --t-sm: 0.85rem;
+  --t-base: 1rem;
+  --t-lg: 1.15rem;
+  --t-xl: 1.4rem;
+  --t-2xl: 1.8rem;
+  --t-3xl: 2.4rem;
+  --t-display: 3.1rem;
+
+  /* Page width. Was a hardcoded 900px, which left ~30% of a 1280px screen
+     empty and forced show titles to wrap onto three lines in the society
+     history table while the Section column repeated "Gilbert" 30 times. */
+  --container: 1240px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -146,20 +165,25 @@ body.public-chrome .container h2 {
 }
 
 .container {
-  max-width: 900px;
+  max-width: var(--container);
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  padding: 1.5rem 1.5rem 3rem;
 }
 
+/* Long-form reading copy stays at a comfortable measure even though the
+   page itself is now wide - the container width is for data-dense listing
+   pages, not for prose. */
+.container .prose { max-width: 68ch; }
+
 .container h1 {
-  font-size: 1.7rem;
+  font-size: var(--t-3xl);
   letter-spacing: -0.01em;
   padding-bottom: 0.5rem;
   border-bottom: 3px solid var(--gold);
   display: inline-block;
 }
 
-.container h2 { font-size: 1.2rem; margin-top: 2rem; }
+.container h2 { font-size: var(--t-xl); margin-top: 2rem; letter-spacing: -0.015em; }
 
 .site-header {
   display: flex;
@@ -639,10 +663,14 @@ details table { margin-top: 0.5rem; }
    only the wasted desktop space needed fixing. */
 .detail-hero {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 1.5rem;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--space-6);
   align-items: start;
   margin-bottom: 1rem;
+  /* Capped rather than filling the (now much wider) container. A show's
+     detail list is half a dozen short rows - stretched across 1240px it
+     left the poster marooned beside a mostly-empty column. */
+  max-width: 860px;
 }
 .detail-hero .poster { max-width: none; margin-bottom: 0; }
 .detail-hero .detail-list { margin-bottom: 0.8rem; }
@@ -666,7 +694,12 @@ details table { margin-top: 0.5rem; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  /* A tinted gradient, not flat grey. These sit directly beside real
+     posters (the next-production card, the homepage grid), and a flat fill
+     read as a broken image rather than an absent one. */
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--accent) 17%, var(--bg)),
+    color-mix(in srgb, var(--gold) 12%, var(--bg)));
   border-color: transparent;
 }
 .society-hero .poster.is-placeholder { aspect-ratio: 1; }
@@ -705,23 +738,37 @@ details table { margin-top: 0.5rem; }
 
 .whatson-list { list-style: none; margin: 0; padding: 0; }
 
+/* Poster-led cards, not a list of rows (2026-08-29). The posters are the only
+   real imagery this site has and they were rendering at 54px - postage stamps
+   beside three underlined links per row, which is most of why the homepage
+   read as a wall of text. As a grid they carry the page, and the title /
+   society / date / venue get a hierarchy instead of four near-identical lines. */
+.whatson-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--space-5);
+}
+
 .whatson-item {
   display: flex;
-  gap: 0.9rem;
-  align-items: flex-start;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
-.whatson-item:last-child { border-bottom: 0; }
+.whatson-item:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
 
 .whatson-poster {
-  flex: none;
-  width: 54px;
-  aspect-ratio: 2 / 3;
-  border-radius: 4px;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
   overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
 }
 .whatson-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
@@ -733,20 +780,36 @@ details table { margin-top: 0.5rem; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--accent) 17%, var(--bg)),
+    color-mix(in srgb, var(--gold) 12%, var(--bg)));
   border-color: transparent;
 }
 .whatson-poster.is-placeholder span {
   font-family: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: var(--t-2xl);
   letter-spacing: 0.02em;
-  color: var(--accent);
+  color: color-mix(in srgb, var(--accent) 70%, var(--bg));
 }
 
-.whatson-body { min-width: 0; }
-.whatson-title { font-weight: 600; font-size: 1.05rem; }
+.whatson-body { min-width: 0; padding: 0.85rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.1rem; }
+.whatson-title { font-weight: 700; font-size: var(--t-lg); letter-spacing: -0.015em; line-height: 1.25; }
 .whatson-body .meta { margin: 0.15rem 0 0; }
+/* Card typography. Every line inside a card used to be an underlined link -
+   title, society, venue and "(map)" all at the same weight - which is what
+   made the homepage read as a wall of text rather than a set of shows.
+   Underlines come back on hover, so nothing stops looking clickable. */
+.whatson-item a { text-decoration: none; }
+.whatson-item a:hover { text-decoration: underline; }
+.whatson-title a { color: var(--fg); }
+/* The society is the second-strongest thing on a card after the title -
+   it's who people actually follow - so it keeps the accent colour. */
+.whatson-body .meta a { color: var(--accent); font-weight: 600; }
+.whatson-body .meta { color: var(--muted); font-size: var(--t-sm); }
+/* The map link is a convenience, not a headline - it sat at the same weight
+   as the venue it belongs to. */
+.whatson-body .venue-link { color: var(--muted); font-weight: 400; font-size: var(--t-xs); }
 
 .whatson-tickets {
   display: inline-block;
@@ -866,6 +929,78 @@ details table { margin-top: 0.5rem; }
    single tag following inline text. */
 .award-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .award-badges .tag { margin-left: 0; }
+
+/* ---------------------------------------------------------------------------
+   Society show history (2026-08-29 redesign).
+
+   Replaces a 7-column .data-table plus a duplicated .table-cards block. Two
+   problems it fixes, both only visible at real data volume (Thurles: 37
+   productions, 73 award rows):
+
+   1. Every row rendered its nominations as individual beige pills, so row
+      height ranged from 1 to 7 lines and the table read as a ragged cliff
+      with no scannable rhythm. A win is now loud (gold, trophy) and
+      nominations collapse to a single quiet count chip - so a society's 25
+      wins are findable at a glance, which was the whole point of the column.
+   2. The Section column was the word "Gilbert" repeated on nearly every
+      row, and Venue was often three spellings of one hall. Section is now a
+      dot beside the title; venue moved to the show's own page.
+
+   One grid that reflows, not a table plus a hidden card duplicate - so this
+   can't develop the "content vanishes below 600px" bug the table-wide/
+   table-cards pair kept producing.
+   --------------------------------------------------------------------------- */
+.era { margin-bottom: 2.2rem; }
+.era-bar {
+  display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.35rem; margin-bottom: 0.2rem;
+}
+.era-bar h3 { font-size: var(--t-lg); margin: 0; font-weight: 800; letter-spacing: -0.01em; }
+.era-meta { font-size: var(--t-xs); color: var(--muted); letter-spacing: 0.03em; }
+.era-meta .gold { color: var(--gold); }
+
+.runs { list-style: none; margin: 0; padding: 0; }
+.run {
+  display: grid;
+  grid-template-columns: 4.2rem minmax(11rem, 1.1fr) 9.5rem minmax(0, 2fr) auto;
+  gap: 1rem; align-items: baseline;
+  padding: 0.55rem 0.6rem; border-radius: var(--radius-sm);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+.run:hover { background: var(--row-alt); }
+.run .yr { font-variant-numeric: tabular-nums; color: var(--muted); font-size: var(--t-sm); }
+.run .ttl { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+.run .ttl a { font-weight: 600; text-decoration: none; }
+.run .ttl a:hover { text-decoration: underline; }
+.run .ttl .tier-dot { flex: none; }
+.run .dts { color: var(--muted); font-size: var(--t-sm); font-variant-numeric: tabular-nums; }
+.run .awd { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.run .act { font-size: var(--t-xs); text-align: right; white-space: nowrap; }
+
+/* A win is loud, a nomination is a quiet count. See the block comment above. */
+.pill {
+  font-size: var(--t-xs); padding: 0.12rem 0.5rem; border-radius: var(--radius-pill);
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  max-width: 100%; min-width: 0;
+}
+.pill .tr { font-size: 0.8em; flex: none; }
+.pill .who { opacity: 0.75; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill-win {
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
+  color: color-mix(in srgb, var(--gold) 80%, var(--fg));
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  font-weight: 700;
+}
+.pill-silver { background: color-mix(in srgb, var(--silver) 18%, transparent); color: var(--silver); font-weight: 600; }
+.pill-bronze { background: color-mix(in srgb, var(--bronze) 18%, transparent); color: var(--bronze); font-weight: 600; }
+.pill-nom { background: none; color: var(--muted); border: 1px dashed var(--border); cursor: help; }
+
+@media (max-width: 760px) {
+  .run { grid-template-columns: 3.6rem 1fr; gap: 0.25rem 0.7rem; padding: 0.7rem 0.4rem; }
+  .run .dts, .run .awd, .run .act { grid-column: 2; text-align: left; }
+  .run .awd { margin-top: 0.25rem; }
+}
 
 .trophy-case { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
 .trophy-case .tag { margin-left: 0; font-size: 0.85rem; padding: 0.25rem 0.75rem; }
@@ -1038,6 +1173,41 @@ details table { margin-top: 0.5rem; }
 }
 
 .queue-item.next-production { border-color: var(--gold); border-width: 2px; }
+
+/* The next-production callout, with the show's own poster where one has been
+   uploaded (2026-08-29). It was rendering a flat initials placeholder even
+   for societies that had a real poster on file - the one card on the page
+   with a genuine image to show, not showing it. Falls back to the initials
+   treatment when there's no poster, same as everywhere else. */
+.next-production {
+  display: grid; grid-template-columns: 110px 1fr; gap: var(--space-5);
+  align-items: center;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--gold) 8%, var(--bg)), var(--bg) 65%);
+}
+.next-production .next-poster {
+  aspect-ratio: 2 / 3; border-radius: var(--radius-md); overflow: hidden;
+  border: 1px solid var(--border); background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+.next-production .next-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.next-production .next-poster.is-placeholder {
+  display: grid; place-items: center;
+  font-weight: 800; font-size: var(--t-lg); color: var(--accent);
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--accent) 16%, var(--bg)),
+    color-mix(in srgb, var(--gold) 11%, var(--bg)));
+}
+.next-production .next-body { min-width: 0; }
+/* The eyebrow IS the section heading - one element, not a visually-hidden
+   <h2> duplicating the same words for screen readers. */
+.container .next-production .eyebrow {
+  font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--gold); font-weight: 700; margin: 0 0 0.2rem;
+}
+.next-production .primary { font-size: var(--t-2xl); letter-spacing: -0.02em; line-height: 1.15; }
+@media (max-width: 560px) {
+  .next-production { grid-template-columns: 80px 1fr; gap: var(--space-4); }
+  .next-production .primary { font-size: var(--t-xl); }
+}
 
 /* Roadmap page: a status lane per triage_status, colour-coded the same way
    .tag-gold/.tag-active/.tag-cancelled already colour those statuses

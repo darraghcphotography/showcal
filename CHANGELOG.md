@@ -1,3 +1,7 @@
+A society's page has been rebuilt around its show history. Productions are now grouped by decade with a win count for each era, an award win shows as its own gold badge while nominations collapse into a single count you can hover for the detail, and the repeated "Gilbert"/"Sullivan" column is now a small coloured dot. Thurles Musical Society's page - 37 productions and 73 award records - is about a fifth shorter and its 25 wins are actually findable. The "Coming this season" card now shows the show's poster where one has been uploaded, and the homepage lists productions as poster cards rather than a list with thumbnails. Pages are also wider on desktop, so show titles stop wrapping onto three lines
+
+---
+
 Society pages no longer show an empty placeholder row at the top of Show history. Where a society has a season slot on record but has not announced what they are staging yet, that blank row was rendering as a confusing "TBA" line above their actual most recent production - 142 of them across the site. Moderators still see them, since for them it is a prompt to fill in
 
 ---

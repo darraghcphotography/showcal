@@ -385,9 +385,11 @@ def test_a_2024_award_record_is_not_listed_twice_on_a_society_page(client, db):
     db.commit()
 
     body = client.get("/societies/1").get_data(as_text=True)
-    # Twice per rendering site-wide by design (desktop table + mobile cards),
-    # so four occurrences would be the duplicate this removes.
-    assert body.count(">Chicago</a>") == 2
+    # Once. Was two by design until 2026-08-29, when the society history
+    # stopped rendering a wide table *and* a duplicate .table-cards block and
+    # became one reflowing grid - so a second occurrence is now the duplicate
+    # this test exists to catch, not the baseline.
+    assert body.count(">Chicago</a>") == 1
 
 
 def test_a_production_with_a_show_page_keeps_its_award_badges(client, db):

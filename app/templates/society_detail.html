@@ -101,23 +101,36 @@
 
   {% if future_shows %}
     {% set next_show = future_shows[0] %}
-    <h2>{{ 'Coming this season' if next_show['season'] == current_season else 'Next production' }}</h2>
     <div class="queue-item next-production">
-      <div class="primary">
-        <a href="{{ url_for('public.show_detail', show_id=next_show['id']) }}">{{ next_show['show'] }}</a>
-        {% if next_show['ticket_url'] %}<span class="tag tag-gold">Tickets on sale</span>{% endif %}
+      {# The society's own poster where they've uploaded one - this is the one
+         card on the page with a real image to show, and it was rendering a
+         flat initials box even when a poster was on file. #}
+      {% if next_show['poster_filename'] %}
+        <div class="next-poster">
+          <img src="{{ url_for('public.uploaded_file', filename=next_show['poster_filename']) }}"
+               alt="{{ next_show['show'] }} poster">
+        </div>
+      {% else %}
+        <div class="next-poster is-placeholder" aria-hidden="true"><span>{{ next_show['show']|initials }}</span></div>
+      {% endif %}
+      <div class="next-body">
+        <h2 class="eyebrow">{{ 'Coming this season' if next_show['season'] == current_season else 'Next production' }}</h2>
+        <div class="primary">
+          <a href="{{ url_for('public.show_detail', show_id=next_show['id']) }}">{{ next_show['show'] }}</a>
+        </div>
+        <div class="meta-chips">
+          <span>{{ next_show['season'] }}</span>
+          <span>&middot; {{ tier.tier_label(next_show['section']) }}</span>
+          <span>&middot; {% if next_show['opening_date'] %}{{ next_show['opening_date']|date_range(next_show['closing_date']) }}{% else %}TBA{% endif %}</span>
+          {% if next_show['venue'] %}
+            <span>&middot;
+              {% if next_show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=next_show['venue_slug']) }}">{{ next_show['venue'] }}</a>{% else %}{{ next_show['venue'] }}{% endif %}
+            </span>
+          {% endif %}
+        </div>
+        {% if next_show['ticket_url'] %}<p style="margin: 0.5rem 0 0;"><span class="tag tag-gold">Tickets on sale</span></p>{% endif %}
+        {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=next_show['id']) }}">Edit &rarr;</a></p>{% endif %}
       </div>
-      <div class="meta-chips">
-        <span>{{ next_show['season'] }}</span>
-        <span>&middot; {{ tier.tier_label(next_show['section']) }}</span>
-        <span>&middot; {% if next_show['opening_date'] %}{{ next_show['opening_date']|date_range(next_show['closing_date']) }}{% else %}TBA{% endif %}</span>
-        {% if next_show['venue'] %}
-          <span>&middot;
-            {% if next_show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=next_show['venue_slug']) }}">{{ next_show['venue'] }}</a>{% else %}{{ next_show['venue'] }}{% endif %}
-          </span>
-        {% endif %}
-      </div>
-      {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=next_show['id']) }}">Edit &rarr;</a></p>{% endif %}
     </div>
 
     {% if future_shows|length > 1 %}
@@ -132,88 +145,69 @@
   <h2>Show history</h2>
   <p class="meta">Spot something wrong below - a wrong date, a missing show, a typo?
      <a href="{{ url_for('public.suggest', category='Data error', message='On the ' ~ society['name'] ~ ' page: ') }}">Tell us</a> - it worked before.</p>
-  <table class="data-table table-wide">
-    <thead>
-      <tr><th>Season</th><th>Show</th><th>Section</th><th>Venue</th><th>Dates</th><th>Review</th><th>Awards</th>{% if current_user %}<th></th>{% endif %}</tr>
-    </thead>
-    <tbody>
-      {% for show in shows %}
-        <tr>
-          <td>{{ show['season'] }}</td>
-          <td>
-            {% if show['show'] %}
-              <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-            {% else %}
-              <em>TBA</em>
-            {% endif %}
-            </td>
-          <td>{{ tier.tier_label(show['section']) }}</td>
-          <td>
-            {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
-            {% else %}{{ show['venue'] or '—' }}{% endif %}
-          </td>
-          <td>
-            {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ show['blank_date_label'] }}{% endif %}
-          </td>
-          <td>
-            {% if show['review_status'] == 'Published' and show['review_url'] %}
-              <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
-            {% elif show['has_historical_review'] %}
-              <a href="{{ url_for('public.show_detail', show_id=show['id']) }}#showtimes-review">Read ShowTimes review</a>
-            {% else %}
-              {{ show['review_status']|destub or '—' }}
-            {% endif %}
-          </td>
-          <td class="award-badges">
-            {% if awards_by_show.get(show['id']) %}{{ award_badges(awards_by_show[show['id']]) }}{% else %}—{% endif %}
-          </td>
-          {% if current_user %}<td><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit</a></td>{% endif %}
-        </tr>
-      {% else %}
-        <tr><td colspan="{{ 8 if current_user else 7 }}">No shows on record yet.
-          <a href="{{ url_for('public.titles_list') }}">Browse all shows &rarr;</a></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
 
-  <div class="table-cards">
-    {% for show in shows %}
-      <div class="queue-item">
-        <div class="primary">
-          {% if show['show'] %}
-            <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-          {% else %}
-            <em>TBA</em>
-          {% endif %}
-        </div>
-        <div class="meta-chips">
-          <span>{{ show['season'] }}</span>
-          <span>&middot; {{ tier.tier_label(show['section']) }}</span>
-          {% if show['venue'] %}
-            <span>&middot;
-              {% if show['venue_slug'] %}<a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>{% else %}{{ show['venue'] }}{% endif %}
-            </span>
-          {% endif %}
-          <span>&middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ show['blank_date_label'] }}{% endif %}</span>
-          <span>&middot;
-            {% if show['review_status'] == 'Published' and show['review_url'] %}
-              <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a>
-            {% elif show['has_historical_review'] %}
-              <a href="{{ url_for('public.show_detail', show_id=show['id']) }}#showtimes-review">Read ShowTimes review</a>
-            {% else %}
-              {{ show['review_status']|destub or '—' }}
-            {% endif %}
-          </span>
-        </div>
-        {% if awards_by_show.get(show['id']) %}
-          <div class="award-badges" style="margin-top: 0.4rem;">{{ award_badges(awards_by_show[show['id']]) }}</div>
-        {% endif %}
-        {% if current_user %}<p class="meta" style="margin-top: 0.3rem;"><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit &rarr;</a></p>{% endif %}
+  {# Grouped by decade, one reflowing grid rather than a wide table plus a
+     duplicated .table-cards block (see style.css's own notes). Wins render
+     loud and nominations collapse to a single count chip - with 73 award
+     rows on a society like Thurles, a pill per nomination made row heights
+     range from 1 to 7 lines and buried the 25 actual wins. #}
+  {% for era in eras %}
+    <section class="era">
+      <div class="era-bar">
+        <h3>{{ era['decade'] }}s</h3>
+        <span class="era-meta">
+          {{ era['shows']|length }} production{{ '' if era['shows']|length == 1 else 's' }}
+          {%- if era['wins'] %} &middot; <strong class="gold">{{ era['wins'] }} win{{ '' if era['wins'] == 1 else 's' }}</strong>{% endif %}
+        </span>
       </div>
-    {% else %}
-      <p>No shows on record yet. <a href="{{ url_for('public.titles_list') }}">Browse all shows &rarr;</a></p>
-    {% endfor %}
-  </div>
+      <ul class="runs">
+        {% for show in era['shows'] %}
+          <li class="run">
+            <span class="yr">{{ show['season'] }}</span>
+            <span class="ttl">
+              {% if show['show'] %}
+                <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+              {% else %}
+                <em class="meta">TBA</em>
+              {% endif %}
+              {% if show['section'] %}{{ tier.tier_dot(show['section']) }}{% endif %}
+            </span>
+            <span class="dts">
+              {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ show['blank_date_label'] }}{% endif %}
+            </span>
+            <span class="awd">
+              {% for a in show['wins'] %}
+                <span class="pill pill-win" title="{{ a['category_name'] or 'Award' }}{% if a['nominee_name']|destub %} - {{ a['nominee_name']|destub }}{% endif %}{% if a['reason']|destub %} ({{ a['reason']|destub }}){% endif %}">
+                  <span class="tr" aria-hidden="true">🏆</span>{{ a['category_name'] or 'Award' }}{% if a['nominee_name']|destub %}<span class="who">{{ a['nominee_name']|destub }}</span>{% endif %}
+                </span>
+              {% endfor %}
+              {% for a in show['placed'] %}
+                <span class="pill {{ 'pill-silver' if a['result'] == 'Second Place' else 'pill-bronze' }}"
+                      title="{{ a['category_name'] or 'Award' }} - {{ a['result'] }}{% if a['nominee_name']|destub %} - {{ a['nominee_name']|destub }}{% endif %}">
+                  <span class="tr" aria-hidden="true">{{ '🥈' if a['result'] == 'Second Place' else '🥉' }}</span>{{ a['category_name'] or 'Award' }}
+                </span>
+              {% endfor %}
+              {% if show['noms'] %}
+                <span class="pill pill-nom" title="{% for a in show['noms'] %}{{ a['category_name'] or 'Award' }}{% if a['nominee_name']|destub %} ({{ a['nominee_name']|destub }}){% endif %}{{ ' · ' if not loop.last }}{% endfor %}">
+                  {{ show['noms']|length }} nomination{{ '' if show['noms']|length == 1 else 's' }}
+                </span>
+              {% endif %}
+            </span>
+            <span class="act">
+              {% if show['review_status'] == 'Published' and show['review_url'] %}
+                <a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Review</a>
+              {% elif show['has_historical_review'] %}
+                <a href="{{ url_for('public.show_detail', show_id=show['id']) }}#showtimes-review">Review</a>
+              {% endif %}
+              {% if current_user %}<a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Edit</a>{% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% else %}
+    <p>No shows on record yet. <a href="{{ url_for('public.titles_list') }}">Browse all shows &rarr;</a></p>
+  {% endfor %}
 
   {% if historical_timeline %}
     <h2>Also on record (awards archive)</h2>
