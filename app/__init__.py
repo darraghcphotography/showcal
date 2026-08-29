@@ -26,6 +26,17 @@ compress = Compress()
 mimetypes.add_type("image/webp", ".webp")
 
 
+# Endpoints that open no database connection at all, so the derived-table
+# freshness check below has nothing to protect on them. Kept as an explicit
+# list rather than a blueprint prefix - see keep_derived_tables_current().
+NO_DB_ENDPOINTS = frozenset({
+    "static",
+    "feeds.robots_txt",
+    "feeds.manifest",
+    "feeds.service_worker",
+})
+
+
 def create_app(test_config=None):
     app = Flask(__name__)
 
@@ -208,8 +219,19 @@ def create_app(test_config=None):
         The cost of the no-op case is why this is affordable: both freshness
         checks are a single fingerprint query, measured at 0.26ms each on the
         real database. Static files skip it because they touch no data at all.
+
+        So do the three feed endpoints that open no database connection
+        (checked, 2026-08-29 - robots.txt, the manifest and the service
+        worker). robots.txt is also what the container healthcheck hits every
+        30 seconds, so this is two queries per healthcheck that never needed
+        to run.
+
+        Deliberately NOT every feeds.* endpoint, which is the obvious-looking
+        version of this: /sitemap.xml reads both productions and venues, and
+        /calendar.ics and /export/shows.csv both open the database. Exempting
+        the blueprint wholesale would serve a stale sitemap.
         """
-        if request.endpoint == "static":
+        if request.endpoint in NO_DB_ENDPOINTS:
             return
         db = db_module.get_db()
         productions_build.ensure_current(db)
