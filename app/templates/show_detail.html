@@ -16,17 +16,24 @@
             aria-label="Share this show">Share</button>
   </div>
   <span class="visually-hidden" id="share-status" role="status" aria-live="polite"></span>
+
+  {# One identity line, then one context line. These were three separate
+     stacked paragraphs (society/season/tier, the circuit summary, and a
+     "see every production" link), which read as three unrelated notes
+     before the page had said anything about the show itself. #}
+  <p class="show-byline">
+    <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
+    <span class="sep">&middot;</span> {{ show['season'] }}
+    {% if show['section'] %}<span class="sep">&middot;</span> {{ tier.tier_label(show['section']) }}{% endif %}
+  </p>
   {% if circuit_summary %}
     <p class="meta">
-      Staged {{ circuit_summary['count'] }} times{% if circuit_summary['since'] %} since {{ circuit_summary['since'] }}{% endif %}
-      {% if circuit_summary['most_recent'] %} &middot; most recently by {{ circuit_summary['most_recent']['society_name'] }} ({{ circuit_summary['most_recent']['year'] }}){% endif %}
+      Staged {{ circuit_summary['count'] }} times{% if circuit_summary['since'] %} since {{ circuit_summary['since'] }}{% endif %}{% if circuit_summary['most_recent'] %}, most recently by {{ circuit_summary['most_recent']['society_name'] }} ({{ circuit_summary['most_recent']['year'] }}){% endif %} &middot;
+      <a href="{{ url_for('public.title_detail', title=show['show']) }}">See every AIMS production &rarr;</a>
     </p>
+  {% else %}
+    <p class="meta"><a href="{{ url_for('public.title_detail', title=show['show']) }}">See every AIMS production of this show &rarr;</a></p>
   {% endif %}
-  <p><a href="{{ url_for('public.title_detail', title=show['show']) }}">See every AIMS production of this show &rarr;</a></p>
-  <p class="meta">
-    {{ show['society_name'] }} &middot; {{ show['season'] }}
-    {% if show['section'] %}&middot; {{ tier.tier_label(show['section']) }}{% endif %}
-  </p>
 
   {% if current_user %}
     <p><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}" class="edit-callout">Edit this show &rarr;</a></p>
@@ -51,20 +58,6 @@
       <div class="poster is-placeholder" aria-hidden="true"><span>{{ show['show']|initials }}</span></div>
     {% endif %}
     <div>
-      {% if show['society_about'] or show['society_website_url'] or show['society_facebook_url'] or show['society_instagram_url'] %}
-        <h2>About {{ show['society_name'] }}</h2>
-        {% if show['society_about'] %}<p class="notes">{{ show['society_about'] }}</p>{% endif %}
-        {% set social_links = [] %}
-        {% if show['society_website_url'] %}{% set _ = social_links.append(('Website', show['society_website_url'])) %}{% endif %}
-        {% if show['society_facebook_url'] %}{% set _ = social_links.append(('Facebook', show['society_facebook_url'])) %}{% endif %}
-        {% if show['society_instagram_url'] %}{% set _ = social_links.append(('Instagram', show['society_instagram_url'])) %}{% endif %}
-        {% if social_links %}
-          <p class="meta">
-            {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ icons.external() }}{{ label }}</a>{% endfor %}
-          </p>
-        {% endif %}
-      {% endif %}
-
       <dl class="detail-list">
         <dt>Dates</dt>
         <dd>
@@ -86,19 +79,19 @@
           {% endif %}
         </dd>
 
-        {% if show['ticket_url'] %}
-        <dt>Tickets</dt>
-        <dd><a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Buy tickets</a></dd>
-        {% endif %}
-
-        <dt>Director</dt>
-        <dd>{{ show['director'] or '—' }}</dd>
-
-        <dt>Musical Director</dt>
-        <dd>{{ show['musical_director'] or '—' }}</dd>
-
-        <dt>Choreographer</dt>
-        <dd>{{ show['choreographer'] or '—' }}</dd>
+        {# Only the credits actually on record. Rendering all three
+           unconditionally meant most historical shows carried "Director —",
+           "Musical Director —", "Choreographer —": three rows stating that
+           we know nothing, on a page whose problem was already too much
+           empty space. #}
+        {% for label, value in (
+          ('Director', show['director']),
+          ('Musical Director', show['musical_director']),
+          ('Choreographer', show['choreographer']),
+        ) if value %}
+          <dt>{{ label }}</dt>
+          <dd>{{ value }}</dd>
+        {% endfor %}
 
         {% if not (is_upcoming and show['review_status'] == 'None' and not historical_review) %}
           <dt>Review</dt>
@@ -123,6 +116,34 @@
           <dd>{{ adjudication_cutoff|irish_date }} <span class="meta">(6 weeks before opening night, per AIMS rules)</span></dd>
         {% endif %}
       </dl>
+
+      {# Buying a ticket is the whole point of visiting an upcoming show's
+         page. It was a plain "Buy tickets" link sitting in the middle of the
+         definition list, between the venue and the director. #}
+      {% if show['ticket_url'] and is_upcoming %}
+        <p><a class="ticket-cta" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ icons.ticket() }}Buy tickets</a></p>
+      {% elif show['ticket_url'] %}
+        <p class="meta"><a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Ticket link</a></p>
+      {% endif %}
+
+      {# Context about the society, below the show's own facts rather than
+         above them - this is a show page, and the blurb was outranking the
+         dates and venue people came for. #}
+      {% if show['society_about'] or show['society_website_url'] or show['society_facebook_url'] or show['society_instagram_url'] %}
+        <div class="society-aside">
+          <h2>About {{ show['society_name'] }}</h2>
+          {% if show['society_about'] %}<p class="notes">{{ show['society_about'] }}</p>{% endif %}
+          {% set social_links = [] %}
+          {% if show['society_website_url'] %}{% set _ = social_links.append(('Website', show['society_website_url'])) %}{% endif %}
+          {% if show['society_facebook_url'] %}{% set _ = social_links.append(('Facebook', show['society_facebook_url'])) %}{% endif %}
+          {% if show['society_instagram_url'] %}{% set _ = social_links.append(('Instagram', show['society_instagram_url'])) %}{% endif %}
+          {% if social_links %}
+            <p class="meta">
+              {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ icons.external() }}{{ label }}</a>{% endfor %}
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
   </div>
 

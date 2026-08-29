@@ -843,6 +843,53 @@ details table { margin-top: 0.5rem; }
   border: 0;
 }
 
+/* ---------------------------------------------------------------------------
+   Show detail page (2026-08-29). The page's own facts had been losing to
+   everything around them: three stacked meta paragraphs before the poster,
+   the society's blurb above the show's dates and venue, "Buy tickets" as a
+   plain link in the middle of a definition list, and Director / Musical
+   Director / Choreographer printing "-" three times over on any historical
+   show. See show_detail.html for what moved.
+   --------------------------------------------------------------------------- */
+.show-byline {
+  font-size: var(--t-lg);
+  color: var(--muted);
+  /* Clear of the h1's gold underline, which is an inline-block border and
+     sits immediately above this. */
+  margin: var(--space-3) 0 0.3rem;
+}
+.show-byline a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.show-byline a:hover { text-decoration: underline; }
+.show-byline .sep { opacity: 0.5; margin: 0 0.15rem; }
+
+/* The primary action on an upcoming show's page - a real button, not a link
+   buried between the venue and the director. */
+.ticket-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: var(--space-3);
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.ticket-cta:hover { filter: brightness(1.12); box-shadow: var(--shadow-lg); text-decoration: none; }
+.ticket-cta svg { width: 1em; height: 1em; }
+
+/* Society context, demoted below the show's own detail list. */
+.society-aside {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.container .society-aside h2 { font-size: var(--t-base); margin: 0 0 0.4rem; color: var(--muted); }
+.society-aside .notes { margin: 0 0 0.4rem; font-size: var(--t-sm); max-width: 60ch; }
+
 .poster-lightbox-trigger {
   display: block;
   padding: 0;

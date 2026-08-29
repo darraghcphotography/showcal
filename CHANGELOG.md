@@ -1,3 +1,7 @@
+A show's own page has been tidied up. Its dates, venue and production team now come first, with the society's description moved below them, and "Buy tickets" is a proper button on a show that hasn't happened yet rather than a link buried in the middle of a list. Shows where we don't know the director, musical director or choreographer no longer print three empty rows saying so
+
+---
+
 Societies can now see at a glance when one of their upcoming shows has no poster - the site's What's On page leads with poster artwork, so a show without one appears as a blank card. Your society dashboard flags which shows need one, and moderators have a list of every upcoming production still missing artwork so they know who to ask.
 
 ---
