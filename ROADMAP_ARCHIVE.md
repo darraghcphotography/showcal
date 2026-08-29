@@ -7,6 +7,29 @@ out to still be open, it was carried forward into ROADMAP.md's Open Items list s
 
 ---
 
+## 2026-08-29 - the two ranked dev items closed
+
+**R6 - `SECRET_KEY` fail-fast.** `create_app` now raises `RuntimeError` instead of logging a
+warning when the insecure default key is in use *and* `AIMS_DB_PATH` is set (the production
+signal already used for `SESSION_COOKIE_SECURE`). A known key lets anyone forge a moderator
+session cookie, and the warning scrolled past in the container log while the site came up
+looking perfectly healthy. Local `flask run` never sets `AIMS_DB_PATH`, so dev still works on
+the default and only warns. `stack.env` holds a real 64-char key, so this cannot take
+production down.
+
+**4b - photo form to three kinds** (four, in the end). `photo_submissions.kind` was
+`review`/`production_photo`, with a programme page listing a society's past productions lumped
+in with cast photos. Those pages backfill whole decades of the record, so they are now
+`programme_history` in their own right, with `programme_cover` split out as well. SQLite cannot
+`ALTER` a `CHECK` constraint, so `app/db.py`'s `_migrate_photo_submission_kinds` rebuilds the
+table the standard way, keyed off the live table's own `CHECK` text from `sqlite_master` (same
+pattern as `_migrate_shows_source_check`). Existing rows keep the kind they were submitted
+under - re-sorting them is a judgement only a moderator looking at the photo can make, so every
+reader must keep handling `production_photo`. Labels live once in
+`app/constants.py`'s `PHOTO_KIND_LABELS` and drive both the public form and the admin queue.
+
+906 tests green.
+
 ## Session of 2026-08-24/25 - the backlog clear-out - DELIVERED
 
 Everything below shipped, was verified live on production, and is no longer an open item. Moved out

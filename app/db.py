@@ -279,6 +279,69 @@ def _migrate_shows_source_check(db):
     db.execute("CREATE INDEX IF NOT EXISTS idx_shows_review_status ON shows(review_status)")
 
 
+def _migrate_photo_submission_kinds(db):
+    """photo_submissions.kind originally allowed only 'review' and
+    'production_photo', with a programme page listing a society's own past
+    productions lumped in with the latter. Those pages are the single most
+    useful thing in this queue (they backfill whole decades of a society's
+    record, where a cast photo confirms one show), so they are now their own
+    kind, 'programme_history', and a programme *cover* is a third,
+    'programme_cover'. SQLite can't ALTER a CHECK constraint in place, so
+    this rebuilds the table the standard way - same pattern as
+    _migrate_shows_source_check above. Existing rows keep the kind they were
+    submitted under: 'production_photo' is still valid, and re-sorting old
+    submissions into the finer kinds is a judgement only a moderator looking
+    at the photo can make. Keyed off the live table's own CHECK text read
+    from sqlite_master, so it's a no-op once migrated (and on a brand-new
+    database, where schema.sql already creates the final shape)."""
+    row = db.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'photo_submissions'"
+    ).fetchone()
+    if row is None or "programme_history" in row[0]:
+        return
+
+    db.execute(
+        """
+        CREATE TABLE photo_submissions_new (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind             TEXT NOT NULL CHECK (kind IN (
+                                  'review', 'production_photo',
+                                  'programme_cover', 'programme_history'
+                              )),
+            filename         TEXT NOT NULL,
+            society_guess    TEXT,
+            show_guess       TEXT,
+            date_guess       TEXT,
+            notes            TEXT,
+            submitter_name   TEXT,
+            submitter_email  TEXT,
+            status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done', 'rejected')),
+            moderator_notes  TEXT,
+            moderated_by     TEXT,
+            moderated_at     TEXT,
+            created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO photo_submissions_new (
+            id, kind, filename, society_guess, show_guess, date_guess, notes,
+            submitter_name, submitter_email, status, moderator_notes,
+            moderated_by, moderated_at, created_at
+        )
+        SELECT
+            id, kind, filename, society_guess, show_guess, date_guess, notes,
+            submitter_name, submitter_email, status, moderator_notes,
+            moderated_by, moderated_at, created_at
+        FROM photo_submissions
+        """
+    )
+    db.execute("DROP TABLE photo_submissions")
+    db.execute("ALTER TABLE photo_submissions_new RENAME TO photo_submissions")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_photo_submissions_status ON photo_submissions(status)")
+
+
 def _migrate_shows_natural_key_collation(db):
     """ux_shows_natural_key originally had no COLLATE NOCASE on the title
     part, so a case-only difference ("Made in Dagenham" vs "Made In
@@ -355,6 +418,7 @@ def init_schema():
         db.executescript(f.read())
     _migrate_adjudicator_assignments_table(db)
     _migrate_shows_source_check(db)
+    _migrate_photo_submission_kinds(db)
     _migrate_shows_natural_key_collation(db)
     _migrate_drop_shows_status(db)
     _apply_column_migrations(db)

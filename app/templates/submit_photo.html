@@ -21,14 +21,12 @@
 
     <fieldset>
       <legend>What is this?</legend>
-      <label class="radio-label">
-        <input type="radio" name="kind" value="review" {% if form.get('kind') == 'review' %}checked{% endif %} required>
-        A newspaper/magazine review clipping
-      </label>
-      <label class="radio-label">
-        <input type="radio" name="kind" value="production_photo" {% if form.get('kind') == 'production_photo' %}checked{% endif %}>
-        A programme cover, cast/production photo, or a programme page listing past productions
-      </label>
+      {% for value, label in kind_labels.items() %}
+        <label class="radio-label">
+          <input type="radio" name="kind" value="{{ value }}" {% if form.get('kind') == value %}checked{% endif %}{% if loop.first %} required{% endif %}>
+          {{ label }}{% if value == 'programme_history' %} <span class="meta">- the most useful thing you can send us</span>{% endif %}
+        </label>
+      {% endfor %}
     </fieldset>
 
     <label>

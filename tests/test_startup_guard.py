@@ -7,6 +7,8 @@ silent for local dev (no AIMS_DB_PATH) or when the file is genuinely there.
 """
 import logging
 
+import pytest
+
 from app import create_app
 
 
@@ -39,6 +41,27 @@ def test_no_warning_in_local_dev_without_aims_db_path(tmp_path, monkeypatch, cap
         create_app({"DATABASE": str(db_path), "SECRET_KEY": "test-secret"})
 
     assert not any("data volume isn't mounted" in r.message for r in caplog.records)
+
+
+def test_refuses_to_start_in_production_without_a_secret_key(tmp_path, monkeypatch):
+    """A known SECRET_KEY in production lets anyone forge a moderator session
+    cookie. The old warning scrolled past in the container log while the site
+    came up looking healthy, so production now refuses to start instead."""
+    monkeypatch.setenv("AIMS_DB_PATH", str(tmp_path / "aims.db"))
+
+    with pytest.raises(RuntimeError, match="SECRET_KEY is not set"):
+        create_app({"DATABASE": str(tmp_path / "aims.db")})
+
+
+def test_local_dev_without_a_secret_key_only_warns(tmp_path, monkeypatch, caplog):
+    """Local `flask run` never sets AIMS_DB_PATH, and must keep working with
+    the insecure default - the fail-fast is a production-only guard."""
+    monkeypatch.delenv("AIMS_DB_PATH", raising=False)
+
+    with caplog.at_level(logging.WARNING):
+        create_app({"DATABASE": str(tmp_path / "aims.db")})
+
+    assert any("SECRET_KEY is not set" in r.message for r in caplog.records)
 
 
 def test_only_db_free_endpoints_skip_the_derived_table_check(app):

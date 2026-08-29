@@ -1,3 +1,7 @@
+When you send us society history, you can now say specifically that it's a programme page listing a society's past productions - the single most useful thing anyone can send, because one of those pages can fill in decades of a society's record at once. A programme cover and a cast photo are now separate answers too, so a moderator knows what they're opening
+
+---
+
 The Seasons page now shows upcoming productions as poster cards, the same way the homepage does - following "see the full season" used to take you from a wall of artwork to a plain table of the very same shows. Reading pages like About and the FAQ also sit at a comfortable line length again instead of running the full width of a wide screen
 
 ---

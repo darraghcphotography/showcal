@@ -9,7 +9,7 @@
 
   {% for p in pending %}
     <article class="queue-item">
-      <h2>{{ 'Review clipping' if p['kind'] == 'review' else 'Production photo' }}</h2>
+      <h2>{{ kind_labels.get(p['kind'], p['kind']) }}</h2>
       <p class="meta">Submitted {{ p['created_at']|irish_datetime }}
         {% if p['submitter_name'] %}by {{ p['submitter_name'] }}{% endif %}
         {% if p['submitter_email'] %}({{ p['submitter_email'] }}){% endif %}</p>
@@ -51,7 +51,7 @@
       <tbody>
         {% for p in recent_done %}
           <tr>
-            <td>{{ 'Review clipping' if p['kind'] == 'review' else 'Production photo' }}</td>
+            <td>{{ kind_labels.get(p['kind'], p['kind']) }}</td>
             <td>{{ p['status'] }}</td>
             <td>{{ p['moderator_notes'] or '—' }}</td>
             <td>{{ p['moderated_by'] }}</td>

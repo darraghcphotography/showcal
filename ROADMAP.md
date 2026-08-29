@@ -50,14 +50,11 @@ again.
 >
 > #### Open dev work, ranked
 >
-> 1. **4b - photo form to three kinds.** Still two (`review`, `production_photo`). Needs a `CHECK`
->    constraint rebuild on `photo_submissions.kind`; SQLite cannot `ALTER` one in. Deliberately
->    split from the multi-upload fix so that did not wait on a migration.
-> 2. **R6 - `SECRET_KEY` fail-fast.** Still a log warning at `app/__init__.py:76`. Unblocked -
->    `stack.env` holds a real 64-char key, so a fail-fast cannot take the site down.
-> 3. **Item 3 - re-match unmatched ShowTimes reviews.** 52 still pending; only about 3 will clear.
+> **4b and R6 shipped 2026-08-29** - both moved to `ROADMAP_ARCHIVE.md`. What is left:
+>
+> 1. **Item 3 - re-match unmatched ShowTimes reviews.** 52 still pending; only about 3 will clear.
 >    Low value, be honest about that before spending a session on it.
-> 4. **R8 - `public.py` is ~1,930 lines.** A judgment call, not a defect. Do not let it jump the
+> 2. **R8 - `public.py` is ~1,930 lines.** A judgment call, not a defect. Do not let it jump the
 >    queue.
 >
 > #### Design work that needs Darragh's eye, not mine

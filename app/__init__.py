@@ -74,6 +74,18 @@ def create_app(test_config=None):
         app.config.update(test_config)
 
     if app.config["SECRET_KEY"] == "dev-insecure-change-me" and not app.debug and not app.testing:
+        # In production (AIMS_DB_PATH set, per SESSION_COOKIE_SECURE above) a
+        # known SECRET_KEY lets anyone forge a moderator session cookie, so
+        # refuse to start rather than serve a site whose login means nothing.
+        # A warning was not enough - it scrolls past in the container log and
+        # the site comes up looking perfectly healthy. stack.env holds a real
+        # key, so this only fires on a genuinely misconfigured deployment.
+        if os.environ.get("AIMS_DB_PATH"):
+            raise RuntimeError(
+                "SECRET_KEY is not set. Set it in the environment (stack.env in "
+                "Portainer) before starting - refusing to run with the insecure "
+                "default, which would let anyone forge a moderator session."
+            )
         app.logger.warning(
             "SECRET_KEY is not set - using an insecure default. "
             "Set the SECRET_KEY environment variable before deploying."

@@ -195,3 +195,86 @@ def test_cannot_action_an_already_actioned_submission_twice(client, db):
     login_as(client, admin_id)
     resp = client.post(f"/admin/photo-submissions/{submission_id}/reject", follow_redirects=False)
     assert resp.status_code == 404
+
+def test_programme_history_is_its_own_kind(client, db):
+    """4b: a programme page listing a society's own past productions used to
+    be lumped in with cast photos under 'production_photo'. It backfills whole
+    decades of the record, so it is now its own kind and the form offers it."""
+    form = client.get("/submit/photo").get_data(as_text=True)
+    assert 'value="programme_history"' in form
+    assert 'value="programme_cover"' in form
+
+    resp = client.post(
+        "/submit/photo",
+        data={
+            "kind": "programme_history",
+            "notes": "Page 12 lists every show they did from 1971 on.",
+            "photo": _photo_file(),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 302
+    assert db.execute("SELECT kind FROM photo_submissions").fetchone()[0] == "programme_history"
+
+
+def test_an_unknown_kind_is_still_rejected(client, db):
+    resp = client.post(
+        "/submit/photo",
+        data={"kind": "poster", "notes": "Something else.", "photo": _photo_file()},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    assert db.execute("SELECT COUNT(*) FROM photo_submissions").fetchone()[0] == 0
+
+
+def test_the_kind_migration_widens_the_check_and_keeps_old_rows(app):
+    """The migration rebuilds photo_submissions to widen its CHECK constraint,
+    which SQLite cannot ALTER in place. Rows submitted under the old two-kind
+    vocabulary keep the kind they were sent under - re-sorting them is a
+    judgement only a moderator looking at the photo can make."""
+    import sqlite3
+
+    from app.db import _migrate_photo_submission_kinds
+
+    with app.app_context():
+        from app.db import get_db
+
+        live = get_db()
+        # Put the table back in its pre-migration shape, then migrate it.
+        live.execute("DROP TABLE photo_submissions")
+        live.execute(
+            "CREATE TABLE photo_submissions ("
+            " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " kind TEXT NOT NULL CHECK (kind IN ('review', 'production_photo')),"
+            " filename TEXT NOT NULL, society_guess TEXT, show_guess TEXT,"
+            " date_guess TEXT, notes TEXT, submitter_name TEXT, submitter_email TEXT,"
+            " status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done', 'rejected')),"
+            " moderator_notes TEXT, moderated_by TEXT, moderated_at TEXT,"
+            " created_at TEXT NOT NULL DEFAULT (datetime('now')))"
+        )
+        live.execute(
+            "INSERT INTO photo_submissions (id, kind, filename, notes) "
+            "VALUES (900, 'production_photo', 'old.jpg', 'pre-split submission')"
+        )
+        try:
+            live.execute(
+                "INSERT INTO photo_submissions (kind, filename) VALUES ('programme_history', 'x.jpg')"
+            )
+        except sqlite3.IntegrityError:
+            pass
+        else:
+            raise AssertionError("the old CHECK should not have accepted programme_history")
+
+        _migrate_photo_submission_kinds(live)
+
+        row = live.execute("SELECT kind, notes FROM photo_submissions WHERE id = 900").fetchone()
+        assert row["kind"] == "production_photo"
+        assert row["notes"] == "pre-split submission"
+
+        live.execute(
+            "INSERT INTO photo_submissions (kind, filename) VALUES ('programme_history', 'x.jpg')"
+        )
+        # ...and running it again is a no-op rather than a second rebuild.
+        _migrate_photo_submission_kinds(live)
+        assert live.execute("SELECT COUNT(*) FROM photo_submissions").fetchone()[0] == 2
+        live.commit()

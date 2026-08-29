@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from .. import notify
 from ..auth import active_invite_code, invite_required
-from ..constants import DATE_RE
+from ..constants import DATE_RE, PHOTO_KIND_LABELS
 from ..db import get_db
 from ..rate_limit import limiter
 from ..season import current_season, next_season
@@ -11,7 +11,8 @@ from ..uploads import save_photo_submission, save_poster
 
 bp = Blueprint("submit", __name__, url_prefix="/submit")
 
-PHOTO_KINDS = ("review", "production_photo")
+# Order is the order the form offers them - see PHOTO_KIND_LABELS.
+PHOTO_KINDS = tuple(PHOTO_KIND_LABELS)
 
 
 def _season_options(db):
@@ -209,7 +210,8 @@ def photo():
         if errors:
             for e in errors:
                 flash(e, "error")
-            return render_template("submit_photo.html", societies=societies, form=request.form)
+            return render_template("submit_photo.html", societies=societies, form=request.form,
+                                   kind_labels=PHOTO_KIND_LABELS)
 
         for filename in filenames:
             db.execute(
@@ -238,7 +240,8 @@ def photo():
         )
         return redirect(url_for("submit.photo_thanks"))
 
-    return render_template("submit_photo.html", societies=societies, form={})
+    return render_template("submit_photo.html", societies=societies, form={},
+                           kind_labels=PHOTO_KIND_LABELS)
 
 
 @bp.route("/photo/thanks")

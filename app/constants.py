@@ -20,6 +20,19 @@ SHOW_SECTIONS = ["Gilbert", "Sullivan", "Non-AIMS"]
 
 REVIEW_STATUSES = ["Published", "Scheduled", "Not adjudicated", "None"]
 
+# photo_submissions.kind - what a member says they've sent in, in the order the
+# submit form offers them. 'programme_history' is the valuable one: a programme
+# page listing a society's own past productions backfills whole decades, where a
+# cast photo confirms a single show. Older rows predating that split still carry
+# 'production_photo' (see app/db.py's _migrate_photo_submission_kinds), so every
+# reader must keep handling it.
+PHOTO_KIND_LABELS = {
+    "review": "Newspaper or magazine review clipping",
+    "programme_history": "Programme page listing past productions",
+    "programme_cover": "Programme cover",
+    "production_photo": "Cast or production photo",
+}
+
 # venues.venue_type - what kind of building it is, as opposed to
 # AUDITORIUM_TYPES (app/blueprints/admin/venues.py), which is the shape of the
 # room. Deliberately coarse: these are the distinctions a society actually
