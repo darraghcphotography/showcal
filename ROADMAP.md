@@ -57,6 +57,28 @@ again.
 > 2. **R8 - `public.py` is ~1,930 lines.** A judgment call, not a defect. Do not let it jump the
 >    queue.
 >
+> #### Lifecycle status is now set for all 194 societies (2026-08-29)
+>
+> It had been NULL on every row since the field shipped, so the coverage checklist could not tell a
+> live society from a panto company with no records at all.
+> `scripts/backfills/guess_society_lifecycle.py` filled every NULL from one signal - the last year we
+> have any record of that society producing anything - giving **Active 141, Out of scope 28, Dormant
+> 12, Closed 10, Unverified 3**. Chaseable societies dropped from 194 to 156.
+>
+> **These are guesses and are labelled as such.** The thresholds sit deliberately on the generous
+> side (a wrong "Active" costs one email; a wrong "Closed" quietly drops a living society), and
+> `classify()` is pure and separately tested so the lines can be argued with. Only NULLs are filled,
+> so a moderator's decision always wins and a re-run never overwrites one.
+>
+> **Two small piles want a human glance**, and only Darragh can give it:
+> the **10 marked Closed** (all last produced 2011-2017), and the **3 marked Unverified** - Armagh
+> Creative Theatre Group, KATS and Seven Woods Productions, which sit in the Sullivan tier yet have
+> no production on record at all. Also worth knowing: several rows classed by production history are
+> arguably *Out of scope* by nature (Belfast School of Performing Arts, Currid School of Performing
+> Arts, Phoenix Performing Arts College, two youth theatres) - they produced, so the data called them
+> Closed or Dormant, but a human would likely call them out of scope instead.
+>
+
 > #### Design work that needs Darragh's eye, not mine
 >
 > Both came out of the 2026-08-29 site audit. Both are visual calls, and the last one of these went
@@ -146,13 +168,13 @@ audit log (ready to build, just not selected); repertoire finder (blocked until 
 committees actually asked for); genre filtering on `/titles` (blocked on a taxonomy decision);
 pantomime category (his scope call); the 60-society logo redo still out with Gemini.
 
-**Two of these now connect to the poster/logo gap in START HERE, which raises their value:**
+**One of these connects to the poster/logo gap in START HERE, which raises its value:**
 
-- `scripts/enrichment/import_logo_candidates.py` has still never been run against production, so
-  `/admin/logo-candidates` is built, reachable and empty. `enrichment/logo_worklist.json` already
-  holds 11 verified `found: true` rows. That is 11 of the 176 missing logos, already researched,
-  sitting unused - the cheapest available dent in that number. Note `enrichment/` is gitignored, so
-  that JSON only exists on Darragh's machine.
+- ~~`import_logo_candidates.py` has never been run against production~~ - **checked against the live
+  database 2026-08-29 and this was wrong.** All 11 `found: true` rows were imported: 10 approved and
+  applied, 1 still pending. The only one left is Rathmines & Rathgar, whose logo is an **SVG**, which
+  `fetch_logo_candidate` (Pillow) cannot decode - it needs a raster URL, not a re-run. Societies with
+  a logo now stands at 18 of 194.
 - **Venue duplicates are 8 clusters, not 5** (16 venue rows), and they are now surfaced with a
   dashboard counter and a **Different venue** dismissal, so the queue can actually be cleared. See
   `/admin/venue-directory`.
@@ -186,12 +208,10 @@ startup). **First thing next session: confirm the two new changelog entries are 
 on `/suggestions`** - the Oyster Lane correction is a public trust statement and should not sit
 unpublished.
 
-**The logo review queue still needs one more step, and it is not a redeploy.** `/admin/logo-candidates`
-is deployed and reachable, but **the table is empty until `scripts/enrichment/import_logo_candidates.py` is actually run
-against production** - it plus `enrichment/logo_worklist.json` (which already holds the 11 verified
-`found: true` rows) have to be copied into the container the same way every other import is. Until
-that runs there is nothing to review. Note `enrichment/` is gitignored, so that JSON is only on
-Darragh's machine.
+~~**The logo review queue still needs one more step.**~~ **Resolved - it had already been done.**
+Verified against the live database on 2026-08-29: `logo_candidates` holds all 11 rows, 10 approved.
+See the corrected entry above. Kept here only to stop a future session re-deriving the same wrong
+conclusion from this file.
 
 The 2026-08-25 session, in order: interrogated the backlog; built the three ready backlog items
 (`f07bd11`); scored Gemini's two remaining deliverables and rejected both (see the delegation
