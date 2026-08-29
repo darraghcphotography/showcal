@@ -1,3 +1,7 @@
+Moderators have a new coverage checklist: one row per society showing at a glance which have a logo, an about blurb, a website, a founding year and a home venue on record, plus how many of their upcoming shows have a poster. Each society can now also be marked Active, Dormant, Closed or Out of scope, so the list shows who is actually worth following up with
+
+---
+
 The homepage no longer ends with a list of recent changes - it's the page for finding out what's on, and the Roadmap page carries that instead (still one click away).
 
 ---

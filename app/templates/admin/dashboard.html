@@ -126,6 +126,16 @@
       <tr>
         <td>
           <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if society_gap_count else 'admin-dot-off' }}"></span>
+            Societies with an unfilled profile gap (logo, about, website...)
+          </span>
+        </td>
+        <td>{{ society_gap_count }}</td>
+        <td><a href="{{ url_for('admin.society_checklist') }}">Coverage checklist</a></td>
+      </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
             <span class="admin-dot {{ 'admin-dot-on' if venue_duplicate_count else 'admin-dot-off' }}"></span>
             Venues that may be duplicates (merge, or mark as different)
           </span>

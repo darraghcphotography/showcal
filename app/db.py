@@ -106,6 +106,11 @@ COLUMN_MIGRATIONS = [
     # society's own about page - same trust model as everything else here,
     # never guessed. Shown on the society's public page.
     ("societies", "founded_year", "ALTER TABLE societies ADD COLUMN founded_year INTEGER"),
+    # No CHECK constraint on an added column - SQLite cannot add one with
+    # ALTER TABLE, and rebuilding the table for this is not worth it. The
+    # constraint in schema.sql applies to fresh databases; the route that
+    # writes this validates against the same list either way.
+    ("societies", "lifecycle_status", "ALTER TABLE societies ADD COLUMN lifecycle_status TEXT"),
     # Original creative credits for a title - who wrote it, not who performed
     # it. Same trust model as show_info's synopsis/rights fields: a moderator
     # looks it up on a real source (the licensing house's own listing,

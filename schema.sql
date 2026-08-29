@@ -56,7 +56,34 @@ CREATE TABLE IF NOT EXISTS societies (
     -- but does NOT touch historical stats/awards/Season Archive, which
     -- stay as an accurate historical record. A society's own self-service
     -- login (app/blueprints/society.py) is unaffected either way.
-    hidden          INTEGER NOT NULL DEFAULT 0
+    hidden          INTEGER NOT NULL DEFAULT 0,
+
+    -- Where this society stands, as a moderator's judgement rather than
+    -- something derivable from the data. `section` already says which AIMS
+    -- adjudication tier they're in (or 'Inactive'), but that is a
+    -- competition category, not a lifecycle: a society can be mid-hiatus,
+    -- wound up, or simply never have been in scope, and the coverage
+    -- checklist needs to tell those apart to know who is worth chasing.
+    -- NULL means nobody has said yet.
+    lifecycle_status TEXT CHECK (lifecycle_status IN (
+                          'Active', 'Dormant', 'Closed', 'Out of scope', 'Unverified'
+                     ))
+);
+
+-- "I looked, and there is nothing to find." One row per society per field
+-- (about, website, social, logo, founded, venue) that a moderator has
+-- checked and found genuinely unavailable - a society with no website has
+-- no website, and no amount of returning to the checklist will change that.
+--
+-- Same purpose as dismissed_duplicate_pairs and dismissed_venue_pairs: a
+-- coverage grid whose gaps can only ever be filled, never closed, is a list
+-- that always looks unfinished, which is how it stops being used at all.
+CREATE TABLE IF NOT EXISTS society_field_checked (
+    society_id      INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
+    field           TEXT NOT NULL,
+    checked_by      TEXT,
+    checked_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (society_id, field)
 );
 
 CREATE TABLE IF NOT EXISTS shows (

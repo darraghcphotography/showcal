@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Society coverage checklist - DC Show Tracker{% endblock %}
+
+{#- A gap that can be filled, or marked as "checked, nothing to get". Both are
+    real answers; only the first changes the society record. -#}
+{% macro cell(row, field, label) %}
+  {% set sid = row['society']['id'] %}
+  <td class="c">
+    {% if row['present'][field] %}
+      <span class="dot ok" title="{{ label }} on record"></span>
+    {% elif field in row['checked'] %}
+      <form method="post" action="{{ url_for('admin.mark_society_field_checked', society_id=sid) }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="field" value="{{ field }}">
+        <input type="hidden" name="undo" value="1">
+        <input type="hidden" name="next" value="admin.society_checklist">
+        <button type="submit" class="dot checked" title="{{ label }}: checked, nothing to get. Click to undo."></button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('admin.mark_society_field_checked', society_id=sid) }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="field" value="{{ field }}">
+        <input type="hidden" name="next" value="admin.society_checklist">
+        <button type="submit" class="dot gap" title="{{ label }} missing - click to mark &quot;checked, nothing to get&quot;"></button>
+      </form>
+    {% endif %}
+  </td>
+{% endmacro %}
+
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to admin</a></p>
+  <h1>Society coverage checklist</h1>
+
+  <p class="meta" style="max-width: 70ch;">
+    One row per society, every column derived from data already in the database - nothing here is a
+    new field to maintain. Sorted so the societies worth chasing surface first: most gaps at the top,
+    closed and out-of-scope at the bottom.
+  </p>
+
+  <div class="site-notice">
+    <p><strong>A gap is only a gap until someone looks.</strong> Plenty of societies genuinely have no
+       website, no logo and no founding year on record anywhere. Click a gap to mark it
+       <em>checked, nothing to get</em> - it stops counting, and this list can actually be finished
+       rather than permanently looking undone. Click it again to undo.</p>
+    <p class="meta">{{ open_count }} societ{{ 'y' if open_count == 1 else 'ies' }} with something outstanding &middot; {{ total_gaps }} gap{{ '' if total_gaps == 1 else 's' }} in total.</p>
+  </div>
+
+  <form method="get" class="filter-form">
+    <label>Region
+      <select name="region" data-auto-submit>
+        <option value="">All regions</option>
+        {% for r in regions %}
+          <option value="{{ r }}" {% if r == selected_region %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Status
+      <select name="status" data-auto-submit>
+        <option value="">Any status</option>
+        {% for s in statuses %}
+          <option value="{{ s }}" {% if s == selected_status %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+    {% if selected_region or selected_status %}
+      <a href="{{ url_for('admin.society_checklist') }}">Clear filters</a>
+    {% endif %}
+  </form>
+
+  {% if rows %}
+    <table class="data-table checklist-grid">
+      <thead>
+        <tr>
+          <th>Society</th><th>Status</th>
+          <th class="num">Shows</th><th class="num">Upcoming</th><th class="num">Posters</th>
+          <th class="c">About</th><th class="c">Venue</th><th class="c">Social</th>
+          <th class="c">Web</th><th class="c">Logo</th><th class="c">Founded</th>
+          <th class="num">Gaps</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% set s = row['society'] %}
+          <tr>
+            <td class="nm">
+              <a href="{{ url_for('public.society_detail', society_id=s['id']) }}">{{ s['name'] }}</a>
+              <small>{{ s['region'] }} &middot; {{ s['section'] }}</small>
+            </td>
+            <td>
+              <form method="post" action="{{ url_for('admin.set_society_lifecycle', society_id=s['id']) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="admin.society_checklist">
+                <select name="lifecycle_status" data-auto-submit class="st">
+                  <option value="" {% if not s['lifecycle_status'] %}selected{% endif %}>&mdash;</option>
+                  {% for st in statuses %}
+                    <option value="{{ st }}" {% if s['lifecycle_status'] == st %}selected{% endif %}>{{ st }}</option>
+                  {% endfor %}
+                </select>
+              </form>
+            </td>
+            <td class="num">{{ row['shows'] }}</td>
+            <td class="num">{{ row['upcoming'] }}</td>
+            <td class="num">
+              {# Posters against upcoming shows, since that is what the homepage renders. #}
+              {% if row['upcoming'] %}
+                <span class="pill {{ 'good' if row['upcoming_posters'] == row['upcoming'] else 'dim' }}">{{ row['upcoming_posters'] }}/{{ row['upcoming'] }}</span>
+              {% else %}
+                <span class="meta">&mdash;</span>
+              {% endif %}
+            </td>
+            {{ cell(row, 'about', 'About') }}
+            {{ cell(row, 'venue', 'Default venue') }}
+            {{ cell(row, 'social', 'Social link') }}
+            {{ cell(row, 'web', 'Website') }}
+            {{ cell(row, 'logo', 'Logo') }}
+            {{ cell(row, 'founded', 'Founded year') }}
+            <td class="num">
+              {% if row['gap_count'] %}<strong>{{ row['gap_count'] }}</strong>{% else %}<span class="meta">0</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No societies match those filters.
+      <a href="{{ url_for('admin.society_checklist') }}">Clear filters</a></p>
+  {% endif %}
+{% endblock %}

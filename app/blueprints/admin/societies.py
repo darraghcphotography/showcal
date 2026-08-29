@@ -405,3 +405,187 @@ def apply_society_corrections():
         parts.append(f"dismissed {dismissed}")
     flash(", ".join(parts).capitalize() + "." if parts else "No changes selected.", "success" if parts else "warning")
     return redirect(url_for("admin.society_corrections"))
+
+
+# Fields the coverage grid tracks. Each is either present on the society row,
+# or a gap a moderator can either fill or mark "checked, nothing to get".
+# Order is the column order in society_checklist.html.
+CHECKLIST_FIELDS = ("about", "venue", "social", "web", "logo", "founded")
+
+LIFECYCLE_STATUSES = ("Active", "Dormant", "Closed", "Out of scope", "Unverified")
+
+# Statuses that mean "not worth chasing". Sorted to the bottom of the grid and
+# excluded from the dashboard counter - a wound-up society is a settled answer,
+# not an outstanding job, the same distinction MISSING_DATES_WHERE draws.
+LIFECYCLE_DONE = ("Closed", "Out of scope")
+
+
+def _is_chaseable(row):
+    """Whether this society's gaps are worth counting as outstanding work.
+
+    An explicit lifecycle_status is the answer where one has been given;
+    otherwise section == 'Inactive' stands in, so the counter is not dominated
+    by defunct societies nobody intends to chase."""
+    status = row["society"]["lifecycle_status"]
+    if status:
+        return status not in LIFECYCLE_DONE
+    return row["society"]["section"] != "Inactive"
+
+
+def _society_coverage(db):
+    """One row per society with its gaps worked out, most-chaseable first.
+
+    Every column is derived from data already on the row or countable from
+    shows - nothing here is a new field to maintain. The counts come from two
+    grouped queries rather than per-society lookups: this page renders every
+    society on the site, and a per-row query here is the shape that took the
+    site down once already (ROADMAP, 19 Aug).
+    """
+    societies = db.execute("SELECT * FROM societies ORDER BY name").fetchall()
+
+    show_counts = {
+        r["society_id"]: r
+        for r in db.execute(
+            """
+            SELECT society_id,
+                   COUNT(*) AS shows,
+                   SUM(CASE WHEN opening_date >= date('now') THEN 1 ELSE 0 END) AS upcoming,
+                   SUM(CASE WHEN opening_date >= date('now') AND poster_filename IS NOT NULL
+                            THEN 1 ELSE 0 END) AS upcoming_posters
+              FROM shows
+             WHERE moderation_status = 'approved' AND show IS NOT NULL
+             GROUP BY society_id
+            """
+        )
+    }
+
+    checked = {}
+    for r in db.execute("SELECT society_id, field FROM society_field_checked"):
+        checked.setdefault(r["society_id"], set()).add(r["field"])
+
+    rows = []
+    for s in societies:
+        counts = show_counts.get(s["id"])
+        seen = checked.get(s["id"], set())
+
+        present = {
+            "about": bool(s["about"]),
+            "venue": bool(s["default_venue"]),
+            "social": bool(s["facebook_url"] or s["instagram_url"] or s["tiktok_url"]),
+            "web": bool(s["website_url"] or s["other_url"]),
+            "logo": bool(s["logo_filename"]),
+            "founded": s["founded_year"] is not None,
+        }
+        # A gap is only a gap while nobody has looked. "Checked, nothing to
+        # get" is an answer, so it stops counting - otherwise a society with
+        # genuinely no website keeps this grid permanently unfinished.
+        gaps = [f for f in CHECKLIST_FIELDS if not present[f] and f not in seen]
+
+        rows.append({
+            "society": s,
+            "shows": (counts["shows"] if counts else 0),
+            "upcoming": (counts["upcoming"] if counts else 0) or 0,
+            "upcoming_posters": (counts["upcoming_posters"] if counts else 0) or 0,
+            "present": present,
+            "checked": seen,
+            "gaps": gaps,
+            "gap_count": len(gaps),
+        })
+
+    # Active societies with the most to fix first; settled ones last. Within a
+    # group, more gaps before fewer, then by name so the order is stable.
+    #
+    # section == 'Inactive' counts as settled while no lifecycle_status has
+    # been set. Without that the whole top of the grid is defunct panto
+    # companies with six gaps and no shows - they sort first precisely
+    # because nobody will ever fill them in, which is the opposite of what
+    # this page is for. An explicit lifecycle_status always wins over the
+    # fallback, so marking one Active pulls it back up.
+    def sort_key(r):
+        status = r["society"]["lifecycle_status"]
+        if status:
+            settled = status in LIFECYCLE_DONE
+        else:
+            settled = r["society"]["section"] == "Inactive"
+        return (
+            1 if settled else 0,
+            -r["gap_count"],
+            r["society"]["name"],
+        )
+
+    rows.sort(key=sort_key)
+    return rows
+
+
+@bp.route("/society-checklist")
+@login_required
+def society_checklist():
+    db = get_db()
+    rows = _society_coverage(db)
+    region = request.args.get("region", "")
+    status = request.args.get("status", "")
+    if region in REGIONS:
+        rows = [r for r in rows if r["society"]["region"] == region]
+    if status:
+        rows = [r for r in rows if (r["society"]["lifecycle_status"] or "Unverified") == status]
+
+    open_rows = [r for r in rows if r["gap_count"] and _is_chaseable(r)]
+    return render_template(
+        "admin/society_checklist.html",
+        rows=rows,
+        fields=CHECKLIST_FIELDS,
+        statuses=LIFECYCLE_STATUSES,
+        regions=REGIONS,
+        selected_region=region,
+        selected_status=status,
+        open_count=len(open_rows),
+        total_gaps=sum(r["gap_count"] for r in open_rows),
+    )
+
+
+@bp.route("/society-checklist/<int:society_id>/status", methods=("POST",))
+@login_required
+def set_society_lifecycle(society_id):
+    db = get_db()
+    status = request.form.get("lifecycle_status", "").strip()
+    if status and status not in LIFECYCLE_STATUSES:
+        abort(400)
+    if db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone() is None:
+        abort(404)
+    db.execute(
+        "UPDATE societies SET lifecycle_status = ? WHERE id = ?",
+        (status or None, society_id),
+    )
+    db.commit()
+    return redirect(back_to(url_for("admin.society_checklist")))
+
+
+@bp.route("/society-checklist/<int:society_id>/checked", methods=("POST",))
+@login_required
+def mark_society_field_checked(society_id):
+    """Record "I looked, there is nothing to get" for one field - or undo it.
+
+    Without this the grid can only ever be filled in, never finished: a
+    society with no website will show a gap under Web forever, and a list
+    that always looks unfinished stops getting used.
+    """
+    db = get_db()
+    field = request.form.get("field", "")
+    if field not in CHECKLIST_FIELDS:
+        abort(400)
+    if db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone() is None:
+        abort(404)
+
+    if request.form.get("undo"):
+        db.execute(
+            "DELETE FROM society_field_checked WHERE society_id = ? AND field = ?",
+            (society_id, field),
+        )
+    else:
+        user = current_user()
+        db.execute(
+            "INSERT OR IGNORE INTO society_field_checked (society_id, field, checked_by) VALUES (?, ?, ?)",
+            (society_id, field, user["username"] if user else None),
+        )
+    db.commit()
+    return redirect(back_to(url_for("admin.society_checklist")))

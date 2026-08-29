@@ -1049,6 +1049,37 @@ details table { margin-top: 0.5rem; }
   .run .awd { margin-top: 0.25rem; }
 }
 
+/* ---------------------------------------------------------------------------
+   Society coverage checklist (/admin/society-checklist). A dense grid - one
+   row per society, ~194 of them - so the per-cell state has to read at a
+   glance rather than as text. Three states per field: on record, missing, and
+   "checked, nothing to get", which is a real answer and must not look like a
+   failure.
+   --------------------------------------------------------------------------- */
+.checklist-grid td.c, .checklist-grid th.c { text-align: center; width: 3.4rem; }
+.checklist-grid td.num, .checklist-grid th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.checklist-grid td.nm small { display: block; color: var(--muted); font-size: var(--t-xs); }
+.checklist-grid .st { font-size: var(--t-xs); padding: 0.1rem 0.2rem; }
+.checklist-grid .inline-form { display: inline; margin: 0; }
+
+.dot {
+  display: inline-block; width: 0.85rem; height: 0.85rem;
+  border-radius: 50%; border: 1px solid var(--border); padding: 0;
+  vertical-align: middle;
+}
+button.dot { cursor: pointer; }
+.dot.ok { background: var(--success); border-color: var(--success); }
+.dot.gap { background: none; border-style: dashed; border-color: var(--warning); }
+/* Deliberately quiet, not another "done" green - it means "asked and
+   answered", which is different from "we have it". */
+.dot.checked { background: var(--border); border-color: var(--border); }
+
+.checklist-grid .pill {
+  font-size: var(--t-xs); padding: 0.05rem 0.4rem; border-radius: var(--radius-pill);
+}
+.checklist-grid .pill.good { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); font-weight: 600; }
+.checklist-grid .pill.dim { background: var(--row-alt); color: var(--muted); }
+
 /* A merge suggestion and its "no" sit together as one decision. */
 .merge-pair { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
 

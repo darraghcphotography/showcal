@@ -6,6 +6,7 @@ from ...auth import login_required
 from ...db import get_db
 from ...dedupe import find_candidates
 from ...venues import dismissed_venue_pairs, merge_candidates
+from .societies import _is_chaseable, _society_coverage
 from ...season import current_season, historical_results_year
 from . import bp
 from ._shared import (
@@ -159,6 +160,13 @@ def dashboard():
         )
     )
 
+    # Societies with an unanswered coverage gap. Closed/out-of-scope are
+    # excluded and a "checked, nothing to get" clears a field, so this can
+    # reach zero - see society_field_checked.
+    society_gap_count = sum(
+        1 for r in _society_coverage(db) if r["gap_count"] and _is_chaseable(r)
+    )
+
     duplicate_historical_count = len(_duplicate_historical_rows(db))
     orphaned_info, orphaned_links = _orphaned_titles(db)
     orphaned_titles_count = len({r["show"] for r in orphaned_info} | {r["show"] for r in orphaned_links})
@@ -279,6 +287,7 @@ def dashboard():
         missing_dates_count=missing_dates_count,
         missing_poster_count=missing_poster_count,
         venue_duplicate_count=venue_duplicate_count,
+        society_gap_count=society_gap_count,
         duplicate_count=duplicate_count,
         unmatched_award_societies_count=unmatched_award_societies_count,
         historical_regions_pending_count=historical_regions_pending_count,
