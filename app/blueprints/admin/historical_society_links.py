@@ -25,13 +25,12 @@ The decision is stored in historical_society_links keyed on the printed name,
 not written only onto the rows - see that table's comment in schema.sql for why
 (import_awards.py wipes and reloads every row this queue touches).
 """
-from datetime import datetime
-
 from flask import abort, flash, redirect, render_template, request, url_for
 
 import society_names
 
 from ... import productions_build
+from ...clock import utcnow_iso
 from ...auth import current_user, login_required
 from ...db import get_db
 from . import bp
@@ -134,7 +133,7 @@ def _record(db, society_name, society_id, no_match, note=None):
         "no_match = excluded.no_match, note = excluded.note, decided_by = excluded.decided_by, "
         "updated_at = excluded.updated_at",
         (society_name, society_id, no_match, note, current_user()["username"],
-         datetime.utcnow().isoformat()),
+         utcnow_iso()),
     )
 
 

@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from flask import abort, current_app, flash, redirect, render_template, request, url_for
 
+from ...clock import utcnow_iso
 from ...auth import current_user, login_required
 from ...constants import REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS
 from ... import notify
@@ -55,7 +56,7 @@ def approve(show_id):
         SET moderation_status = 'approved', moderated_by = ?, moderated_at = ?, updated_at = ?
         WHERE id = ? AND moderation_status = 'pending'
         """,
-        (user["username"], datetime.utcnow().isoformat(), datetime.utcnow().isoformat(), show_id),
+        (user["username"], utcnow_iso(), utcnow_iso(), show_id),
     )
     db.commit()
     flash("Show approved and now live.", "success")
@@ -73,7 +74,7 @@ def reject(show_id):
         SET moderation_status = 'rejected', moderated_by = ?, moderated_at = ?, updated_at = ?
         WHERE id = ? AND moderation_status = 'pending'
         """,
-        (user["username"], datetime.utcnow().isoformat(), datetime.utcnow().isoformat(), show_id),
+        (user["username"], utcnow_iso(), utcnow_iso(), show_id),
     )
     db.commit()
     flash("Submission rejected.", "success")
@@ -226,7 +227,7 @@ def new_show(society_id):
                     "ticket_url": ticket_url,
                     "poster_filename": poster_filename,
                     "moderated_by": current_user()["username"],
-                    "moderated_at": datetime.utcnow().isoformat(),
+                    "moderated_at": utcnow_iso(),
                 },
             )
         except sqlite3.IntegrityError:
@@ -383,7 +384,7 @@ def edit_show(show_id):
                 opening_date, closing_date, adjudication_date,
                 venue, director, musical_director, choreographer,
                 review_url, review_author, review_status, ticket_url, poster_filename,
-                datetime.utcnow().isoformat(), show_id,
+                utcnow_iso(), show_id,
             ),
         )
         db.commit()
@@ -487,7 +488,7 @@ def apply_backfill_credits():
         values = list(proposal["fields"].values())
         db.execute(
             f"UPDATE shows SET {assignments}, updated_at = ? WHERE id = ?",
-            (*values, datetime.utcnow().isoformat(), proposal["show_id"]),
+            (*values, utcnow_iso(), proposal["show_id"]),
         )
         applied_shows += 1
         applied_values += len(proposal["fields"])
@@ -567,7 +568,7 @@ def add_show_review(show_id):
         (
             show["season"], show["section"], show["show"], show["society_name"], adjudicator_id,
             review_text, source_issue, show_id, show["society_id"],
-            current_user()["username"], datetime.utcnow().isoformat(),
+            current_user()["username"], utcnow_iso(),
         ),
     )
     db.commit()

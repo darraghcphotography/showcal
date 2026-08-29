@@ -4,10 +4,9 @@ logo_candidates table). A moderator looks at each already-fetched-and-
 validated image and approves or rejects it; approving is the only thing that
 ever writes societies.logo_filename here - nothing upstream of this queue
 does."""
-from datetime import datetime
-
 from flask import abort, flash, redirect, render_template, request, url_for
 
+from ...clock import utcnow_iso
 from ...auth import current_user, login_required
 from ...db import get_db
 from . import bp
@@ -54,7 +53,7 @@ def approve_logo_candidate(candidate_id):
         return redirect(url_for("admin.logo_candidates_queue"))
 
     user = current_user()
-    now = datetime.utcnow().isoformat()
+    now = utcnow_iso()
     db.execute(
         "UPDATE societies SET logo_filename = ? WHERE id = ?",
         (candidate["filename"], candidate["society_id"]),
@@ -77,7 +76,7 @@ def reject_logo_candidate(candidate_id):
     row = db.execute(
         "UPDATE logo_candidates SET status = 'rejected', moderator_notes = ?, moderated_by = ?, moderated_at = ? "
         "WHERE id = ? AND status = 'pending'",
-        (moderator_notes, user["username"], datetime.utcnow().isoformat(), candidate_id),
+        (moderator_notes, user["username"], utcnow_iso(), candidate_id),
     )
     db.commit()
     if row.rowcount == 0:

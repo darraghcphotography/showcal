@@ -1,10 +1,11 @@
 import csv
 import io
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
 
+from ..clock import utcnow_compact
 from ..constants import REGIONS
 from ..db import get_db
 from ..productions import ON_RECORD_PRODUCTION
@@ -115,7 +116,7 @@ def calendar_ics():
 
     calname_bits = [b for b in (section, region, society_name, season) if b]
     calname = f"DC Show Tracker - {' - '.join(calname_bits)}" if calname_bits else "DC Show Tracker"
-    stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    stamp = utcnow_compact()
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",

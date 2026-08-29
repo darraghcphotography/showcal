@@ -1,11 +1,10 @@
 import sqlite3
-from datetime import datetime
-
 from flask import abort, flash, redirect, render_template, request, url_for
 
 import society_names
 
 from ... import productions_build
+from ...clock import utcnow_iso
 from ...auth import current_user, login_required
 from ...constants import SHOW_SECTIONS
 from ...db import get_db
@@ -194,7 +193,7 @@ def _approve_historical_review_row(db, review, username):
         SET show_id = ?, moderation_status = 'approved', moderated_by = ?, moderated_at = ?
         WHERE id = ?
         """,
-        (show_id, username, datetime.utcnow().isoformat(), review["id"]),
+        (show_id, username, utcnow_iso(), review["id"]),
     )
 
 
@@ -377,7 +376,7 @@ def reject_historical_review(review_id):
         SET moderation_status = 'rejected', moderated_by = ?, moderated_at = ?
         WHERE id = ? AND moderation_status = 'pending'
         """,
-        (user["username"], datetime.utcnow().isoformat(), review_id),
+        (user["username"], utcnow_iso(), review_id),
     )
     db.commit()
     flash("Review skipped.", "success")

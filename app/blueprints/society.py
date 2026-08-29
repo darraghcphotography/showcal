@@ -1,10 +1,11 @@
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
 from ..auth import active_society_code, society_required
 from ..calendar_links import google_calendar_url
+from ..clock import utcnow_iso
 from ..constants import DATE_RE, SHOW_SECTIONS
 from ..db import get_db
 from ..rate_limit import limiter
@@ -353,7 +354,7 @@ def edit_show(show_id):
                 fields["opening_date"], fields["closing_date"],
                 fields["venue"], fields["director"], fields["musical_director"], fields["choreographer"],
                 fields["ticket_url"], poster_filename,
-                datetime.utcnow().isoformat(), show_id,
+                utcnow_iso(), show_id,
             ),
         )
         db.commit()

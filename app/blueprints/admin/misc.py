@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import abort, flash, redirect, render_template, request, url_for
 
+from ...clock import utcnow_iso
 from ...auth import login_required
 from ...constants import REGIONS, SUGGESTION_CATEGORIES, SUGGESTION_STATUSES
 from ...db import get_db
@@ -46,7 +47,7 @@ def fix_dates():
                 if current and (current["opening_date"] != opening_date or current["closing_date"] != closing_date):
                     db.execute(
                         "UPDATE shows SET opening_date = ?, closing_date = ?, updated_at = ? WHERE id = ?",
-                        (opening_date, closing_date, datetime.utcnow().isoformat(), show_id),
+                        (opening_date, closing_date, utcnow_iso(), show_id),
                     )
                     updated += 1
             db.commit()

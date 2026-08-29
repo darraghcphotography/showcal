@@ -6,10 +6,9 @@ tables by hand (show_info, historical_reviews, a show's own edit form,
 whatever fits), then marks the row here 'done' or 'rejected' purely to keep
 this queue clean - neither action touches shows/historical_reviews/show_info
 itself."""
-from datetime import datetime
-
 from flask import abort, flash, redirect, render_template, request, url_for
 
+from ...clock import utcnow_iso
 from ...auth import current_user, login_required
 from ...db import get_db
 from . import bp
@@ -37,7 +36,7 @@ def _set_status(submission_id, status):
     row = db.execute(
         "UPDATE photo_submissions SET status = ?, moderator_notes = ?, moderated_by = ?, moderated_at = ? "
         "WHERE id = ? AND status = 'pending'",
-        (status, moderator_notes, user["username"], datetime.utcnow().isoformat(), submission_id),
+        (status, moderator_notes, user["username"], utcnow_iso(), submission_id),
     )
     db.commit()
     if row.rowcount == 0:
