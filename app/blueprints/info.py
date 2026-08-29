@@ -494,10 +494,14 @@ def _season_filtered_shows(db, all_seasons, current, region, tier):
     season = requested if requested in all_seasons else current
     is_past_season = season < current
 
+    # venues.slug so the upcoming half can render the same poster card the
+    # homepage does (_upcoming_card.html) - it links the venue where there is
+    # a real venue record to link to.
     query = """
-        SELECT shows.*, societies.name AS society_name,
+        SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug,
             (COALESCE(shows.closing_date, shows.opening_date) < ?) AS is_past
         FROM shows JOIN societies ON societies.id = shows.society_id
+        LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE shows.season = ? AND shows.moderation_status = 'approved' AND shows.show IS NOT NULL
           AND NOT societies.hidden
     """
@@ -584,7 +588,7 @@ def season_summary():
         "season.html", season=season, upcoming=upcoming, finished=finished,
         future_seasons=future_seasons, current_season_value=current, past_seasons=past_seasons,
         unannounced=unannounced,
-        upcoming_has_review=_has_review(upcoming), finished_has_review=_has_review(finished),
+        finished_has_review=_has_review(finished),
         is_current=(season == current), is_past_season=is_past_season, is_future_season=(season > current),
         season_range_label=season_range_label,
         regions=REGIONS, tiers=SHOW_SECTIONS, selected_region=region, selected_tier=tier,

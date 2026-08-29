@@ -1,0 +1,56 @@
+{#- The poster-led card for one upcoming production. Shared so the
+    homepage and the season listing cannot drift apart: they render the
+    same upcoming shows, and until 2026-08-29 the homepage had posters
+    while /season was a bare table of the identical data. -#}
+{% import "_icons.html" as icons %}
+{% macro upcoming_entry(show, distance_km=none) %}
+  <li class="whatson-item">
+    {% if show['poster_filename'] %}
+      <a class="whatson-poster" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
+        <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="" loading="lazy">
+      </a>
+    {% else %}
+      <a class="whatson-poster is-placeholder" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
+        <span>{{ show['show']|initials }}</span>
+      </a>
+    {% endif %}
+    <div class="whatson-body">
+      <div class="whatson-title">
+        <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+        {% if distance_km is not none %}<span class="meta">&middot; {{ '%.0f'|format(distance_km) }}km away</span>{% endif %}
+        {% if show['ticket_url'] %}
+          <a class="whatson-tickets" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ icons.ticket() }}Tickets</a>
+        {% endif %}
+      </div>
+      <p class="meta">
+        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
+        {#- The homepage's own query only ever passes dated shows, but /season
+            carries slots a society has announced without dates yet. -#}
+        &middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}
+      </p>
+      <p class="meta">
+        {% if show['venue'] %}
+          {# Both links stay: the on-site one answers "what else is on there",
+             the map one answers "where is it" (site audit, finding 01). #}
+          {% if show['venue_slug'] %}
+            <a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
+            <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">(map)</a>
+          {% else %}
+            <a href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">{{ show['venue'] }}</a>
+          {% endif %}
+          &middot;
+        {% endif %}
+        {{ show['region'] }}
+      </p>
+      {#- A run already under way can have a published review, and /season
+          carries a "Not adjudicated" state that is real information rather
+          than a gap. Only rendered when there is something to say, so a
+          plain upcoming show (the homepage's whole population) is unchanged. -#}
+      {% if show['review_status'] == 'Published' and show['review_url'] %}
+        <p class="meta"><a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a></p>
+      {% elif show['review_status'] == 'Not adjudicated' %}
+        <p class="meta">Not adjudicated</p>
+      {% endif %}
+    </div>
+  </li>
+{% endmacro %}

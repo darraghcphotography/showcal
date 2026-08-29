@@ -91,32 +91,40 @@ def test_show_detail_says_not_on_record_for_a_past_season(client, db):
 
 # --- Review column collapses -----------------------------------------------
 
-def test_review_column_hidden_when_no_row_has_a_review(client, db):
+def test_an_upcoming_show_with_no_review_says_nothing_about_one(client, db):
+    """The point the old "hide the column" test was making: "Not yet" is not
+    information, so a plain upcoming show should carry no review line at all.
+    Still true on the cards that replaced that table."""
     seed_society(db)
     seed_show(db, season="25/26", opening_date="2026-09-02", review_status="None")
     html = client.get("/season?season=25/26").get_data(as_text=True)
-    assert "<th>Review</th>" not in html
-    assert "<th>Dates</th>" in html
+    assert "Read review" not in html
+    assert "Not adjudicated" not in html
+    assert "Not yet" not in html
 
 
-def test_review_column_shown_when_a_row_has_one(client, db):
+def test_a_review_on_an_upcoming_show_is_still_surfaced(client, db):
+    """The upcoming half of /season became poster cards on 2026-08-29 (it was
+    a table showing the same shows the homepage renders as artwork), so this
+    asserts the information rather than the column that used to carry it. A
+    run already under way can have a published review."""
     seed_society(db)
     seed_show(
         db, season="25/26", opening_date="2026-09-02",
         review_status="Published", review_url="https://example.com/review",
     )
     html = client.get("/season?season=25/26").get_data(as_text=True)
-    assert "<th>Review</th>" in html
     assert "Read review" in html
+    assert "https://example.com/review" in html
 
 
-def test_review_column_shown_for_not_adjudicated(client, db):
+def test_not_adjudicated_is_still_stated_on_an_upcoming_show(client, db):
     """'Not adjudicated' is real information (that show will never have a
-    review), unlike 'Not yet' - so it must keep the column alive."""
+    review), unlike 'Not yet' - so it survived the move to cards."""
     seed_society(db)
     seed_show(db, season="25/26", opening_date="2026-09-02", review_status="Not adjudicated")
     html = client.get("/season?season=25/26").get_data(as_text=True)
-    assert "<th>Review</th>" in html
+    assert "Not adjudicated" in html
 
 
 # --- pagination -------------------------------------------------------------

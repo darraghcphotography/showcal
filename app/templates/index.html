@@ -1,51 +1,12 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
+{% import "_upcoming_card.html" as cards %}
 {% block title %}DC Show Tracker{% endblock %}
 
 {# One production, as it appears in the month lists. Most upcoming shows have
    no poster uploaded - rather than skip the image and let the row go thin,
    a placeholder box keeps the same footprint as a real poster, filled with
    the show's initials instead. #}
-{% macro upcoming_entry(show, distance_km=none) %}
-  <li class="whatson-item">
-    {% if show['poster_filename'] %}
-      <a class="whatson-poster" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
-        <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="" loading="lazy">
-      </a>
-    {% else %}
-      <a class="whatson-poster is-placeholder" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
-        <span>{{ show['show']|initials }}</span>
-      </a>
-    {% endif %}
-    <div class="whatson-body">
-      <div class="whatson-title">
-        <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-        {% if distance_km is not none %}<span class="meta">&middot; {{ '%.0f'|format(distance_km) }}km away</span>{% endif %}
-        {% if show['ticket_url'] %}
-          <a class="whatson-tickets" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ icons.ticket() }}Tickets</a>
-        {% endif %}
-      </div>
-      <p class="meta">
-        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
-        &middot; {{ show['opening_date']|date_range(show['closing_date']) }}
-      </p>
-      <p class="meta">
-        {% if show['venue'] %}
-          {# Both links stay: the on-site one answers "what else is on there",
-             the map one answers "where is it" (site audit, finding 01). #}
-          {% if show['venue_slug'] %}
-            <a href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">{{ show['venue'] }}</a>
-            <a class="venue-link" href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">(map)</a>
-          {% else %}
-            <a href="{{ show['venue']|maps_search_url }}" rel="noopener" target="_blank">{{ show['venue'] }}</a>
-          {% endif %}
-          &middot;
-        {% endif %}
-        {{ show['region'] }}
-      </p>
-    </div>
-  </li>
-{% endmacro %}
 
 {% block content %}
   <h1>What's on</h1>
@@ -83,7 +44,7 @@
       </div>
       <h2 class="whatson-month">Closest first</h2>
       <ul class="whatson-list">
-        {% for show in near_shows %}{{ upcoming_entry(show, show['distance_km']) }}{% endfor %}
+        {% for show in near_shows %}{{ cards.upcoming_entry(show, show['distance_km']) }}{% endfor %}
       </ul>
     {% else %}
       <p>None of the upcoming shows near you have a pinned venue yet. <a href="{{ url_for('public.index') }}">See everything &rarr;</a></p>
@@ -92,7 +53,7 @@
     {% for month, shows in upcoming_months %}
       <h2 class="whatson-month">{{ month|month_label }}</h2>
       <ul class="whatson-list">
-        {% for show in shows %}{{ upcoming_entry(show) }}{% endfor %}
+        {% for show in shows %}{{ cards.upcoming_entry(show) }}{% endfor %}
       </ul>
     {% endfor %}
     <p><a href="{{ url_for('info.season_calendar') }}" class="edit-callout">{{ icons.calendar() }}See the full season, week by week &rarr;</a></p>

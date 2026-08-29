@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Adjudicators - DC Show Tracker{% endblock %}
 {% block og_description %}Every AIMS adjudicator on record, and the reviews they've written.{% endblock %}
+{# three narrow columns; the table ended around 460px of a 1240px row #}
+{% block container_class %} narrow{% endblock %}
 {% block content %}
   <h1>Adjudicators</h1>
   <p class="meta">AIMS assigns one adjudicator per tier - Gilbert and Sullivan - for each season. Browse who

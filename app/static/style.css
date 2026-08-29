@@ -175,6 +175,13 @@ body.public-chrome .container h2 {
    pages, not for prose. */
 .container .prose { max-width: 68ch; }
 
+/* Not every page has 1240px of content. Widening the container (2026-08-29)
+   helped the dense ones - the awards archive's seven columns, the society
+   history, Shows A-Z - and stranded the sparse ones: /adjudicators is three
+   narrow columns that ended around 460px with the rest of the row empty.
+   A page whose content is genuinely narrow opts into this instead. */
+.container.narrow { max-width: 860px; }
+
 .container h1 {
   font-size: var(--t-3xl);
   letter-spacing: -0.01em;

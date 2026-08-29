@@ -114,7 +114,9 @@
     </nav>
   </header>
 
-  <main class="container">
+  {#- A page whose content is genuinely narrow (prose, or a two-column
+     table) opts out of the wide container - see .container.narrow. -#}
+  <main class="container{% block container_class %}{% endblock %}">
     {% if mobile_chrome %}
       <div class="install-hint" id="iosInstallHint" hidden>
         <p>📲 Install this app: tap <strong>Share</strong>, then <strong>&ldquo;Add to Home Screen&rdquo;</strong>.</p>

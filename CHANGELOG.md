@@ -1,3 +1,7 @@
+The Seasons page now shows upcoming productions as poster cards, the same way the homepage does - following "see the full season" used to take you from a wall of artwork to a plain table of the very same shows. Reading pages like About and the FAQ also sit at a comfortable line length again instead of running the full width of a wide screen
+
+---
+
 Societies that have sent in posters now show them as a wall on their own page - Stage One New-Musical Group's 17, Oyster Lane's and Maynooth University's 11 each. Another reason to send yours in
 
 ---

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_upcoming_card.html" as cards %}
 {% import "_tier.html" as tier %}
 {% import "_icons.html" as icons %}
 {% block title %}{{ season }} season - DC Show Tracker{% endblock %}
@@ -130,13 +131,14 @@
     <div class="table-cards">{{ show_cards(finished, true, finished_has_review) }}{% if upcoming %}{{ show_cards(upcoming, true, finished_has_review) }}{% endif %}</div>
   {% else %}
     <h2>{{ 'Future Season / Early Announcements' if is_future_season else 'Upcoming productions' }}</h2>
-    <table class="data-table table-wide">
-      <thead>
-        <tr><th>Region</th><th>Society</th><th>Show</th><th>Section</th><th>Dates</th>{% if upcoming_has_review %}<th>Review</th>{% endif %}</tr>
-      </thead>
-      <tbody>{{ show_rows(upcoming, false, upcoming_has_review) }}</tbody>
-    </table>
-    <div class="table-cards">{{ show_cards(upcoming, false, upcoming_has_review) }}</div>
+    {# The same poster cards the homepage uses. These are the identical shows -
+       rendering them here as a bare table meant following "see the full
+       season" took you from a wall of artwork to a spreadsheet of the same
+       productions. Past productions below stay a table: that is a historical
+       record to scan, not a set of shows to go and see. #}
+    <ul class="whatson-list">
+      {% for show in upcoming %}{{ cards.upcoming_entry(show) }}{% endfor %}
+    </ul>
 
     {% if finished %}
       <h2>Past productions</h2>
