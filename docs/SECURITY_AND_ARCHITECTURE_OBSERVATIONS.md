@@ -67,7 +67,7 @@ return redirect(target), 302
 ## 3. Architecture & Code Housekeeping Thoughts (Non-Urgent)
 
 ### A. Grouping One-Off Historical Migration Scripts
-* **Current State**: The repository root currently contains ~25 historical data-loading and backfill scripts (`naas_history_backfill.py`, `tullamore_castlerea_history_backfill.py`, `classify_venue_types.py`, `backfill_default_venues_round2.py`, `import_founding_years.py`, `load_historical_reviews.py`, etc.).
+* **Current State**: The repository root currently contains ~25 historical data-loading and backfill scripts (`scripts/backfills/naas_history_backfill.py`, `scripts/backfills/tullamore_castlerea_history_backfill.py`, `scripts/enrichment/classify_venue_types.py`, `scripts/backfills/backfill_default_venues_round2.py`, `scripts/backfills/import_founding_years.py`, `load_historical_reviews.py`, etc.).
 * **Idea**: Moving completed, one-off historical migration scripts into a dedicated folder like `scripts/migrations/` (while keeping live operational tools like `wsgi.py`, `build_productions.py`, `add_changelog.py`, `backup_db.py`, `verify_backup.py` at the root) would make it immediately clear to anyone browsing the repo which scripts are operational vs archived migrations.
 
 ### B. Modularizing `app/blueprints/public.py`

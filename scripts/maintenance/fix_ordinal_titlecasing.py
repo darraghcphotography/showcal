@@ -22,11 +22,13 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app import productions_build  # noqa: E402
 
-ROOT = Path(__file__).parent
+# Repo root is two levels up since this moved into scripts/<group>/
+# (2026-08-29). It was Path(__file__).parent when this lived at the root.
+ROOT = Path(__file__).resolve().parents[2]
 
 _TITLE_AFTER_DIGIT_RE = re.compile(r"(\d)([A-Z])")
 

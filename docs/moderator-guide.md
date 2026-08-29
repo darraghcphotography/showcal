@@ -181,7 +181,7 @@ field blank rather than guessing: a wrong capacity is worse than a missing one,
 because nobody can see that it's wrong.
 
 The venues with 5 or more productions were researched and filled in during
-August 2026 by `enrich_venues.py` (its docstring records where each figure came
+August 2026 by `scripts/enrichment/enrich_venues.py` (its docstring records where each figure came
 from and what was deliberately left blank). Anything you add by hand survives
 the nightly rebuild and is never overwritten by it.
 

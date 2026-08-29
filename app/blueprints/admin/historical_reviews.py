@@ -1,7 +1,7 @@
 import sqlite3
 from flask import abort, flash, redirect, render_template, request, url_for
 
-import society_names
+from ... import society_names
 
 from ... import productions_build
 from ...clock import utcnow_iso

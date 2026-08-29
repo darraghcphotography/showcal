@@ -4,7 +4,14 @@ from pathlib import Path
 import pytest
 from werkzeug.security import generate_password_hash
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT))
+# The one-off and enrichment scripts moved out of the repo root into
+# scripts/<group>/ on 2026-08-29. A couple of them hold logic worth testing
+# directly (classify_venue_types.classify), so their directories stay
+# importable by module name rather than every such test hand-rolling a path.
+for _group in ("backfills", "enrichment", "maintenance"):
+    sys.path.insert(0, str(_ROOT / "scripts" / _group))
 
 from app import create_app
 from app.db import get_db

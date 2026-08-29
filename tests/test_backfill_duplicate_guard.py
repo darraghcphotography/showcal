@@ -89,11 +89,11 @@ def run_script(script, db_path, extra=()):
 # The exact (society, year, title) pairs each script would try to insert, and
 # the punctuation variant already on record that must block them.
 @pytest.mark.parametrize("script,society_id,name,year,ours", [
-    ("naas_history_backfill.py", 76, "Naas Musical Society",
+    ("scripts/backfills/naas_history_backfill.py", 76, "Naas Musical Society",
      2010, "Fiddler On The Roof"),
-    ("tullamore_castlerea_history_backfill.py", 119, "Tullamore Musical Society",
+    ("scripts/backfills/tullamore_castlerea_history_backfill.py", 119, "Tullamore Musical Society",
      1990, "Oh Susanna!"),
-    ("tullamore_castlerea_history_backfill.py", 119, "Tullamore Musical Society",
+    ("scripts/backfills/tullamore_castlerea_history_backfill.py", 119, "Tullamore Musical Society",
      2007, "Hello, Dolly!"),
 ])
 def test_punctuation_variant_does_not_create_a_second_row(tmp_path, script, society_id, name, year, ours):
@@ -128,7 +128,7 @@ def test_archive_import_skips_a_case_variant_within_a_year(tmp_path):
         "productions": [{"year": 2011, "title": "The Pirates of Penzance"}],
     }]), encoding="utf-8")
 
-    run_script("import_society_archives.py", path, ("--json", str(worklist)))
+    run_script("scripts/backfills/import_society_archives.py", path, ("--json", str(worklist)))
 
     assert rows_for(path, 67) == ["The Pirates Of Penzance"], (
         "the archive import re-inserted a title we already held, in a different case"
@@ -151,7 +151,7 @@ def test_a_genuinely_different_show_is_still_inserted(tmp_path):
         "productions": [{"year": 2011, "title": "Frozen Jr."}],
     }]), encoding="utf-8")
 
-    run_script("import_society_archives.py", path, ("--json", str(worklist)))
+    run_script("scripts/backfills/import_society_archives.py", path, ("--json", str(worklist)))
 
     assert sorted(rows_for(path, 67)) == ["Frozen", "Frozen Jr."], (
         "normalisation was applied too aggressively - 'Frozen Jr.' is a different show"

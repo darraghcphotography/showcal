@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw
 RED = (200, 16, 46)    # #c8102e - the site's brand red
 GOLD = (220, 184, 79)  # #dcb84f - the site's brand gold
 
-OUT_DIR = Path(__file__).parent / "app" / "static" / "icons"
+OUT_DIR = Path(__file__).resolve().parents[2] / "app" / "static" / "icons"
 
 # Geometry copied straight from favicon.svg's 32x32 viewBox (the red circle
 # itself is skipped - every icon here uses a solid square background

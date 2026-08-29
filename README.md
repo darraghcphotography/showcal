@@ -38,7 +38,7 @@ schema.sql          canonical DB schema (tables, constraints, indexes)
 import_csv.py        one-time/re-runnable import from societies.csv + shows.csv
 import_awards.py      one-time/re-runnable import of AIMS's awards archive (see docs/data-model.md)
 seed_admin.py         create/update a moderator or admin login
-fix_show_titles.py    documented, re-runnable data-quality corrections (see docs/data-model.md)
+scripts/maintenance/fix_show_titles.py    documented, re-runnable data-quality corrections (see docs/data-model.md)
 app/
   __init__.py         Flask app factory
   db.py               SQLite connection + schema/migration helpers

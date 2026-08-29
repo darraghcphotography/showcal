@@ -114,7 +114,7 @@ scope settled, needs a data-model session); social card generator (needs a mocku
 audit log (ready to build, just not selected); repertoire finder (blocked until Darragh says what
 committees actually asked for); genre filtering on `/titles` (blocked on a taxonomy decision);
 pantomime category (his scope call); merge the 5 duplicate venue clusters; the 60-society logo redo
-still out with Gemini; `import_logo_candidates.py` still needs running against production before
+still out with Gemini; `scripts/enrichment/import_logo_candidates.py` still needs running against production before
 `/admin/logo-candidates` has anything in it.
 
 ### Known-unfinished from earlier sessions, still true
@@ -147,7 +147,7 @@ on `/suggestions`** - the Oyster Lane correction is a public trust statement and
 unpublished.
 
 **The logo review queue still needs one more step, and it is not a redeploy.** `/admin/logo-candidates`
-is deployed and reachable, but **the table is empty until `import_logo_candidates.py` is actually run
+is deployed and reachable, but **the table is empty until `scripts/enrichment/import_logo_candidates.py` is actually run
 against production** - it plus `enrichment/logo_worklist.json` (which already holds the 11 verified
 `found: true` rows) have to be copied into the container the same way every other import is. Until
 that runs there is nothing to review. Note `enrichment/` is gitignored, so that JSON is only on
@@ -321,7 +321,7 @@ load fine**, with substantial year data in the page:
 | Glencullen Dundrum MDS | 19KB, 6 years | 15 |
 
 Do this **in-house with WebFetch**, not by delegating - it's transcription from a named page, and the
-tooling to validate it already exists: `import_society_archives.py` has the `TRUSTED` list, the
+tooling to validate it already exists: `scripts/backfills/import_society_archives.py` has the `TRUSTED` list, the
 SHOW_RENAMES canonicalisation and the +/-1 year duplicate guard, and the worklist carries
 `known_productions_for_cross_check` so the overlap test runs the same way.
 
@@ -412,7 +412,7 @@ independently verify or refute them either - this needs Darragh on a normal netw
 with the "unreachable is not acceptable" instruction repeated even more forcefully.
 
 The 5 populated rows (Carnew 48, Baldoyle 49, Oyster Lane 31, Limerick 19, 9 Arch 13 - 160 total)
-scored **identically to already-known results already documented in `import_society_archives.py`'s
+scored **identically to already-known results already documented in `scripts/backfills/import_society_archives.py`'s
 own docstring** (Carnew 0/16, Baldoyle 96%, Limerick 93%, 9 Arch 25%, Oyster Lane 9/13 exact
 matches). These are not new information regardless of whether they're a stale carryover from before
 this round or a genuine faithful re-scrape - either way nothing here changes the existing `TRUSTED`

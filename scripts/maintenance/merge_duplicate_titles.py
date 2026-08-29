@@ -31,11 +31,13 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.blueprints.admin.duplicates import _merge_titles  # noqa: E402
 
-ROOT = Path(__file__).parent
+# Repo root is two levels up since this moved into scripts/<group>/
+# (2026-08-29). It was Path(__file__).parent when this lived at the root.
+ROOT = Path(__file__).resolve().parents[2]
 
 # (canonical, other spelling to fold into it)
 MERGES = [

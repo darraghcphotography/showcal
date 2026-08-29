@@ -68,7 +68,7 @@ different shows with similar names (there are several real ones in this
 dataset - `Frozen` vs `Frozen Jr.`, `Calendar Girls` vs `Calendar Girls 2.0`),
 and a false positive is a worse experience for a member filling in a form
 than an occasional missed near-duplicate that a moderator can still catch
-later. See `fix_show_titles.py` for the one-time corrections applied after
+later. See `scripts/maintenance/fix_show_titles.py` for the one-time corrections applied after
 an initial audit of the imported data turned up real duplicates and a couple
 of data entry errors (concatenated titles, stray status text) - it's
 documented there rather than as an invisible database edit.

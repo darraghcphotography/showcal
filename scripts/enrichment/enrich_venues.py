@@ -69,12 +69,14 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app import venues_build  # noqa: E402
 from app.venues import merge_venue_into, normalize_venue  # noqa: E402
 
-ROOT = Path(__file__).parent
+# Repo root is two levels up since this moved into scripts/<group>/
+# (2026-08-29). It was Path(__file__).parent when this lived at the root.
+ROOT = Path(__file__).resolve().parents[2]
 
 
 # (spelling to fold away, the spelling it belongs to, why it's the same building)

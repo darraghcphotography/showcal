@@ -45,6 +45,27 @@ docker compose exec aims-web python load_historical_reviews.py --db /data/aims.d
 `export_awards.py` is `import_awards.py`'s inverse (same pattern as `export_csv.py`/`import_csv.py`)
 - run it after a correction made via `/admin/awards`, then pull the file back out (File Station/scp)
 to update the git-tracked copy, same as the CSV export workflow.
+**Where the scripts live (reorganised 2026-08-29).** The repo root used to hold 40 `.py` files
+while `scripts/` sat empty. The root now keeps only the things you actually run against a live
+database, which are exactly the commands documented above and below - `import_csv.py`,
+`export_csv.py`, `import_awards.py`, `export_awards.py`, `seed_admin.py`, `backup_db.py`,
+`verify_backup.py`, `build_productions.py`, `add_changelog.py`, `load_historical_reviews.py`,
+`extract_historical_reviews.py`, plus `wsgi.py`. Everything else moved:
+
+- `scripts/backfills/` - one-off society/data backfills already run once (Carnew, Naas,
+  Tullamore/Castlerea, the Gilbert 26/27 dates, the Oyster Lane rollback...).
+- `scripts/enrichment/` - the delegated-research import/apply half (logos, venues, show info,
+  founding years, venue types).
+- `scripts/maintenance/` - dedupe and integrity one-offs (duplicate titles, ordinal titlecasing).
+- `scripts/archive/` - what was already there.
+
+Two things that were NOT scripts moved differently: `society_names.py` is imported by the running
+app (`admin/historical_reviews.py`, `admin/historical_society_links.py`) so it is now
+`app/society_names.py`, and `wsgi.py` stays at the root because the Dockerfile's `CMD` names it.
+A moved script computes the repo root as `Path(__file__).resolve().parents[2]`, not
+`Path(__file__).parent`. `tests/conftest.py` puts the three script directories on `sys.path`, so a
+test can still `from classify_venue_types import classify` by module name.
+
 `build_productions.py` rebuilds the derived `productions` table (see `schema.sql`) from
 `shows`/`historical_results`/`historical_reviews`. **Normally you never need to run it** - the app
 rebuilds on every startup and lazily whenever the source tables have moved. Run it by hand only to see

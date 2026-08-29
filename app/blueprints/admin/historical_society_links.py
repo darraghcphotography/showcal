@@ -27,7 +27,7 @@ not written only onto the rows - see that table's comment in schema.sql for why
 """
 from flask import abort, flash, redirect, render_template, request, url_for
 
-import society_names
+from ... import society_names
 
 from ... import productions_build
 from ...clock import utcnow_iso

@@ -14,7 +14,9 @@ import argparse
 import sqlite3
 from pathlib import Path
 
-ROOT = Path(__file__).parent
+# Repo root is two levels up since this moved into scripts/<group>/
+# (2026-08-29). It was Path(__file__).parent when this lived at the root.
+ROOT = Path(__file__).resolve().parents[2]
 
 DATA = [
     ("Jesus Christ Superstar",

@@ -82,7 +82,7 @@ it ever fails for a `Dockerfile`-only change, the fallback is removing the
 stack and adding it again with the same repository/branch/env settings.
 
 **Running a one-off script against the real database** (`import_csv.py`,
-`import_awards.py`, `seed_admin.py`, `fix_show_titles.py`) always needs an
+`import_awards.py`, `seed_admin.py`, `scripts/maintenance/fix_show_titles.py`) always needs an
 explicit `--db /data/aims.db` (and `--csv /data/...` where relevant):
 ```bash
 docker exec aims-web python <script>.py --db /data/aims.db
@@ -179,16 +179,16 @@ file exists yet at that path. Don't assume the data is gone; check first:
    ```bash
    docker exec aims-web python import_csv.py --db /data/aims.db --societies /data/societies.csv --shows /data/shows.csv
    docker exec aims-web python import_awards.py --db /data/aims.db
-   docker exec aims-web python fix_show_titles.py --db /data/aims.db --csv /data/shows.csv
-   docker exec aims-web python enrich_show_info.py --db /data/aims.db
-   docker exec aims-web python suggest_historical_regions.py --db /data/aims.db
+   docker exec aims-web python scripts/maintenance/fix_show_titles.py --db /data/aims.db --csv /data/shows.csv
+   docker exec aims-web python scripts/enrichment/enrich_show_info.py --db /data/aims.db
+   docker exec aims-web python scripts/enrichment/suggest_historical_regions.py --db /data/aims.db
    docker exec -it aims-web python seed_admin.py yourname --role admin --db /data/aims.db
    ```
    (`seed_admin.py` needs the `-it` flags - it prompts for a password
    interactively, which fails with a bare `EOFError` under plain `docker exec`.)
 4. **What this can't bring back**: anything that only ever lived in the
    database and isn't sourced from a CSV or script - moderator-confirmed
-   historical-society regions (re-run `suggest_historical_regions.py` for
+   historical-society regions (re-run `scripts/enrichment/suggest_historical_regions.py` for
    the *suggestions*, but confirmations need re-reviewing in the admin UI),
    uploaded poster images, pending member submissions, invite codes,
    analytics history, and any `/admin/awards` edit that isn't already baked
