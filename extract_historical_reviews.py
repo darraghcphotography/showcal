@@ -33,9 +33,27 @@ import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
 
-import fitz
-
 ARCHIVE_DIR = Path("E:/showtimes archive")
+
+
+def _fitz():
+    """PyMuPDF, imported on use rather than at module scope.
+
+    It is deliberately not a declared dependency: extraction runs on
+    Darragh's machine against the ShowTimes PDF archive, never in the
+    container (see CLAUDE.md), so requirements.txt does not carry it. But a
+    module-level `import fitz` meant this file could not be imported at all
+    without it - including by tests/test_ordinal_titlecasing.py, which only
+    wants _title_case(), a pure string helper using nothing but re.
+
+    That test passed locally purely because PyMuPDF happened to be installed
+    there, and errored on collection the first time CI ran it (2026-08-29).
+    """
+    import fitz  # noqa: PLC0415 - deliberately deferred, see above
+
+    return fitz
+
+
 ROOT = Path(__file__).parent
 
 MONTH_NUMBERS = {
@@ -97,7 +115,7 @@ def discover_issues():
     issues = []
     skipped = []
     for path in sorted(ARCHIVE_DIR.glob("*.pdf")):
-        doc = fitz.open(path)
+        doc = _fitz().open(path)
         issue_number, label, season = parse_cover(doc)
         if not issue_number or not label:
             skipped.append(path.name)
@@ -716,7 +734,7 @@ def split_reviews(body_lines, tier_by_name, source_issue, known_societies):
 
 def extract_issue(filename, source_issue, season_hint=None, fallback_names=None, known_societies=()):
     path = ARCHIVE_DIR / filename
-    doc = fitz.open(path)
+    doc = _fitz().open(path)
     start = find_review_section_start(doc)
     if start is None:
         print(f"!! no ShowReviews header found in {filename}", file=sys.stderr)
@@ -772,7 +790,7 @@ def build_fallback_names(issues):
     from collections import Counter
     votes = {}  # season -> tier -> Counter(name)
     for filename, source_issue, season_hint in issues:
-        doc = fitz.open(ARCHIVE_DIR / filename)
+        doc = _fitz().open(ARCHIVE_DIR / filename)
         start = find_review_section_start(doc)
         if start is None:
             continue
