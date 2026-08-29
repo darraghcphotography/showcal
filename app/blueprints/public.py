@@ -1048,6 +1048,21 @@ def society_detail(society_id):
         for r in shows if r["production_id"]
     }
 
+    # This society's own poster wall. Only 13 societies have any posters at
+    # all, so this is absent from most pages by design rather than rendering
+    # an empty shelf - and where it does appear (S.O.N.G. has 18, Oyster Lane
+    # and Maynooth 11 each) it is the most visual thing the page has.
+    #
+    # The soonest upcoming show is excluded: its poster is already displayed
+    # in full on the "Coming this season" card directly above, and showing it
+    # twice on one screen reads as a mistake. That also means a society whose
+    # only poster is that one gets no strip, which is right.
+    next_show_id = future_shows[0]["id"] if future_shows else None
+    poster_shows = [
+        s for s in (list(future_shows) + list(shows))
+        if s["poster_filename"] and s["id"] != next_show_id
+    ]
+
     # Show history grouped into decades (2026-08-29 redesign). A flat 37-row
     # table had no spine; an era header with its own win count gives the page
     # something to scan by, and matches how anyone actually talks about a
@@ -1149,7 +1164,7 @@ def society_detail(society_id):
     return render_template(
         "society_detail.html", society=society, shows=shows, future_shows=future_shows,
         historical_timeline=historical_timeline, person_awards=person_awards,
-        awards_by_show=awards_by_show, eras=eras,
+        awards_by_show=awards_by_show, eras=eras, poster_shows=poster_shows,
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
         society_login_url=society_login_url, badges=badges, current_season=current,

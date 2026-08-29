@@ -1080,6 +1080,28 @@ button.dot { cursor: pointer; }
 .checklist-grid .pill.good { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); font-weight: 600; }
 .checklist-grid .pill.dim { background: var(--row-alt); color: var(--muted); }
 
+/* A society's own poster wall. Only 13 societies have any posters at all, so
+   this is absent from most pages entirely rather than rendering an empty
+   shelf - see society_detail(). Sized so a society with 18 of them still
+   reads as a wall rather than a scrolling column. */
+.poster-wall {
+  list-style: none; margin: 0 0 var(--space-6); padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-4);
+}
+.poster-wall a { text-decoration: none; color: inherit; display: block; }
+.poster-wall img {
+  width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow); transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.poster-wall a:hover img { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.poster-wall .cap {
+  display: block; margin-top: 0.35rem; font-size: var(--t-xs);
+  line-height: 1.3; font-weight: 600;
+}
+.poster-wall .cap small { display: block; color: var(--muted); font-weight: 400; }
+
 /* A merge suggestion and its "no" sit together as one decision. */
 .merge-pair { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
 

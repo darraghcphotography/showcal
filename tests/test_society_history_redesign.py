@@ -155,3 +155,57 @@ def test_a_moderator_still_gets_an_edit_link_per_row(client, db):
     login_as(client, admin_id)
     body = client.get(f"/societies/{society_id}").get_data(as_text=True)
     assert f"/admin/shows/{show_id}/edit" in body
+
+
+# ------------------------------------------------------- the poster wall
+
+def test_a_societys_posters_are_shown_as_a_wall(client, db):
+    """Only 13 societies have any posters, so this is absent from most pages
+    by design rather than rendering an empty shelf."""
+    society_id = seed_society(db)
+    _add_show(db, society_id, "14/15", "Curtains", poster="a.webp")
+    _add_show(db, society_id, "13/14", "Sister Act", poster="b.webp")
+    db.commit()
+
+    body = client.get(f"/societies/{society_id}").get_data(as_text=True)
+    assert "poster-wall" in body
+    assert "2 posters on record" in body
+    assert "a.webp" in body and "b.webp" in body
+
+
+def test_a_society_with_no_posters_gets_no_wall(client, db):
+    society_id = seed_society(db)
+    _add_show(db, society_id, "14/15", "Curtains")
+    db.commit()
+
+    body = client.get(f"/societies/{society_id}").get_data(as_text=True)
+    assert "poster-wall" not in body
+
+
+def test_the_next_productions_poster_is_not_repeated_in_the_wall(client, db):
+    """It is already displayed in full on the card directly above; showing it
+    twice on one screen reads as a mistake. A society whose only poster is
+    that one therefore gets no wall at all, which is right."""
+    society_id = seed_society(db)
+    _add_show(db, society_id, "26/27", "Come From Away",
+              opening_date="2099-09-10", poster="next.webp")
+    db.commit()
+
+    body = client.get(f"/societies/{society_id}").get_data(as_text=True)
+    assert "next.webp" in body          # on the coming-this-season card
+    assert "poster-wall" not in body    # but not also as a one-item wall
+    assert body.count("next.webp") == 1
+
+
+def test_older_posters_still_appear_alongside_an_upcoming_one(client, db):
+    society_id = seed_society(db)
+    _add_show(db, society_id, "26/27", "Come From Away",
+              opening_date="2099-09-10", poster="next.webp")
+    _add_show(db, society_id, "14/15", "Curtains", poster="old.webp")
+    db.commit()
+
+    body = client.get(f"/societies/{society_id}").get_data(as_text=True)
+    assert "poster-wall" in body
+    assert "1 poster on record" in body
+    assert "old.webp" in body
+    assert body.count("next.webp") == 1

@@ -1,3 +1,7 @@
+Societies that have sent in posters now show them as a wall on their own page - Stage One New-Musical Group's 17, Oyster Lane's and Maynooth University's 11 each. Another reason to send yours in
+
+---
+
 Moderators have a new coverage checklist: one row per society showing at a glance which have a logo, an about blurb, a website, a founding year and a home venue on record, plus how many of their upcoming shows have a poster. Each society can now also be marked Active, Dormant, Closed or Out of scope, so the list shows who is actually worth following up with
 
 ---
