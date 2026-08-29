@@ -59,3 +59,26 @@ def test_413_falls_back_to_homepage_with_no_referrer(client):
     )
     assert resp.status_code == 302
     assert resp.headers["Location"] in ("/", "http://localhost/")
+
+
+def test_a_csrf_failure_is_a_clean_400_not_a_500(app):
+    """Found 2026-08-29 while reviewing something else.
+
+    Flask-WTF registers its CSRF check as a before_request when
+    csrf.init_app() runs, which is earlier in create_app() than the
+    @app.before_request that generated the CSP nonce. So on a POST with a
+    missing/expired token it aborted first, every later before_request was
+    skipped, and the nonce was never set - which then raised AttributeError
+    in the after_request security headers AND again in the 500 handler's own
+    template render. A stale form left open past its token lifetime (an
+    ordinary thing for a user to do) produced an unhandled 500 whose error
+    page could not render either. The nonce is generated lazily now.
+    """
+    app.config["WTF_CSRF_ENABLED"] = True
+    client = app.test_client()
+
+    resp = client.post("/admin/login", data={"username": "x", "password": "y"})
+
+    assert resp.status_code == 400
+    assert "Content-Security-Policy" in resp.headers
+    assert "nonce-" in resp.headers["Content-Security-Policy"]

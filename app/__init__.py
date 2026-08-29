@@ -162,14 +162,37 @@ def create_app(test_config=None):
     from datetime import datetime as _datetime, timezone as _timezone
     deployed_at = _datetime.now(_timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
+    def csp_nonce():
+        """The current request's CSP nonce, generated on first use.
+
+        A fresh per-request token, not a fixed one - a nonce that never
+        changed would let an attacker who once got a script injected reuse
+        that same nonce on every future request.
+
+        Lazy rather than only set in the before_request below, because that
+        handler does not always get to run. Flask-WTF's CSRF check is
+        registered as a before_request when csrf.init_app() is called, which
+        happens earlier in this function than the decorator below - so on a
+        POST with a missing or expired CSRF token it aborts first and every
+        later before_request is skipped. That left both consumers of the
+        nonce raising AttributeError: the after_request security headers,
+        and then the 500 handler's own template render, so a stale form
+        (left open past the token's lifetime - an ordinary thing for a user
+        to do) produced an unhandled 500 whose error page also failed to
+        render. Found 2026-08-29.
+        """
+        nonce = g.get("csp_nonce")
+        if nonce is None:
+            nonce = secrets.token_urlsafe(16)
+            g.csp_nonce = nonce
+        return nonce
+
     @app.before_request
     def set_csp_nonce():
-        # A fresh per-request token, not a fixed one - a nonce that never
-        # changed would let an attacker who once got a script injected reuse
-        # that same nonce on every future request. Generated up front (not
-        # inside set_security_headers below) so inject_globals() can hand it
-        # to templates in time for their <script nonce="..."> tags.
-        g.csp_nonce = secrets.token_urlsafe(16)
+        # Generated up front on the normal path (not lazily inside
+        # set_security_headers below) so inject_globals() can hand it to
+        # templates in time for their <script nonce="..."> tags.
+        csp_nonce()
 
     @app.before_request
     def keep_derived_tables_current():
@@ -199,7 +222,7 @@ def create_app(test_config=None):
             "society_session": auth.active_society_code(),
             "asset_version": asset_version,
             "deployed_at": deployed_at,
-            "csp_nonce": g.csp_nonce,
+            "csp_nonce": csp_nonce(),
         }
 
     from urllib.parse import urlparse
@@ -273,11 +296,11 @@ def create_app(test_config=None):
         # step. Scoped to just this route rather than loosened site-wide, so
         # everywhere else keeps the fully strict policy.
         if request.endpoint == "public.venues_map":
-            script_src = f"'self' 'nonce-{g.csp_nonce}' https://unpkg.com"
+            script_src = f"'self' 'nonce-{csp_nonce()}' https://unpkg.com"
             style_src = "'self' 'unsafe-inline' https://unpkg.com"
             img_src = "'self' data: https://*.basemaps.cartocdn.com"
         else:
-            script_src = f"'self' 'nonce-{g.csp_nonce}'"
+            script_src = f"'self' 'nonce-{csp_nonce()}'"
             style_src = "'self' 'unsafe-inline'"
             img_src = "'self' data:"
         response.headers.setdefault("Content-Security-Policy", (
