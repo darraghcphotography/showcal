@@ -203,6 +203,44 @@ production to key on) all read `historical_results` unfiltered. The review lists
 (`reviews_index()`, the adjudicator pages) count reviews, not stagings, and are
 left alone for the same reason.
 
+## "I looked, and there is nothing there"
+
+Three tables exist purely to record a decision *not* to act, and they all exist
+for the same reason: a queue whose entries can only ever be resolved and never
+dismissed can never reach zero, and a counter that never moves is one people
+stop reading.
+
+| Table | Records |
+|---|---|
+| `dismissed_duplicate_pairs` | Two show titles that are genuinely different shows |
+| `dismissed_venue_pairs` | Two venues that are genuinely different buildings |
+| `society_field_checked` | One field on one society that has been looked for and does not exist |
+
+The venue one matters because `merge_candidates()` in `app/venues.py` is
+deliberately loose - it proposes the Galway, Ballinasloe and Claremorris Town
+Hall Theatres as one venue. The society one matters because plenty of societies
+have no website and never will.
+
+`societies.lifecycle_status` belongs to the same idea. It is a moderator's
+judgement - Active, Dormant, Closed, Out of scope, Unverified - and is
+deliberately *not* `societies.section`, which says which AIMS adjudication tier
+a society competes in (or `Inactive`) and cannot express "wound up" or "never
+in scope". Closed and out-of-scope societies are excluded from the coverage
+counters. It has no `CHECK` constraint on existing databases: SQLite cannot add
+one via `ALTER TABLE`, so the constraint in `schema.sql` applies to fresh
+databases only and the route that writes it validates against the same list
+either way.
+
+## Timestamps
+
+`app/clock.py` is the only place that produces "now". `datetime.utcnow()` is
+deprecated and scheduled for removal from Python, but the obvious replacement
+is not equivalent: `datetime.now(timezone.utc).isoformat()` appends `+00:00`,
+and the stored strings are read back by `filters.irish_datetime` with an exact
+`strptime` format that silently falls back to printing the raw string when it
+does not match. `utcnow_iso()` drops tzinfo so the stored format stays
+byte-identical to everything already in the database.
+
 ## Column migrations
 
 SQLite's `CREATE TABLE IF NOT EXISTS` only creates a table the *first* time -

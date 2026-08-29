@@ -168,6 +168,12 @@ actually played there before merging; the society is usually the giveaway. A
 merge moves every show and every spelling to the venue you keep, and carries
 across anything filled in on the one you're folding away.
 
+When a suggestion is wrong, use **Different venue** next to it. That is
+remembered, so the pair stops being proposed - which is what lets the
+dashboard's "Venues that may be duplicates" count reach zero instead of
+sitting permanently at whatever the false-positive count happens to be. It
+records an opinion about the pair and changes neither venue.
+
 The queue also flags entries that name no building at all - "TBA", "Various",
 or a bare county like "Tipperary". Those aren't merges. If you can work out
 which venue was meant, fix the venue on the show itself and the directory
@@ -184,6 +190,50 @@ The venues with 5 or more productions were researched and filled in during
 August 2026 by `scripts/enrichment/enrich_venues.py` (its docstring records where each figure came
 from and what was deliberately left blank). Anything you add by hand survives
 the nightly rebuild and is never overwritten by it.
+
+## Chasing posters
+
+`/admin/missing-posters` lists every upcoming production with no poster
+uploaded, soonest first. Since the homepage lists productions as poster cards,
+each of these renders as a blank card beside societies that have supplied
+artwork.
+
+You cannot clear this one alone, and that is expected - the societies hold
+these posters. The lever is their login code: with it they can upload the
+poster themselves from their own dashboard, along with a ticket link. Each row
+either shows the code with a one-click **Copy message** (a ready-to-send note
+naming that society's specific show) or generates one in place without losing
+your position in the list.
+
+Only upcoming shows are counted. A poster is promotional material for a run
+that has not happened, so a 1979 production is never going to acquire one and
+counting those would make this a list nobody could ever finish.
+
+A society's own dashboard now flags the same gap from their side, so a society
+logging in to add a show is told which of theirs is missing artwork.
+
+## Society coverage checklist
+
+`/admin/society-checklist` is one row per society, showing at a glance what is
+and is not on record: an about blurb, a home venue, a social link, a website, a
+logo, a founding year, plus how many of their upcoming shows have a poster.
+Every column is derived from data already held - there is nothing new to
+maintain here.
+
+**A gap is only a gap until someone looks.** Plenty of societies genuinely have
+no website and no logo anywhere. Click a gap to mark it *checked, nothing to
+get* and it stops counting; click it again to undo. Without that this list
+could only ever be filled in and never finished, which is how a list stops
+being used.
+
+**Lifecycle status** (Active / Dormant / Closed / Out of scope / Unverified) is
+your judgement, and is separate from a society's AIMS section. `section` says
+which adjudication tier they compete in, or `Inactive`; it cannot say "wound
+up", "mid-hiatus" or "never in scope". Closed and out-of-scope societies drop
+to the bottom of the grid and out of the outstanding count. Until you set one,
+a society whose section is `Inactive` is treated as settled - otherwise the
+whole top of the list is defunct panto companies with the most gaps and no
+prospect of anyone filling them.
 
 ## Show info
 

@@ -13,89 +13,123 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - where things stand (2026-08-29)
+## START HERE - where things stand (2026-08-29, end of session)
 
-> ### The design pass is done and live. Poster coverage is the open thread it created.
+> ### The code side is in good shape. What is left is mostly not code.
 >
-> Eight commits since `6230357`, all deployed and verified live (md5sum against the GitOps checkout
-> at `/share/CACHEDEV2_DATA/Data/config/portainer/compose/8/`, plus curl/Playwright against
-> darraghc.ie). **856 tests green**, up from 776.
+> **20 commits** since `6230357`, all deployed and verified live. **901 tests green** (from 776).
+> **CI now runs on every push** (`.github/workflows/test.yml`) - it does *not* gate the deploy,
+> because GitOps polls the branch and not the workflow, but a red `main` is now loud.
 >
-> #### What shipped
+> #### The single most valuable thing left is not a feature
 >
-> | Commit | What |
-> |---|---|
-> | `579beb2` | The 16-item small queue (M1, V1–V5, T1–T5, F1–F4, C1–C4) - multi-upload, mobile table-cards, count-query bug, healthcheck, log rotation, static caching, and the rest |
-> | `53b6ef9` | Society pages listed decades-old shows as *upcoming* - `"79/80" > "26/27"` as a text compare |
-> | `0aa181b` | Blank future-season placeholder rows hidden from public society pages (142 of them) |
-> | `c608085` | **The design pass**: container 900→1240px, a real type scale, society history rebuilt, poster-led homepage |
-> | `5b3aa4a` | **Real bug**: a CSRF failure returned an unhandled 500 whose error page also failed to render |
-> | `f8c61b4` / `8fd6467` | Poster-coverage workflow: admin chasing list + society dashboard prompt, with inline code generation |
+> **55 of 67 upcoming productions have no poster. 176 of 194 societies have no logo.** The site is
+> now poster-led on the homepage, `/season` and society pages, so every one of those renders as a
+> blank card next to real artwork. The tooling to close this all exists and is finished:
 >
-> #### ⚠ The open thread: poster coverage
+> - `/admin/missing-posters` - the chasing list, soonest first, with a one-click **Copy message**
+>   or inline login-code generation per row.
+> - `/admin/society-checklist` - one row per society showing every gap, with **checked, nothing to
+>   get** so it can be finished.
+> - Each society's own dashboard flags its missing posters from their side.
 >
-> Making the homepage poster-led raised the cost of not having a poster - a missing one went from a
-> 54px thumbnail nobody noticed to a large blank card. Measured against production:
+> Nobody has worked the list yet. **This is an outreach job, and it is the biggest visible
+> improvement still available.**
 >
-> - **55 of 67 upcoming productions have no poster.**
-> - **Only 18 of 194 societies have a logo** (not 135 - that changelog line was about "about"
->   blurbs and social links, and this was mis-remembered once already).
-> - `/admin/missing-posters` is the chasing list; each society's dashboard now flags its own gaps.
-> - **Only 10 of the 55 societies had a login code**, which is the lever the whole workflow depends
->   on. The list can now generate one inline and hand over a ready-to-send message.
+> #### Other things only Darragh can do
 >
-> **This is now a data/outreach job, not a code one.** The tooling exists; someone has to work the
-> list. It is the single biggest visual improvement still available.
->
-> #### Only Darragh can close these
->
-> - **M1 multi-upload** - attach several photos to `/submit/photo` from a phone, confirm they all
->   land in `/admin/photo-submissions`. Still the one thing pytest cannot prove.
-> - **V1 mobile awards table** - a show page with awards, on a real phone.
-> - **Pending photo submissions** - and worth going back to Brandon at Oyster Lane for his 1998–2010
->   history now that multi-upload actually works.
-> - **`/admin/historical-society-links`** - 69 names, ~10 minutes, unlocks 265 productions.
-> - **FAQ content** - `/admin/faq` is built, live and empty.
+> - **3 pending photo submissions** at `/admin/photo-submissions` - Carnew x2 and St. Mary's Choral
+>   Society Clonmel. Real society history waiting to be transcribed.
+> - **Ask Brandon at Oyster Lane for 1998-2010.** Multi-upload works now (verified on a real phone,
+>   2026-08-29: five distinct images, one submission). His original attempt lost everything after
+>   1997 to exactly that bug.
+> - **`/admin/historical-society-links`** - 64 printed names undecided, ~10 minutes, unlocks 265
+>   nominated productions that are missing only because their `society_id` is null.
+> - **FAQ is live and empty** (`/admin/faq`, 0 entries). Needs Darragh's voice.
+> - **1 open feature suggestion** at `/admin/suggestions`.
 >
 > #### Open dev work, ranked
 >
-> 1. **Show detail page.** Now the weakest public page and the destination of every homepage card.
->    A large placeholder poster dominating a mostly-empty `<dl>`; `.detail-hero` is capped at 860px
->    so the wider container did not make it worse, but the underlying design was not touched.
-> 2. **R7 - no CI.** GitOps deploys to production ~5 minutes after any push with no gate. Eight
->    commits went straight to live today on the strength of local test runs alone. A GitHub Action
->    running pytest is small and guards everything after it.
-> 3. **4b - photo form → three kinds.** Needs a `CHECK` constraint rebuild on
->    `photo_submissions.kind`. Deliberately split from M1 so the data-loss fix did not wait on it.
-> 4. **7 - society checklist grid.** Largest item on the board; mockup exists.
-> 5. **R6 - `SECRET_KEY` fail-fast.** Unblocked - `stack.env` holds a real 64-char key.
-> 6. **R8 - `public.py` is ~1,900 lines.** A judgment call, not a defect. Do not let it jump the queue.
+> 1. **4b - photo form to three kinds.** Still two (`review`, `production_photo`). Needs a `CHECK`
+>    constraint rebuild on `photo_submissions.kind`; SQLite cannot `ALTER` one in. Deliberately
+>    split from the multi-upload fix so that did not wait on a migration.
+> 2. **R6 - `SECRET_KEY` fail-fast.** Still a log warning at `app/__init__.py:76`. Unblocked -
+>    `stack.env` holds a real 64-char key, so a fail-fast cannot take the site down.
+> 3. **Item 3 - re-match unmatched ShowTimes reviews.** 52 still pending; only about 3 will clear.
+>    Low value, be honest about that before spending a session on it.
+> 4. **R8 - `public.py` is ~1,930 lines.** A judgment call, not a defect. Do not let it jump the
+>    queue.
 >
-> #### Found today, not yet actioned
+> #### Design work that needs Darragh's eye, not mine
 >
-> - **Placeholder treatment is now a visible gap.** Lifted to a tinted gradient, but sitting beside
->   real posters the blanks read worse than before, not better. 176 societies have no logo.
-> - **"Recently shipped" is still on the public homepage**, printing developer changelog text
->   ("a text comparison read '79/80' as later than '26/27'") to members. The Roadmap page exists
->   for exactly this.
-> - **Venue name duplicates.** Thurles alone stores "The Premier Hall", "The Premier Hall, Thurles"
->   and "Premier Hall". Presumably widespread; feeds the raggedness the redesign worked around.
-> - **Gemini's review** (`enrichment/feedback_gemini.md`, 2026-08-28) was read. Most of it was
->   already shipped by the time it was written (it tested at 776 tests). Three findings are new and
->   untracked: 40 `.py` files at the repo root while `scripts/` sits empty; `before_request` runs
->   `ensure_current()` on feeds/sitemap/ics that never touch derived tables; no caching on `/stats`
->   or `/titles`. Its "split public.py" is R8.
+> Both came out of the 2026-08-29 site audit. Both are visual calls, and the last one of these went
+> much better as a mockup than as a direct edit:
 >
-> #### Working notes
+> - **Stat tiles are the clearest summary pattern on the site and only `/venues/<slug>` uses them.**
+>   Society pages carry the same information as beige tag pills, which scan far worse. The coverage
+>   checklist already computes the numbers.
+> - **Society logo placeholders.** With 176 of 194 missing, the flat initials box is the *normal*
+>   case, and it sits directly above a colourful poster wall on the societies that have one.
 >
-> - The repo checks out **CRLF**; a LF-pattern search/replace silently matches nothing. Read
+> `/venues/<slug>` and `/stats/trends` (Decades) came out of that audit as the two best-structured
+> pages on the site - useful models for either of the above.
+>
+> #### Loose ends worth knowing
+>
+> - **Accessibility is only markup-deep.** `aria-label` on pagination, `role="status"` on flashes,
+>   `aria-pressed` on the theme toggle. Never tested with a screen reader, at 320px, or with images
+>   disabled - and the site leans much harder on imagery than it did yesterday.
+> - **Gemini's review** (`enrichment/feedback_gemini.md`) is fully triaged. Its `.replace()` count
+>   query, healthcheck and log rotation all shipped; its `before_request` suggestion was **wrong as
+>   written** (it proposed exempting every `feeds.*` endpoint, but `/sitemap.xml` reads both derived
+>   tables) and was implemented narrowly instead. Its root-scripts point is done. Only "split
+>   public.py" remains, which is R8.
+> - **Two mockups exist and are local-only** (`mockups/` is gitignored):
+>   `society_and_home_redesign.html` (built, shipped) and `society_checklist_grid.html` (built,
+>   shipped). The checklist mockup carries **no contact fields**, so the privacy caveat this file
+>   used to attach to that item never applied.
+> - **A stale `aims.db` copy still sits at the old `CACHEDEV1` path** - see CLAUDE.md's warning.
+>   Check the mtime before trusting any copy pulled down.
+>
+> #### Working notes for a fresh session
+>
+> - The repo checks out **CRLF**. A LF-pattern search/replace silently matches nothing. Read
 >   universal, write back with `newline="\r\n"`.
-> - `mockups/` and `uploads/` are gitignored. Today's mockup is local-only at
->   `mockups/society_and_home_redesign.html`; the 87 production posters were pulled into `uploads/`
->   so local dev renders images.
-> - Verifying a deploy: compare `sed 's/\r$//' <file> | md5sum` against the same on the NAS
->   checkout. Raw md5sum disagrees purely on line endings.
+> - **Verifying a deploy:** compare `sed 's/\r$//' <file> | md5sum` against the same command on the
+>   NAS's GitOps checkout at `/share/CACHEDEV2_DATA/Data/config/portainer/compose/8/`. A raw
+>   `md5sum` disagrees purely on line endings.
+> - `mockups/`, `uploads/` and `enrichment/` are all gitignored. The 87 production posters were
+>   pulled into local `uploads/` so local dev renders images.
+> - Jinja wraps long lines; a test asserting a sentence that spans a template line break will fail.
+>   Put the sentence on one line in the template rather than weakening the test.
+> - Scripts moved (2026-08-29): one-offs live under `scripts/{backfills,enrichment,maintenance}/`
+>   and compute the repo root as `Path(__file__).resolve().parents[2]`. The documented operational
+>   entry points stayed at the root. See CLAUDE.md.
 
+---
+
+## What shipped on 2026-08-29
+
+Kept short deliberately; the commits carry the detail.
+
+| Commit | What |
+|---|---|
+| `579beb2` | The 16-item small queue (M1, V1-V5, T1-T5, F1-F4, C1-C4) |
+| `53b6ef9` `0aa181b` | Two Thurles bugs: decades-old shows listed as upcoming, and blank placeholder rows |
+| `c608085` | **The design pass** - container 900 to 1240px, a type scale, society history rebuilt, poster-led homepage |
+| `5b3aa4a` | **Real bug** - a CSRF failure returned an unhandled 500 whose error page also failed |
+| `f8c61b4` `8fd6467` | Poster-coverage workflow + inline login-code generation |
+| `e42f55e` `e4c5bfb` | CI, which immediately caught a test that only passed because PyMuPDF happened to be installed locally |
+| `fffaf91` | Show detail page restructured around the show's own facts |
+| `c6f3d43` | Derived-table freshness check narrowed (correctly, unlike the review's suggestion) |
+| `3aec2d7` | **Society coverage checklist + lifecycle status** (plan item 7, the biggest item on the board) |
+| `1f671a7` | `datetime.utcnow()` replaced across 15 call sites, format preserved byte-for-byte |
+| `76e882c` | A society's posters as a wall on its own page |
+| `bdd3f6e` | Root scripts reorganised; `society_names.py` moved into the app |
+| `512b1d7` | Audit fixes - `/season` gets the homepage's cards, narrow container for prose pages |
+
+**Verified on a real device:** multi-upload (five distinct images, one submission) and the mobile
+awards table. Both were the things pytest structurally could not reach.
 ---
 
 ## 📌 OUTSTANDING TO-DO
@@ -113,9 +147,18 @@ Person identity resolution (measured harm, grows untouched); costume/prop listin
 scope settled, needs a data-model session); social card generator (needs a mockup); society edit
 audit log (ready to build, just not selected); repertoire finder (blocked until Darragh says what
 committees actually asked for); genre filtering on `/titles` (blocked on a taxonomy decision);
-pantomime category (his scope call); merge the 5 duplicate venue clusters; the 60-society logo redo
-still out with Gemini; `scripts/enrichment/import_logo_candidates.py` still needs running against production before
-`/admin/logo-candidates` has anything in it.
+pantomime category (his scope call); the 60-society logo redo still out with Gemini.
+
+**Two of these now connect to the poster/logo gap in START HERE, which raises their value:**
+
+- `scripts/enrichment/import_logo_candidates.py` has still never been run against production, so
+  `/admin/logo-candidates` is built, reachable and empty. `enrichment/logo_worklist.json` already
+  holds 11 verified `found: true` rows. That is 11 of the 176 missing logos, already researched,
+  sitting unused - the cheapest available dent in that number. Note `enrichment/` is gitignored, so
+  that JSON only exists on Darragh's machine.
+- **Venue duplicates are 8 clusters, not 5** (16 venue rows), and they are now surfaced with a
+  dashboard counter and a **Different venue** dismissal, so the queue can actually be cleared. See
+  `/admin/venue-directory`.
 
 ### Known-unfinished from earlier sessions, still true
 
