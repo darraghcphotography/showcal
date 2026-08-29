@@ -1,3 +1,7 @@
+The homepage no longer ends with a list of recent changes - it's the page for finding out what's on, and the Roadmap page carries that instead (still one click away).
+
+---
+
 A show's own page has been tidied up. Its dates, venue and production team now come first, with the society's description moved below them, and "Buy tickets" is a proper button on a show that hasn't happened yet rather than a link buried in the middle of a list. Shows where we don't know the director, musical director or choreographer no longer print three empty rows saying so
 
 ---

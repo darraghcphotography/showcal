@@ -34,7 +34,6 @@ bp = Blueprint("public", __name__)
 # see the rest is a dead end. The "see the full season" link below the list
 # still carries the remainder.
 UPCOMING_LIMIT = 12
-CHANGELOG_TEASER_LIMIT = 3
 
 # /reviews used to render all 1,086 reviews on every visit - 362KB for a page
 # you read a screenful of at a time. Big enough that browsing a season rarely
@@ -145,11 +144,6 @@ def index():
         )
     ]
 
-    changelog_teaser = db.execute(
-        "SELECT entry, date(created_at) AS entry_date FROM changelog_entries ORDER BY created_at DESC LIMIT ?",
-        (CHANGELOG_TEASER_LIMIT,),
-    ).fetchall()
-
     return render_template(
         "index.html",
         upcoming=upcoming,
@@ -157,7 +151,6 @@ def index():
         upcoming_total=upcoming_total,
         regions=REGIONS,
         upcoming_region=upcoming_region,
-        changelog_teaser=changelog_teaser,
         near_me=near_me and near_lat is not None,
         near_shows=near_shows,
         near_unpinned_count=near_unpinned_count,

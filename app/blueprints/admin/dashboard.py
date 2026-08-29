@@ -5,6 +5,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from ...auth import login_required
 from ...db import get_db
 from ...dedupe import find_candidates
+from ...venues import dismissed_venue_pairs, merge_candidates
 from ...season import current_season, historical_results_year
 from . import bp
 from ._shared import (
@@ -147,6 +148,17 @@ def dashboard():
         """
     ).fetchone()[0]
 
+    # Venue merge suggestions still awaiting a decision. Counts venues, not
+    # pairs, matching what /admin/venue-directory lists. Dismissals are
+    # subtracted (see dismissed_venue_pairs) so this can reach zero - the
+    # matcher is deliberately loose and proposes real non-matches.
+    venue_duplicate_count = len(
+        merge_candidates(
+            db.execute("SELECT id, name FROM venues").fetchall(),
+            dismissed=dismissed_venue_pairs(db),
+        )
+    )
+
     duplicate_historical_count = len(_duplicate_historical_rows(db))
     orphaned_info, orphaned_links = _orphaned_titles(db)
     orphaned_titles_count = len({r["show"] for r in orphaned_info} | {r["show"] for r in orphaned_links})
@@ -266,6 +278,7 @@ def dashboard():
         needs_review_count=needs_review_count,
         missing_dates_count=missing_dates_count,
         missing_poster_count=missing_poster_count,
+        venue_duplicate_count=venue_duplicate_count,
         duplicate_count=duplicate_count,
         unmatched_award_societies_count=unmatched_award_societies_count,
         historical_regions_pending_count=historical_regions_pending_count,

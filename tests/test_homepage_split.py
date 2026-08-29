@@ -117,13 +117,20 @@ def test_listings_are_grouped_by_month(client, db):
     assert body.index("September 2099") < body.index("October 2099")
 
 
-def test_homepage_shows_changelog_teaser(client, db):
+def test_homepage_does_not_print_the_changelog(client, db):
+    """Changed 2026-08-29. The homepage used to end with a "Recently shipped"
+    block listing the three most recent changelog entries. This is the page a
+    member lands on to find out what is on; a release log is not that, and at
+    its worst it printed developer wording about text comparisons and season
+    strings. The Roadmap page carries it, and is linked from here instead."""
     db.execute("INSERT INTO changelog_entries (entry) VALUES ('Shipped the new roadmap page.')")
     db.commit()
 
-    resp = client.get("/")
-    body = resp.get_data(as_text=True)
-    assert "Shipped the new roadmap page." in body
+    body = client.get("/").get_data(as_text=True)
+    assert "Shipped the new roadmap page." not in body
+    assert "Recently shipped" not in body
+    # Still reachable in one click, just not inlined.
+    assert "/suggestions" in body
 
 
 def test_submit_cta_hidden_for_anonymous_visitors(client, db):

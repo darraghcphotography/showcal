@@ -87,7 +87,7 @@ def distinctive_words(name):
     return frozenset(w for w in normalize_venue(name).split() if w not in _GENERIC and len(w) > 2)
 
 
-def merge_candidates(venues):
+def merge_candidates(venues, dismissed=None):
     """Pairs of venues that might be the same building, for a moderator to
     confirm or ignore. Suggestions only - never applied automatically.
 
@@ -106,7 +106,13 @@ def merge_candidates(venues):
 
     `venues` is a list of rows with id and name. Returns {venue_id: [ids]}.
     Computed for the whole list in one pass, not re-derived per row.
+
+    `dismissed` is an optional set of (lower_id, higher_id) pairs a moderator
+    has already said are different buildings - see dismissed_venue_pairs in
+    schema.sql. Without it the false positives this docstring describes stay
+    in the queue permanently.
     """
+    dismissed = dismissed or set()
     words = [
         (v["id"], distinctive_words(v["name"])) for v in venues if not looks_unresolved(v["name"])
     ]
@@ -117,10 +123,31 @@ def merge_candidates(venues):
         for id_b, b in words[i + 1:]:
             if not b or a == b:
                 continue
+            if (min(id_a, id_b), max(id_a, id_b)) in dismissed:
+                continue
             if a <= b or b <= a:
                 suggestions.setdefault(id_a, []).append(id_b)
                 suggestions.setdefault(id_b, []).append(id_a)
     return suggestions
+
+
+def dismissed_venue_pairs(db):
+    """Every "not the same building" decision, as (lower_id, higher_id)."""
+    return {
+        (r["venue_a_id"], r["venue_b_id"])
+        for r in db.execute("SELECT venue_a_id, venue_b_id FROM dismissed_venue_pairs")
+    }
+
+
+def dismiss_venue_pair(db, id_a, id_b):
+    """Record that two venues are different buildings. Normalised lowest-id
+    first so the same pair can't be stored twice, once per direction."""
+    lo, hi = min(int(id_a), int(id_b)), max(int(id_a), int(id_b))
+    db.execute(
+        "INSERT OR IGNORE INTO dismissed_venue_pairs (venue_a_id, venue_b_id) VALUES (?, ?)",
+        (lo, hi),
+    )
+    return lo, hi
 
 
 def merge_venue_into(db, source_id, target_id):

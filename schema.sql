@@ -300,6 +300,24 @@ CREATE TABLE IF NOT EXISTS dismissed_duplicate_pairs (
     PRIMARY KEY (title_a, title_b)
 );
 
+-- "These two venues are not the same building", remembered so the pair stops
+-- being proposed. Same idea as dismissed_duplicate_pairs above, and needed
+-- for the same reason: merge_candidates() in app/venues.py is deliberately
+-- loose (its own docstring says so), matching on containment of distinctive
+-- words. That catches the real cases - "Astra Hall" / "UCD Astra Hall" - but
+-- also proposes the Galway, Ballinasloe and Claremorris Town Hall Theatres
+-- as one venue, which they are not.
+--
+-- Without this, those false positives sit in the queue forever and its
+-- counter can never reach zero, which is exactly the permanent-vs-fixable
+-- trap the admin dashboard's other counters are careful to avoid. Stored
+-- lowest id first so a pair is dismissed once, not once per direction.
+CREATE TABLE IF NOT EXISTS dismissed_venue_pairs (
+    venue_a_id      INTEGER NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    venue_b_id      INTEGER NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    PRIMARY KEY (venue_a_id, venue_b_id)
+);
+
 -- One-time review queue for society_gate_suggestions.json (the
 -- extractor-society-gate branch's proposed historical_reviews.society_raw
 -- corrections - see ROADMAP.md's "Near-identical-society audit"). Rejecting

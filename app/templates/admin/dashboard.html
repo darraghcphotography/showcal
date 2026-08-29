@@ -126,6 +126,16 @@
       <tr>
         <td>
           <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if venue_duplicate_count else 'admin-dot-off' }}"></span>
+            Venues that may be duplicates (merge, or mark as different)
+          </span>
+        </td>
+        <td>{{ venue_duplicate_count }}</td>
+        <td><a href="{{ url_for('admin.venue_directory') }}">Venue directory</a></td>
+      </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
             <span class="admin-dot {{ 'admin-dot-on' if historical_regions_pending_count else 'admin-dot-off' }}"></span>
             Historical societies with a region awaiting confirmation
           </span>

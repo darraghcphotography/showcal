@@ -137,11 +137,10 @@
        - I'm open to ideas!</p>
   </div>
 
-  {% if changelog_teaser %}
-    <h2>Recently shipped</h2>
-    {% for entry in changelog_teaser %}
-      <p class="meta">{{ entry['entry_date']|irish_date }} &mdash; {{ entry['entry'] }}</p>
-    {% endfor %}
-    <p class="meta"><a href="{{ url_for('public.suggestions_board') }}">Full roadmap &rarr;</a></p>
-  {% endif %}
+  {# "Recently shipped" used to print the three most recent changelog entries
+     here. Removed 2026-08-29: this is the page a member lands on to find out
+     what's on, and it was ending on a release log - which at its worst read
+     like "a text comparison read '79/80' as later than '26/27'". The Roadmap
+     page exists for exactly this and is linked from here and the footer. #}
+  <p class="meta"><a href="{{ url_for('public.suggestions_board') }}">What's new, and what's planned &rarr;</a></p>
 {% endblock %}

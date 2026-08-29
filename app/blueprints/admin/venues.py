@@ -3,7 +3,13 @@ from flask import abort, flash, jsonify, redirect, render_template, request, url
 from ...auth import login_required
 from ...constants import REGIONS, VENUE_TYPES
 from ...db import get_db
-from ...venues import looks_unresolved, merge_candidates, merge_venue_into
+from ...venues import (
+    dismiss_venue_pair,
+    dismissed_venue_pairs,
+    looks_unresolved,
+    merge_candidates,
+    merge_venue_into,
+)
 from . import bp
 from ._shared import URL_RE
 
@@ -95,7 +101,7 @@ def venue_directory():
     # One pass over the whole list, not a lookup per row - the same O(n^2)
     # helper called inside an admin list loop is what caused a live 524 once
     # already (see ROADMAP, 19 Aug).
-    suggestions = merge_candidates(rows)
+    suggestions = merge_candidates(rows, dismissed=dismissed_venue_pairs(db))
     by_id = {r["id"]: r for r in rows}
 
     entries = []
@@ -196,4 +202,32 @@ def merge_venue_records():
         abort(404)
     db.commit()
     flash(f'Merged "{source_name}" into "{target_name}".', "success")
+    return redirect(url_for("admin.venue_directory"))
+
+
+@bp.route("/venue-directory/dismiss", methods=("POST",))
+@login_required
+def dismiss_venue_match():
+    """"These are two different buildings." merge_candidates() is deliberately
+    loose (see its docstring) and proposes real non-matches - the Galway,
+    Ballinasloe and Claremorris Town Hall Theatres among them. Without a way
+    to say no, those sit in the queue forever and its count can never reach
+    zero, which is the permanent-vs-fixable trap the dashboard's other
+    counters go out of their way to avoid."""
+    db = get_db()
+    venue_a = request.form.get("venue_a_id", type=int)
+    venue_b = request.form.get("venue_b_id", type=int)
+    if not venue_a or not venue_b or venue_a == venue_b:
+        abort(400)
+    names = {
+        r["id"]: r["name"]
+        for r in db.execute(
+            "SELECT id, name FROM venues WHERE id IN (?, ?)", (venue_a, venue_b)
+        )
+    }
+    if len(names) != 2:
+        abort(404)
+    dismiss_venue_pair(db, venue_a, venue_b)
+    db.commit()
+    flash(f'"{names[venue_a]}" and "{names[venue_b]}" marked as different venues.', "success")
     return redirect(url_for("admin.venue_directory"))

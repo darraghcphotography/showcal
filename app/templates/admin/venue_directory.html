@@ -19,12 +19,23 @@
     <td>
       {% if entry['suggestions'] %}
         {% for other in entry['suggestions'] %}
-          <form method="post" action="{{ url_for('admin.merge_venue_records') }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="source_id" value="{{ entry['id'] }}">
-            <input type="hidden" name="target_id" value="{{ other['id'] }}">
-            <button type="submit">Merge into &ldquo;{{ other['name'] }}&rdquo;</button>
-          </form>
+          <div class="merge-pair">
+            <form method="post" action="{{ url_for('admin.merge_venue_records') }}" class="inline-form"
+                  data-confirm="Merge &quot;{{ entry['name'] }}&quot; into &quot;{{ other['name'] }}&quot;? Every show recorded at the first moves to the second.">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="source_id" value="{{ entry['id'] }}">
+              <input type="hidden" name="target_id" value="{{ other['id'] }}">
+              <button type="submit">Merge into &ldquo;{{ other['name'] }}&rdquo;</button>
+            </form>
+            {# Saying "no" has to be possible, or the loose matcher's false
+               positives (the three Town Hall Theatres) sit here forever. #}
+            <form method="post" action="{{ url_for('admin.dismiss_venue_match') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="venue_a_id" value="{{ entry['id'] }}">
+              <input type="hidden" name="venue_b_id" value="{{ other['id'] }}">
+              <button type="submit" class="link-button">Different venue</button>
+            </form>
+          </div>
         {% endfor %}
       {% endif %}
     </td>
@@ -46,7 +57,8 @@
      actual clearable job on this page. <strong>These are suggestions, not findings</strong>: the
      rule that spots them is loose enough to propose the Galway, Ballinasloe and Claremorris Town
      Hall Theatres as one venue, and they're three different buildings. Read the name before
-     merging.</p>
+     merging - and use <em>Different venue</em> on the ones that aren't, so they stop coming
+     back and this list can actually reach zero.</p>
   {% if duplicates %}
     <table class="data-table">
       <thead><tr><th>Venue</th><th>Town</th><th>Region</th><th>Productions</th><th>Details</th><th></th></tr></thead>
