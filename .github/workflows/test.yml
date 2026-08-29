@@ -1,0 +1,44 @@
+# Runs the test suite on every push and pull request.
+#
+# Why this exists: Portainer polls this repository every 5 minutes and deploys
+# `main` to production on its own, with no human gate in between (see
+# CLAUDE.md). Before this workflow the only thing standing between a bad commit
+# and the live site was whoever pushed it remembering to run pytest locally.
+#
+# What it does NOT do: block the deploy. GitOps polls the branch, not this
+# workflow's status, so a red build still ships. This tells you quickly and
+# publicly that main is broken - it does not stop it. Actually gating would
+# mean deploying from a tag or release rather than from main, which is a
+# bigger change to how the stack is wired.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Matches the Dockerfile's python:3.12-slim, so a version-specific
+          # failure shows up here rather than on the live site.
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run tests
+        # pytest.ini already sets `addopts = -n auto`, so this fans out across
+        # the runner's cores via pytest-xdist without any flag here.
+        run: python -m pytest -q
