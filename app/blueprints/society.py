@@ -12,6 +12,7 @@ from ..rate_limit import limiter
 from ..season import season_range
 from ..shows import is_upcoming
 from ..similarity import find_award_record_match, find_close_title
+from ..redirects import came_from, return_to
 from ..uploads import save_poster
 
 bp = Blueprint("society", __name__, url_prefix="/society")
@@ -337,6 +338,7 @@ def edit_show(show_id):
             return render_template(
                 "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
                 show=show, mode="edit", gcal_adjudication_url=gcal_adjudication_url,
+                return_path=request.form.get("next"),
             )
 
         # Deliberately no review_status/review_url here - a society login can
@@ -359,11 +361,12 @@ def edit_show(show_id):
         )
         db.commit()
         flash("Show updated.", "success")
-        return redirect(url_for("society.dashboard"))
+        return redirect(return_to(url_for("society.dashboard")))
 
     return render_template(
         "society_show_form.html", society=society, sections=SHOW_SECTIONS, seasons=season_range(db),
         show=show, mode="edit", gcal_adjudication_url=gcal_adjudication_url,
+        return_path=came_from(),
     )
 
 

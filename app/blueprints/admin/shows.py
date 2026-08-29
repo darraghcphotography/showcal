@@ -11,6 +11,7 @@ from ...db import get_db
 from ...search import escape_like
 from ...production_credits import suggest_credits, suggest_venue
 from ...season import current_season, season_range
+from ...redirects import came_from, return_to
 from ...uploads import save_poster
 from . import bp
 from ._shared import (
@@ -367,7 +368,8 @@ def edit_show(show_id):
             return render_template("admin/edit_show.html", show=show, regions=REGIONS,
                                     sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES,
                                     suggestions=suggestions, existing_review=existing_review,
-                                    adjudicators=adjudicators)
+                                    adjudicators=adjudicators,
+                                    return_path=request.form.get("next"))
 
         db.execute(
             """
@@ -389,12 +391,14 @@ def edit_show(show_id):
         )
         db.commit()
         flash("Show updated.", "success")
-        return redirect(url_for("admin.shows_list"))
+        # Back to whatever page the edit was opened from - normally the show's
+        # own public page, since that is where "Edit this show" lives.
+        return redirect(return_to(url_for("admin.shows_list")))
 
     return render_template("admin/edit_show.html", show=show, regions=REGIONS,
                             sections=SHOW_SECTIONS, review_statuses=REVIEW_STATUSES,
                             suggestions=suggestions, existing_review=existing_review,
-                            adjudicators=adjudicators)
+                            adjudicators=adjudicators, return_path=came_from())
 
 
 def _credit_backfill_proposals(db):

@@ -7,6 +7,9 @@
 
   <form method="post" class="stacked-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {# Where saving should return to - the page this form was opened from (see
+       app/redirects.py). Absent, the route falls back to its own list page. #}
+    {% if return_path %}<input type="hidden" name="next" value="{{ return_path }}">{% endif %}
 
     <label>
       Season
@@ -162,6 +165,7 @@
     </fieldset>
 
     <button type="submit">Save</button>
+    {% if return_path %}<a href="{{ return_path }}" class="meta">Cancel</a>{% endif %}
   </form>
 
   {% if existing_review and existing_review['source'] == 'manual' %}

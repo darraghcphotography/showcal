@@ -1,3 +1,7 @@
+Editing a show now takes you back to the page you started from. Following "Edit this show" from a show's own page and saving used to drop you into the moderator list of every show, with the one you had just edited nowhere in sight - it now returns you to the show, and there is a Cancel link beside Save that goes the same place
+
+---
+
 When you send us society history, you can now say specifically that it's a programme page listing a society's past productions - the single most useful thing anyone can send, because one of those pages can fill in decades of a society's record at once. A programme cover and a cast photo are now separate answers too, so a moderator knows what they're opening
 
 ---
