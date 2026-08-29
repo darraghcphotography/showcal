@@ -1,3 +1,11 @@
+Societies can now see at a glance when one of their upcoming shows has no poster - the site's What's On page leads with poster artwork, so a show without one appears as a blank card. Your society dashboard flags which shows need one, and moderators have a list of every upcoming production still missing artwork so they know who to ask.
+
+---
+
+Fixed: leaving a form open for a long time and then submitting it produced a server error page that itself failed to load. It now returns a proper message instead
+
+---
+
 A society's page has been rebuilt around its show history. Productions are now grouped by decade with a win count for each era, an award win shows as its own gold badge while nominations collapse into a single count you can hover for the detail, and the repeated "Gilbert"/"Sullivan" column is now a small coloured dot. Thurles Musical Society's page - 37 productions and 73 award records - is about a fifth shorter and its 25 wins are actually findable. The "Coming this season" card now shows the show's poster where one has been uploaded, and the homepage lists productions as poster cards rather than a list with thumbnails. Pages are also wider on desktop, so show titles stop wrapping onto three lines
 
 ---

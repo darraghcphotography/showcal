@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime
 
 from flask import abort, current_app, flash, redirect, render_template, request, url_for
 
@@ -11,7 +11,13 @@ from ...production_credits import suggest_credits, suggest_venue
 from ...season import current_season, season_range
 from ...uploads import save_poster
 from . import bp
-from ._shared import DATE_RE, NEEDS_REVIEW_WHERE, needs_review_params
+from ._shared import (
+    DATE_RE,
+    MISSING_POSTER_WHERE,
+    NEEDS_REVIEW_WHERE,
+    missing_poster_params,
+    needs_review_params,
+)
 
 # Admin-only, single-segment allowlist. A "come back where I was" redirect that
 # trusted the submitted value outright is an open-redirect hole (?next=https://
@@ -694,3 +700,46 @@ def clear_show_info(title):
     # invoked from there - but an orphaned title has no page worth landing on,
     # so /admin/data-quality passes ?next= to come back to its own list.
     return redirect(_back_to(url_for("public.title_detail", title=title)))
+
+
+@bp.route("/missing-posters")
+@login_required
+def missing_posters():
+    """Upcoming shows with nothing to show on the homepage.
+
+    Not a queue a moderator can clear alone - Darragh does not have these
+    posters, the societies do. So this is a chasing list: soonest first
+    (a run that opens next week is the urgent one), with each society's own
+    login code surfaced where one exists, since handing that over is what
+    actually lets them upload it themselves.
+    """
+    db = get_db()
+    shows = db.execute(
+        f"""
+        SELECT shows.id, shows.show, shows.season, shows.opening_date, shows.closing_date,
+               shows.ticket_url, societies.id AS society_id, societies.name AS society_name,
+               (SELECT code FROM invite_codes
+                 WHERE invite_codes.society_id = societies.id AND invite_codes.is_active = 1
+                   AND (invite_codes.expires_at IS NULL OR invite_codes.expires_at >= :today)
+                 ORDER BY invite_codes.created_at DESC LIMIT 1) AS society_code
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE {MISSING_POSTER_WHERE}
+        ORDER BY shows.opening_date
+        """,
+        missing_poster_params(),
+    ).fetchall()
+
+    # How much of the upcoming slate this actually represents - a bare "55"
+    # doesn't say whether that's most of them or a handful.
+    total_upcoming = db.execute(
+        """
+        SELECT COUNT(*) FROM shows
+        WHERE moderation_status = 'approved' AND show IS NOT NULL
+          AND opening_date IS NOT NULL AND opening_date >= ?
+        """,
+        (date.today().isoformat(),),
+    ).fetchone()[0]
+
+    return render_template(
+        "admin/missing_posters.html", shows=shows, total_upcoming=total_upcoming,
+    )

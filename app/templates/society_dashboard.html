@@ -12,6 +12,22 @@
   <p>Add or fix your own show history here - changes go live immediately. Review links/status stay
      under moderator control.</p>
 
+  {% if poster_wanted_count %}
+    <div class="site-notice">
+      <p>
+        <strong>
+          {%- if poster_wanted_count == 1 -%}
+            Your upcoming show has no poster yet.
+          {%- else -%}
+            {{ poster_wanted_count }} of your upcoming shows have no poster yet.
+          {%- endif -%}
+        </strong>
+        The What's On homepage lists productions as poster cards, so yours currently shows as a
+        blank one. Adding your artwork is the single biggest difference you can make to how your
+        production looks on the site - hit "Add a poster" on any show marked below.</p>
+    </div>
+  {% endif %}
+
   {% if society['logo_filename'] %}
     <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=society['logo_filename']) }}" alt="{{ society['name'] }} logo">
   {% endif %}
@@ -39,10 +55,15 @@
           <td>
             {{ show['show'] or 'TBA' }}
             {% if show['source'] == 'historical' and not show['venue'] %}<span class="tag tag-warning">Has a review - add details</span>{% endif %}
+            {% if show['wants_poster'] %}<span class="tag tag-warning">No poster yet</span>{% endif %}
           </td>
           <td>{{ show['section'] or '—' }}</td>
           <td>{% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}</td>
-          <td><a href="{{ url_for('society.edit_show', show_id=show['id']) }}">{{ 'Add details' if show['source'] == 'historical' and not show['venue'] else 'Edit' }}</a></td>
+          <td><a href="{{ url_for('society.edit_show', show_id=show['id']) }}">
+            {%- if show['source'] == 'historical' and not show['venue'] %}Add details
+            {%- elif show['wants_poster'] %}Add a poster
+            {%- else %}Edit{% endif -%}
+          </a></td>
         </tr>
       {% else %}
         <tr><td colspan="5">No shows on record yet - add your first one above.</td></tr>

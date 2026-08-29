@@ -63,7 +63,26 @@ def dashboard():
         "SELECT * FROM shows WHERE society_id = ? ORDER BY season DESC, show",
         (society["id"],),
     ).fetchall()
-    return render_template("society_dashboard.html", society=society, shows=shows)
+    # Flagged per row rather than computed in the template, so "upcoming" is
+    # one definition. Only upcoming shows are prompted: a poster is
+    # promotional material for a run that hasn't happened, and nagging a
+    # society about a 1998 production they'll never have artwork for is how a
+    # prompt gets ignored entirely. Same reasoning as the admin counter's
+    # MISSING_POSTER_WHERE.
+    today = date.today().isoformat()
+    shows = [
+        dict(s, wants_poster=(
+            s["show"] is not None
+            and s["poster_filename"] is None
+            and s["opening_date"] is not None
+            and s["opening_date"] >= today
+        ))
+        for s in shows
+    ]
+    return render_template(
+        "society_dashboard.html", society=society, shows=shows,
+        poster_wanted_count=sum(1 for s in shows if s["wants_poster"]),
+    )
 
 
 def _read_form(form, suffix=""):

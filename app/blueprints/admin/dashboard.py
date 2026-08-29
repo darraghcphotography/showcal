@@ -7,7 +7,13 @@ from ...db import get_db
 from ...dedupe import find_candidates
 from ...season import current_season, historical_results_year
 from . import bp
-from ._shared import MISSING_DATES_WHERE, NEEDS_REVIEW_WHERE, needs_review_params
+from ._shared import (
+    MISSING_DATES_WHERE,
+    MISSING_POSTER_WHERE,
+    NEEDS_REVIEW_WHERE,
+    missing_poster_params,
+    needs_review_params,
+)
 from .duplicates import TITLE_KEYED_TABLES, move_title_keyed_rows
 from .historical_reviews import find_mismatched_skeleton_shows
 from .historical_society_links import undecided_name_count
@@ -90,6 +96,11 @@ def dashboard():
     # MISSING_DATES_WHERE.
     missing_dates_count = db.execute(
         f"SELECT COUNT(*) FROM shows WHERE {MISSING_DATES_WHERE}"
+    ).fetchone()[0]
+
+    # Upcoming only, so this can actually reach zero - see MISSING_POSTER_WHERE.
+    missing_poster_count = db.execute(
+        f"SELECT COUNT(*) FROM shows WHERE {MISSING_POSTER_WHERE}", missing_poster_params()
     ).fetchone()[0]
 
     titles = {
@@ -254,6 +265,7 @@ def dashboard():
         pending_count=pending_count,
         needs_review_count=needs_review_count,
         missing_dates_count=missing_dates_count,
+        missing_poster_count=missing_poster_count,
         duplicate_count=duplicate_count,
         unmatched_award_societies_count=unmatched_award_societies_count,
         historical_regions_pending_count=historical_regions_pending_count,

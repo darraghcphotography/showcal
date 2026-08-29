@@ -116,6 +116,16 @@
       <tr>
         <td>
           <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if missing_poster_count else 'admin-dot-off' }}"></span>
+            Upcoming shows with no poster (they render as blank cards)
+          </span>
+        </td>
+        <td>{{ missing_poster_count }}</td>
+        <td><a href="{{ url_for('admin.missing_posters') }}">Chase posters</a></td>
+      </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
             <span class="admin-dot {{ 'admin-dot-on' if historical_regions_pending_count else 'admin-dot-off' }}"></span>
             Historical societies with a region awaiting confirmation
           </span>

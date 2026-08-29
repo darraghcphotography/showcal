@@ -74,5 +74,29 @@ MISSING_DATES_WHERE = """
 """
 
 
+# Upcoming shows with no poster uploaded. Deliberately *only* upcoming: a
+# poster is promotional material for a run that hasn't happened yet, so a
+# 1979 production will never acquire one. Counting all of them would be the
+# same trap MISSING_DATES_WHERE describes above, at far bigger scale - only
+# 55 of the ~5,000 shows on record have a poster at all, so an unscoped
+# counter would read ~5,000 and never move. Scoped this way it means "shows
+# still on sale that have nothing to show", and it can reach zero.
+#
+# Became worth tracking on 2026-08-29, when the homepage moved from 54px
+# thumbnails to poster-led cards: a missing poster went from barely visible
+# to a large blank card sitting beside real artwork.
+MISSING_POSTER_WHERE = """
+    shows.moderation_status = 'approved'
+    AND shows.show IS NOT NULL
+    AND shows.poster_filename IS NULL
+    AND shows.opening_date IS NOT NULL
+    AND shows.opening_date >= :today
+"""
+
+
+def missing_poster_params():
+    return {"today": date.today().isoformat()}
+
+
 def needs_review_params(db):
     return {"today": date.today().isoformat(), "current_season": current_season(db)}
