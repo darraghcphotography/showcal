@@ -65,6 +65,16 @@
         <td>{{ unlinked_society_names_count }}</td>
         <td><a href="{{ url_for('admin.historical_society_links_queue') }}">Society links</a></td>
       </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if person_pairs_count else 'admin-dot-off' }}"></span>
+            Names that may be the same person
+          </span>
+        </td>
+        <td>{{ person_pairs_count }}</td>
+        <td><a href="{{ url_for('admin.people_queue') }}">People</a></td>
+      </tr>
       {% if awards_pending_season %}
         <tr>
           <td>
@@ -235,6 +245,7 @@
         <li><a href="{{ url_for('admin.adjudicators') }}">Adjudicators</a></li>
         <li><a href="{{ url_for('admin.fix_dates') }}">Fix dates</a></li>
         <li><a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a></li>
+        <li><a href="{{ url_for('admin.people_queue') }}">People</a></li>
       </ul>
     </div>
     <div>

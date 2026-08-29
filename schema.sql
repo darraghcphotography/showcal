@@ -345,6 +345,51 @@ CREATE TABLE IF NOT EXISTS dismissed_venue_pairs (
     PRIMARY KEY (venue_a_id, venue_b_id)
 );
 
+-- Person identity, internal only. The same human appears in this database
+-- under several spellings - "Aine Gilmore" as a show credit, "Áine Gilmore"
+-- as an award nominee, "Fr Noel Cannon" and "Noel Cannon" as two rows - and
+-- /admin/backfill-credits adds more free text every time it runs, so the
+-- problem grows while nothing is done about it.
+--
+-- A `people` row is a moderator's statement that some set of spellings are
+-- one person. Deliberately NOT a public surface: there are no person pages,
+-- no /people route and nothing here renders outside /admin. That was asked
+-- and answered separately, and this table does not reopen it.
+--
+-- Nothing is rewritten in place. historical_results.nominee_name and the
+-- shows credit columns keep their original text forever - the alias table
+-- is the join, so the archive still says exactly what the programme said.
+CREATE TABLE IF NOT EXISTS people (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    canonical_name  TEXT NOT NULL UNIQUE,   -- the spelling a moderator picked as correct
+    created_by      TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- One row per spelling. `alias` is the PRIMARY KEY, not just unique: a name
+-- can belong to at most one person, so merging the same spelling into two
+-- different people is impossible rather than merely discouraged.
+CREATE TABLE IF NOT EXISTS person_aliases (
+    alias           TEXT PRIMARY KEY,
+    person_id       INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    added_by        TEXT,
+    added_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_person_aliases_person ON person_aliases(person_id);
+
+-- "These two are different people." Same purpose as dismissed_venue_pairs:
+-- without it the suggestion queue can never reach zero, and a counter that
+-- cannot reach zero stops being read. Father-and-son pairs are the common
+-- case here - see app/people.py on why suffixes are never stripped.
+CREATE TABLE IF NOT EXISTS dismissed_person_pairs (
+    name_a          TEXT NOT NULL,
+    name_b          TEXT NOT NULL,
+    dismissed_by    TEXT,
+    dismissed_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (name_a, name_b)
+);
+
 -- One-time review queue for society_gate_suggestions.json (the
 -- extractor-society-gate branch's proposed historical_reviews.society_raw
 -- corrections - see ROADMAP.md's "Near-identical-society audit"). Rejecting

@@ -40,9 +40,10 @@ again.
 >
 > - **3 pending photo submissions** at `/admin/photo-submissions` - Carnew x2 and St. Mary's Choral
 >   Society Clonmel. Real society history waiting to be transcribed.
-> - **Ask Brandon at Oyster Lane for 1998-2010.** Multi-upload works now (verified on a real phone,
->   2026-08-29: five distinct images, one submission). His original attempt lost everything after
->   1997 to exactly that bug.
+> - ~~**Ask Brandon at Oyster Lane for 1998-2010.**~~ **Closed 2026-08-29 - Darragh's call, the
+>   history is there.** Confirmed against the live database: Oyster Lane holds 18 seasons running
+>   from 06/07 to 27/28. Do not re-open this from the multi-upload bug story - that bug is fixed and
+>   the gap it caused has since been filled by other means.
 > - **`/admin/historical-society-links`** - 64 printed names undecided, ~10 minutes, unlocks 265
 >   nominated productions that are missing only because their `society_id` is null.
 > - **FAQ is live and empty** (`/admin/faq`, 0 entries). Needs Darragh's voice.
@@ -162,7 +163,7 @@ does stand — all 9 triggers in `schema.sql` are FTS sync triggers, none touch 
 
 ### Still open from the older backlog (not in the plan, deliberately)
 
-Person identity resolution (measured harm, grows untouched); costume/prop listings (per show —
+~~Person identity resolution~~ (**built 2026-08-29**, see below); costume/prop listings (per show —
 scope settled, needs a data-model session); social card generator (needs a mockup); society edit
 audit log (ready to build, just not selected); repertoire finder (blocked until Darragh says what
 committees actually asked for); genre filtering on `/titles` (blocked on a taxonomy decision);
@@ -743,7 +744,18 @@ its suggestions are entered here.
    one** (not blank) - see the note near the top of this file for the full reasoning. **Still open
    before code:** whether status needs an "as of" year like `section_as_of`; and whether
    Closed/Out-of-scope rows drop off the grid or just sort last.
-2. **Person identity resolution, internal only.** The only parked item with *measured* harm rather
+2. ~~**Person identity resolution, internal only.**~~ **BUILT 2026-08-29** - `app/people.py`,
+   `/admin/people`, `people` + `person_aliases` + `dismissed_person_pairs`, 22 tests. The matcher
+   blocks on surname and only scores the given name, which is both faster (84 candidates from 2,267
+   real names in 0.04s, versus 2.5M naive pairs) and more accurate - "Alan McClarty"/"Alan McCarthy"
+   score 87% on a whole-string ratio and are two different people. Validated against the real
+   production name list before any UI was written; that pass caught two defects, a father/son pair
+   ("Sean Costello" vs "Sean Costello Senior") being merged at full confidence, and "/" not being
+   treated as a multi-person separator. **No public surface, and the archive is never rewritten** -
+   a merge writes only to the alias tables, so every award row and credit keeps its original text
+   and any merge is undoable. Original justification kept below.
+
+   The only parked item with *measured* harm rather
    than a hypothesis: 1,730 distinct award nominee names, 746 credit names, **217 credit names are
    also an award nominee by exact match alone**, and `/admin/backfill-credits` is actively adding
    more free-text names, so it grows while untouched. Darragh's privacy objection was to *public

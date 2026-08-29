@@ -19,6 +19,7 @@ from ._shared import (
 from .duplicates import TITLE_KEYED_TABLES, move_title_keyed_rows
 from .historical_reviews import find_mismatched_skeleton_shows
 from .historical_society_links import undecided_name_count
+from .people import open_candidates
 
 
 def _duplicate_historical_rows(db):
@@ -192,6 +193,11 @@ def dashboard():
     # saying two different true things.
     unlinked_society_names_count = undecided_name_count(db)
 
+    # Suggested same-person pairs still open. Dismissals ("different people")
+    # and completed merges both close a pair, so this reaches zero - the
+    # matcher blocks on surname, so it proposes few enough to actually finish.
+    person_pairs_count = len(open_candidates(db))
+
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's
     # still no historical_results row for its award year, those results
@@ -300,6 +306,7 @@ def dashboard():
         photo_submissions_pending_count=photo_submissions_pending_count,
         logo_candidates_pending_count=logo_candidates_pending_count,
         unlinked_society_names_count=unlinked_society_names_count,
+        person_pairs_count=person_pairs_count,
         quick_win=quick_win,
     )
 

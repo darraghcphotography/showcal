@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}People - DC Show Tracker{% endblock %}
+{% block content %}
+  <h1>Same person, different spellings</h1>
+  <p class="meta">The same person turns up in the archive more than once - as an award nominee, as a
+     show credit a society typed in, with and without a fada, with and without "Fr". Recording that
+     two spellings are one person is a note for moderators only: <strong>nothing here appears on the
+     public site, and nothing rewrites the archive.</strong> Every award row and every credit keeps
+     the exact text it always had, so a decision made here can be undone below.</p>
+
+  {% if candidates %}
+    <h2>Suggested pairs</h2>
+    <p class="meta">
+      {% if total_candidates > display_limit %}
+        Showing the top {{ display_limit }} of {{ total_candidates }} suggestions, most-confident first -
+        resolve some and reload to see the next batch.
+      {% else %}
+        Showing all {{ total_candidates }} suggestion{{ '' if total_candidates == 1 else 's' }}.
+      {% endif %}
+      Only names that already share a surname are ever compared, so a pair here differs in the first
+      name or in punctuation, never in who it is.
+    </p>
+
+    {% for a, b, score, why in candidates %}
+      <article class="queue-item">
+        <p>
+          <strong>{{ a }}</strong> <span class="meta">({{ counts[a] }} on record)</span>
+          &nbsp;and&nbsp;
+          <strong>{{ b }}</strong> <span class="meta">({{ counts[b] }} on record)</span>
+        </p>
+        <p class="meta">{{ why }} &middot; {{ (score * 100)|round|int }}% confident</p>
+        <div class="actions">
+          <form method="post" action="{{ url_for('admin.merge_people') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="canonical" value="{{ a }}">
+            <input type="hidden" name="other" value="{{ b }}">
+            <button type="submit">Same person, "{{ a }}" is the right spelling</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.merge_people') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="canonical" value="{{ b }}">
+            <input type="hidden" name="other" value="{{ a }}">
+            <button type="submit">Same person, "{{ b }}" is the right spelling</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.dismiss_person_pair') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="name_a" value="{{ a }}">
+            <input type="hidden" name="name_b" value="{{ b }}">
+            <button type="submit">Different people</button>
+          </form>
+        </div>
+      </article>
+    {% endfor %}
+  {% else %}
+    <h2>Suggested pairs</h2>
+    <p class="meta">Nothing left to review - every suggested pair has been either recorded as one
+       person or marked as two. New ones appear here when fresh names arrive from an import or from
+       the credit backfill.</p>
+  {% endif %}
+
+  {% if people %}
+    <h2>People on record ({{ people|length }})</h2>
+    <p class="meta">Each of these is one human and the spellings that mean them. Removing a spelling
+       puts it back in the queue as its own name.</p>
+    <table class="data-table">
+      <thead>
+        <tr><th>Person</th><th>Also written as</th><th>Recorded by</th></tr>
+      </thead>
+      <tbody>
+        {% for p in people %}
+          <tr>
+            <td><strong>{{ p['canonical_name'] }}</strong></td>
+            <td>
+              {% for alias in aliases.get(p['id'], []) %}
+                {% if alias != p['canonical_name'] %}
+                  <form method="post" action="{{ url_for('admin.unlink_person_alias', person_id=p['id']) }}"
+                        class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="alias" value="{{ alias }}">
+                    {{ alias }} <button type="submit" class="link-button">remove</button>
+                  </form>
+                {% endif %}
+              {% endfor %}
+            </td>
+            <td class="meta">{{ p['created_by'] or '—' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}
