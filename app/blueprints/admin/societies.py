@@ -8,7 +8,7 @@ from ...db import get_db
 from ...search import escape_like
 from ...uploads import save_poster
 from . import bp
-from ._shared import URL_RE
+from ._shared import URL_RE, back_to
 from .auth import _generate_invite_code, admin_required
 
 # The historical-regions form's third answer, alongside a real region and
@@ -216,7 +216,10 @@ def generate_society_code(society_id):
     )
     db.commit()
     flash(f'Login code for this society: "{code}" - share it with them.', "success")
-    return redirect(url_for("public.society_detail", society_id=society_id))
+    # Back to wherever this was triggered from - generating a code while
+    # working down the missing-poster chasing list should not dump you on one
+    # society's public page and lose your place in the list.
+    return redirect(back_to(url_for("public.society_detail", society_id=society_id)))
 
 
 @bp.route("/historical-societies")

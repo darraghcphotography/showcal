@@ -8,6 +8,8 @@ risking a circular import through __init__.py itself.
 import re
 from datetime import date
 
+from flask import request, url_for
+
 from ...constants import DATE_RE  # noqa: F401 - re-exported for admin submodules
 from ...season import current_season
 
@@ -96,6 +98,26 @@ MISSING_POSTER_WHERE = """
 
 def missing_poster_params():
     return {"today": date.today().isoformat()}
+
+
+# Admin-only, single-segment allowlist. A "come back where I was" redirect
+# that trusted the submitted value outright is an open-redirect hole
+# (?next=https://elsewhere), so the form posts an endpoint *name* and this
+# resolves it - a value that isn't on the list is ignored rather than
+# followed. Lives here rather than in shows.py since 2026-08-29, when
+# societies.py needed it too (generating a login code from the missing-poster
+# chasing list has to return there, not to the society's public page).
+RETURNABLE_ENDPOINTS = {
+    "admin.data_quality",
+    "admin.duplicate_titles",
+    "admin.missing_posters",
+    "admin.shows_list",
+}
+
+
+def back_to(default):
+    endpoint = request.form.get("next", "")
+    return url_for(endpoint) if endpoint in RETURNABLE_ENDPOINTS else default
 
 
 def needs_review_params(db):

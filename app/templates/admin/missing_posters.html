@@ -34,8 +34,17 @@
             <td>
               {% if show['society_code'] %}
                 <code>{{ show['society_code'] }}</code>
+                {# Hidden field holds the message; base.html's delegated
+                   data-copy-target handler reads its .value. #}
+                <input type="hidden" id="invite-msg-{{ show['id'] }}"
+                       value="Hi {{ show['society_name'] }} - your production of {{ show['show'] }} is listed on DC Show Tracker but has no poster yet, so it shows as a blank card. You can upload one (and add a ticket link) here: {{ society_login_url }} - your login code is {{ show['society_code'] }}">
+                <button type="button" class="link-button" data-copy-target="invite-msg-{{ show['id'] }}">Copy message</button>
               {% else %}
-                <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">Generate one</a>
+                <form method="post" action="{{ url_for('admin.generate_society_code', society_id=show['society_id']) }}" class="inline-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="next" value="admin.missing_posters">
+                  <button type="submit" class="link-button">Generate code</button>
+                </form>
               {% endif %}
             </td>
             <td><a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Upload one &rarr;</a></td>
@@ -55,6 +64,13 @@
             <span>&middot; <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></span>
             {% if show['society_code'] %}<span>&middot; <code>{{ show['society_code'] }}</code></span>{% endif %}
           </div>
+          {% if not show['society_code'] %}
+            <form method="post" action="{{ url_for('admin.generate_society_code', society_id=show['society_id']) }}" class="inline-form" style="margin-top: 0.3rem;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="admin.missing_posters">
+              <button type="submit" class="link-button">Generate code</button>
+            </form>
+          {% endif %}
           <p class="meta" style="margin-top: 0.3rem;">
             <a href="{{ url_for('admin.edit_show', show_id=show['id']) }}">Upload one &rarr;</a>
           </p>

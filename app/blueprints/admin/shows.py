@@ -5,6 +5,7 @@ from flask import abort, current_app, flash, redirect, render_template, request,
 
 from ...auth import current_user, login_required
 from ...constants import REGIONS, REVIEW_STATUSES, RIGHTS_STATUSES, SHOW_SECTIONS
+from ... import notify
 from ...db import get_db
 from ...search import escape_like
 from ...production_credits import suggest_credits, suggest_venue
@@ -15,21 +16,10 @@ from ._shared import (
     DATE_RE,
     MISSING_POSTER_WHERE,
     NEEDS_REVIEW_WHERE,
+    back_to,
     missing_poster_params,
     needs_review_params,
 )
-
-# Admin-only, single-segment allowlist. A "come back where I was" redirect that
-# trusted the submitted value outright is an open-redirect hole (?next=https://
-# elsewhere), so the form posts an endpoint *name* and this resolves it - a
-# value that isn't on the list is ignored rather than followed.
-_RETURNABLE_ENDPOINTS = {"admin.data_quality", "admin.duplicate_titles", "admin.shows_list"}
-
-
-def _back_to(default):
-    endpoint = request.form.get("next", "")
-    return url_for(endpoint) if endpoint in _RETURNABLE_ENDPOINTS else default
-
 
 @bp.route("/queue")
 @login_required
@@ -625,7 +615,7 @@ def clear_show_link():
     if show:
         get_db().execute("DELETE FROM show_links WHERE show = ?", (show,))
         get_db().commit()
-    return redirect(_back_to(url_for("public.titles_list")))
+    return redirect(back_to(url_for("public.titles_list")))
 
 
 @bp.route("/titles/<path:title>/info", methods=("GET", "POST"))
@@ -699,7 +689,7 @@ def clear_show_info(title):
     # Default lands on the title's own page, which is right when this was
     # invoked from there - but an orphaned title has no page worth landing on,
     # so /admin/data-quality passes ?next= to come back to its own list.
-    return redirect(_back_to(url_for("public.title_detail", title=title)))
+    return redirect(back_to(url_for("public.title_detail", title=title)))
 
 
 @bp.route("/missing-posters")
@@ -740,6 +730,13 @@ def missing_posters():
         (date.today().isoformat(),),
     ).fetchone()[0]
 
+    # Built here, not in the template, so it reuses notify.py's SITE_URL
+    # handling - url_for(..., _external=True) can't be trusted behind the
+    # Cloudflare Tunnel/PrefixMiddleware setup (same reason society_detail
+    # builds its copy of this link this way).
+    society_login_url = notify.link(url_for("society.login"))
+
     return render_template(
         "admin/missing_posters.html", shows=shows, total_upcoming=total_upcoming,
+        society_login_url=society_login_url,
     )

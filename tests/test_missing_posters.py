@@ -164,3 +164,73 @@ def test_a_dateless_future_placeholder_is_not_prompted(client, db):
     unlock_society(client, code_id)
     body = client.get("/society/").get_data(as_text=True)
     assert "No poster yet" not in body
+
+
+# ------------------------------------------------- generating a code in place
+
+def test_generate_code_button_returns_to_the_chasing_list(client, db):
+    """Working down 45 societies, being dumped on each one's public page and
+    losing your place in the list would make this unusable."""
+    society_id = seed_society(db)
+    _add_show(db, society_id, "Needs A Poster", days_ahead=30)
+    db.commit()
+
+    admin_id = seed_user(db, role="admin")
+    login_as(client, admin_id)
+    resp = client.post(
+        f"/admin/societies/{society_id}/generate-code",
+        data={"next": "admin.missing_posters"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/admin/missing-posters")
+
+
+def test_the_generated_code_then_appears_on_the_list(client, db):
+    society_id = seed_society(db)
+    _add_show(db, society_id, "Needs A Poster", days_ahead=30)
+    db.commit()
+
+    admin_id = seed_user(db, role="admin")
+    login_as(client, admin_id)
+    client.post(f"/admin/societies/{society_id}/generate-code", data={"next": "admin.missing_posters"})
+
+    code = db.execute("SELECT code FROM invite_codes WHERE society_id = ?", (society_id,)).fetchone()["code"]
+    body = client.get("/admin/missing-posters").get_data(as_text=True)
+    assert code in body
+    assert "Copy message" in body
+
+
+def test_an_off_site_next_value_is_ignored(client, db):
+    """back_to() resolves an endpoint *name* against an allowlist - a raw URL
+    here would be an open redirect."""
+    society_id = seed_society(db)
+    db.commit()
+
+    admin_id = seed_user(db, role="admin")
+    login_as(client, admin_id)
+    resp = client.post(
+        f"/admin/societies/{society_id}/generate-code",
+        data={"next": "https://evil.example/phishing"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    assert "evil.example" not in resp.headers["Location"]
+    assert resp.headers["Location"].endswith(f"/societies/{society_id}")
+
+
+def test_the_copy_message_names_the_show_and_carries_the_code(client, db):
+    """The message is the whole point of the button - a bare code with no
+    context is something the moderator has to write around every time."""
+    society_id = seed_society(db, name="Tullyvin Musical Society")
+    seed_invite_code(db, code="AIMS-POST99", society_id=society_id)
+    _add_show(db, society_id, "Shrek the Musical", days_ahead=30)
+    db.commit()
+
+    admin_id = seed_user(db)
+    login_as(client, admin_id)
+    body = client.get("/admin/missing-posters").get_data(as_text=True)
+    assert "Tullyvin Musical Society" in body
+    assert "Shrek the Musical" in body
+    assert "AIMS-POST99" in body
+    assert 'data-copy-target="invite-msg-' in body
