@@ -89,12 +89,11 @@ again.
 > #### Working notes
 >
 > - The repo checks out **CRLF**; a LF-pattern search/replace silently matches nothing. Read
->   universal, write back with `newline="
-"`.
+>   universal, write back with `newline="\r\n"`.
 > - `mockups/` and `uploads/` are gitignored. Today's mockup is local-only at
 >   `mockups/society_and_home_redesign.html`; the 87 production posters were pulled into `uploads/`
 >   so local dev renders images.
-> - Verifying a deploy: compare `sed 's/$//' <file> | md5sum` against the same on the NAS
+> - Verifying a deploy: compare `sed 's/\r$//' <file> | md5sum` against the same on the NAS
 >   checkout. Raw md5sum disagrees purely on line endings.
 
 ---
