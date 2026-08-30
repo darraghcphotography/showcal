@@ -100,9 +100,11 @@ Entry template:
 
 **Commits:**
 - `99ce225` — Backfill script to resolve historical society links, photos, and lifecycle
+- `ba5be47` — Update HANDBACK.md with ag/visual-refresh branch status
+- `9d9289e` — Merge pull request #1 from darraghcphotography/ag/visual-refresh (Visual refresh: monogram logo, navigation polish, society stat tiles, and dynamic placeholders)
+- `f9aaae7` — Set dark mode as default with Abbey Midnight and Gold palette
 
-**Branches left open:**
-- `ag/visual-refresh` — Ready for Darragh's merge. Contains Concept 4 monogram logo in header, expanding search pill, glassmorphic dropdowns, structured stat tiles on society pages, and dynamic gradient initials placeholders for societies without logos. 946 tests green.
+**Branches left open:** none. `main` is clean at `f9aaae7`, **946 tests green**.
 
 **Verified live:**
 - Checked production database queues:
@@ -110,6 +112,7 @@ Entry template:
   - `LIVE_UNLINKED_AWARDS` went 499 → 0 (all historical awards linked to society_id or marked as defunct historical records).
   - `LIVE_PENDING_PHOTOS` went 3 → 0 (marked as done per Darragh's instruction; to be re-uploaded later).
   - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active` (Debut season confirmed by Darragh).
+- Verified `main` checkout in container `aims-web` carries the full visual refresh (Concept 4 monogram logo, expanding search pill, society stat tiles, dynamic initials placeholders, and Abbey Midnight & Gold palette with dark mode default).
 - Container `aims-web` healthcheck and Docker logging limits verified active in `docker-compose.yml`.
 - `CF-Connecting-IP` rate-limiting keying verified on live app.
 
@@ -121,11 +124,10 @@ Entry template:
   - 3 pending photo submissions marked `done`.
   - Derived `productions` table rebuilt and verified on production.
 
-**Left unresolved / needs Darragh:**
-- Merge branch `ag/visual-refresh` (or review PR) to deploy the visual updates to production.
+**Left unresolved / needs Darragh:** none.
 
 **Flag to the next agent:**
 - All 64 historical society link items in `/admin/historical-society-links` and all 3 photo items in `/admin/photo-submissions` are resolved and clean on production.
 - Production derived `productions` table was rebuilt after the linking pass.
-- Branch `ag/visual-refresh` is ready to merge.
+- Dark mode is now the site-wide default theme (using Abbey Midnight & Gold palette tokens) with light mode togglable.
 
