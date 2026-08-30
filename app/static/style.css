@@ -277,9 +277,14 @@ body.public-chrome .container h2 {
   border-radius: var(--radius-pill);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   transition: all 0.15s ease;
   user-select: none;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .nav-content > a:hover, .nav-group-trigger:hover {
@@ -291,6 +296,7 @@ body.public-chrome .container h2 {
 .nav-content > a.nav-current, .nav-group-trigger.nav-current {
   color: var(--fg);
   background: var(--row-alt);
+  border-color: var(--border);
   font-weight: 700;
   text-decoration: none;
 }
@@ -314,6 +320,9 @@ body.public-chrome .container h2 {
   background: transparent;
   transition: all 0.15s ease;
   text-decoration: none;
+  box-sizing: border-box;
+  line-height: 1;
+  vertical-align: middle;
 }
 .site-header .nav-pill:hover {
   border-color: var(--gold-border);
@@ -337,12 +346,20 @@ body.public-chrome .container h2 {
    click or Escape. The `name` attribute makes them mutually exclusive where
    the browser supports it; where it doesn't, two can be open at once, which
    is untidy rather than broken. */
-.nav-group { position: relative; }
+.nav-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  vertical-align: middle;
+}
 
 .nav-group-trigger {
   list-style: none;
   cursor: pointer;
   user-select: none;
+  margin: 0;
+  outline: none;
 }
 .nav-group-trigger::-webkit-details-marker { display: none; }
 
