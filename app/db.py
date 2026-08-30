@@ -119,6 +119,7 @@ COLUMN_MIGRATIONS = [
     ("show_info", "lyricist", "ALTER TABLE show_info ADD COLUMN lyricist TEXT"),
     ("show_info", "book_author", "ALTER TABLE show_info ADD COLUMN book_author TEXT"),
     ("show_info", "licensing_house", "ALTER TABLE show_info ADD COLUMN licensing_house TEXT"),
+    ("show_info", "key_songs", "ALTER TABLE show_info ADD COLUMN key_songs TEXT"),
     # Box office contact and stage specs for a venue - CURATED_COLUMNS
     # territory (see app/venues_build.py), same as capacity/auditorium_type.
     ("venues", "box_office_phone", "ALTER TABLE venues ADD COLUMN box_office_phone TEXT"),

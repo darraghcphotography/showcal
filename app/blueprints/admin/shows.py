@@ -639,6 +639,7 @@ def edit_show_info(title):
         lyricist = request.form.get("lyricist", "").strip() or None
         book_author = request.form.get("book_author", "").strip() or None
         licensing_house = request.form.get("licensing_house", "").strip() or None
+        key_songs = request.form.get("key_songs", "").strip() or None
 
         if rights_status and rights_status not in RIGHTS_STATUSES:
             flash("Choose a valid rights status.", "error")
@@ -660,19 +661,20 @@ def edit_show_info(title):
             """
             INSERT INTO show_info (
                 show, synopsis, rights_url, rights_status, premiere_year, premiere_place,
-                composer, lyricist, book_author, licensing_house, updated_at
+                composer, lyricist, book_author, licensing_house, key_songs, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(show) DO UPDATE SET
                 synopsis = excluded.synopsis, rights_url = excluded.rights_url,
                 rights_status = excluded.rights_status, premiere_year = excluded.premiere_year,
                 premiere_place = excluded.premiere_place, composer = excluded.composer,
                 lyricist = excluded.lyricist, book_author = excluded.book_author,
-                licensing_house = excluded.licensing_house, updated_at = excluded.updated_at
+                licensing_house = excluded.licensing_house, key_songs = excluded.key_songs,
+                updated_at = excluded.updated_at
             """,
             (
                 title, synopsis, rights_url, rights_status, premiere_year, premiere_place,
-                composer, lyricist, book_author, licensing_house,
+                composer, lyricist, book_author, licensing_house, key_songs,
             ),
         )
         db.commit()

@@ -107,6 +107,22 @@
      table) opts out of the wide container - see .container.narrow. -#}
   <main class="container{% block container_class %}{% endblock %}">
     {% if mobile_chrome %}
+      <div class="pwa-install-banner" id="pwaInstallBanner" hidden>
+        <div class="pwa-install-icon">
+          <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="8" fill="#151d28" stroke="#d4af37" stroke-width="2"/>
+            <path d="M12 28V12L20 22L28 12V28" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="pwa-install-text">
+          <strong>ShowCal App</strong>
+          <p id="pwaInstallMessage">Install ShowCal on your phone for 1-tap access &amp; offline maps.</p>
+        </div>
+        <div class="pwa-install-actions">
+          <button type="button" class="pwa-install-btn" id="pwaInstallBtn" hidden>Install</button>
+          <button type="button" class="pwa-close-btn" id="pwaInstallDismiss" aria-label="Dismiss">&times;</button>
+        </div>
+      </div>
       <div class="install-hint" id="iosInstallHint" hidden>
         <p>📲 Install this app: tap <strong>Share</strong>, then <strong>&ldquo;Add to Home Screen&rdquo;</strong>.</p>
         <button type="button" class="install-hint-close" id="iosInstallHintClose" aria-label="Dismiss">&times;</button>
@@ -176,19 +192,59 @@
 
     <script nonce="{{ csp_nonce }}">
       (function() {
-        var hint = document.getElementById('iosInstallHint');
-        var closeBtn = document.getElementById('iosInstallHintClose');
-        if (!hint || !closeBtn) return;
-        var isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
-          || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var banner = document.getElementById('pwaInstallBanner');
+        var installBtn = document.getElementById('pwaInstallBtn');
+        var dismissBtn = document.getElementById('pwaInstallDismiss');
+        var iosHint = document.getElementById('iosInstallHint');
+        var iosClose = document.getElementById('iosInstallHintClose');
+
         var isStandalone = window.navigator.standalone === true
           || window.matchMedia('(display-mode: standalone)').matches;
-        var dismissed = localStorage.getItem('iosInstallHintDismissed') === '1';
-        if (isIos && !isStandalone && !dismissed) hint.hidden = false;
-        closeBtn.addEventListener('click', function() {
-          hint.hidden = true;
-          localStorage.setItem('iosInstallHintDismissed', '1');
+        var dismissed = localStorage.getItem('pwaInstallDismissed') === '1';
+
+        if (isStandalone || dismissed) return;
+
+        var isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
+          || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        var deferredPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+          e.preventDefault();
+          deferredPrompt = e;
+          if (banner && installBtn) {
+            banner.hidden = false;
+            installBtn.hidden = false;
+          }
         });
+
+        if (installBtn) {
+          installBtn.addEventListener('click', function() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function() {
+              deferredPrompt = null;
+              if (banner) banner.hidden = true;
+            });
+          });
+        }
+
+        if (dismissBtn && banner) {
+          dismissBtn.addEventListener('click', function() {
+            banner.hidden = true;
+            localStorage.setItem('pwaInstallDismissed', '1');
+          });
+        }
+
+        if (isIos && iosHint) {
+          iosHint.hidden = false;
+          if (iosClose) {
+            iosClose.addEventListener('click', function() {
+              iosHint.hidden = true;
+              localStorage.setItem('pwaInstallDismissed', '1');
+            });
+          }
+        }
       })();
     </script>
 

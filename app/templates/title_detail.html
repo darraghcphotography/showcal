@@ -31,6 +31,12 @@
         {% if info['book_author'] %}{% if info['composer'] or info['lyricist'] %} &middot; {% endif %}Book by {{ info['book_author'] }}{% endif %}
       </p>
     {% endif %}
+    {% if info['key_songs'] %}
+      <div style="margin: 0.85rem 0; background: var(--surface-subtle); border-left: 3px solid var(--gold); border-radius: var(--radius-sm); padding: 0.6rem 0.85rem;">
+        <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--gold); letter-spacing: 0.05em; display: block; margin-bottom: 2px;">Notable Musical Numbers</span>
+        <span style="font-size: 0.9rem;">{{ info['key_songs'] }}</span>
+      </div>
+    {% endif %}
     {% if info['rights_status'] or info['rights_url'] or info['licensing_house'] %}
       <p class="meta">
         Amateur rights: {{ info['rights_status'] or 'Unknown' }}
