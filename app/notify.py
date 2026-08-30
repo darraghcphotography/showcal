@@ -28,7 +28,7 @@ def link(path):
     return f"{SITE_URL}{path}" if SITE_URL else path
 
 
-def send(subject, body):
+def send(subject, body, to=None):
     """Best-effort: silently does nothing if SMTP isn't configured (so local
     dev never needs real credentials), and never raises on failure - a
     submission/suggestion must always succeed regardless of mail delivery."""
@@ -37,7 +37,7 @@ def send(subject, body):
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = SMTP_USER
-    msg["To"] = NOTIFY_EMAIL
+    msg["To"] = to or NOTIFY_EMAIL
     msg.set_content(body)
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
@@ -45,4 +45,4 @@ def send(subject, body):
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
     except Exception:
-        current_app.logger.exception("Failed to send notification email (subject=%r)", subject)
+        current_app.logger.exception("Failed to send notification email (subject=%r, to=%r)", subject, to or NOTIFY_EMAIL)

@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 
 from flask import flash, redirect, render_template, request, url_for
 
+from ... import notify
 from ...auth import current_user, login_required
 from ...clock import utcnow_iso
 from ...db import get_db
@@ -31,17 +32,17 @@ def access_requests():
     history = db.execute(
         """
         SELECT req.*, societies.name AS society_name,
-               invite_codes.code AS invite_code
+               codes.code AS invite_code_str
         FROM society_access_requests req
         JOIN societies ON societies.id = req.society_id
-        LEFT JOIN invite_codes ON invite_codes.id = req.invite_code_id
+        LEFT JOIN invite_codes codes ON codes.id = req.invite_code_id
         WHERE req.status != 'pending'
         ORDER BY COALESCE(req.approved_at, req.created_at) DESC
         LIMIT 50
         """
     ).fetchall()
 
-    societies = db.execute("SELECT id, name FROM societies WHERE NOT hidden ORDER BY name").fetchall()
+    societies = db.execute("SELECT id, name, region FROM societies WHERE NOT hidden ORDER BY name").fetchall()
 
     return render_template(
         "admin/access_requests.html",
@@ -95,8 +96,22 @@ def approve_access_request(req_id: int):
     db.commit()
 
     magic_url = url_for("society.auth_magic_link", token=req["token"], _external=True)
+
+    # 3. Send magic link email to the requester
+    if req["requester_email"]:
+        notify.send(
+            f"Your access to {req['society_name']} on ShowCal is approved!",
+            f"Hi {req['requester_name']},\n\n"
+            f"Your request to manage {req['society_name']} on ShowCal has been approved.\n\n"
+            f"Click your 1-click Magic Login Link below to log in directly:\n"
+            f"{magic_url}\n\n"
+            f"This link is valid for 30 days. You can also use your society access code '{code_str}' on the login page anytime.\n\n"
+            f"Best regards,\nShowCal Team\nhttps://darraghc.ie/showcal/",
+            to=req["requester_email"],
+        )
+
     flash(
-        f"Approved access for {req['requester_name']} ({req['society_name']})! Magic Login Link: {magic_url}",
+        f"Approved access for {req['requester_name']} ({req['society_name']})! Magic link emailed to {req['requester_email']}. Link: {magic_url}",
         "success",
     )
     return redirect(url_for("admin.access_requests"))
@@ -164,5 +179,18 @@ def create_direct_magic_link():
     db.commit()
 
     magic_url = url_for("society.auth_magic_link", token=token, _external=True)
+
+    if email and email != "unknown@email.com":
+        notify.send(
+            f"Your access to {soc['name']} on ShowCal is ready!",
+            f"Hi {name},\n\n"
+            f"A 1-click Magic Login Link has been generated for you to manage {soc['name']} on ShowCal.\n\n"
+            f"Click the link below to log in directly:\n"
+            f"{magic_url}\n\n"
+            f"This link is valid for 30 days. You can also use your society access code '{code_str}' on the login page anytime.\n\n"
+            f"Best regards,\nShowCal Team\nhttps://darraghc.ie/showcal/",
+            to=email,
+        )
+
     flash(f"Generated Magic Login Link for {soc['name']}: {magic_url}", "success")
     return redirect(url_for("admin.access_requests"))

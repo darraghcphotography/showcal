@@ -66,10 +66,16 @@ def test_admin_approve_and_magic_login(client, db):
     assert b"John Doe" in queue_resp.data
     assert b"john@example.com" in queue_resp.data
 
-    # 3. Admin approves request
-    approve_resp = client.post(f"/admin/access-requests/{req_id}/approve", follow_redirects=True)
-    assert approve_resp.status_code == 200
-    assert b"Approved access for John Doe" in approve_resp.data
+    # 3. Admin approves request - sends magic link email to requester
+    with patch("app.notify.send") as mock_notify:
+        approve_resp = client.post(f"/admin/access-requests/{req_id}/approve", follow_redirects=True)
+        assert approve_resp.status_code == 200
+        assert b"Approved access for John Doe" in approve_resp.data
+        mock_notify.assert_called_once()
+        args, kwargs = mock_notify.call_args
+        assert "Your access to Clane Musical Society on ShowCal is approved!" in args[0]
+        assert "magic-token-xyz-123" in args[1]
+        assert kwargs.get("to") == "john@example.com"
 
     # 4. User logs out of admin and clicks Magic Link
     with client.session_transaction() as sess:
@@ -86,18 +92,23 @@ def test_admin_direct_magic_link_generation(client, db):
     user_id = seed_user(db)
     login_as(client, user_id)
 
-    direct_resp = client.post(
-        "/admin/access-requests/create-direct",
-        data={
-            "society_id": "1",
-            "requester_name": "Direct Officer",
-            "requester_email": "direct@example.com",
-            "requester_role": "Chairperson",
-        },
-        follow_redirects=True,
-    )
-    assert direct_resp.status_code == 200
-    assert b"Generated Magic Login Link" in direct_resp.data
+    with patch("app.notify.send") as mock_notify:
+        direct_resp = client.post(
+            "/admin/access-requests/create-direct",
+            data={
+                "society_id": "1",
+                "requester_name": "Direct Officer",
+                "requester_email": "direct@example.com",
+                "requester_role": "Chairperson",
+            },
+            follow_redirects=True,
+        )
+        assert direct_resp.status_code == 200
+        assert b"Generated Magic Login Link" in direct_resp.data
+        mock_notify.assert_called_once()
+        args, kwargs = mock_notify.call_args
+        assert "Your access to Clane Musical Society on ShowCal is ready!" in args[0]
+        assert kwargs.get("to") == "direct@example.com"
 
     req = db.execute("SELECT * FROM society_access_requests WHERE requester_email = 'direct@example.com'").fetchone()
     assert req is not None
