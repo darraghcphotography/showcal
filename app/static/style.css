@@ -156,29 +156,45 @@ body.public-chrome .container h2 {
 .container h2 { font-size: var(--t-xl); margin-top: 2rem; letter-spacing: -0.015em; }
 
 .site-header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  box-shadow: var(--shadow);
+  padding: 0.85rem 1.25rem;
+}
+
+.site-header-inner {
+  max-width: var(--container, 1240px);
+  margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 1.5rem;
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  border-top: 3px solid var(--accent);
-  box-shadow: var(--shadow);
+  gap: 0.75rem 1.5rem;
 }
 
 .site-header .brand {
-  font-weight: 700;
-  font-size: 1.1rem;
+  font-weight: 800;
+  font-size: 1.15rem;
   text-decoration: none;
   color: var(--fg);
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  line-height: 1.25;
+  gap: 0.75rem;
+  line-height: 1.2;
 }
 
-.site-header .brand .brand-icon { flex-shrink: 0; }
+.site-header .brand:hover {
+  text-decoration: none;
+}
+
+.site-header .brand .brand-icon {
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--row-alt);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
 
 .site-header .brand .brand-text {
   display: flex;
@@ -199,7 +215,7 @@ body.public-chrome .container h2 {
 .site-header nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.6rem;
+  gap: 1.25rem;
   align-items: center;
 }
 
@@ -212,12 +228,35 @@ body.public-chrome .container h2 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 0.35rem;
 }
-.nav-account { gap: 0.55rem; }
+.nav-account { gap: 0.5rem; }
 
-.site-header nav a { color: var(--accent); text-decoration: none; }
-.site-header nav a:hover { text-decoration: underline; }
+.nav-content > a, .nav-group-trigger {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.nav-content > a:hover, .nav-group-trigger:hover {
+  color: var(--fg);
+  background: var(--row-alt);
+  text-decoration: none;
+}
+
+.nav-content > a.nav-current, .nav-group-trigger.nav-current {
+  color: var(--fg);
+  background: var(--row-alt);
+  font-weight: 700;
+  text-decoration: none;
+}
 
 /* One pill language for every account-cluster control (My society/Society
    login, Admin, Log out) instead of three different affordances (a bare
@@ -228,13 +267,14 @@ body.public-chrome .container h2 {
 .site-header .nav-pill {
   display: inline-flex;
   align-items: center;
-  color: var(--accent);
+  color: var(--fg);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  padding: 0.3rem 0.8rem;
-  font-size: 0.86rem;
-  background: none;
-  transition: border-color 150ms ease, background 150ms ease;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  background: transparent;
+  transition: all 0.15s ease;
   text-decoration: none;
 }
 .site-header .nav-pill:hover {
@@ -245,9 +285,13 @@ body.public-chrome .container h2 {
 .site-header .nav-pill.nav-admin {
   color: var(--gold);
   border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  font-weight: 700;
 }
 .site-header .nav-pill.nav-admin:hover {
-  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  background: var(--gold);
+  color: #000000;
+  border-color: var(--gold);
 }
 
 /* Grouped header menus (see base.html). Native <details>, so they work with
@@ -260,19 +304,9 @@ body.public-chrome .container h2 {
 .nav-group-trigger {
   list-style: none;
   cursor: pointer;
-  color: var(--accent);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.1rem;
-  border-radius: 4px;
   user-select: none;
 }
 .nav-group-trigger::-webkit-details-marker { display: none; }
-.nav-group-trigger:hover { text-decoration: underline; }
-
-/* The current section, on both a direct link and a menu trigger. */
-.site-header nav .nav-current { color: var(--fg); font-weight: 700; text-decoration: none; }
 
 .nav-chevron {
   width: 0.42rem;
@@ -356,16 +390,17 @@ body.public-chrome .container h2 {
 .completed-seasons table { margin-top: 0.75rem; }
 
 .site-search input {
-  padding: 0.35rem 0.8rem;
+  padding: 0.38rem 0.9rem;
   border-radius: var(--radius-pill);
-  font-size: 0.86rem;
-  width: 9.5rem;
+  font-size: 0.85rem;
+  width: 10.5rem;
   background: var(--row-alt);
   border: 1px solid var(--border);
-  transition: width 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  color: var(--fg);
+  transition: width 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .site-search input:focus {
-  width: 13.5rem;
+  width: 14.5rem;
   border-color: var(--gold);
   background: var(--bg);
   outline: none;
@@ -373,17 +408,20 @@ body.public-chrome .container h2 {
 }
 
 .theme-toggle {
-  background: none;
+  background: var(--row-alt);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   color: var(--fg);
   cursor: pointer;
   line-height: 1;
-  padding: 0.35rem 0.5rem;
+  padding: 0.38rem 0.65rem;
   font-size: 0.95rem;
-  transition: border-color 150ms ease;
+  transition: all 0.15s ease;
 }
-.theme-toggle:hover { border-color: var(--accent); }
+.theme-toggle:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
 
 /* Section headings on /more, matching the header's own menu grouping. */
 .more-group-label {

@@ -32,89 +32,75 @@
 {% set mobile_chrome = request.blueprint not in ('admin', 'society') %}
 <body class="{{ 'has-bottom-nav public-chrome' if mobile_chrome }}">
   <header class="site-header">
-    <a class="brand" href="{{ url_for('public.index') }}">
-      <svg class="brand-icon" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="var(--accent)"/>
-        <path d="M7 8h6a7 7 0 0 1 0 14H7V8z" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M25 10a7 7 0 0 0-7 5 7 7 0 0 0 7 5" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
-        <circle cx="21" cy="7" r="1.5" fill="var(--gold)"/>
-      </svg>
-      <span class="brand-text">
-        <span class="gold-word">DC</span> Show Tracker
-        <span class="byline">a project by Darragh C</span>
-      </span>
-    </a>
-    {#
-      Home plus two grouped menus, rather than one row of seven links. The flat
-      version was 7 content links plus search, login and the theme toggle - 12
-      items with a moderator signed in - which wrapped onto two lines at
-      ordinary widths, and still had no room for Venues or Adjudicators, so
-      both were footer-only and effectively invisible on desktop.
-
-      Built on <details>/<summary>, the same native disclosure /stats already
-      uses for its own older-seasons collapse, so the menus open and close
-      with no JavaScript at all. The script further down only adds
-      close-on-outside-click and close-on-Escape; with JS off or still
-      loading the nav is fully usable.
-
-      Home is a direct link and deliberately has no "Upcoming shows" twin in a
-      menu - "/" IS the upcoming-productions list, and the brand logo already
-      points there, so a third link to the same page earns nothing.
-    #}
-    {% set nav_menus = [
-      ('Explore', [
-        ('public.titles_list',      'All Shows',    'Every title staged on the circuit'),
-        ('info.season_summary',     'Seasons',      'Every show announced, by season'),
-        ('info.season_calendar',    'Season Calendar', 'Any season week by week'),
-        ('public.societies_list',   'Societies',    'All member societies by region'),
-        ('public.venues_index',     'Venues',       'Every stage a society has played'),
-        ('public.reviews_index',    'Reviews',      'Every adjudicator review on file'),
-        ('public.adjudicators_list','Adjudicators', 'Who judged which season'),
-      ]),
-      ('History', [
-        ('info.awards',       'Awards',     'The AIMS archive, 1912-present'),
-        ('info.stats_trends', 'Decades',    'How tastes changed, decade by decade'),
-        ('info.stats',        'Statistics', 'Records, leaderboards and totals'),
-      ]),
-    ] %}
-    <nav aria-label="Main">
-      <div class="nav-content">
-        <a href="{{ url_for('public.index') }}" {% if request.endpoint == 'public.index' %}class="nav-current" aria-current="page"{% endif %}>Home</a>
-        {% for label, links in nav_menus %}
-          <details class="nav-group" name="nav-group">
-            <summary class="nav-group-trigger{{ ' nav-current' if request.endpoint in links|map(attribute=0)|list }}">
-              {{ label }}<span class="nav-chevron" aria-hidden="true"></span>
-            </summary>
-            <div class="nav-group-menu">
-              {% for endpoint, name, hint in links %}
-                <a href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint %} aria-current="page"{% endif %}>
-                  <span class="nav-link-name">{{ name }}</span>
-                  <span class="nav-link-hint">{{ hint }}</span>
-                </a>
-              {% endfor %}
-            </div>
-          </details>
-        {% endfor %}
-        <form class="site-search" method="get" action="{{ url_for('public.search') }}" role="search">
-          <input type="search" name="q" placeholder="Search" aria-label="Search societies and shows" value="{{ request.args.get('q', '') if request.endpoint == 'public.search' else '' }}">
-        </form>
-      </div>
-      <div class="nav-account">
-        {% if society_session %}
-          <a class="nav-pill" href="{{ url_for('society.dashboard') }}">My society</a>
-        {% else %}
-          <a class="nav-pill" href="{{ url_for('society.login') }}">Society login</a>
-        {% endif %}
-        {% if current_user %}
-          <a href="{{ url_for('admin.dashboard') }}" class="nav-pill nav-admin">Admin</a>
-          <form method="post" action="{{ url_for('admin.logout') }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="link-button nav-pill">Log out ({{ current_user['username'] }})</button>
+    <div class="site-header-inner">
+      <a class="brand" href="{{ url_for('public.index') }}">
+        <svg class="brand-icon" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--surface-subtle)"/>
+          <path d="M7 8h6a7 7 0 0 1 0 14H7V8z" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M25 10a7 7 0 0 0-7 5 7 7 0 0 0 7 5" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="21" cy="7" r="1.5" fill="var(--gold)"/>
+        </svg>
+        <span class="brand-text">
+          <span class="gold-word">DC</span> Show Tracker
+          <span class="byline">a project by Darragh C</span>
+        </span>
+      </a>
+      {% set nav_menus = [
+        ('Explore', [
+          ('public.titles_list',      'All Shows',    'Every title staged on the circuit'),
+          ('info.season_summary',     'Seasons',      'Every show announced, by season'),
+          ('info.season_calendar',    'Season Calendar', 'Any season week by week'),
+          ('public.societies_list',   'Societies',    'All member societies by region'),
+          ('public.venues_index',     'Venues',       'Every stage a society has played'),
+          ('public.reviews_index',    'Reviews',      'Every adjudicator review on file'),
+          ('public.adjudicators_list','Adjudicators', 'Who judged which season'),
+        ]),
+        ('History', [
+          ('info.awards',       'Awards',     'The AIMS archive, 1912-present'),
+          ('info.stats_trends', 'Decades',    'How tastes changed, decade by decade'),
+          ('info.stats',        'Statistics', 'Records, leaderboards and totals'),
+        ]),
+      ] %}
+      <nav aria-label="Main">
+        <div class="nav-content">
+          <a href="{{ url_for('public.index') }}" {% if request.endpoint == 'public.index' %}class="nav-current" aria-current="page"{% endif %}>Home</a>
+          {% for label, links in nav_menus %}
+            <details class="nav-group" name="nav-group">
+              <summary class="nav-group-trigger{{ ' nav-current' if request.endpoint in links|map(attribute=0)|list }}">
+                {{ label }}<span class="nav-chevron" aria-hidden="true"></span>
+              </summary>
+              <div class="nav-group-menu">
+                {% for endpoint, name, hint in links %}
+                  <a href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint %} aria-current="page"{% endif %}>
+                    <span class="nav-link-name">{{ name }}</span>
+                    <span class="nav-link-hint">{{ hint }}</span>
+                  </a>
+                {% endfor %}
+              </div>
+            </details>
+          {% endfor %}
+          <a href="{{ url_for('public.venues_index') }}" {% if request.endpoint in ('public.venues_index', 'public.venue_detail', 'public.venues_map') %}class="nav-current" aria-current="page"{% endif %}>Venues</a>
+          <form class="site-search" method="get" action="{{ url_for('public.search') }}" role="search">
+            <input type="search" name="q" placeholder="Search shows & societies..." aria-label="Search societies and shows" value="{{ request.args.get('q', '') if request.endpoint == 'public.search' else '' }}">
           </form>
-        {% endif %}
-        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false" title="Toggle dark mode">🌙</button>
-      </div>
-    </nav>
+        </div>
+        <div class="nav-account">
+          {% if society_session %}
+            <a class="nav-pill" href="{{ url_for('society.dashboard') }}">My society</a>
+          {% else %}
+            <a class="nav-pill" href="{{ url_for('society.login') }}">Society login</a>
+          {% endif %}
+          {% if current_user %}
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-pill nav-admin">Admin</a>
+            <form method="post" action="{{ url_for('admin.logout') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="link-button nav-pill">Log out ({{ current_user['username'] }})</button>
+            </form>
+          {% endif %}
+          <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false" title="Toggle dark mode">🌙</button>
+        </div>
+      </nav>
+    </div>
   </header>
 
   {#- A page whose content is genuinely narrow (prose, or a two-column
