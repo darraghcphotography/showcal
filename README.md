@@ -1,110 +1,66 @@
-# DC Show Tracker
+# 🎭 DC ShowCal
+### The Unofficial Musical Theatre & AIMS Archive Companion for Ireland
 
-A small Flask + SQLite web app for browsing AIMS member societies' show
-history, with a moderated member-submission workflow so the site can replace
-the hand-maintained spreadsheet over time. A project by Darragh C.
+[![Live Site](https://img.shields.io/badge/Live%20Site-darraghc.ie%2Fshowcal-gold?style=for-the-badge)](https://darraghc.ie/showcal/)
+[![Buy Me A Coffee](https://img.shields.io/badge/Support-Buy%20Darragh%20a%20Coffee-ff5f5f?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/darraghcphotography)
+[![Edition](https://img.shields.io/badge/Design-Abbey%20Midnight%20%26%20Gold-121820?style=for-the-badge)](https://darraghc.ie/showcal/)
 
-## Documentation
+**ShowCal** is an independent, community-driven web companion tracking amateur musical theatre across Ireland. It replaces fragmented spreadsheets with an interactive, searchable archive of upcoming productions, historical records, and AIMS adjudication results going back decades.
 
-- **[User guide](docs/user-guide.md)** - browsing the site, and how members
-  submit a show.
-- **[Moderator guide](docs/moderator-guide.md)** - logging in, the moderation
-  queue, editing shows, publishing reviews, invite codes.
-- **[Deployment](docs/deployment.md)** - running it locally, and deploying to
-  a QNAP NAS via Portainer + Cloudflare Tunnel.
-- **[Data model](docs/data-model.md)** - the database schema, and why it's
-  shaped the way it is.
+---
 
-## How it's built, and why
+## 🌟 What You Can Do on ShowCal
 
-- **Flask + server-rendered Jinja templates.** No React/build step/npm - pages
-  are plain HTML rendered on the server. Easiest thing to run on a NAS and to
-  come back to in a year without re-learning a frontend toolchain.
-- **SQLite**, one file (`aims.db`). No database server to run or back up
-  separately - back up the site by copying one file.
-- **Raw SQL via `sqlite3`**, no ORM. The schema (`schema.sql`) is the single
-  source of truth; queries in the blueprints are plain, readable SQL.
-- **Flask-WTF** is the one non-trivial dependency, used only for CSRF
-  protection on forms (login, submission, moderation actions). Password
-  hashing uses `werkzeug.security`, which ships with Flask - no separate
-  auth library.
-- **waitress** as the production server (in Docker). Pure Python, no
-  native extensions, works the same on the NAS as it does anywhere else.
+### 📅 1. Find What's On & When
+* **Upcoming Productions Grid**: Browse announced productions across all 6 Irish regions with verified run dates, poster artwork, and direct ticket links.
+* **📍 1-Tap "Near Me" Finder**: Find musicals on stage within driving distance of your current location.
+* **🗓️ Season Calendar**: Plan your theatre trips week-by-week with active-week highlights in both Light and Dark themes.
+* **🔖 Personal Watchlist**: Bookmark upcoming shows to your season watchlist with 1-click export to Apple Calendar, Google Calendar, or Outlook (`.ics`).
 
-## Project layout
+---
 
-```
-schema.sql          canonical DB schema (tables, constraints, indexes)
-import_csv.py        one-time/re-runnable import from societies.csv + shows.csv
-import_awards.py      one-time/re-runnable import of AIMS's awards archive (see docs/data-model.md)
-seed_admin.py         create/update a moderator or admin login
-scripts/maintenance/fix_show_titles.py    documented, re-runnable data-quality corrections (see docs/data-model.md)
-app/
-  __init__.py         Flask app factory
-  db.py               SQLite connection + schema/migration helpers
-  auth.py             login + invite-code + society-code gating decorators
-  constants.py         regions/sections/etc, kept in sync with schema.sql's CHECKs
-  season.py            "what season are we in" + season-dropdown helpers
-  filters.py            Jinja filter: ISO dates -> dd-mm-yyyy for display
-  uploads.py            poster/logo image validation/save (never trusts the browser's filename)
-  similarity.py          normalized-title matching for the submission duplicate warning
-  dedupe.py              fuzzy near-duplicate title finder for the admin merge tool
-  analytics.py            simple per-page view counter, no cookies/tracking
-  blueprints/
-    public.py           browse societies, society/show/title detail, poster serving
-    submit.py            invite-code unlock + member submission form (with duplicate-title warning)
-    society.py            society self-service login: add/edit/bulk-add their own shows, logo upload
-    admin.py             moderator login, dashboard, queue, edit/publish, societies, awards CRUD,
-                          invite codes, fix-dates, duplicate titles, traffic, show info
-    info.py               /season, /stats, and /awards pages
-    feeds.py               CSV export, robots.txt, sitemap.xml
-  templates/          Jinja templates (one per page)
-  static/style.css     all the CSS, plain, no framework
-wsgi.py              entry point for waitress; also applies the optional URL_PREFIX middleware
-Dockerfile, docker-compose.yml   for QNAP Container Station / Portainer
-docs/                user guide, moderator guide, deployment, data model
-```
+### 🏆 2. Explore the Awards Archive (1977–Present)
+* **Decades of AIMS History**: Search winners, runners-up, and nominees across Gilbert and Sullivan competition tiers.
+* **Circuit Records & Trends**: Discover the most-produced musicals in Ireland, signature society titles, and regional performance stats.
+* **Title Deep Dives**: Browse iconic circuit musicals with composer credits, licensing houses, synopses, and famous musical numbers.
 
-## Pages
+---
 
-Public: the homepage (poster gallery + upcoming shows, region-filterable,
-with a calendar subscribe link), a standalone **Societies** browse/search
-page, a society's full history (shows plus their awards archive record), a
-show's detail page, **Shows A-Z** (search/sort, times-performed count, an
-optional synopsis/amateur-rights info panel), **Season Archive** (region/
-section filters, upcoming and already-finished split for any season, not
-just the current one), **Statistics** (region drill-down, per-season
-breakdown, most selected/performed, signature show per society, win-rate
-leaderboards, and more - see the [user guide](docs/user-guide.md)), an
-**Awards** page (browse/filter the full AIMS 1977-present adjudication
-archive), a **Roadmap** page (triaged feature suggestions + a changelog), a
-full CSV data export, a feature-suggestion box, and the member submission
-form.
+### 🏛️ 3. Society & Venue Directories
+* **194 Member Societies**: Complete society profiles featuring past show history, decade timelines, awards trophy cases, and committee links.
+* **Venues Directory & Interactive Map**: Stage dimensions, auditorium types, and 1-tap driving directions to theatres and community halls nationwide.
 
-Society login (behind `/society/login`, code issued by a moderator): a
-dashboard to add/edit that society's own show history live (no moderation
-queue), bulk-add past seasons, and upload a society logo.
+---
 
-Moderator (behind `/admin/login`): a dashboard summarising what needs
-attention (pending submissions, missing review links/dates, possible
-duplicate titles, unmatched award records), the moderation queue, full
-show/society/award editing (including adding a new society or show
-directly, and bulk-entering a whole award category's results at once), a
-bulk date-fix workspace, invite/society-login code management, suggestion
-review, and a simple traffic page. Full details in the
-[user guide](docs/user-guide.md) and
-[moderator guide](docs/moderator-guide.md).
+### 👗 4. Nationwide Costumes, Props & Sets Exchange
+* **Resource Sharing Noticeboard**: An informal directory helping societies connect to rent, borrow, or buy full costume collections, set pieces, backdrops, and iconic props.
+* **Direct Society Inquiries**: Pre-filled inquiry emails connecting you straight to the owning society's wardrobe coordinator.
 
-## Quick start
+---
 
-```powershell
-py -m pip install -r requirements.txt
-py seed_admin.py yourname --role admin
-$env:SECRET_KEY = "anything-for-local-dev"
-$env:FLASK_APP = "app"
-py -m flask run
-```
+### 🔑 5. Society Committee Portal
+* **Passwordless 1-Click Magic Links**: Society officers can request instant committee access with no passwords to remember.
+* **Self-Service Updates**: Update production dates, upload high-res poster artwork, set society logos, and manage your society's wardrobe vault live.
 
-Visit http://127.0.0.1:5000. Full setup (including an invite code so you can
-try the submission form) and NAS deployment steps are in
-[docs/deployment.md](docs/deployment.md).
+---
+
+### 📱 6. Mobile & Offline Ready
+* **Installable App (PWA)**: Add ShowCal directly to your iPhone or Android home screen for instant 1-tap access.
+* **Rich Social Cards**: Clean preview artwork and dates when sharing shows or societies on WhatsApp, iMessage, and social media.
+
+---
+
+## 🧭 Helpful Links
+
+* 🌐 **Live Website**: [https://darraghc.ie/showcal/](https://darraghc.ie/showcal/)
+* ☕ **Support the Project**: [Buy Darragh a Coffee on Ko-fi](https://ko-fi.com/darraghcphotography)
+* 💡 **Suggest a Feature / Roadmap**: [ShowCal Roadmap & Suggestions](https://darraghc.ie/showcal/suggestions)
+* ❓ **Frequently Asked Questions**: [ShowCal FAQ](https://darraghc.ie/showcal/faq)
+* 📖 **Documentation**: [User Guide](docs/user-guide.md) · [Moderator Guide](docs/moderator-guide.md) · [Data Model](docs/data-model.md)
+
+---
+
+<p align="center">
+  <em>ShowCal is an independent community project by Darragh C.</em><br>
+  <strong>Abbey Midnight &amp; Gold Edition</strong>
+</p>
