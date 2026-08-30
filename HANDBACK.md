@@ -113,7 +113,8 @@ Entry template:
 - `3cc51d5` — Update PWA icons and dismissal, enrich repertoire titles view, and add 1-tap season watchlist with iCalendar export
 - `8f580b9` — Elevate season calendar with active week highlight, month scrubber, and enriched show cards
 - `caf4095` — Merge pull request #3 (UI Polish: Navbar Alignment, Show History Fixed Grid & Calendar Light Mode Fix)
-- `d09f3e1` — Streamline Submit Society History form to Past Productions Listing, Past Show Poster, and Other with clean 1-line description
+- `978f099` — Streamline Submit Society History form to Past Productions Listing, Past Show Poster, and Other with clean 1-line description
+- `6603ba3` — Rich OpenGraph/Twitter social cards and multi-column sitemap footer (PR #4)
 
 **Branches left open:** none. `main` is clean, **955 tests green**.
 
