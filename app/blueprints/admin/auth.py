@@ -41,7 +41,7 @@ def login():
         else:
             session.clear()
             session["user_id"] = user["id"]
-            return redirect(url_for("admin.queue"))
+            return redirect(url_for("admin.dashboard"))
     return render_template("admin/login.html")
 
 

@@ -2054,8 +2054,14 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   .site-header .nav-account {
     margin-left: auto;
     gap: 0.35rem;
+    align-items: center;
   }
-  body.has-bottom-nav .site-header .nav-account .nav-pill:not(.nav-admin) {
+  .site-header .nav-account .nav-watchlist-pill,
+  .site-header .nav-account a[href*="society/login"],
+  .site-header .nav-account a[href*="society/dashboard"] {
+    display: none;
+  }
+  body.has-bottom-nav .site-header .nav-account .nav-logout {
     display: none;
   }
   .bottom-tab-bar { display: flex; }
