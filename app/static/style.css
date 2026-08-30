@@ -1315,61 +1315,90 @@ button.dot { cursor: pointer; }
 .season-calendar .swatch { width: 0.75rem; height: 0.75rem; border-radius: 3px; display: inline-block; }
 .season-calendar .swatch.gilbert { background: var(--tier-gilbert); }
 .season-calendar .swatch.sullivan { background: var(--tier-sullivan); }
+.season-calendar .swatch.active-week { background: var(--gold); }
 .season-calendar .swatch.congested { background: var(--warning); }
 
-.month-block { margin-bottom: 1.75rem; }
+.month-block { margin-bottom: 2rem; scroll-margin-top: 5rem; }
 .month-heading {
-  font-size: 1rem; font-weight: 700; color: var(--fg);
-  padding: 0.3rem 0; border-bottom: 1px solid var(--border); margin-bottom: 0.6rem;
+  font-size: 1.05rem; font-weight: 700; color: var(--fg);
+  padding: 0.35rem 0; border-bottom: 1px solid var(--border); margin-bottom: 0.8rem;
   display: flex; align-items: baseline; gap: 0.5rem;
 }
-.month-heading .count { font-weight: 400; color: var(--muted); font-size: 0.82rem; }
+.month-heading .count { font-weight: 400; color: var(--gold); font-size: 0.82rem; }
 
-.week-row { padding: 0.6rem 0.7rem; border-radius: 6px; margin-bottom: 0.4rem; border: 1px solid transparent; }
-.week-row.congested { border-color: color-mix(in srgb, var(--warning) 35%, transparent); }
-.week-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
-.week-label { font-size: 0.8rem; font-weight: 700; color: var(--fg); }
-.week-flag { font-size: 0.72rem; font-weight: 700; color: var(--warning); }
+.week-row { padding: 0.75rem 0.85rem; border-radius: 8px; margin-bottom: 0.6rem; border: 1px solid var(--border-subtle); background: var(--surface-subtle); transition: all 0.2s ease; }
+.week-row.congested { border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
+.week-row.is-current-week {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.09) 0%, rgba(21, 29, 39, 0.9) 100%);
+  border: 1.5px solid var(--gold);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.14);
+}
+.week-row.is-next-week {
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.04);
+}
+
+.badge-live-pulse {
+  background: var(--gold);
+  color: #0b0f14;
+  font-weight: 800;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.badge-next-up {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+}
+
+.week-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.week-label { font-size: 0.88rem; font-weight: 700; color: var(--fg); }
+.week-flag { font-size: 0.76rem; font-weight: 700; color: var(--warning); }
 
 .week-split { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0.75rem; }
 /* One section filtered in - no point rendering an empty column for the other. */
 .week-split-solo { display: block; }
 .week-divider { background: var(--border); }
 .week-col {
-  display: flex; flex-direction: column; gap: 0.35rem; min-width: 0;
+  display: flex; flex-direction: column; gap: 0.45rem; min-width: 0;
   padding: 0.4rem; border-radius: 6px; border: 1px solid transparent;
 }
 .week-col-head { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .week-col.gilbert-col .week-col-head { color: var(--tier-gilbert); }
 .week-col.sullivan-col .week-col-head { color: var(--tier-sullivan); }
-/* Congestion is judged per section, not combined - only the column that's
-   actually over threshold gets tinted, so 2 Gilbert + 2 Sullivan in one
-   week (neither side a real clash) never looks like a problem. */
 .week-col.congested {
   background: color-mix(in srgb, var(--warning) 12%, transparent);
   border-color: color-mix(in srgb, var(--warning) 35%, transparent);
 }
 .week-col.congested .week-col-head { color: var(--warning); }
-/* A blank card, not italic text - reads as a real (empty) part of the grid
-   rather than a leftover label, and carries the same visual weight as a
-   real .chip beside it. Dashed border keeps it visually distinct from an
-   actual show at a glance. */
+
 .week-col-empty {
   border: 1px dashed var(--border); border-radius: 8px;
-  padding: 0.3rem 0.55rem; font-size: 0.78rem; color: var(--muted); text-align: center;
+  padding: 0.35rem 0.55rem; font-size: 0.78rem; color: var(--muted); text-align: center;
 }
 .week-other { margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px dashed var(--border); }
 
-.season-calendar .chip {
-  display: flex; align-items: flex-start; gap: 0.35rem;
+.calendar-chip {
+  display: flex; align-items: flex-start; gap: 0.45rem;
   border: 1px solid var(--border); border-radius: 8px;
-  padding: 0.3rem 0.55rem; font-size: 0.8rem; background: var(--bg);
+  padding: 0.45rem 0.65rem; font-size: 0.82rem; background: var(--surface);
   max-width: 100%; text-decoration: none; color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
-.season-calendar .chip .dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; flex: none; margin-top: 0.3rem; }
-.season-calendar .chip.gilbert .dot { background: var(--tier-gilbert); }
-.season-calendar .chip.sullivan .dot { background: var(--tier-sullivan); }
-.season-calendar .chip.other .dot { background: var(--muted); }
+.calendar-chip:hover { border-color: var(--gold-border); transform: translateY(-1px); }
+.calendar-chip .dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; flex: none; margin-top: 0.3rem; }
+.calendar-chip.gilbert .dot { background: var(--tier-gilbert); }
+.calendar-chip.sullivan .dot { background: var(--tier-sullivan); }
+.calendar-chip.other .dot { background: var(--muted); }
 .season-calendar .chip .chip-text { min-width: 0; overflow: hidden; }
 .season-calendar .chip .show-name {
   font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

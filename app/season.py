@@ -58,10 +58,15 @@ def season_weeks(rows):
             })
 
         other_open = len(other_shows)
+        today = date.today()
+        is_current_week = (start <= today <= end)
+        is_next_week = (not is_current_week and today < start <= today + timedelta(days=7))
 
         weeks.append({
             "start": start,
             "end": end,
+            "is_current_week": is_current_week,
+            "is_next_week": is_next_week,
             "gilbert": gilbert_shows,
             "sullivan": sullivan_shows,
             "other": other_shows,

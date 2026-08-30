@@ -2,16 +2,22 @@
 {% block title %}{{ season }} season calendar - DC Show Tracker{% endblock %}
 
 {% macro season_chip(show) %}
-  <span class="chip {{ 'gilbert' if show['section'] == 'Gilbert' else ('sullivan' if show['section'] == 'Sullivan' else 'other') }}">
+  <div class="calendar-chip {{ 'gilbert' if show['section'] == 'Gilbert' else ('sullivan' if show['section'] == 'Sullivan' else 'other') }}">
     <span class="dot"></span>
-    <span class="chip-text">
-      <a class="show-name" href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
-      <span class="chip-meta">
-        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
+    <div class="chip-text" style="flex: 1; min-width: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.4rem;">
+        <a class="show-name" href="{{ url_for('public.show_detail', show_id=show['id']) }}" style="font-weight: 700; color: var(--fg); text-decoration: none;">{{ show['show'] }}</a>
+        <button type="button" class="watchlist-btn" data-watchlist-id="{{ show['id'] }}" data-watchlist-title="{{ show['show'] }}" data-watchlist-society="{{ show['society_name'] }}" data-watchlist-dates="{{ show['opening_date']|date_range(show['closing_date']) }}" data-watchlist-venue="{{ show['venue'] or '' }}" data-watchlist-url="{{ url_for('public.show_detail', show_id=show['id']) }}" title="Save to Watchlist" aria-label="Save to Watchlist" style="padding: 0.1rem 0.4rem; font-size: 0.72rem;">🔖</button>
+      </div>
+      <div class="chip-meta" style="margin-top: 0.15rem; font-size: 0.78rem; color: var(--muted); line-height: 1.35;">
+        <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}" style="color: var(--gold); text-decoration: none;">{{ show['society_name'] }}</a>
         &middot; <span class="date-range">{{ show['opening_date']|date_range(show['closing_date']) }}</span>
-      </span>
-    </span>
-  </span>
+        {% if show['venue'] %}
+          &middot; <span>📍 {{ show['venue'] }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 {% endmacro %}
 
 {% macro season_column(label, cls, shows, congested=False) %}
@@ -27,12 +33,16 @@
 
 {% block content %}
   <p><a href="{{ url_for('info.season_summary', season=season) }}">&larr; Back to {{ season }} productions</a></p>
-  <h1>
-    {{ season }} season calendar
-    {% if is_current %}<span class="tag">current</span>{% endif %}
-  </h1>
-  <p>{{ calendar_show_count }} {{ 'production' if calendar_show_count == 1 else 'productions' }}
-    {{- 'across the season' if is_past_season else ' opening this season so far' }}.</p>
+  <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.4rem;">
+    <h1 style="margin: 0;">
+      {{ season }} season calendar
+      {% if is_current %}<span class="tag">current</span>{% endif %}
+    </h1>
+  </div>
+  <p class="meta" style="margin-bottom: 1.25rem;">
+    {{ calendar_show_count }} {{ 'production' if calendar_show_count == 1 else 'productions' }}
+    {{- 'across the season' if is_past_season else ' opening this season so far' }}.
+  </p>
 
   <form method="get" class="filter-form">
     <label>
@@ -76,15 +86,19 @@
       <a href="{{ url_for('info.season_calendar', season=season) }}">Clear</a>
     {% endif %}
   </form>
-  <p class="hint">
-    {%- if is_past_season %}How the season's busy weeks played out
-    {%- else %}{% if selected_tier %}{{ selected_tier }} shows, grouped by week{% else %}Gilbert on the left, Sullivan on the right, grouped by week{% endif %}
-    {%- endif %} - A &#9888; flag marks a
-    {%- if is_past_season %} week where several shows clashed.
-    {%- else %} busy week, several shows running at once, worth planning ahead if you want to catch more than one.
-    {%- endif %}</p>
 
   {% if weeks %}
+    <!-- Month Quick-Jump Scrubber -->
+    <div class="calendar-month-nav" style="display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.5rem 0 0.8rem; margin-bottom: 1.25rem;">
+      {% for month_key, month_weeks in weeks|groupby('month_key') %}
+        {% set month_weeks = month_weeks|list %}
+        <a href="#month-{{ month_key }}" class="nav-pill" style="white-space: nowrap; font-size: 0.82rem; background: var(--surface-subtle); border: 1px solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+          <span>{{ month_weeks[0]['start'].strftime('%b \'%y') }}</span>
+          <span style="color: var(--gold); font-weight: 700; font-size: 0.75rem;">{{ month_weeks|sum(attribute='open_count') }}</span>
+        </a>
+      {% endfor %}
+    </div>
+
     <div class="season-calendar">
       <div class="legend">
         {%- if not selected_tier or selected_tier == 'Gilbert' %}
@@ -93,19 +107,28 @@
         {%- if not selected_tier or selected_tier == 'Sullivan' %}
           <span class="legend-item"><span class="swatch sullivan"></span>Sullivan</span>
         {%- endif %}
+        <span class="legend-item"><span class="swatch active-week"></span>Active week</span>
         <span class="legend-item"><span class="swatch congested"></span>Busy week</span>
       </div>
+
       {% for month_key, month_weeks in weeks|groupby('month_key') %}
         {% set month_weeks = month_weeks|list %}
-        <div class="month-block">
+        <div class="month-block" id="month-{{ month_key }}">
           <div class="month-heading">
             <span>{{ month_weeks[0]['month_label'] }}</span>
             <span class="count">{{ month_weeks|sum(attribute='open_count') }} opening{{ '' if month_weeks|sum(attribute='open_count') == 1 else 's' }}</span>
           </div>
           {% for week in month_weeks %}
-            <div class="week-row{{ ' congested' if week['congested'] else '' }}">
+            <div class="week-row{{ ' is-current-week' if week['is_current_week'] else '' }}{{ ' is-next-week' if week['is_next_week'] else '' }}{{ ' congested' if week['congested'] else '' }}">
               <div class="week-row-top">
-                <span class="week-label">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</span>
+                <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                  <span class="week-label">{{ week['start'].isoformat()|date_range(week['end'].isoformat()) }}</span>
+                  {% if week['is_current_week'] %}
+                    <span class="badge-live-pulse">🔥 HAPPENING THIS WEEK</span>
+                  {% elif week['is_next_week'] %}
+                    <span class="badge-next-up">⚡ NEXT UP</span>
+                  {% endif %}
+                </div>
                 {% if week['congestion_notes'] %}
                   <span class="week-flag">
                     {% for note in week['congestion_notes'] %}
@@ -146,6 +169,6 @@
       {% endfor %}
     </div>
   {% else %}
-    <p>No shows on record for {{ season }}{% if selected_region %} in {{ selected_region }}{% endif %}{% if selected_tier %} ({{ selected_tier }}){% endif %}.</p>
+    <p>No productions found for this filter selection.</p>
   {% endif %}
 {% endblock %}
