@@ -1,3 +1,7 @@
+The Submit Society History form is now streamlined to focus on past production listings from programmes and vintage show posters, with a simple one-line description field. Navigation bar heights and carets have been harmonized across all displays, society show history tables now feature strict column alignment, and dateless historical shows clearly read "No date on record"
+
+---
+
 Society pages now feature scannable summary stat tiles for total productions, award wins, and active spans, matching the layout on venue pages. The site header has been refined with a crisp vector monogram and expanding search pill, and societies without uploaded artwork now render with rich gradient initials badges
 
 ---

@@ -2,12 +2,7 @@
 {% block title %}Submit society history - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Submit society history</h1>
-  <p>We're especially looking for: an old newspaper review clipping (particularly anything before
-     2009, which our own archive doesn't cover), a programme cover, or a photo of a programme page
-     listing a society's own past productions - those production-history pages are gold for filling
-     in shows we have little or no record of. Anything else from an old production is welcome too.
-     It goes to a moderator, who'll use it to fill in gaps in the record by hand - nothing here gets
-     published automatically.</p>
+  <p>Help us complete the Irish musical theatre archive. We are especially looking for <strong>past production listings from old programmes</strong> and <strong>vintage show posters</strong>. Uploaded files go directly to a moderator to fill in missing seasons and historical records by hand.</p>
 
   <form method="post" class="stacked-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -23,24 +18,23 @@
       <legend>What is this?</legend>
       {% for value, label in kind_labels.items() %}
         <label class="radio-label">
-          <input type="radio" name="kind" value="{{ value }}" {% if form.get('kind') == value %}checked{% endif %}{% if loop.first %} required{% endif %}>
-          {{ label }}{% if value == 'programme_history' %} <span class="meta">- the most useful thing you can send us</span>{% endif %}
+          <input type="radio" name="kind" value="{{ value }}" {% if form.get('kind') == value or (not form.get('kind') and loop.first) %}checked{% endif %}{% if loop.first %} required{% endif %}>
+          {{ label }}{% if value == 'programme_history' %} <span class="meta">- most useful for completing decade records</span>{% endif %}
         </label>
       {% endfor %}
     </fieldset>
 
     <label>
-      Photo(s)
+      Photo or scan
       <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif" multiple required>
     </label>
 
-    <p class="meta">JPG, PNG, WEBP, GIF, or HEIC (iPhone photos work fine). You can attach several
-       at once - total up to 40&nbsp;MB.</p>
+    <p class="meta">JPG, PNG, WEBP, GIF, or HEIC (iPhone photos work fine). You can attach several at once - total up to 40&nbsp;MB.</p>
 
     <label>
       Society, if known
       <input type="text" name="society_guess" list="society-options" value="{{ form.get('society_guess', '') }}"
-             placeholder="Start typing..." autocomplete="off">
+             placeholder="Start typing society name..." autocomplete="off">
       <datalist id="society-options">
         {% for s in societies %}
           <option value="{{ s['name'] }}">
@@ -50,18 +44,12 @@
 
     <label>
       Show/production, if known
-      <input type="text" name="show_guess" value="{{ form.get('show_guess', '') }}">
+      <input type="text" name="show_guess" value="{{ form.get('show_guess', '') }}" placeholder="e.g. Oklahoma!, West Side Story...">
     </label>
 
     <label>
-      Roughly when, if known
-      <input type="text" name="date_guess" placeholder="e.g. 1987, or &quot;sometime in the 90s&quot;"
-             value="{{ form.get('date_guess', '') }}">
-    </label>
-
-    <label>
-      Tell us about it
-      <textarea name="notes" rows="4" required placeholder="What is it - publication name and date for a review clipping, or for a past-productions list, the years/titles you can read on it - plus who's pictured or anything else worth knowing">{{ form.get('notes', '') }}</textarea>
+      Short description
+      <input type="text" name="notes" required placeholder="e.g. 1988 programme page listing 1965–1987 shows" value="{{ form.get('notes', '') }}">
     </label>
 
     <label>
@@ -74,6 +62,7 @@
       <input type="email" name="submitter_email" value="{{ form.get('submitter_email', '') }}">
     </label>
 
-    <button type="submit">Submit photo</button>
+    <button type="submit">Submit to archive</button>
   </form>
 {% endblock %}
+

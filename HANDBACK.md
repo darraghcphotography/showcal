@@ -112,8 +112,10 @@ Entry template:
 - `0a1e65e` — Enrich top musical titles with creative credits, licensing houses, and key songs, plus native PWA install banner
 - `3cc51d5` — Update PWA icons and dismissal, enrich repertoire titles view, and add 1-tap season watchlist with iCalendar export
 - `8f580b9` — Elevate season calendar with active week highlight, month scrubber, and enriched show cards
+- `caf4095` — Merge pull request #3 (UI Polish: Navbar Alignment, Show History Fixed Grid & Calendar Light Mode Fix)
+- `d09f3e1` — Streamline Submit Society History form to Past Productions Listing, Past Show Poster, and Other with clean 1-line description
 
-**Branches left open:** none. `main` is clean at `8f580b9`, **954 tests green**.
+**Branches left open:** none. `main` is clean, **955 tests green**.
 
 **Verified live:**
 - Checked production database queues:
@@ -142,5 +144,8 @@ Entry template:
 - Passwordless 1-click society magic links and mobile admin approval queue shipped and live at `/society/request-access` and `/admin/access-requests`.
 - Repertoire view enriched with composer, lyricist, licensing house, and signature songs on `/titles`.
 - 1-Tap "My Season Watchlist" live with localStorage and iCalendar (.ics) export at `/watchlist`.
+- Navigation bar capsule heights (36px) and SVG carets harmonized across all displays.
+- Society history tables now feature strict fixed-column alignment (`table-layout: fixed`), and dateless past shows read "No date on record".
+- Submit Society History form streamlined to Past Productions Listing, Past Show Poster, and Other with single-line description field.
 - Parked mockups for future page-by-page design iterations and costumes/props exchange are preserved in `mockups/site_wide_master_mockups.html` and `mockups/costumes_props_exchange.html`.
 

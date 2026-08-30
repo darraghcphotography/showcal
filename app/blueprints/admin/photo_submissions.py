@@ -9,7 +9,7 @@ itself."""
 from flask import abort, flash, redirect, render_template, request, url_for
 
 from ...clock import utcnow_iso
-from ...constants import PHOTO_KIND_LABELS
+from ...constants import ALL_PHOTO_KIND_LABELS
 from ...auth import current_user, login_required
 from ...db import get_db
 from . import bp
@@ -27,7 +27,7 @@ def photo_submissions_queue():
     ).fetchall()
     return render_template(
         "admin/photo_submissions_queue.html", pending=pending, recent_done=recent_done,
-        kind_labels=PHOTO_KIND_LABELS,
+        kind_labels=ALL_PHOTO_KIND_LABELS,
     )
 
 

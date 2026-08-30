@@ -21,16 +21,20 @@ SHOW_SECTIONS = ["Gilbert", "Sullivan", "Non-AIMS"]
 REVIEW_STATUSES = ["Published", "Scheduled", "Not adjudicated", "None"]
 
 # photo_submissions.kind - what a member says they've sent in, in the order the
-# submit form offers them. 'programme_history' is the valuable one: a programme
-# page listing a society's own past productions backfills whole decades, where a
-# cast photo confirms a single show. Older rows predating that split still carry
-# 'production_photo' (see app/db.py's _migrate_photo_submission_kinds), so every
-# reader must keep handling it.
+# submit form offers them: Past Productions Listing, Past Show Poster, Other.
+# Older rows predating this split carry 'review', 'programme_cover', 'production_photo',
+# so ALL_PHOTO_KIND_LABELS preserves them for admin views.
 PHOTO_KIND_LABELS = {
-    "review": "Newspaper or magazine review clipping",
-    "programme_history": "Programme page listing past productions",
-    "programme_cover": "Programme cover",
-    "production_photo": "Cast or production photo",
+    "programme_history": "Past Productions Listing",
+    "poster": "Past Show Poster",
+    "other": "Other",
+}
+
+ALL_PHOTO_KIND_LABELS = {
+    **PHOTO_KIND_LABELS,
+    "review": "Newspaper clipping (Legacy)",
+    "programme_cover": "Programme cover (Legacy)",
+    "production_photo": "Cast / production photo (Legacy)",
 }
 
 # venues.venue_type - what kind of building it is, as opposed to

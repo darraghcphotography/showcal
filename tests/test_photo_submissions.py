@@ -34,7 +34,7 @@ def test_get_renders_form(client):
 def test_submission_with_no_notes_is_rejected(client, db):
     resp = client.post(
         "/submit/photo",
-        data={"kind": "review", "notes": "", "photo": _photo_file()},
+        data={"kind": "programme_history", "notes": "", "photo": _photo_file()},
         content_type="multipart/form-data",
     )
     assert resp.status_code == 200  # re-renders the form with an error
@@ -44,7 +44,7 @@ def test_submission_with_no_notes_is_rejected(client, db):
 def test_submission_with_no_file_is_rejected(client, db):
     resp = client.post(
         "/submit/photo",
-        data={"kind": "review", "notes": "An old ShowTimes clipping from 1998."},
+        data={"kind": "programme_history", "notes": "An old ShowTimes clipping from 1998."},
         content_type="multipart/form-data",
     )
     assert resp.status_code == 200
@@ -55,11 +55,10 @@ def test_valid_submission_is_stored_pending(client, db):
     resp = client.post(
         "/submit/photo",
         data={
-            "kind": "production_photo",
-            "notes": "Cast photo, think it's from the mid-90s.",
+            "kind": "poster",
+            "notes": "Vintage show poster from 1995.",
             "society_guess": "Test Society",
             "show_guess": "Oliver!",
-            "date_guess": "sometime in the 90s",
             "submitter_name": "Jo",
             "submitter_email": "jo@example.com",
             "photo": _photo_file(),
@@ -69,7 +68,7 @@ def test_valid_submission_is_stored_pending(client, db):
     )
     assert resp.status_code == 302
     row = db.execute("SELECT * FROM photo_submissions").fetchone()
-    assert row["kind"] == "production_photo"
+    assert row["kind"] == "poster"
     assert row["status"] == "pending"
     assert row["show_guess"] == "Oliver!"
     assert row["filename"]
@@ -82,7 +81,7 @@ def test_multiple_photos_create_one_row_each_sharing_notes(client, db):
     resp = client.post(
         "/submit/photo",
         data={
-            "kind": "review",
+            "kind": "programme_history",
             "notes": "Three pages from the same 1994 programme.",
             "photo": [_photo_file("a.jpg"), _photo_file("b.jpg"), _photo_file("c.jpg")],
         },
@@ -105,7 +104,7 @@ def test_one_bad_file_rejects_the_whole_batch(client, db):
     resp = client.post(
         "/submit/photo",
         data={
-            "kind": "review",
+            "kind": "programme_history",
             "notes": "A batch with one bad file in it.",
             "photo": [_photo_file("a.jpg"), bad_file, _photo_file("c.jpg")],
         },
@@ -119,7 +118,7 @@ def test_honeypot_silently_drops_the_submission(client, db):
     resp = client.post(
         "/submit/photo",
         data={
-            "kind": "review", "notes": "spam", "website": "http://spam.example",
+            "kind": "poster", "notes": "spam", "website": "http://spam.example",
             "photo": _photo_file(),
         },
         content_type="multipart/form-data",
@@ -137,7 +136,7 @@ def test_queue_requires_login(client):
 def test_queue_lists_pending_submission(client, db):
     admin_id = seed_user(db)
     db.execute(
-        "INSERT INTO photo_submissions (kind, filename, notes) VALUES ('review', 'abc.jpg', 'An old clipping')"
+        "INSERT INTO photo_submissions (kind, filename, notes) VALUES ('programme_history', 'abc.jpg', 'An old clipping')"
     )
     db.commit()
 
@@ -149,7 +148,7 @@ def test_queue_lists_pending_submission(client, db):
 def test_mark_done_records_moderator_and_notes(client, db):
     admin_id = seed_user(db)
     db.execute(
-        "INSERT INTO photo_submissions (kind, filename, notes) VALUES ('review', 'abc.jpg', 'An old clipping')"
+        "INSERT INTO photo_submissions (kind, filename, notes) VALUES ('poster', 'abc.jpg', 'An old clipping')"
     )
     db.commit()
     submission_id = db.execute("SELECT id FROM photo_submissions").fetchone()["id"]
@@ -171,7 +170,7 @@ def test_mark_done_records_moderator_and_notes(client, db):
 def test_reject_sets_status(client, db):
     admin_id = seed_user(db)
     db.execute(
-        "INSERT INTO photo_submissions (kind, filename, notes) VALUES ('production_photo', 'abc.jpg', 'blurry')"
+        "INSERT INTO photo_submissions (kind, filename, notes) VALUES ('other', 'abc.jpg', 'blurry')"
     )
     db.commit()
     submission_id = db.execute("SELECT id FROM photo_submissions").fetchone()["id"]
@@ -187,7 +186,7 @@ def test_cannot_action_an_already_actioned_submission_twice(client, db):
     admin_id = seed_user(db)
     db.execute(
         "INSERT INTO photo_submissions (kind, filename, notes, status) "
-        "VALUES ('review', 'abc.jpg', 'x', 'done')"
+        "VALUES ('programme_history', 'abc.jpg', 'x', 'done')"
     )
     db.commit()
     submission_id = db.execute("SELECT id FROM photo_submissions").fetchone()["id"]
@@ -196,13 +195,11 @@ def test_cannot_action_an_already_actioned_submission_twice(client, db):
     resp = client.post(f"/admin/photo-submissions/{submission_id}/reject", follow_redirects=False)
     assert resp.status_code == 404
 
-def test_programme_history_is_its_own_kind(client, db):
-    """4b: a programme page listing a society's own past productions used to
-    be lumped in with cast photos under 'production_photo'. It backfills whole
-    decades of the record, so it is now its own kind and the form offers it."""
+def test_programme_history_and_posters_are_offered(client, db):
     form = client.get("/submit/photo").get_data(as_text=True)
     assert 'value="programme_history"' in form
-    assert 'value="programme_cover"' in form
+    assert 'value="poster"' in form
+    assert 'value="other"' in form
 
     resp = client.post(
         "/submit/photo",
@@ -220,7 +217,7 @@ def test_programme_history_is_its_own_kind(client, db):
 def test_an_unknown_kind_is_still_rejected(client, db):
     resp = client.post(
         "/submit/photo",
-        data={"kind": "poster", "notes": "Something else.", "photo": _photo_file()},
+        data={"kind": "unknown_invalid_kind", "notes": "Something else.", "photo": _photo_file()},
         content_type="multipart/form-data",
     )
     assert resp.status_code == 200

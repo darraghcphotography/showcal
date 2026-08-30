@@ -623,13 +623,9 @@ CREATE INDEX IF NOT EXISTS idx_historical_reviews_season_tier ON historical_revi
 CREATE TABLE IF NOT EXISTS photo_submissions (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     kind             TEXT NOT NULL CHECK (kind IN (
-                          -- A programme page listing a society's own past productions is
-                          -- its own kind: one of those backfills whole decades of the
-                          -- record, where a cast photo confirms a single show. Split out
-                          -- of 'production_photo' in 2026-08 (see app/db.py's
-                          -- _migrate_photo_submission_kinds), which older rows still use.
                           'review', 'production_photo',
-                          'programme_cover', 'programme_history'
+                          'programme_cover', 'programme_history',
+                          'poster', 'other'
                       )),
     filename         TEXT NOT NULL,     -- under the uploads dir, same convention as shows.poster_filename
     society_guess    TEXT,

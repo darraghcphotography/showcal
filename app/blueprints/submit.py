@@ -186,15 +186,15 @@ def photo():
         errors = []
         kind = request.form.get("kind", "")
         if kind not in PHOTO_KINDS:
-            errors.append("Choose what kind of photo this is.")
+            errors.append("Choose what kind of submission this is.")
         notes = request.form.get("notes", "").strip()
         if not notes:
-            errors.append("Tell us a little about the photo - what it is, and anything you know about it.")
+            errors.append("Provide a short description of what is attached.")
 
         photo_files = [f for f in request.files.getlist("photo") if f and f.filename]
         filenames = []
         if not photo_files:
-            errors.append("Choose a photo to upload.")
+            errors.append("Choose a photo or scan to upload.")
         else:
             try:
                 for photo_file in photo_files:
