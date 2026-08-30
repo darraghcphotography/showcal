@@ -1,26 +1,49 @@
 {% extends "base.html" %}
-{% block title %}More - DC Show Tracker{% endblock %}
+{% block title %}More - ShowCal{% endblock %}
 {% block content %}
   <h1>More</h1>
-  {# Grouped under the same headings as the desktop header's menus, so the two
-     navigations tell the same story. Everything the bottom tab bar doesn't
-     cover lives here. #}
+  <p class="meta">Explore archive directories, submit shows, and access community tools.</p>
 
   <h2 class="more-group-label">Explore</h2>
 
-  <a class="queue-item" href="{{ url_for('public.watchlist') }}">
-    <span class="primary">🔖 My Season Watchlist</span>
-    <p class="meta">Your saved upcoming shows &amp; personal calendar export</p>
+  <a class="queue-item" href="{{ url_for('public.exchange_index') }}">
+    <span class="primary">🎭 Costumes, Props &amp; Sets Exchange</span>
+    <p class="meta">Nationwide directory to hire, borrow, or buy wardrobes, sets, and props</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('public.societies_list') }}">
+    <span class="primary">🏛️ All Member Societies</span>
+    <p class="meta">All 194 member societies across the 6 regions</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('public.titles_list') }}">
+    <span class="primary">All Shows A–Z</span>
+    <p class="meta">Has anyone done this show? Every title staged on the circuit</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('info.season_calendar') }}">
+    <span class="primary">Season Calendar</span>
+    <p class="meta">Any season week by week, with busy weekends highlighted</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('info.season_summary') }}">
+    <span class="primary">Season Summaries</span>
+    <p class="meta">Every show announced, by season</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('public.venues_index') }}">
-    <span class="primary">Venues</span>
-    <p class="meta">Every venue an AIMS society has staged a production in</p>
+    <span class="primary">Venues Directory</span>
+    <p class="meta">Every stage and auditorium an AIMS society has played</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('public.venues_map') }}">
+    <span class="primary">🗺️ Venues Map</span>
+    <p class="meta">Interactive map of all theatre stages across Ireland</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('public.reviews_index') }}">
-    <span class="primary">Reviews</span>
-    <p class="meta">Every adjudicator review archived on the site, browsable by show or society</p>
+    <span class="primary">Adjudicator Reviews</span>
+    <p class="meta">Every adjudicator review archived on the site</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('public.adjudicators_list') }}">
@@ -28,83 +51,92 @@
     <p class="meta">Who judged each season, and their published reviews</p>
   </a>
 
-  <a class="queue-item" href="{{ url_for('public.titles_list') }}">
-    <span class="primary">All Shows</span>
-    <p class="meta">Has anyone done this show? Every title on record</p>
+  <a class="queue-item" href="{{ url_for('public.watchlist') }}">
+    <span class="primary">🔖 My Season Watchlist</span>
+    <p class="meta">Your saved upcoming shows &amp; personal calendar export</p>
   </a>
 
-  <a class="queue-item" href="{{ url_for('info.season_summary') }}">
-    <span class="primary">Seasons</span>
-    <p class="meta">Every show announced, past and upcoming</p>
-  </a>
-
-  <a class="queue-item" href="{{ url_for('info.season_calendar') }}">
-    <span class="primary">Season Calendar</span>
-    <p class="meta">Any season week by week, with the busy weekends flagged</p>
-  </a>
-
-  <h2 class="more-group-label">History</h2>
+  <h2 class="more-group-label">History &amp; Records</h2>
 
   <a class="queue-item" href="{{ url_for('info.awards') }}">
-    <span class="primary">Awards</span>
-    <p class="meta">Full AIMS awards archive</p>
+    <span class="primary">🏆 Awards Archive</span>
+    <p class="meta">Full AIMS adjudication archive, 1977–present</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('info.stats_trends') }}">
-    <span class="primary">Decades</span>
+    <span class="primary">Decades &amp; Tastes</span>
     <p class="meta">How Irish musical theatre tastes changed, decade by decade</p>
   </a>
 
-  <h2 class="more-group-label">Your society</h2>
+  <a class="queue-item" href="{{ url_for('info.stats') }}">
+    <span class="primary">Circuit Records &amp; Statistics</span>
+    <p class="meta">Most-performed titles, win-rate leaderboards, and regional totals</p>
+  </a>
+
+  <h2 class="more-group-label">Your Society</h2>
 
   <a class="queue-item" href="{{ url_for('submit.unlock') }}">
-    <span class="primary">Submit a show</span>
-    <p class="meta">Add your society's production</p>
+    <span class="primary">Submit a Show</span>
+    <p class="meta">Add your society's upcoming or recent production</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('submit.photo') }}">
-    <span class="primary">Submit society history</span>
-    <p class="meta">Share an old review clipping, programme, or production photo</p>
+    <span class="primary">Submit Society History</span>
+    <p class="meta">Share past programmes, show photos, or committee records</p>
   </a>
 
   {% if society_session %}
     <a class="queue-item" href="{{ url_for('society.dashboard') }}">
-      <span class="primary">My society</span>
-      <p class="meta">Manage your own shows &amp; profile</p>
+      <span class="primary">My Society Dashboard</span>
+      <p class="meta">Manage your shows, poster artwork, and society profile</p>
+    </a>
+    <a class="queue-item" href="{{ url_for('society.vault') }}">
+      <span class="primary">🎭 My Society Vault</span>
+      <p class="meta">Manage your costumes, props, and set pieces in the exchange</p>
     </a>
   {% else %}
     <a class="queue-item" href="{{ url_for('society.login') }}">
-      <span class="primary">Society login</span>
-      <p class="meta">Manage your own shows &amp; profile</p>
+      <span class="primary">Society Login</span>
+      <p class="meta">Self-service portal for society officers and committees</p>
     </a>
   {% endif %}
 
-  <h2 class="more-group-label">About this site</h2>
+  <h2 class="more-group-label">About &amp; Community</h2>
 
   <a class="queue-item" href="{{ url_for('public.about') }}">
-    <span class="primary">About</span>
+    <span class="primary">About ShowCal</span>
     <p class="meta">What this site is, and why it exists</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('public.faq') }}">
     <span class="primary">FAQ</span>
-    <p class="meta">Common questions, answered</p>
+    <p class="meta">Common questions about ShowCal and the AIMS circuit</p>
   </a>
 
   <a class="queue-item" href="{{ url_for('public.suggest') }}">
-    <span class="primary">Suggest a feature</span>
-    <p class="meta">Ideas, bug reports, data corrections</p>
+    <span class="primary">Suggest a Feature</span>
+    <p class="meta">Ideas, bug reports, and data corrections</p>
+  </a>
+
+  <a class="queue-item" href="{{ url_for('public.suggestions_board') }}">
+    <span class="primary">Roadmap &amp; Changelog</span>
+    <p class="meta">Community feature pipeline and recently shipped updates</p>
+  </a>
+
+  <a class="queue-item" href="https://ko-fi.com/darraghcphotography" target="_blank" rel="noopener noreferrer">
+    <span class="primary" style="color: var(--gold); font-weight: 700;">☕ Buy Darragh a Coffee</span>
+    <p class="meta">Support independent hosting and development on Ko-fi</p>
   </a>
 
   {% if current_user %}
     <a class="queue-item" href="{{ url_for('admin.dashboard') }}">
-      <span class="primary">Admin</span>
-      <p class="meta">Moderator dashboard</p>
+      <span class="primary">Admin Dashboard</span>
+      <p class="meta">Moderator and data queue workspace</p>
     </a>
   {% else %}
     <a class="queue-item" href="{{ url_for('admin.login') }}">
-      <span class="primary">Moderator login</span>
-      <p class="meta">Admin access</p>
+      <span class="primary">Moderator Login</span>
+      <p class="meta">Admin access for verified moderators</p>
     </a>
   {% endif %}
 {% endblock %}
