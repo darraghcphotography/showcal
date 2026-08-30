@@ -1018,7 +1018,7 @@ def society_detail(society_id):
     # rather than a genuine gap in old records.
     shows = [
         dict(s, blank_date_label=(
-            "Not recorded" if season_start_year(s["season"]) < current_start_year else "TBA"
+            "No date on record" if season_start_year(s["season"]) < current_start_year else "TBA"
         ))
         for s in shows
     ]
@@ -1538,7 +1538,7 @@ def title_detail(title):
     # two spellings of one show land on one page, and ordered on a real
     # four-digit year rather than on 'yy/yy' as text (which sorts '76/77' after
     # '09/10' - the Round 25 bug).
-    shows = db.execute(
+    raw_shows = db.execute(
         """
         SELECT shows.*, societies.name AS society_name
         FROM shows
@@ -1549,6 +1549,16 @@ def title_detail(title):
         """,
         (title_key,),
     ).fetchall()
+
+    curr_season = current_season(db)
+    current_start = season_start_year(curr_season) if curr_season else 2026
+
+    shows = [
+        dict(s, blank_date_label=(
+            "No date on record" if (season_start_year(s["season"]) is not None and season_start_year(s["season"]) < current_start) else "TBA"
+        ))
+        for s in raw_shows
+    ]
 
     # The rest of this title's stagings: the ones with no show page of their
     # own to link to. Split on that, not on an era - a skeleton shows row from

@@ -29,7 +29,7 @@ def test_society_history_says_not_recorded_for_a_past_season_with_no_date(client
     seed_show(db, season="22/23", show="Old Show", opening_date=None)
 
     html = client.get("/societies/1").get_data(as_text=True)
-    assert "Not recorded" in html
+    assert "No date on record" in html
     assert ">TBA<" not in html
 
 

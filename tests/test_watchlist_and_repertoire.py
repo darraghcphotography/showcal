@@ -56,3 +56,15 @@ def test_titles_repertoire_displays_creative_credits_and_songs(client, db):
     assert "Glenn Slater" in body
     assert "MTI Europe" in body
     assert "Fabulous Baby!" in body
+
+
+def test_title_detail_renders_no_date_on_record_for_past_seasons(client, db):
+    seed_society(db, id=1, name="Clane Musical Society")
+    seed_show(db, society_id=1, show="Sister Act", season="26/27", opening_date=None)  # Current/future -> TBA
+    seed_show(db, society_id=1, show="Sister Act", season="22/23", opening_date=None)  # Historical -> No date on record
+
+    resp = client.get("/titles/Sister%20Act")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "No date on record" in body
+    assert "TBA" in body
