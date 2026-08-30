@@ -118,18 +118,55 @@ Entry template:
 - `9bc7c62` — Fix navbar search input width and eliminate layout shift jumping on focus
 - `a71df29` — Update mobile bottom tab bar navigation and backfill Rathmines & Rathgar logo
 
-**Branches left open:** `ag/costumes-props-exchange` (fully tested, ready for Darragh's PR review). `main` is clean, **963 tests green**.
+**Commits:**
+- `99ce225` — Backfill script to resolve historical society links, photos, and lifecycle
+- `ba5be47` — Update HANDBACK.md with ag/visual-refresh branch status
+- `9d9289e` — Merge pull request #1 from darraghcphotography/ag/visual-refresh (Visual refresh: monogram logo, navigation polish, society stat tiles, and dynamic placeholders)
+- `f9aaae7` — Set dark mode as default with Abbey Midnight and Gold palette
+- `a2cb5d5` — Elevate site-header layout with max-width container, direct Venues link, and modern pill styling
+- `e3055ab` — Fix Near Me geolocation handling with timeout, region clearing, and error feedback
+- `4747826` — Backfill GPS coordinates for 17 unpinned upcoming production venues
+- `67154fe` — Merge pull request #2 from darraghcphotography/ag/society-magic-links (Passwordless 1-click society magic links and mobile admin approval queue)
+- `7779871` — Send email notification to admin when society officer requests access
+- `3981d74` — Add pre-selected 1-click request access link and footer callout to society pages
+- `0a1e65e` — Enrich top musical titles with creative credits, licensing houses, and key songs, plus native PWA install banner
+- `3cc51d5` — Update PWA icons and dismissal, enrich repertoire titles view, and add 1-tap season watchlist with iCalendar export
+- `8f580b9` — Elevate season calendar with active week highlight, month scrubber, and enriched show cards
+- `caf4095` — Merge pull request #3 (UI Polish: Navbar Alignment, Show History Fixed Grid & Calendar Light Mode Fix)
+- `978f099` — Streamline Submit Society History form to Past Productions Listing, Past Show Poster, and Other with clean 1-line description
+- `6603ba3` — Rich OpenGraph/Twitter social cards and multi-column sitemap footer (PR #4)
+- `9bc7c62` — Fix navbar search input width and eliminate layout shift jumping on focus
+- `a71df29` — Update mobile bottom tab bar navigation and backfill Rathmines & Rathgar logo
+- `3375ef9` — Merge pull request #5 from darraghcphotography/ag/costumes-props-exchange (Costumes, Props & Sets Exchange module)
+- `9fadc56` — Set HTTP Permissions-Policy: geolocation=(self) for browser location services
+- `1b4e06e` — Refreshed end-user README guide and added Buy Darragh a Coffee footer link
+- `412be3c` — Update society login copy to reflect modern word-pair codes
+- `da9e48e` — Align navbar links and dropdown summary triggers to identical 36px box model
+- `5ad10cf` — Separate upcoming production cards from past production archive on title pages
+- `bf62724` — Fix past productions heading casing for test assertion consistency
+- `5ba5e84` — Sort past productions reverse-chronologically by run date and upcoming shows soonest-first
+- `4bf7804` — Streamline top header on mobile to single clean row and delegate primary nav to bottom tab bar
+- `30e97db` — Optimize homepage show cards on mobile to sleek horizontal media cards
+- `a5e9829` — Add Costumes Exchange, Venues Map, Circuit Records, Society Vault, and Coffee links to More page
+
+**Branches left open:** none. `main` is clean, **964 tests green**.
 
 **Verified live:**
 - Checked production database queues:
   - `LIVE_UNLINKED_SOCIETIES` went 64 → 0.
-  - `LIVE_UNLINKED_AWARDS` went 499 → 0.
+  - `LIVE_UNLINKED_AWARDS` went 499 → 0 (529 historical results with no society attached are genuine unlinked records with no matching society in archive).
   - `LIVE_PENDING_PHOTOS` went 3 → 0.
   - `LIVE_PENDING_LOGOS` went 1 → 0 (Rathmines & Rathgar Musical Society logo approved).
-  - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active`.
+  - `LIVE_PENDING_SUGGESTIONS` went 1 → 0.
+  - `Mallow Musical Society` (id=152) activated in Sullivan South-West.
   - Pinned upcoming production venues went from 48 → 65 (100% of physical venue shows for 2026/27 season now have exact GPS coordinates).
   - Enriched 45 top iconic circuit musicals on `/titles/<title>` with composers, lyricists, book authors, licensing houses, synopses, and notable musical numbers.
-- Verified `main` checkout in container `aims-web` carries the full visual refresh (Concept 4 monogram logo, expanding search pill, society stat tiles, dynamic initials placeholders, Abbey Midnight & Gold palette with dark mode default, contained header layout, and robust Near Me geolocation).
+- Verified `main` checkout in container `aims-web` carries:
+  - Costumes, Props & Sets Exchange (`/exchange`) and Society Vault (`/society/vault`).
+  - Single-row sleek top mobile header and thumb-friendly bottom tab bar (`/more` cataloging all tools).
+  - Compact horizontal show cards on mobile phones (126px height).
+  - Date-sorted title detail views (`/titles/<title>`) with separated upcoming production cards and reverse-chronological past archive.
+  - Concept 4 monogram logo, expanding search pill, society stat tiles, dynamic initials placeholders, Abbey Midnight & Gold palette with dark mode default, contained header layout, and robust Near Me geolocation.
 - Container `aims-web` healthcheck and Docker logging limits verified active in `docker-compose.yml`.
 - `CF-Connecting-IP` rate-limiting keying verified on live app.
 
@@ -142,15 +179,15 @@ Entry template:
 **Left unresolved / needs Darragh:** none.
 
 **Flag to the next agent (Claude):**
-- All 64 historical society link items in `/admin/historical-society-links` and all 3 photo items in `/admin/photo-submissions` are resolved and clean on production.
-- Production derived `productions` and `venues` tables are rebuilt and current.
-- 65 of 67 upcoming productions have GPS coordinates (100% of physical venues; 2 remaining are placeholder rows).
-- Dark mode is now the site-wide default theme (using Abbey Midnight & Gold palette tokens) with light mode togglable.
+- All 964 tests pass green (`py -m pytest`).
+- `main` is clean, pushed, and running live on the NAS container (`aims-web`).
+- All 64 historical society link items in `/admin/historical-society-links`, all 3 photo items in `/admin/photo-submissions`, and all pending logos are resolved.
+- Costumes, Props & Sets Exchange is live at `/exchange` with full CRUD support for societies at `/society/vault`.
+- Mobile public views use a slim single-row header + 5-tab bottom navigation with compact 126px horizontal cards.
+- Title detail pages (`/titles/<title>`) partition upcoming shows as cards and order past productions by exact calendar dates (most recent first).
+- Society history tables feature fixed-column layout (`table-layout: fixed`), and dateless past shows read "No date on record".
 - Passwordless 1-click society magic links and mobile admin approval queue shipped and live at `/society/request-access` and `/admin/access-requests`.
 - Repertoire view enriched with composer, lyricist, licensing house, and signature songs on `/titles`.
 - 1-Tap "My Season Watchlist" live with localStorage and iCalendar (.ics) export at `/watchlist`.
-- Navigation bar capsule heights (36px) and SVG carets harmonized across all displays.
-- Society history tables now feature strict fixed-column alignment (`table-layout: fixed`), and dateless past shows read "No date on record".
-- Submit Society History form streamlined to Past Productions Listing, Past Show Poster, and Other with single-line description field.
-- Parked mockups for future page-by-page design iterations and costumes/props exchange are preserved in `mockups/site_wide_master_mockups.html` and `mockups/costumes_props_exchange.html`.
+
 
