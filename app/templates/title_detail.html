@@ -143,7 +143,7 @@
   {% endif %}
 
   {% if past_shows %}
-    <h2>Past Productions with Full Detail</h2>
+    <h2>{% if upcoming_shows %}Past productions with full detail{% else %}Productions with full detail{% endif %}</h2>
     <table class="data-table">
       <thead>
         <tr><th>Season</th><th>Society</th><th>Region</th><th>Dates</th></tr>
