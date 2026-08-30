@@ -13,7 +13,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+_parents = Path(__file__).resolve().parents
+ROOT = _parents[2] if len(_parents) > 2 else _parents[0]
 
 # Verified coordinates and locations for unpinned venues
 VENUE_COORDINATES: dict[str, dict[str, str | float]] = {
