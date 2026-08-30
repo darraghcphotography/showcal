@@ -118,7 +118,7 @@ Entry template:
 - `9bc7c62` — Fix navbar search input width and eliminate layout shift jumping on focus
 - `a71df29` — Update mobile bottom tab bar navigation and backfill Rathmines & Rathgar logo
 
-**Branches left open:** none. `main` is clean, **955 tests green**.
+**Branches left open:** `ag/costumes-props-exchange` (fully tested, ready for Darragh's PR review). `main` is clean, **963 tests green**.
 
 **Verified live:**
 - Checked production database queues:

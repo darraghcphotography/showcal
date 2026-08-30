@@ -16,7 +16,10 @@ from ..circuit_intelligence import (
     regional_distribution, revival_candidate, signature_categories,
     _is_revival_candidate,
 )
-from ..constants import REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES, VENUE_TYPES
+from ..constants import (
+    REGIONS, SOCIETY_SECTIONS, SUGGESTION_CATEGORIES, VENUE_TYPES,
+    WARDROBE_ITEM_TYPES, WARDROBE_TERMS, WARDROBE_STATUSES,
+)
 from ..db import get_db
 from ..filters import place_label
 from ..productions import ON_RECORD_PRODUCTION
@@ -1953,3 +1956,127 @@ def watchlist():
 @bp.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(current_app.config["UPLOAD_DIR"], filename)
+
+
+# --- Costumes, Props & Sets Exchange ---
+
+@bp.route("/exchange")
+def exchange_index():
+    db = get_db()
+    q = request.args.get("q", "").strip()
+    item_type = request.args.get("type", "").strip()
+    region = request.args.get("region", "").strip()
+    terms = request.args.get("terms", "").strip()
+
+    where_clauses = ["wi.status != 'delisted'", "s.hidden = 0"]
+    params = []
+
+    if q:
+        match_query = build_phrase_query(q)
+        if match_query:
+            where_clauses.append("wi.id IN (SELECT rowid FROM wardrobe_items_fts WHERE wardrobe_items_fts MATCH ?)")
+            params.append(match_query)
+        else:
+            where_clauses.append("(wi.title LIKE ? OR wi.show_title LIKE ? OR wi.description LIKE ?)")
+            like_term = f"%{escape_like(q)}%"
+            params.extend([like_term, like_term, like_term])
+
+    if item_type and item_type in WARDROBE_ITEM_TYPES:
+        where_clauses.append("wi.item_type = ?")
+        params.append(item_type)
+
+    if region and region in REGIONS:
+        where_clauses.append("s.region = ?")
+        params.append(region)
+
+    if terms and terms in WARDROBE_TERMS:
+        where_clauses.append("wi.terms = ?")
+        params.append(terms)
+
+    where_sql = " AND ".join(where_clauses)
+
+    items = db.execute(
+        f"""
+        SELECT wi.*, s.name AS society_name, s.region AS society_region,
+               s.logo_filename AS society_logo,
+               (SELECT COUNT(*) FROM wardrobe_photos WHERE item_id = wi.id) AS photo_count
+        FROM wardrobe_items wi
+        JOIN societies s ON s.id = wi.society_id
+        WHERE {where_sql}
+        ORDER BY wi.created_at DESC
+        """,
+        params,
+    ).fetchall()
+
+    type_counts = dict(
+        db.execute(
+            """
+            SELECT wi.item_type, COUNT(*) 
+            FROM wardrobe_items wi 
+            JOIN societies s ON s.id = wi.society_id 
+            WHERE wi.status != 'delisted' AND s.hidden = 0 
+            GROUP BY wi.item_type
+            """
+        ).fetchall()
+    )
+    total_count = sum(type_counts.values())
+
+    return render_template(
+        "exchange_index.html",
+        items=items,
+        q=q,
+        selected_type=item_type,
+        selected_region=region,
+        selected_terms=terms,
+        regions=REGIONS,
+        item_types=WARDROBE_ITEM_TYPES,
+        terms_labels=WARDROBE_TERMS,
+        status_labels=WARDROBE_STATUSES,
+        type_counts=type_counts,
+        total_count=total_count,
+    )
+
+
+@bp.route("/exchange/<int:item_id>")
+def exchange_detail(item_id):
+    db = get_db()
+    item = db.execute(
+        """
+        SELECT wi.*, s.name AS society_name, s.region AS society_region,
+               s.logo_filename AS society_logo, s.website_url, s.facebook_url,
+               s.instagram_url, s.about AS society_about
+        FROM wardrobe_items wi
+        JOIN societies s ON s.id = wi.society_id
+        WHERE wi.id = ? AND wi.status != 'delisted' AND s.hidden = 0
+        """,
+        (item_id,),
+    ).fetchone()
+    if not item:
+        abort(404)
+
+    photos = db.execute(
+        "SELECT * FROM wardrobe_photos WHERE item_id = ? ORDER BY display_order, id",
+        (item_id,),
+    ).fetchall()
+
+    other_items = db.execute(
+        """
+        SELECT wi.*, s.name AS society_name, s.region AS society_region
+        FROM wardrobe_items wi
+        JOIN societies s ON s.id = wi.society_id
+        WHERE wi.society_id = ? AND wi.id != ? AND wi.status != 'delisted'
+        ORDER BY wi.created_at DESC LIMIT 3
+        """,
+        (item["society_id"], item_id),
+    ).fetchall()
+
+    return render_template(
+        "exchange_detail.html",
+        item=item,
+        photos=photos,
+        other_items=other_items,
+        item_types=WARDROBE_ITEM_TYPES,
+        terms_labels=WARDROBE_TERMS,
+        status_labels=WARDROBE_STATUSES,
+    )
+

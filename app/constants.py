@@ -37,6 +37,30 @@ ALL_PHOTO_KIND_LABELS = {
     "production_photo": "Cast / production photo (Legacy)",
 }
 
+# Wardrobe, props & sets exchange vocabulary
+WARDROBE_ITEM_TYPES = {
+    "costume_full_set": "Full Wardrobe Set",
+    "costume_individual": "Individual Costumes",
+    "prop": "Props",
+    "set_piece": "Set Pieces",
+    "backdrop": "Backdrops & Cloths",
+    "tech_lighting": "Tech & Lighting",
+    "other": "Other",
+}
+
+WARDROBE_TERMS = {
+    "hire": "For Hire",
+    "loan": "Free Loan",
+    "sale": "For Sale",
+    "negotiable": "Negotiable",
+}
+
+WARDROBE_STATUSES = {
+    "available": "Available Now",
+    "on_loan": "Currently On Loan",
+    "delisted": "Delisted / Hidden",
+}
+
 # venues.venue_type - what kind of building it is, as opposed to
 # AUDITORIUM_TYPES (app/blueprints/admin/venues.py), which is the shape of the
 # room. Deliberately coarse: these are the distinctions a society actually

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ item['title'] }} - Costumes &amp; Props Exchange - ShowCal{% endblock %}
+{% block meta_description %}{{ item['title'] }} available for {{ terms_labels.get(item['terms'], item['terms']) }} from {{ item['society_name'] }} ({{ item['society_region'] }}). Nationwide musical theatre costume and prop exchange.{% endblock %}
+
+{% block content %}
+  <p class="breadcrumbs">
+    <a href="{{ url_for('public.exchange_index') }}">&larr; Back to Costumes &amp; Props Exchange</a>
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-top: 1rem;">
+    <!-- Gallery Column -->
+    <div>
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1rem;">
+        {% if item['primary_photo'] %}
+          <img id="main-exchange-photo" src="{{ url_for('public.uploaded_file', filename=item['primary_photo']) }}" alt="{{ item['title'] }}" style="width: 100%; max-height: 480px; object-fit: contain; background: #000; display: block;">
+        {% else %}
+          <div style="height: 320px; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: var(--muted); background: var(--row-alt);">
+            🎭
+          </div>
+        {% endif %}
+      </div>
+
+      {% if photos and photos|length > 1 %}
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          {% for p in photos %}
+            <button type="button" onclick="document.getElementById('main-exchange-photo').src='{{ url_for('public.uploaded_file', filename=p['filename']) }}'" style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; width: 64px; height: 64px; padding: 0; cursor: pointer; background: transparent;">
+              <img src="{{ url_for('public.uploaded_file', filename=p['filename']) }}" alt="Thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Details Column -->
+    <div>
+      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+        <span class="tag">{{ item_types.get(item['item_type'], item['item_type']) }}</span>
+        <span class="tag tag-accent">{{ terms_labels.get(item['terms'], item['terms']) }}</span>
+        {% if item['status'] == 'available' %}
+          <span class="tag" style="background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); border-color: var(--success);">● Available Now</span>
+        {% elif item['status'] == 'on_loan' %}
+          <span class="tag" style="background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning); border-color: var(--warning);">⚡ Currently On Loan</span>
+        {% endif %}
+      </div>
+
+      <h1 style="margin: 0.25rem 0 0.5rem; font-size: 1.8rem;">{{ item['title'] }}</h1>
+
+      <p class="meta" style="margin-bottom: 1.25rem;">
+        Listed by <a href="{{ url_for('public.society_detail', society_id=item['society_id']) }}"><strong>{{ item['society_name'] }}</strong></a> &middot; {{ item['society_region'] }} Region
+      </p>
+
+      {% if item['show_title'] %}
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.25rem;">
+          <strong style="color: var(--gold);">Associated Production / Provenance:</strong><br>
+          <span style="font-size: 1.05rem; font-weight: 600;">{{ item['show_title'] }}</span>
+        </div>
+      {% endif %}
+
+      {% if item['sizing_quantity'] %}
+        <div style="margin-bottom: 1.25rem;">
+          <strong>Quantity / Sizing Breakdown:</strong>
+          <p style="margin: 0.25rem 0; color: var(--fg); font-size: 0.95rem;">
+            {{ item['sizing_quantity'] }}
+          </p>
+        </div>
+      {% endif %}
+
+      {% if item['description'] %}
+        <div style="margin-bottom: 1.5rem;">
+          <strong>Description &amp; Piece Details:</strong>
+          <p style="margin: 0.35rem 0; color: var(--fg); line-height: 1.5; white-space: pre-line;">{{ item['description'] }}</p>
+        </div>
+      {% endif %}
+
+      <!-- Direct Contact Card -->
+      <div style="background: var(--surface); border: 1.5px solid var(--gold-border); border-radius: 8px; padding: 1.25rem; margin-top: 1.5rem; box-shadow: var(--shadow);">
+        <h3 style="margin: 0 0 0.5rem; color: var(--gold); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <span>✉️</span> Direct Society Contact &amp; Inquiries
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--muted); margin: 0 0 1rem; line-height: 1.4;">
+          Contact {{ item['society_name'] }} directly to discuss availability dates, deposits, fitting arrangements, or transport.
+        </p>
+
+        {% if item['contact_name'] %}
+          <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
+            <strong>Coordinator:</strong> {{ item['contact_name'] }}
+          </div>
+        {% endif %}
+
+        {% if item['contact_phone'] %}
+          <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
+            <strong>Phone:</strong> <a href="tel:{{ item['contact_phone'] }}">{{ item['contact_phone'] }}</a>
+          </div>
+        {% endif %}
+
+        {% set mail_to = item['contact_email'] or 'info@darraghc.ie' %}
+        {% set mail_subject = '[ShowCal Exchange] Inquiry regarding ' ~ item['title'] %}
+        {% set mail_body = 'Hi ' ~ (item['contact_name'] or item['society_name']) ~ ',\n\nI am contacting you via the ShowCal Costumes & Props Exchange regarding \"' ~ item['title'] ~ '\".\n\nOur society would like to check availability for our upcoming production.\n\nProposed Run Dates:\nSociety Name:\nContact Phone:\n\nThank you!' %}
+
+        <div style="margin-top: 1rem;">
+          <a href="mailto:{{ mail_to }}?subject={{ mail_subject|urlencode }}&body={{ mail_body|urlencode }}" class="button primary-button" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; font-size: 0.95rem;">
+            <span>✉️</span> Send Email Inquiry to Society &rarr;
+          </a>
+        </div>
+
+        <!-- Non-Liability Disclaimer inside Contact Card -->
+        <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); font-size: 0.76rem; color: var(--muted); line-height: 1.4;">
+          ⚠️ <strong>Community Disclaimer:</strong> ShowCal provides this listing as an introductory guideline only. ShowCal and its operators are not a party to any transactions, agreements, deposits, or condition of items. All terms and handovers are conducted directly between participating societies.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if other_items %}
+    <div style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+      <h3>More From {{ item['society_name'] }}</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        {% for other in other_items %}
+          <div class="card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem;">
+            <strong style="display: block; margin-bottom: 0.25rem;">
+              <a href="{{ url_for('public.exchange_detail', item_id=other['id']) }}" style="color: var(--fg); text-decoration: none;">
+                {{ other['title'] }}
+              </a>
+            </strong>
+            <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.5rem;">
+              {{ item_types.get(other['item_type'], other['item_type']) }} &middot; {{ terms_labels.get(other['terms'], other['terms']) }}
+            </div>
+            <a href="{{ url_for('public.exchange_detail', item_id=other['id']) }}" class="button small-button">View &rarr;</a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

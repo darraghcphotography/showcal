@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Costumes &amp; Props Vault - {{ society['name'] }} - ShowCal{% endblock %}
+{% block content %}
+  <p class="breadcrumbs">
+    <a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }} Dashboard</a>
+  </p>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+      <h1 style="margin-bottom: 0.25rem;">Costumes, Props &amp; Sets Vault</h1>
+      <p class="meta" style="margin: 0;">{{ society['name'] }} &middot; Inventory for nationwide hire, loan, or sale</p>
+    </div>
+    <a href="{{ url_for('society.vault_new') }}" class="button primary-button">+ List New Item / Wardrobe &rarr;</a>
+  </div>
+
+  <div class="site-notice" style="margin-bottom: 1.5rem;">
+    <p>
+      <strong>ℹ️ Community Notice &amp; Guidelines:</strong>
+      List your past production sets, full wardrobe collections, iconic props, or tech gear so other Irish societies can rent or borrow them.
+      ShowCal acts solely as an introductory directory. All hiring fees, deposits, transport, and terms are arranged directly between societies.
+    </p>
+  </div>
+
+  {% if items %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 60px;">Photo</th>
+          <th>Item / Set Title</th>
+          <th>Category</th>
+          <th>Show / Provenance</th>
+          <th>Terms</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td>
+              {% if item['primary_photo'] %}
+                <img class="poster-thumb" src="{{ url_for('public.uploaded_file', filename=item['primary_photo']) }}" alt="{{ item['title'] }}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px;">
+              {% else %}
+                <div style="width: 48px; height: 48px; background: var(--row-alt); border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🎭</div>
+              {% endif %}
+            </td>
+            <td>
+              <strong>{{ item['title'] }}</strong>
+              {% if item['sizing_quantity'] %}
+                <div class="hint">{{ item['sizing_quantity'] }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="tag">{{ item_types.get(item['item_type'], item['item_type']) }}</span>
+            </td>
+            <td>{{ item['show_title'] or '—' }}</td>
+            <td>
+              <span class="tag tag-accent">{{ terms_labels.get(item['terms'], item['terms']) }}</span>
+            </td>
+            <td>
+              <form method="post" action="{{ url_for('society.vault_toggle_status', item_id=item['id']) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="status" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.2rem 0.4rem;">
+                  <option value="available" {% if item['status'] == 'available' %}selected{% endif %}>● Available</option>
+                  <option value="on_loan" {% if item['status'] == 'on_loan' %}selected{% endif %}>⚡ On Loan</option>
+                  <option value="delisted" {% if item['status'] == 'delisted' %}selected{% endif %}>✕ Delisted</option>
+                </select>
+              </form>
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <a href="{{ url_for('public.exchange_detail', item_id=item['id']) }}" class="button small-button" target="_blank" title="View public listing">View</a>
+              <a href="{{ url_for('society.vault_edit', item_id=item['id']) }}" class="button small-button">Edit</a>
+              <form method="post" action="{{ url_for('society.vault_delete', item_id=item['id']) }}" class="inline-form" onsubmit="return confirm('Are you sure you want to remove this item from your vault?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="link-button" style="color: var(--danger); font-size: 0.84rem; margin-left: 0.5rem;">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state" style="text-align: center; padding: 3rem 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎭</div>
+      <h3 style="margin-bottom: 0.5rem;">Your Society Vault is Empty</h3>
+      <p style="color: var(--muted); max-width: 480px; margin: 0 auto 1.5rem;">
+        Have sets, costumes, backdrops, or props in storage from past shows? List them here so other societies can hire or borrow them.
+      </p>
+      <a href="{{ url_for('society.vault_new') }}" class="button primary-button">+ List Your First Item &rarr;</a>
+    </div>
+  {% endif %}
+{% endblock %}
