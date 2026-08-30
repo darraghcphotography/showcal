@@ -67,7 +67,7 @@
           {% for label, links in nav_menus %}
             <details class="nav-group" name="nav-group">
               <summary class="nav-group-trigger{{ ' nav-current' if request.endpoint in links|map(attribute=0)|list }}">
-                {{ label }}<span class="nav-chevron" aria-hidden="true"></span>
+                {{ label }}<span class="nav-chevron" aria-hidden="true"><svg class="nav-chevron-svg" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
               </summary>
               <div class="nav-group-menu">
                 {% for endpoint, name, hint in links %}

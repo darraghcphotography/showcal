@@ -74,7 +74,7 @@ def test_a_blank_row_for_a_past_season_still_shows_publicly(client, db):
 
     body = client.get(f"/societies/{society_id}").get_data(as_text=True)
     assert "12/13" in body
-    assert "Not recorded" in body
+    assert "No date on record" in body
 
 
 def test_an_old_dateless_titled_show_reads_not_recorded_not_tba(client, db):
@@ -89,4 +89,4 @@ def test_an_old_dateless_titled_show_reads_not_recorded_not_tba(client, db):
     body = client.get(f"/societies/{society_id}").get_data(as_text=True)
     history = body.split("Show history")[1]
     assert "My Fair Lady" in history
-    assert "Not recorded" in history
+    assert "No date on record" in history

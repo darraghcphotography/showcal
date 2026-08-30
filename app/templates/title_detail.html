@@ -118,7 +118,13 @@
             <td>{{ show['region'] }}</td>
             <td>
               <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">
-                {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}
+                {% if show['opening_date'] %}
+                  {{ show['opening_date']|date_range(show['closing_date']) }}
+                {% elif show['blank_date_label'] == 'TBA' %}
+                  <em>TBA</em>
+                {% else %}
+                  <span class="meta">{{ show['blank_date_label'] or 'No date on record' }}</span>
+                {% endif %}
               </a>
             </td>
           </tr>

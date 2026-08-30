@@ -235,14 +235,16 @@ body.public-chrome .container h2 {
 .nav-content > a, .nav-group-trigger {
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 600;
-  padding: 0.4rem 0.85rem;
+  height: 36px;
+  padding: 0 0.85rem;
   border-radius: var(--radius-pill);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   transition: all 0.15s ease;
+  user-select: none;
 }
 
 .nav-content > a:hover, .nav-group-trigger:hover {
@@ -270,7 +272,8 @@ body.public-chrome .container h2 {
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  padding: 0.35rem 0.85rem;
+  height: 36px;
+  padding: 0 0.85rem;
   font-size: 0.84rem;
   font-weight: 600;
   background: transparent;
@@ -278,7 +281,7 @@ body.public-chrome .container h2 {
   text-decoration: none;
 }
 .site-header .nav-pill:hover {
-  border-color: var(--accent);
+  border-color: var(--gold-border);
   background: var(--row-alt);
   text-decoration: none;
 }
@@ -308,20 +311,19 @@ body.public-chrome .container h2 {
 }
 .nav-group-trigger::-webkit-details-marker { display: none; }
 
-.nav-chevron {
-  width: 0.42rem;
-  height: 0.42rem;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg) translate(-1px, -1px);
-  transition: transform 0.12s ease;
+.nav-chevron-svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.65;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
 }
-.nav-group[open] .nav-chevron { transform: rotate(-135deg) translate(-2px, -2px); }
-@media (prefers-reduced-motion: reduce) { .nav-chevron { transition: none; } }
+.nav-group[open] .nav-chevron-svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .nav-chevron-svg { transition: none; } }
 
 .nav-group-menu {
   position: absolute;
-  top: calc(100% + 0.55rem);
+  top: calc(100% + 0.4rem);
   left: -0.6rem;
   z-index: 30;
   min-width: 17rem;
@@ -1131,19 +1133,21 @@ details table { margin-top: 0.5rem; }
 .runs { list-style: none; margin: 0; padding: 0; }
 .run {
   display: grid;
-  grid-template-columns: 4.2rem minmax(11rem, 1.1fr) 9.5rem minmax(0, 2fr) auto;
-  gap: 1rem; align-items: baseline;
-  padding: 0.55rem 0.6rem; border-radius: var(--radius-sm);
+  grid-template-columns: 4rem 16rem 11.5rem minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
 }
 .run:hover { background: var(--row-alt); }
-.run .yr { font-variant-numeric: tabular-nums; color: var(--muted); font-size: var(--t-sm); }
+.run .yr { font-variant-numeric: tabular-nums; color: var(--muted); font-size: var(--t-sm); font-weight: 600; }
 .run .ttl { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
-.run .ttl a { font-weight: 600; text-decoration: none; }
-.run .ttl a:hover { text-decoration: underline; }
+.run .ttl a { font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run .ttl a:hover { text-decoration: underline; color: var(--gold); }
 .run .ttl .tier-dot { flex: none; }
-.run .dts { color: var(--muted); font-size: var(--t-sm); font-variant-numeric: tabular-nums; }
-.run .awd { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.run .dts { color: var(--muted); font-size: var(--t-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.run .awd { display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: center; }
 .run .act { font-size: var(--t-xs); text-align: right; white-space: nowrap; }
 
 /* A win is loud, a nomination is a quiet count. See the block comment above. */
@@ -1329,13 +1333,13 @@ button.dot { cursor: pointer; }
 .week-row { padding: 0.75rem 0.85rem; border-radius: 8px; margin-bottom: 0.6rem; border: 1px solid var(--border-subtle); background: var(--surface-subtle); transition: all 0.2s ease; }
 .week-row.congested { border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
 .week-row.is-current-week {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.09) 0%, rgba(21, 29, 39, 0.9) 100%);
+  background: color-mix(in srgb, var(--gold) 10%, var(--surface));
   border: 1.5px solid var(--gold);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.14);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--gold) 15%, transparent);
 }
 .week-row.is-next-week {
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.04);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
 }
 
 .badge-live-pulse {
