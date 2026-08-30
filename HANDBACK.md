@@ -148,6 +148,7 @@ Entry template:
 - `4bf7804` — Streamline top header on mobile to single clean row and delegate primary nav to bottom tab bar
 - `30e97db` — Optimize homepage show cards on mobile to sleek horizontal media cards
 - `a5e9829` — Add Costumes Exchange, Venues Map, Circuit Records, Society Vault, and Coffee links to More page
+- `488816e` — Email magic login link directly to requester upon approval and polish admin mobile navbar
 
 **Branches left open:** none. `main` is clean, **964 tests green**.
 
