@@ -1005,6 +1005,38 @@ details table { margin-top: 0.5rem; }
    the region, so undo that just for these rows. */
 .whatson-body .venue-link { display: inline; margin-top: 0; }
 
+@media (max-width: 600px) {
+  .whatson-list {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .whatson-item {
+    flex-direction: row;
+    align-items: stretch;
+    border-radius: var(--radius-lg);
+  }
+  .whatson-poster {
+    width: 95px;
+    min-width: 95px;
+    max-width: 95px;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+  .whatson-poster.is-placeholder span {
+    font-size: 1.4rem;
+  }
+  .whatson-body {
+    padding: 0.65rem 0.85rem;
+    justify-content: center;
+    gap: 0.15rem;
+  }
+  .whatson-title {
+    font-size: 1rem;
+  }
+}
+
 .calendar-subscribe { margin: 1.5rem 0; }
 .calendar-subscribe summary { cursor: pointer; color: var(--muted); }
 
