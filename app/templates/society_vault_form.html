@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Vault Item' if item else 'List New Item' }} - {{ society['name'] }} - ShowCal{% endblock %}
+{% block content %}
+  <p class="breadcrumbs">
+    <a href="{{ url_for('society.vault') }}">&larr; Back to {{ society['name'] }} Vault</a>
+  </p>
+
+  <h1>{{ 'Edit Item Listing' if item else 'List an Item or Wardrobe Set' }}</h1>
+  <p class="meta">{{ society['name'] }} &middot; Nationwide Costumes &amp; Props Exchange</p>
+
+  <form method="post" enctype="multipart/form-data" class="stacked-form" style="max-width: 650px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      <strong>Item / Collection Title *</strong>
+      <span class="hint">e.g. "Ancestors Ensemble Costumes (22 Outfits)", "Audrey II Puppets (Set of 4)", "Drop Chandelier Prop"</span>
+      <input type="text" name="title" required value="{{ item['title'] if item else '' }}" placeholder="Enter a descriptive title">
+    </label>
+
+    <label>
+      <strong>Category *</strong>
+      <select name="item_type" required>
+        {% for code, label in item_types.items() %}
+          <option value="{{ code }}" {% if item and item['item_type'] == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      <strong>Associated Show / Musical (Optional)</strong>
+      <span class="hint">Select from your past productions or enter a custom title</span>
+      <input type="text" name="show_title" list="past-shows-list" value="{{ item['show_title'] if item else '' }}" placeholder="e.g. The Addams Family, Les Misérables, Victorian Era">
+      <datalist id="past-shows-list">
+        {% for s in past_shows %}
+          <option value="{{ s }}">
+        {% endfor %}
+      </datalist>
+    </label>
+
+    <label>
+      <strong>Description &amp; Details</strong>
+      <span class="hint">Condition, included pieces, accessories, fabric details, special handling requirements</span>
+      <textarea name="description" rows="4" placeholder="Describe the item condition, pieces included, etc.">{{ item['description'] if item else '' }}</textarea>
+    </label>
+
+    <label>
+      <strong>Sizing / Quantity Breakdown</strong>
+      <span class="hint">e.g. "Adult sizes 8-18 (12 female, 10 male)", "1 complete set of 4 puppets with arm harnesses"</span>
+      <input type="text" name="sizing_quantity" value="{{ item['sizing_quantity'] if item else '' }}" placeholder="e.g. 22 costumes (Adult 8–18)">
+    </label>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <label>
+        <strong>Availability Terms *</strong>
+        <select name="terms" required>
+          {% for code, label in terms_labels.items() %}
+            <option value="{{ code }}" {% if item and item['terms'] == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        <strong>Listing Status *</strong>
+        <select name="status" required>
+          {% for code, label in status_labels.items() %}
+            <option value="{{ code }}" {% if item and item['status'] == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <fieldset style="border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin: 1rem 0;">
+      <legend style="padding: 0 0.5rem; font-weight: 700; color: var(--gold);">Direct Society Contact for Inquiries</legend>
+      <p class="hint" style="margin-top: 0; margin-bottom: 0.75rem;">
+        When other societies click "Contact Society", inquiries will be directed here.
+      </p>
+      <label style="margin-bottom: 0.75rem;">
+        <strong>Contact Person / Role</strong>
+        <input type="text" name="contact_name" value="{{ item['contact_name'] if item else '' }}" placeholder="e.g. Mary Kelly (Wardrobe Head)">
+      </label>
+      <label style="margin-bottom: 0.75rem;">
+        <strong>Contact Email Address</strong>
+        <input type="email" name="contact_email" value="{{ item['contact_email'] if item else '' }}" placeholder="e.g. wardrobe@your-society.ie">
+      </label>
+      <label>
+        <strong>Contact Phone Number (Optional)</strong>
+        <input type="tel" name="contact_phone" value="{{ item['contact_phone'] if item else '' }}" placeholder="e.g. 087 123 4567">
+      </label>
+    </fieldset>
+
+    <label>
+      <strong>Upload Photos (PNG, JPG, WebP, HEIC)</strong>
+      <span class="hint">Photos will be automatically optimized for the public exchange</span>
+      <input type="file" name="photos" multiple accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif">
+    </label>
+
+    {% if photos %}
+      <div style="margin: 1rem 0;">
+        <strong style="display: block; margin-bottom: 0.5rem;">Existing Photos:</strong>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          {% for p in photos %}
+            <div style="position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border);">
+              <img src="{{ url_for('public.uploaded_file', filename=p['filename']) }}" alt="Photo" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Mandatory Legal Disclaimer & Community Acknowledgment -->
+    <div style="background: rgba(212, 175, 55, 0.08); border: 1px solid var(--gold-border); border-radius: 6px; padding: 1rem; margin: 1.25rem 0;">
+      <label style="display: flex; align-items: flex-start; gap: 0.65rem; cursor: pointer; color: var(--fg); font-size: 0.85rem; line-height: 1.45;">
+        <input type="checkbox" name="agree_terms" required value="1" {% if item %}checked{% endif %} style="margin-top: 0.2rem; accent-color: var(--gold);">
+        <span>
+          <strong>Community Notice &amp; Non-Liability Acknowledgment:</strong><br>
+          I confirm our society owns or is authorized to lend/hire this item, and understand that ShowCal operates solely as an introductory directory. ShowCal and its operators accept zero liability for hire agreements, pricing, item condition, loss, or disputes between societies.
+        </span>
+      </label>
+    </div>
+
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <button type="submit" class="button primary-button">{{ 'Save Changes' if item else 'Publish Item to Vault' }}</button>
+      <a href="{{ url_for('society.vault') }}" class="button">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

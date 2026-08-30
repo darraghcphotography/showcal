@@ -6,7 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from ..auth import active_society_code, society_required
 from ..calendar_links import google_calendar_url
 from ..clock import utcnow_iso
-from ..constants import DATE_RE, SHOW_SECTIONS
+from ..constants import DATE_RE, SHOW_SECTIONS, WARDROBE_ITEM_TYPES, WARDROBE_TERMS, WARDROBE_STATUSES
 from ..db import get_db
 from .. import notify
 from ..rate_limit import limiter
@@ -539,3 +539,247 @@ def bulk_add():
         "society_bulk_form.html", society=society, rows=[None] * BULK_ROWS, bulk_rows=BULK_ROWS,
         seasons=season_range(db),
     )
+
+
+# --- Society Wardrobe & Props Vault ---
+
+@bp.route("/vault")
+@society_required
+def vault():
+    db = get_db()
+    society, code = _current_society(db)
+    items = db.execute(
+        """
+        SELECT wi.*, 
+               (SELECT COUNT(*) FROM wardrobe_photos WHERE item_id = wi.id) AS photo_count
+        FROM wardrobe_items wi
+        WHERE wi.society_id = ?
+        ORDER BY wi.created_at DESC
+        """,
+        (society["id"],),
+    ).fetchall()
+    return render_template(
+        "society_vault.html",
+        society=society,
+        items=items,
+        item_types=WARDROBE_ITEM_TYPES,
+        terms_labels=WARDROBE_TERMS,
+        status_labels=WARDROBE_STATUSES,
+    )
+
+
+@bp.route("/vault/new", methods=("GET", "POST"))
+@society_required
+def vault_new():
+    db = get_db()
+    society, code = _current_society(db)
+
+    past_shows = [
+        row["show"]
+        for row in db.execute(
+            "SELECT DISTINCT show FROM shows WHERE society_id = ? AND show IS NOT NULL ORDER BY show",
+            (society["id"],),
+        ).fetchall()
+    ]
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        item_type = request.form.get("item_type", "").strip()
+        show_title = request.form.get("show_title", "").strip() or None
+        description = request.form.get("description", "").strip() or None
+        sizing_quantity = request.form.get("sizing_quantity", "").strip() or None
+        terms = request.form.get("terms", "hire").strip()
+        status = request.form.get("status", "available").strip()
+        contact_name = request.form.get("contact_name", "").strip() or None
+        contact_email = request.form.get("contact_email", "").strip() or None
+        contact_phone = request.form.get("contact_phone", "").strip() or None
+        agree_terms = request.form.get("agree_terms")
+
+        if not title:
+            flash("Please enter a title / name for this item or wardrobe set.", "error")
+            return redirect(url_for("society.vault_new"))
+
+        if item_type not in WARDROBE_ITEM_TYPES:
+            flash("Please choose a valid category.", "error")
+            return redirect(url_for("society.vault_new"))
+
+        if terms not in WARDROBE_TERMS:
+            terms = "hire"
+
+        if status not in WARDROBE_STATUSES:
+            status = "available"
+
+        if not agree_terms:
+            flash("Please confirm the community guideline & non-liability acknowledgment.", "error")
+            return redirect(url_for("society.vault_new"))
+
+        photos = request.files.getlist("photos")
+        primary_photo = None
+        saved_filenames = []
+        upload_dir = current_app.config["UPLOAD_DIR"]
+
+        for p in photos:
+            if p and p.filename:
+                fn = save_poster(p, upload_dir)
+                if fn:
+                    saved_filenames.append(fn)
+                    if not primary_photo:
+                        primary_photo = fn
+
+        cur = db.execute(
+            """
+            INSERT INTO wardrobe_items (
+                society_id, show_title, title, item_type, description,
+                sizing_quantity, terms, status, contact_name, contact_email,
+                contact_phone, primary_photo, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            """,
+            (
+                society["id"], show_title, title, item_type, description,
+                sizing_quantity, terms, status, contact_name, contact_email,
+                contact_phone, primary_photo,
+            ),
+        )
+        item_id = cur.lastrowid
+
+        for idx, fn in enumerate(saved_filenames):
+            db.execute(
+                "INSERT INTO wardrobe_photos (item_id, filename, display_order) VALUES (?, ?, ?)",
+                (item_id, fn, idx),
+            )
+
+        db.commit()
+        flash(f"Listed '{title}' in your society's vault!", "success")
+        return redirect(url_for("society.vault"))
+
+    return render_template(
+        "society_vault_form.html",
+        society=society,
+        item=None,
+        photos=[],
+        past_shows=past_shows,
+        item_types=WARDROBE_ITEM_TYPES,
+        terms_labels=WARDROBE_TERMS,
+        status_labels=WARDROBE_STATUSES,
+    )
+
+
+@bp.route("/vault/<int:item_id>/edit", methods=("GET", "POST"))
+@society_required
+def vault_edit(item_id):
+    db = get_db()
+    society, code = _current_society(db)
+
+    item = db.execute(
+        "SELECT * FROM wardrobe_items WHERE id = ? AND society_id = ?",
+        (item_id, society["id"]),
+    ).fetchone()
+    if not item:
+        abort(404)
+
+    past_shows = [
+        row["show"]
+        for row in db.execute(
+            "SELECT DISTINCT show FROM shows WHERE society_id = ? AND show IS NOT NULL ORDER BY show",
+            (society["id"],),
+        ).fetchall()
+    ]
+    photos = db.execute(
+        "SELECT * FROM wardrobe_photos WHERE item_id = ? ORDER BY display_order, id",
+        (item_id,),
+    ).fetchall()
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        item_type = request.form.get("item_type", "").strip()
+        show_title = request.form.get("show_title", "").strip() or None
+        description = request.form.get("description", "").strip() or None
+        sizing_quantity = request.form.get("sizing_quantity", "").strip() or None
+        terms = request.form.get("terms", "hire").strip()
+        status = request.form.get("status", "available").strip()
+        contact_name = request.form.get("contact_name", "").strip() or None
+        contact_email = request.form.get("contact_email", "").strip() or None
+        contact_phone = request.form.get("contact_phone", "").strip() or None
+
+        if not title:
+            flash("Please enter a title for this item.", "error")
+            return redirect(url_for("society.vault_edit", item_id=item_id))
+
+        if item_type not in WARDROBE_ITEM_TYPES:
+            item_type = item["item_type"]
+
+        primary_photo = item["primary_photo"]
+        upload_dir = current_app.config["UPLOAD_DIR"]
+        new_photos = request.files.getlist("photos")
+
+        for p in new_photos:
+            if p and p.filename:
+                fn = save_poster(p, upload_dir)
+                if fn:
+                    if not primary_photo:
+                        primary_photo = fn
+                    db.execute(
+                        "INSERT INTO wardrobe_photos (item_id, filename) VALUES (?, ?)",
+                        (item_id, fn),
+                    )
+
+        db.execute(
+            """
+            UPDATE wardrobe_items SET
+                show_title = ?, title = ?, item_type = ?, description = ?,
+                sizing_quantity = ?, terms = ?, status = ?, contact_name = ?,
+                contact_email = ?, contact_phone = ?, primary_photo = ?,
+                updated_at = datetime('now')
+            WHERE id = ? AND society_id = ?
+            """,
+            (
+                show_title, title, item_type, description,
+                sizing_quantity, terms, status, contact_name,
+                contact_email, contact_phone, primary_photo,
+                item_id, society["id"],
+            ),
+        )
+        db.commit()
+        flash(f"Updated '{title}'.", "success")
+        return redirect(url_for("society.vault"))
+
+    return render_template(
+        "society_vault_form.html",
+        society=society,
+        item=item,
+        photos=photos,
+        past_shows=past_shows,
+        item_types=WARDROBE_ITEM_TYPES,
+        terms_labels=WARDROBE_TERMS,
+        status_labels=WARDROBE_STATUSES,
+    )
+
+
+@bp.route("/vault/<int:item_id>/status", methods=("POST",))
+@society_required
+def vault_toggle_status(item_id):
+    db = get_db()
+    society, code = _current_society(db)
+    new_status = request.form.get("status", "available").strip()
+    if new_status not in WARDROBE_STATUSES:
+        new_status = "available"
+
+    db.execute(
+        "UPDATE wardrobe_items SET status = ?, updated_at = datetime('now') WHERE id = ? AND society_id = ?",
+        (new_status, item_id, society["id"]),
+    )
+    db.commit()
+    flash(f"Status updated to '{WARDROBE_STATUSES[new_status]}'.", "success")
+    return redirect(url_for("society.vault"))
+
+
+@bp.route("/vault/<int:item_id>/delete", methods=("POST",))
+@society_required
+def vault_delete(item_id):
+    db = get_db()
+    society, code = _current_society(db)
+    db.execute("DELETE FROM wardrobe_items WHERE id = ? AND society_id = ?", (item_id, society["id"]))
+    db.commit()
+    flash("Item removed from your vault.", "success")
+    return redirect(url_for("society.vault"))
+

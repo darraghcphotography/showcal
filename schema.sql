@@ -901,3 +901,63 @@ CREATE TRIGGER IF NOT EXISTS historical_reviews_fts_au AFTER UPDATE ON historica
     INSERT INTO historical_reviews_fts(rowid, show_raw, society_raw, review_text)
     VALUES (new.id, new.show_raw, new.society_raw, new.review_text);
 END;
+
+-- Nationwide Wardrobe, Props & Sets Exchange
+CREATE TABLE IF NOT EXISTS wardrobe_items (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    society_id          INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
+    show_title          TEXT,
+    title               TEXT NOT NULL,
+    item_type           TEXT NOT NULL CHECK (item_type IN (
+                            'costume_full_set', 'costume_individual', 'prop',
+                            'set_piece', 'backdrop', 'tech_lighting', 'other'
+                        )),
+    description         TEXT,
+    sizing_quantity     TEXT,
+    terms               TEXT NOT NULL DEFAULT 'hire' CHECK (terms IN (
+                            'hire', 'loan', 'sale', 'negotiable'
+                        )),
+    status              TEXT NOT NULL DEFAULT 'available' CHECK (status IN (
+                            'available', 'on_loan', 'delisted'
+                        )),
+    contact_name        TEXT,
+    contact_email       TEXT,
+    contact_phone       TEXT,
+    primary_photo       TEXT,
+    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_wardrobe_items_society ON wardrobe_items(society_id);
+CREATE INDEX IF NOT EXISTS idx_wardrobe_items_status ON wardrobe_items(status);
+CREATE INDEX IF NOT EXISTS idx_wardrobe_items_type ON wardrobe_items(item_type);
+
+CREATE TABLE IF NOT EXISTS wardrobe_photos (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id             INTEGER NOT NULL REFERENCES wardrobe_items(id) ON DELETE CASCADE,
+    filename            TEXT NOT NULL,
+    caption             TEXT,
+    display_order       INTEGER NOT NULL DEFAULT 0,
+    created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_wardrobe_photos_item ON wardrobe_photos(item_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS wardrobe_items_fts USING fts5(
+    title, show_title, description, sizing_quantity, content='wardrobe_items', content_rowid='id'
+);
+CREATE TRIGGER IF NOT EXISTS wardrobe_items_fts_ai AFTER INSERT ON wardrobe_items BEGIN
+    INSERT INTO wardrobe_items_fts(rowid, title, show_title, description, sizing_quantity)
+    VALUES (new.id, new.title, new.show_title, new.description, new.sizing_quantity);
+END;
+CREATE TRIGGER IF NOT EXISTS wardrobe_items_fts_ad AFTER DELETE ON wardrobe_items BEGIN
+    INSERT INTO wardrobe_items_fts(wardrobe_items_fts, rowid, title, show_title, description, sizing_quantity)
+    VALUES ('delete', old.id, old.title, old.show_title, old.description, old.sizing_quantity);
+END;
+CREATE TRIGGER IF NOT EXISTS wardrobe_items_fts_au AFTER UPDATE ON wardrobe_items BEGIN
+    INSERT INTO wardrobe_items_fts(wardrobe_items_fts, rowid, title, show_title, description, sizing_quantity)
+    VALUES ('delete', old.id, old.title, old.show_title, old.description, old.sizing_quantity);
+    INSERT INTO wardrobe_items_fts(rowid, title, show_title, description, sizing_quantity)
+    VALUES (new.id, new.title, new.show_title, new.description, new.sizing_quantity);
+END;
+

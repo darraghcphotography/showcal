@@ -392,7 +392,7 @@ def _migrate_drop_shows_status(db):
 # unbuilt index in testing (it always read the real societies/historical_
 # results row count). Rebuilding unconditionally is simple, always correct,
 # and cheap at this data's scale (low thousands of rows, once per app start).
-FTS_TABLES = ["societies_fts", "historical_results_fts", "historical_reviews_fts"]
+FTS_TABLES = ["societies_fts", "historical_results_fts", "historical_reviews_fts", "wardrobe_items_fts"]
 
 
 def _backfill_fts_indexes(db):
@@ -420,6 +420,54 @@ def _migrate_society_access_requests(db):
     )
 
 
+def _migrate_wardrobe_tables(db):
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wardrobe_items (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            society_id          INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
+            show_title          TEXT,
+            title               TEXT NOT NULL,
+            item_type           TEXT NOT NULL CHECK (item_type IN (
+                                    'costume_full_set', 'costume_individual', 'prop',
+                                    'set_piece', 'backdrop', 'tech_lighting', 'other'
+                                )),
+            description         TEXT,
+            sizing_quantity     TEXT,
+            terms               TEXT NOT NULL DEFAULT 'hire' CHECK (terms IN (
+                                    'hire', 'loan', 'sale', 'negotiable'
+                                )),
+            status              TEXT NOT NULL DEFAULT 'available' CHECK (status IN (
+                                    'available', 'on_loan', 'delisted'
+                                )),
+            contact_name        TEXT,
+            contact_email       TEXT,
+            contact_phone       TEXT,
+            primary_photo       TEXT,
+            created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_wardrobe_items_society ON wardrobe_items(society_id)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_wardrobe_items_status ON wardrobe_items(status)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_wardrobe_items_type ON wardrobe_items(item_type)")
+
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wardrobe_photos (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id             INTEGER NOT NULL REFERENCES wardrobe_items(id) ON DELETE CASCADE,
+            filename            TEXT NOT NULL,
+            caption             TEXT,
+            display_order       INTEGER NOT NULL DEFAULT 0,
+            created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_wardrobe_photos_item ON wardrobe_photos(item_id)")
+
+
 def init_schema():
     """(Re-)apply schema.sql plus any pending column migrations. Safe to run
     against an existing database - it never drops or overwrites data."""
@@ -433,6 +481,7 @@ def init_schema():
     _migrate_shows_natural_key_collation(db)
     _migrate_drop_shows_status(db)
     _migrate_society_access_requests(db)
+    _migrate_wardrobe_tables(db)
     _apply_column_migrations(db)
     _create_migrated_column_indexes(db)
     db.commit()
