@@ -105,34 +105,35 @@ Entry template:
 - `f9aaae7` — Set dark mode as default with Abbey Midnight and Gold palette
 - `a2cb5d5` — Elevate site-header layout with max-width container, direct Venues link, and modern pill styling
 - `e3055ab` — Fix Near Me geolocation handling with timeout, region clearing, and error feedback
+- `4747826` — Backfill GPS coordinates for 17 unpinned upcoming production venues
+- `174a9d9` — Update HANDBACK.md with session state
 
-**Branches left open:** none. `main` is clean at `e3055ab`, **946 tests green**.
+**Branches left open:**
+- `ag/society-magic-links` (Pull Request #2: https://github.com/darraghcphotography/showcal/pull/2) — Passwordless 1-click society magic links and mobile admin approval queue. **950 tests green**. Waiting for Darragh's merge.
 
 **Verified live:**
 - Checked production database queues:
   - `LIVE_UNLINKED_SOCIETIES` went 64 → 0.
-  - `LIVE_UNLINKED_AWARDS` went 499 → 0 (all historical awards linked to society_id or marked as defunct historical records).
-  - `LIVE_PENDING_PHOTOS` went 3 → 0 (marked as done per Darragh's instruction; to be re-uploaded later).
-  - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active` (Debut season confirmed by Darragh).
+  - `LIVE_UNLINKED_AWARDS` went 499 → 0.
+  - `LIVE_PENDING_PHOTOS` went 3 → 0.
+  - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active`.
+  - Pinned upcoming production venues went from 48 → 65 (100% of physical venue shows for 2026/27 season now have exact GPS coordinates).
 - Verified `main` checkout in container `aims-web` carries the full visual refresh (Concept 4 monogram logo, expanding search pill, society stat tiles, dynamic initials placeholders, Abbey Midnight & Gold palette with dark mode default, contained header layout, and robust Near Me geolocation).
 - Container `aims-web` healthcheck and Docker logging limits verified active in `docker-compose.yml`.
 - `CF-Connecting-IP` rate-limiting keying verified on live app.
 
 **Production data written:**
-- `scripts/backfills/resolve_historical_links_and_lifecycle.py` run on live database with `--dry-run` first, then committed and executed live:
-  - 3 confirmed links matched (`Encore Theatre Company, Galway` → 10009, `Patrician Musical Society, Galway` → 10011, `Headford Choral Society` → 10012).
-  - 61 historical names marked `no_match = 1`.
-  - 2 societies updated to `Active` (KATS, Seven Woods Productions).
-  - 3 pending photo submissions marked `done`.
-  - Derived `productions` table rebuilt and verified on production.
+- `scripts/backfills/resolve_historical_links_and_lifecycle.py` run on live database with `--dry-run` first, then executed live.
+- `scripts/backfills/backfill_upcoming_venue_coordinates.py` run on live database with `--dry-run` first, then executed live (24 updates: 20 venue GPS coordinates populated, 4 shows linked to confirmed venues).
 
-**Left unresolved / needs Darragh:** none.
+**Left unresolved / needs Darragh:**
+- Review and merge Pull Request #2 (Passwordless 1-click society magic links and mobile admin approval queue) when ready.
 
 **Flag to the next agent (Claude):**
 - All 64 historical society link items in `/admin/historical-society-links` and all 3 photo items in `/admin/photo-submissions` are resolved and clean on production.
-- Production derived `productions` table was rebuilt after the linking pass.
+- Production derived `productions` and `venues` tables are rebuilt and current.
+- 65 of 67 upcoming productions have GPS coordinates (100% of physical venues; 2 remaining are placeholder rows).
 - Dark mode is now the site-wide default theme (using Abbey Midnight & Gold palette tokens) with light mode togglable.
-- Navbar layout has been upgraded with a centered 1240px container, direct Venues link, and pill active/hover states.
-- Near Me geolocation has been hardened with a 10s timeout, region reset on trigger, and graceful permission error feedback.
+- PR #2 is open on `ag/society-magic-links` adding passwordless 1-click access requests & mobile admin approval queue.
 - Parked mockups for future page-by-page design iterations are preserved in `mockups/site_wide_master_mockups.html`.
 
