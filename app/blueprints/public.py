@@ -1555,6 +1555,7 @@ def title_detail(title):
 
     curr_season = current_season(db)
     current_start = season_start_year(curr_season) if curr_season else 2026
+    today = date.today().isoformat()
 
     shows = [
         dict(s, blank_date_label=(
@@ -1562,6 +1563,17 @@ def title_detail(title):
         ))
         for s in raw_shows
     ]
+
+    upcoming_shows = []
+    past_shows = []
+    for s in shows:
+        s_start = season_start_year(s["season"])
+        if (s["closing_date"] and s["closing_date"] >= today) or \
+           (s["opening_date"] and s["opening_date"] >= today) or \
+           (not s["opening_date"] and not s["closing_date"] and s_start is not None and s_start >= current_start):
+            upcoming_shows.append(s)
+        else:
+            past_shows.append(s)
 
     # The rest of this title's stagings: the ones with no show page of their
     # own to link to. Split on that, not on an era - a skeleton shows row from
@@ -1622,7 +1634,9 @@ def title_detail(title):
         }
 
     return render_template(
-        "title_detail.html", title=title, shows=shows, historical=historical, info=info,
+        "title_detail.html", title=title, shows=shows,
+        upcoming_shows=upcoming_shows, past_shows=past_shows,
+        historical=historical, info=info,
         debut_label=debut_label, circuit=circuit,
     )
 

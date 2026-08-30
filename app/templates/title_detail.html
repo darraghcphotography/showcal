@@ -99,13 +99,78 @@
     {% endif %}
   {% endif %}
 
-  {% if shows %}
-    {# The split is "does this staging have a show page to link to", not an
-       era - a skeleton shows row from 12/13 belongs up here because it has a
-       real page. Two tables rather than one merged timeline deliberately:
-       merging them is a visual redesign, and this repo is mockup-first for
-       anything visual. #}
-    <h2>Productions with full detail</h2>
+  {% if upcoming_shows %}
+    <h2>Upcoming Productions</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+      {% for show in upcoming_shows %}
+        <div class="card" style="background: var(--surface); border: 1.5px solid var(--gold-border); border-radius: 8px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span class="tag tag-accent" style="font-size: 0.75rem;">{{ show['season'] }} Season</span>
+              <span class="tag" style="font-size: 0.75rem;">{{ show['region'] }}</span>
+            </div>
+            <h3 style="margin: 0.25rem 0 0.35rem; font-size: 1.15rem; line-height: 1.3;">
+              <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}" style="color: var(--fg); text-decoration: none;">
+                {{ show['society_name'] }}
+              </a>
+            </h3>
+            <p style="margin: 0 0 0.75rem; font-size: 0.9rem; color: var(--gold); font-weight: 600;">
+              {% if show['opening_date'] %}
+                📅 {{ show['opening_date']|date_range(show['closing_date']) }}
+              {% else %}
+                📅 <em>TBA</em>
+              {% endif %}
+            </p>
+            {% if show['venue_name'] or show['venue'] %}
+              <p style="margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--muted);">
+                📍 {{ show['venue_name'] or show['venue'] }}
+              </p>
+            {% endif %}
+          </div>
+          <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+            <a href="{{ url_for('public.show_detail', show_id=show['id']) }}" class="button small-button primary-button" style="flex: 1; text-align: center;">
+              Production Details &rarr;
+            </a>
+            {% if show['ticket_url'] %}
+              <a href="{{ show['ticket_url'] }}" target="_blank" rel="noopener" class="button small-button" style="text-decoration: none;" title="Book Tickets">
+                🎟️ Tickets
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if past_shows %}
+    <h2>Past Productions with Full Detail</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Season</th><th>Society</th><th>Region</th><th>Dates</th></tr>
+      </thead>
+      <tbody>
+        {% for show in past_shows %}
+          <tr>
+            <td>{{ show['season'] }}</td>
+            <td><a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a></td>
+            <td>{{ show['region'] }}</td>
+            <td>
+              <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">
+                {% if show['opening_date'] %}
+                  {{ show['opening_date']|date_range(show['closing_date']) }}
+                {% elif show['blank_date_label'] == 'TBA' %}
+                  <em>TBA</em>
+                {% else %}
+                  <span class="meta">{{ show['blank_date_label'] or 'No date on record' }}</span>
+                {% endif %}
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% elif not upcoming_shows and shows %}
+    <h2>Productions with Full Detail</h2>
     <table class="data-table">
       <thead>
         <tr><th>Season</th><th>Society</th><th>Region</th><th>Dates</th></tr>
