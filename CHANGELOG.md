@@ -1,3 +1,7 @@
+Society pages now feature scannable summary stat tiles for total productions, award wins, and active spans, matching the layout on venue pages. The site header has been refined with a crisp vector monogram and expanding search pill, and societies without uploaded artwork now render with rich gradient initials badges
+
+---
+
 Editing a show now takes you back to the page you started from. Following "Edit this show" from a show's own page and saving used to drop you into the moderator list of every show, with the one you had just edited nowhere in sight - it now returns you to the show, and there is a Cancel link beside Save that goes the same place
 
 ---
