@@ -115,6 +115,7 @@ Entry template:
 - `caf4095` — Merge pull request #3 (UI Polish: Navbar Alignment, Show History Fixed Grid & Calendar Light Mode Fix)
 - `978f099` — Streamline Submit Society History form to Past Productions Listing, Past Show Poster, and Other with clean 1-line description
 - `6603ba3` — Rich OpenGraph/Twitter social cards and multi-column sitemap footer (PR #4)
+- `9bc7c62` — Fix navbar search input width and eliminate layout shift jumping on focus
 
 **Branches left open:** none. `main` is clean, **955 tests green**.
 
