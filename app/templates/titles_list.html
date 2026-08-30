@@ -90,6 +90,18 @@
                   <span class="tag badge-gem">💎 Rare gem — staged once</span>
                 {% endif %}
               </div>
+              {% if s['composer'] or s['lyricist'] %}
+                <div style="font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem;">
+                  {% if s['composer'] %}Music: {{ s['composer'] }}{% endif %}
+                  {% if s['lyricist'] %}{% if s['composer'] %} &middot; {% endif %}Lyrics: {{ s['lyricist'] }}{% endif %}
+                  {% if s['licensing_house'] %} &middot; <span style="color: var(--gold);">{{ s['licensing_house'] }}</span>{% endif %}
+                </div>
+              {% endif %}
+              {% if s['key_songs'] %}
+                <div style="font-size: 0.78rem; background: var(--surface-subtle); border-left: 2px solid var(--gold); padding: 0.25rem 0.5rem; margin-top: 0.35rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--gold);">
+                  <strong>Songs:</strong> {{ s['key_songs'] }}
+                </div>
+              {% endif %}
               <div class="sub">
                 {% if s['is_gem'] %}
                   1 staging on record{% if s['last_year'] %}, {{ s['last_year'] }}{% endif %}

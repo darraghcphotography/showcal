@@ -652,6 +652,30 @@ button.button-primary { background: var(--success); color: #fff; }
 }
 .edit-callout:hover { border-style: solid; }
 
+.watchlist-btn {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 150ms ease;
+}
+.watchlist-btn:hover {
+  border-color: var(--gold-border);
+  color: var(--gold);
+}
+.watchlist-btn.is-saved {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+}
+
 /* .install-hint (near the bottom bar-nav styles) is the same callout box
    with extra right padding for its own close button - shared declarations
    live here so the two can't drift apart again. */

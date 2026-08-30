@@ -1379,9 +1379,9 @@ def titles_list():
 
     manual_links = dict(db.execute("SELECT show, url FROM show_links").fetchall())
     has_info = {r[0] for r in db.execute("SELECT show FROM show_info").fetchall()}
-    rights_info = {
-        r["show"]: {"rights_status": r["rights_status"], "licensing_house": r["licensing_house"]}
-        for r in db.execute("SELECT show, rights_status, licensing_house FROM show_info").fetchall()
+    full_info = {
+        r["show"]: dict(r)
+        for r in db.execute("SELECT * FROM show_info").fetchall()
     }
     licensing_houses = [
         r[0] for r in db.execute(
@@ -1441,13 +1441,14 @@ def titles_list():
             )
             on_stage_text = f"\U0001f525 {len(up)} productions in {span}" if span else f"\U0001f525 {len(up)} productions"
 
-        info = rights_info.get(title, {})
+        info = full_info.get(title, {})
         all_shows.append({
             "title": title,
             "count": n,
             "first_year": first_year,
             "last_year": last_year,
             "nominations": tally.get(key, {}).get("nominations", 0),
+            "wins": tally.get(key, {}).get("wins", 0),
             "url": manual_links.get(title),
             "is_manual": title in manual_links,
             "has_info": title in has_info,
@@ -1458,6 +1459,11 @@ def titles_list():
             "on_stage_text": on_stage_text,
             "rights_status": info.get("rights_status"),
             "licensing_house": info.get("licensing_house"),
+            "composer": info.get("composer"),
+            "lyricist": info.get("lyricist"),
+            "book_author": info.get("book_author"),
+            "key_songs": info.get("key_songs"),
+            "synopsis": info.get("synopsis"),
             "sort_key": _az_sort_key(title),
             "letter": _az_letter(title),
         })
@@ -1927,6 +1933,11 @@ def suggestions_board():
         "SELECT entry, created_at AS entry_date FROM changelog_entries ORDER BY created_at DESC"
     ).fetchall()
     return render_template("suggestions_board.html", lanes=lanes, changelog=changelog)
+
+
+@bp.route("/watchlist")
+def watchlist():
+    return render_template("watchlist.html")
 
 
 @bp.route("/uploads/<path:filename>")

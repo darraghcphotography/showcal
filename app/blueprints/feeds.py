@@ -156,12 +156,12 @@ def calendar_ics():
 @bp.route("/manifest.webmanifest")
 def manifest():
     body = json.dumps({
-        "name": "DC Show Tracker",
-        "short_name": "DC Show Tracker",
+        "name": "ShowCal — Irish Musical Society Tracker",
+        "short_name": "ShowCal",
         "start_url": url_for("public.index"),
         "display": "standalone",
-        "background_color": "#ffffff",
-        "theme_color": "#c8102e",
+        "background_color": "#0b0f14",
+        "theme_color": "#d4af37",
         "icons": [
             {"src": url_for("static", filename="favicon.svg"), "sizes": "any", "type": "image/svg+xml"},
             {"src": url_for("static", filename="icons/icon-192.png"), "sizes": "192x192", "type": "image/png", "purpose": "any"},

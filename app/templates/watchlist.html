@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}My Season Watchlist - DC Show Tracker{% endblock %}
+{% block og_description %}Your saved upcoming musical theatre productions across Ireland.{% endblock %}
+{% block content %}
+  <div style="max-width: 800px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+      <div>
+        <h1 style="margin-bottom: 0.2rem;">My Season Watchlist</h1>
+        <p class="meta">Your saved upcoming shows for the season (stored in your browser — zero login required).</p>
+      </div>
+      <div style="display: flex; gap: 0.6rem;" id="watchlistActions">
+        <button type="button" class="btn" id="exportIcsBtn" style="background: var(--gold); color: #0b0f14; font-weight: 700; border: none; border-radius: var(--radius-pill); padding: 0.45rem 1rem; font-size: 0.88rem; cursor: pointer;">
+          📅 Export to Calendar (.ics)
+        </button>
+        <button type="button" class="btn" id="clearWatchlistBtn" style="background: var(--surface); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 0.45rem 0.9rem; font-size: 0.85rem; cursor: pointer;">
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="watchlistEmpty" style="display: none; background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-lg); padding: 3rem 1.5rem; text-align: center;">
+      <span style="font-size: 3rem; display: block; margin-bottom: 0.75rem;">🔖</span>
+      <h2 style="font-size: 1.3rem; margin-bottom: 0.4rem;">Your watchlist is empty</h2>
+      <p class="meta" style="max-width: 450px; margin: 0 auto 1.5rem;">
+        Bookmark upcoming shows by tapping the <strong>🔖 Save</strong> button on any show card to build your personalized circuit schedule.
+      </p>
+      <a href="{{ url_for('public.index') }}" class="btn" style="background: var(--gold); color: #0b0f14; font-weight: 700; text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-pill);">
+        Browse Upcoming Productions &rarr;
+      </a>
+    </div>
+
+    <!-- Watchlist Items Container -->
+    <ul id="watchlistItems" style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 1rem;">
+      <!-- Populated via client JS -->
+    </ul>
+  </div>
+
+  <script nonce="{{ csp_nonce }}">
+    document.addEventListener('DOMContentLoaded', function() {
+      var container = document.getElementById('watchlistItems');
+      var emptyBox = document.getElementById('watchlistEmpty');
+      var actions = document.getElementById('watchlistActions');
+      var exportBtn = document.getElementById('exportIcsBtn');
+      var clearBtn = document.getElementById('clearWatchlistBtn');
+
+      function getSavedShows() {
+        try {
+          return JSON.parse(localStorage.getItem('showcal_watchlist') || '[]');
+        } catch(e) {
+          return [];
+        }
+      }
+
+      function saveShows(shows) {
+        localStorage.setItem('showcal_watchlist', JSON.stringify(shows));
+        render();
+      }
+
+      function render() {
+        var shows = getSavedShows();
+        if (!shows.length) {
+          container.innerHTML = '';
+          emptyBox.style.display = 'block';
+          if (actions) actions.style.display = 'none';
+          return;
+        }
+
+        emptyBox.style.display = 'none';
+        if (actions) actions.style.display = 'flex';
+
+        container.innerHTML = shows.map(function(s, idx) {
+          return '<li style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">' +
+            '<div style="flex: 1; min-width: 240px;">' +
+              '<h3 style="margin-bottom: 0.2rem;"><a href="' + (s.url || '#') + '" style="color: var(--fg); text-decoration: none; font-weight: 700;">' + escapeHtml(s.title) + '</a></h3>' +
+              '<p class="meta" style="margin: 0;">' +
+                '<strong style="color: var(--gold);">' + escapeHtml(s.society) + '</strong> &middot; ' +
+                (s.dates ? '<span>🗓️ ' + escapeHtml(s.dates) + '</span>' : '') +
+                (s.venue ? ' &middot; <span>📍 ' + escapeHtml(s.venue) + '</span>' : '') +
+              '</p>' +
+            '</div>' +
+            '<div style="display: flex; gap: 0.5rem; align-items: center;">' +
+              (s.url ? '<a href="' + s.url + '" class="btn" style="background: var(--surface-subtle); border: 1px solid var(--border); color: var(--fg); text-decoration: none; padding: 0.35rem 0.75rem; border-radius: var(--radius-pill); font-size: 0.8rem; font-weight: 600;">View Show &rarr;</a>' : '') +
+              '<button type="button" class="btn remove-show-btn" data-idx="' + idx + '" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 0.3rem;" title="Remove from watchlist">&times;</button>' +
+            '</div>' +
+          '</li>';
+        }).join('');
+
+        // Attach remove handlers
+        var removeButtons = container.querySelectorAll('.remove-show-btn');
+        removeButtons.forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var idx = parseInt(btn.getAttribute('data-idx'), 10);
+            var current = getSavedShows();
+            current.splice(idx, 1);
+            saveShows(current);
+          });
+        });
+      }
+
+      function escapeHtml(text) {
+        if (!text) return '';
+        var map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+        return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+      }
+
+      // Clear button
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          if (confirm('Clear all shows from your watchlist?')) {
+            saveShows([]);
+          }
+        });
+      }
+
+      // Export to iCalendar (.ics)
+      if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+          var shows = getSavedShows();
+          if (!shows.length) return;
+
+          var icsContent = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//ShowCal//Irish Musical Society Calendar//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH'
+          ];
+
+          shows.forEach(function(s, idx) {
+            icsContent.push('BEGIN:VEVENT');
+            icsContent.push('UID:showcal-' + (s.id || idx) + '@showcal.ie');
+            icsContent.push('DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z');
+            icsContent.push('SUMMARY:' + (s.title || 'Musical') + ' — ' + (s.society || 'Musical Society'));
+            if (s.venue) icsContent.push('LOCATION:' + s.venue);
+            if (s.url) icsContent.push('DESCRIPTION:Book tickets & details: ' + window.location.origin + s.url);
+            icsContent.push('END:VEVENT');
+          });
+
+          icsContent.push('END:VCALENDAR');
+
+          var blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+          var link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.setAttribute('download', 'showcal-my-season-watchlist.ics');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      }
+
+      render();
+    });
+  </script>
+{% endblock %}

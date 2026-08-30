@@ -17,6 +17,7 @@
     <div class="whatson-body">
       <div class="whatson-title">
         <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+        <button type="button" class="watchlist-btn" data-watchlist-id="{{ show['id'] }}" data-watchlist-title="{{ show['show'] }}" data-watchlist-society="{{ show['society_name'] }}" data-watchlist-dates="{% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}" data-watchlist-venue="{{ show['venue'] or '' }}" data-watchlist-url="{{ url_for('public.show_detail', show_id=show['id']) }}" aria-label="Bookmark show" title="Save to Watchlist">🔖</button>
         {% if distance_km is not none %}<span class="meta">&middot; {{ '%.0f'|format(distance_km) }}km away</span>{% endif %}
         {% if show['ticket_url'] %}
           <a class="whatson-tickets" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ icons.ticket() }}Tickets</a>

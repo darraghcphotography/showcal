@@ -97,6 +97,7 @@
               <button type="submit" class="link-button nav-pill">Log out ({{ current_user['username'] }})</button>
             </form>
           {% endif %}
+          <a class="nav-pill" href="{{ url_for('public.watchlist') }}" title="My Season Watchlist">🔖 Watchlist</a>
           <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false" title="Toggle dark mode">🌙</button>
         </div>
       </nav>
@@ -220,11 +221,12 @@
 
         if (installBtn) {
           installBtn.addEventListener('click', function() {
+            localStorage.setItem('pwaInstallDismissed', '1');
+            if (banner) banner.hidden = true;
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then(function() {
               deferredPrompt = null;
-              if (banner) banner.hidden = true;
             });
           });
         }
@@ -235,6 +237,12 @@
             localStorage.setItem('pwaInstallDismissed', '1');
           });
         }
+
+        window.addEventListener('appinstalled', function() {
+          if (banner) banner.hidden = true;
+          if (iosHint) iosHint.hidden = true;
+          localStorage.setItem('pwaInstallDismissed', '1');
+        });
 
         if (isIos && iosHint) {
           iosHint.hidden = false;
@@ -441,6 +449,63 @@
         var trigger = open.querySelector('summary');
         if (trigger) trigger.focus();
       });
+    })();
+  </script>
+  <script nonce="{{ csp_nonce }}">
+    (function() {
+      function getWatchlist() {
+        try { return JSON.parse(localStorage.getItem('showcal_watchlist') || '[]'); } catch(e) { return []; }
+      }
+      function isSaved(id) {
+        var list = getWatchlist();
+        return list.some(function(item) { return String(item.id) === String(id); });
+      }
+      function syncButtons() {
+        var btns = document.querySelectorAll('.watchlist-btn');
+        btns.forEach(function(b) {
+          var id = b.getAttribute('data-watchlist-id');
+          if (isSaved(id)) {
+            b.classList.add('is-saved');
+            if (b.textContent.trim().startsWith('🔖 Save')) {
+              b.textContent = '✓ Saved';
+            }
+          } else {
+            b.classList.remove('is-saved');
+            if (b.textContent.trim().startsWith('✓ Saved')) {
+              b.textContent = '🔖 Save';
+            }
+          }
+        });
+      }
+
+      document.addEventListener('click', function(e) {
+        var btn = e.target.closest && e.target.closest('.watchlist-btn');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        var id = btn.getAttribute('data-watchlist-id');
+        var title = btn.getAttribute('data-watchlist-title');
+        var society = btn.getAttribute('data-watchlist-society');
+        var dates = btn.getAttribute('data-watchlist-dates');
+        var venue = btn.getAttribute('data-watchlist-venue');
+        var url = btn.getAttribute('data-watchlist-url');
+
+        var list = getWatchlist();
+        var idx = list.findIndex(function(item) { return String(item.id) === String(id); });
+
+        if (idx >= 0) {
+          list.splice(idx, 1);
+        } else {
+          list.push({ id: id, title: title, society: society, dates: dates, venue: venue, url: url });
+        }
+
+        localStorage.setItem('showcal_watchlist', JSON.stringify(list));
+        syncButtons();
+      });
+
+      document.addEventListener('DOMContentLoaded', syncButtons);
+      syncButtons();
     })();
   </script>
   {% block scripts %}{% endblock %}
