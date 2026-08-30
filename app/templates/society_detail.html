@@ -35,7 +35,35 @@
         {% if society['founded_year'] %} &middot; Founded {{ society['founded_year'] }}{% endif %}
       </p>
 
-      {% if active_since or total_wins %}
+      {% if active_since or total_wins or best_show_wins %}
+        {% set prod_count = shows|length + historical_timeline|length %}
+        <div class="stat-tiles">
+          {% if prod_count %}
+            <div class="stat-tile">
+              <span class="stat-value">{{ prod_count }}</span>
+              <span class="stat-label">Production{{ '' if prod_count == 1 else 's' }}</span>
+            </div>
+          {% endif %}
+          {% if total_wins %}
+            <div class="stat-tile stat-tile-gold">
+              <span class="stat-value">{{ total_wins }}</span>
+              <span class="stat-label">Award win{{ '' if total_wins == 1 else 's' }}</span>
+            </div>
+          {% endif %}
+          {% if best_show_wins %}
+            <div class="stat-tile stat-tile-gold">
+              <span class="stat-value">{{ best_show_wins }}&times;</span>
+              <span class="stat-label">Best Overall Show</span>
+            </div>
+          {% endif %}
+          {% if active_since %}
+            <div class="stat-tile">
+              <span class="stat-value">{{ active_since }}</span>
+              <span class="stat-label">Active since</span>
+            </div>
+          {% endif %}
+        </div>
+
         <div class="trophy-case">
           {% if active_since %}<span class="tag tag-gold">Active since {{ active_since }}</span>{% endif %}
           {% if best_show_wins %}<span class="tag tag-gold">🏆 {{ best_show_wins }}&times; Best Overall Show</span>{% endif %}
