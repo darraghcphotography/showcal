@@ -215,7 +215,7 @@ body.public-chrome .container h2 {
 .site-header nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
+  gap: 1rem;
   align-items: center;
 }
 
@@ -226,11 +226,46 @@ body.public-chrome .container h2 {
    everything gets identical spacing regardless of what it's related to. */
 .nav-content, .nav-account {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
 }
-.nav-account { gap: 0.5rem; }
+.nav-account {
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+/* Fixed-width search capsule to eliminate layout shift / navbar jumping on focus */
+.site-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.15rem;
+}
+.site-search .search-icon-svg {
+  position: absolute;
+  left: 0.75rem;
+  pointer-events: none;
+  color: var(--muted);
+}
+.site-search input[type="search"] {
+  height: 36px;
+  width: 175px;
+  min-width: 175px;
+  max-width: 175px;
+  padding: 0 0.85rem 0 2rem;
+  font-size: 0.82rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.site-search input[type="search"]:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25);
+  background: var(--bg);
+}
 
 .nav-content > a, .nav-group-trigger {
   color: var(--muted);

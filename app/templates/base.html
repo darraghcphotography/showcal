@@ -87,6 +87,7 @@
           {% endfor %}
           <a href="{{ url_for('public.venues_index') }}" {% if request.endpoint in ('public.venues_index', 'public.venue_detail', 'public.venues_map') %}class="nav-current" aria-current="page"{% endif %}>Venues</a>
           <form class="site-search" method="get" action="{{ url_for('public.search') }}" role="search">
+            <svg class="search-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
             <input type="search" name="q" placeholder="Search shows & societies..." aria-label="Search societies and shows" value="{{ request.args.get('q', '') if request.endpoint == 'public.search' else '' }}">
           </form>
         </div>
