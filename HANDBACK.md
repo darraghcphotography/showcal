@@ -103,8 +103,10 @@ Entry template:
 - `ba5be47` — Update HANDBACK.md with ag/visual-refresh branch status
 - `9d9289e` — Merge pull request #1 from darraghcphotography/ag/visual-refresh (Visual refresh: monogram logo, navigation polish, society stat tiles, and dynamic placeholders)
 - `f9aaae7` — Set dark mode as default with Abbey Midnight and Gold palette
+- `a2cb5d5` — Elevate site-header layout with max-width container, direct Venues link, and modern pill styling
+- `e3055ab` — Fix Near Me geolocation handling with timeout, region clearing, and error feedback
 
-**Branches left open:** none. `main` is clean at `f9aaae7`, **946 tests green**.
+**Branches left open:** none. `main` is clean at `e3055ab`, **946 tests green**.
 
 **Verified live:**
 - Checked production database queues:
@@ -112,7 +114,7 @@ Entry template:
   - `LIVE_UNLINKED_AWARDS` went 499 → 0 (all historical awards linked to society_id or marked as defunct historical records).
   - `LIVE_PENDING_PHOTOS` went 3 → 0 (marked as done per Darragh's instruction; to be re-uploaded later).
   - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active` (Debut season confirmed by Darragh).
-- Verified `main` checkout in container `aims-web` carries the full visual refresh (Concept 4 monogram logo, expanding search pill, society stat tiles, dynamic initials placeholders, and Abbey Midnight & Gold palette with dark mode default).
+- Verified `main` checkout in container `aims-web` carries the full visual refresh (Concept 4 monogram logo, expanding search pill, society stat tiles, dynamic initials placeholders, Abbey Midnight & Gold palette with dark mode default, contained header layout, and robust Near Me geolocation).
 - Container `aims-web` healthcheck and Docker logging limits verified active in `docker-compose.yml`.
 - `CF-Connecting-IP` rate-limiting keying verified on live app.
 
@@ -126,8 +128,11 @@ Entry template:
 
 **Left unresolved / needs Darragh:** none.
 
-**Flag to the next agent:**
+**Flag to the next agent (Claude):**
 - All 64 historical society link items in `/admin/historical-society-links` and all 3 photo items in `/admin/photo-submissions` are resolved and clean on production.
 - Production derived `productions` table was rebuilt after the linking pass.
 - Dark mode is now the site-wide default theme (using Abbey Midnight & Gold palette tokens) with light mode togglable.
+- Navbar layout has been upgraded with a centered 1240px container, direct Venues link, and pill active/hover states.
+- Near Me geolocation has been hardened with a 10s timeout, region reset on trigger, and graceful permission error feedback.
+- Parked mockups for future page-by-page design iterations are preserved in `mockups/site_wide_master_mockups.html`.
 
