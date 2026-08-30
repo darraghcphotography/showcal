@@ -33,6 +33,7 @@
         {{ society['region'] }} &middot; {{ tier.tier_label(society['section']) }}
         {% if society['section_as_of'] %}(as of {{ society['section_as_of'] }}){% endif %}
         {% if society['founded_year'] %} &middot; Founded {{ society['founded_year'] }}{% endif %}
+        {% if not society_session %} &middot; <a href="{{ url_for('society.request_access', society_id=society['id']) }}" style="color: var(--gold); font-weight: 600; text-decoration: none;">✨ Committee login</a>{% endif %}
       </p>
 
       {% if active_since or total_wins or best_show_wins %}
@@ -319,5 +320,17 @@
         {% endfor %}
       </tbody>
     </table>
+  {% endif %}
+
+  {% if not society_session %}
+    <div style="margin-top: 3rem; background: var(--surface); border: 1px dashed var(--gold-border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <strong style="font-size: 0.95rem; color: var(--fg);">Are you on the committee of {{ society['name'] }}?</strong>
+        <p class="meta" style="margin: 0.2rem 0 0;">Request 1-click passwordless access to manage your productions, upload posters, and update your society history.</p>
+      </div>
+      <a href="{{ url_for('society.request_access', society_id=society['id']) }}" class="btn" style="background: var(--surface-subtle); border: 1px solid var(--gold-border); color: var(--gold); text-decoration: none; padding: 0.45rem 0.9rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 700;">
+        Request 1-Click Access &rarr;
+      </a>
+    </div>
   {% endif %}
 {% endblock %}

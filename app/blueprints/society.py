@@ -92,8 +92,9 @@ def request_access():
 
         return render_template("society_request_thanks.html", requester_name=name, requester_email=email)
 
+    selected_society_id = request.args.get("society_id", type=int)
     societies = db.execute("SELECT id, name, region FROM societies WHERE NOT hidden ORDER BY name").fetchall()
-    return render_template("society_request_access.html", societies=societies)
+    return render_template("society_request_access.html", societies=societies, selected_society_id=selected_society_id)
 
 
 @bp.route("/auth/<token>")

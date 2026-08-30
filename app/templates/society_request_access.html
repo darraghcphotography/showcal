@@ -15,7 +15,7 @@
         <select name="society_id" required autofocus style="width: 100%;">
           <option value="">-- Choose your society --</option>
           {% for s in societies %}
-            <option value="{{ s['id'] }}">{{ s['name'] }}{% if s['region'] %} ({{ s['region'] }}){% endif %}</option>
+            <option value="{{ s['id'] }}" {% if selected_society_id and s['id'] == selected_society_id %}selected{% endif %}>{{ s['name'] }}{% if s['region'] %} ({{ s['region'] }}){% endif %}</option>
           {% endfor %}
         </select>
       </label>
