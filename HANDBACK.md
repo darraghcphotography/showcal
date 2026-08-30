@@ -149,6 +149,7 @@ Entry template:
 - `30e97db` — Optimize homepage show cards on mobile to sleek horizontal media cards
 - `a5e9829` — Add Costumes Exchange, Venues Map, Circuit Records, Society Vault, and Coffee links to More page
 - `488816e` — Email magic login link directly to requester upon approval and polish admin mobile navbar
+- `acb532e` — Redirect admin login to admin dashboard and clean up mobile admin navbar
 
 **Branches left open:** none. `main` is clean, **964 tests green**.
 
