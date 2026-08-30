@@ -50,6 +50,73 @@ def login():
     return render_template("society_login.html")
 
 
+@bp.route("/request-access", methods=("GET", "POST"))
+@limiter.limit("5 per minute")
+def request_access():
+    db = get_db()
+    if request.method == "POST":
+        society_id = request.form.get("society_id", type=int)
+        name = request.form.get("requester_name", "").strip()
+        email = request.form.get("requester_email", "").strip()
+        role = request.form.get("requester_role", "").strip() or "Committee Officer"
+
+        if not society_id or not db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone():
+            flash("Please choose your society from the list.", "error")
+            return redirect(url_for("society.request_access"))
+
+        if not name or not email:
+            flash("Please enter both your name and email address.", "error")
+            return redirect(url_for("society.request_access"))
+
+        import secrets
+        token = secrets.token_urlsafe(32)
+        db.execute(
+            """
+            INSERT INTO society_access_requests (
+                society_id, requester_name, requester_email, requester_role, token, status
+            ) VALUES (?, ?, ?, ?, ?, 'pending')
+            """,
+            (society_id, name, email, role, token),
+        )
+        db.commit()
+        return render_template("society_request_thanks.html", requester_name=name, requester_email=email)
+
+    societies = db.execute("SELECT id, name, region FROM societies WHERE NOT hidden ORDER BY name").fetchall()
+    return render_template("society_request_access.html", societies=societies)
+
+
+@bp.route("/auth/<token>")
+@limiter.limit("15 per minute")
+def auth_magic_link(token: str):
+    db = get_db()
+    req = db.execute(
+        """
+        SELECT req.*, societies.name AS society_name
+        FROM society_access_requests req
+        JOIN societies ON societies.id = req.society_id
+        WHERE req.token = ?
+        """,
+        (token,),
+    ).fetchone()
+
+    if not req or req["status"] not in ("approved", "used"):
+        flash("This login link is either invalid, expired, or pending approval. You can request a fresh link anytime.", "error")
+        return redirect(url_for("society.login"))
+
+    today_str = date.today().isoformat()
+    if req["expires_at"] and req["expires_at"] < today_str:
+        flash("This login link has expired. Please request a fresh link.", "error")
+        return redirect(url_for("society.login"))
+
+    if not req["invite_code_id"]:
+        flash("Unable to authenticate session. Please contact the administrator.", "error")
+        return redirect(url_for("society.login"))
+
+    session["society_code_id"] = req["invite_code_id"]
+    flash(f"Welcome, {req['requester_name']}! You are logged in to manage {req['society_name']}.", "success")
+    return redirect(url_for("society.dashboard"))
+
+
 @bp.route("/logout", methods=("POST",))
 def logout():
     session.pop("society_code_id", None)

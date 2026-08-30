@@ -18,6 +18,16 @@
       <tr>
         <td>
           <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if pending_access_requests_count else 'admin-dot-off' }}"></span>
+            Society access requests (1-click magic link requests from officers)
+          </span>
+        </td>
+        <td>{{ pending_access_requests_count }}</td>
+        <td><a href="{{ url_for('admin.access_requests') }}">Access requests</a></td>
+      </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
             <span class="admin-dot {{ 'admin-dot-on' if pending_count else 'admin-dot-off' }}"></span>
             Pending submissions
           </span>

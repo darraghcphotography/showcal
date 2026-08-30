@@ -2,15 +2,30 @@
 {% block title %}Society login - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Society login</h1>
-  <p>If your society secretary has been given a login code for this site, enter it here to manage your
-     own society's show history directly - additions and edits go live immediately, no moderation queue.</p>
+  <p>If your society committee has a login code, enter it below to manage your productions, upload posters, and update society history.</p>
 
-  <form method="post" class="stacked-form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>
-      Login code
-      <input type="text" name="code" required autofocus>
-    </label>
-    <button type="submit">Continue</button>
-  </form>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem;">
+      <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 0.5rem;">🔑 Enter Login Code</h2>
+      <p class="meta" style="margin-bottom: 1rem;">Enter your society's active 6-digit access code.</p>
+      <form method="post" class="stacked-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>
+          Login code
+          <input type="text" name="code" required autofocus placeholder="e.g. 782941">
+        </label>
+        <button type="submit">Continue &rarr;</button>
+      </form>
+    </div>
+
+    <div style="background: var(--surface-subtle); border: 1px dashed var(--gold); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 0.5rem; color: var(--gold);">✨ Don't have a code?</h2>
+        <p class="meta" style="margin-bottom: 1rem;">Are you a chairperson, secretary, or PRO? You can request a passwordless 1-click login link sent directly to your email.</p>
+      </div>
+      <a href="{{ url_for('society.request_access') }}" class="btn" style="background: var(--gold); color: #000; font-weight: 700; text-align: center; text-decoration: none; padding: 0.65rem 1rem; border-radius: var(--radius-md);">
+        Request 1-Click Access Link &rarr;
+      </a>
+    </div>
+  </div>
 {% endblock %}

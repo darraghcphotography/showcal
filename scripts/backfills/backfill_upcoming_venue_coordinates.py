@@ -1,7 +1,7 @@
 """
 Backfill GPS coordinates (latitude, longitude), town, and county for
-unpinned upcoming venues so the "Near Me" radius filter has 100% coverage
-across announced productions.
+unpinned upcoming venues and link upcoming productions with unassigned
+venues to their confirmed pinned venue records.
 
 Usage:
   python scripts/backfills/backfill_upcoming_venue_coordinates.py [--db PATH] [--dry-run]
@@ -137,7 +137,36 @@ VENUE_COORDINATES: dict[str, dict[str, str | float]] = {
         "latitude": 54.0453,
         "longitude": -7.1895,
     },
+    "glor-ennis-st-patrick-s-comprehensive-shannon": {
+        "name": "glór, Ennis / St. Patrick's Comprehensive, Shannon",
+        "town": "Ennis",
+        "county": "Clare",
+        "latitude": 52.8447,
+        "longitude": -8.9839,
+    },
+    "dcu-st-patrick-s-campus-auditorium-the-helix": {
+        "name": "DCU St. Patrick's Campus Auditorium / The Helix",
+        "town": "Glasnevin",
+        "county": "Dublin",
+        "latitude": 53.3883,
+        "longitude": -6.2572,
+    },
+    "grand-opera-house-lyric-theatre-belfast": {
+        "name": "Grand Opera House / Lyric Theatre, Belfast",
+        "town": "Belfast",
+        "county": "Antrim",
+        "latitude": 54.5954,
+        "longitude": -5.9348,
+    },
 }
+
+# Shows with missing venue_id or pointing to an unpinned duplicate
+SHOW_VENUE_LINKS = [
+    {"show_id": 2002, "venue_slug": "an-tain-arts-centre", "note": "SONG Dundalk -> An Táin Arts Centre"},
+    {"show_id": 446, "venue_slug": "annesley-hall-newcastle", "note": "Newcastle Glees -> Annesley Hall"},
+    {"show_id": 433, "venue_slug": "tf-royal-theatre-castlebar", "note": "Castlebar MS -> TF Royal Theatre"},
+    {"show_id": 444, "venue_slug": "aula-maxima-maynooth-university", "note": "Maynooth MS -> Aula Maxima University"},
+]
 
 
 def run_backfill(db_path: Path, dry_run: bool = True) -> int:
@@ -148,10 +177,10 @@ def run_backfill(db_path: Path, dry_run: bool = True) -> int:
     updated_count = 0
     print(f"[{'DRY-RUN' if dry_run else 'LIVE'}] Connecting to {db_path}...")
 
+    # 1. Update Venue Coordinates
     for slug, data in VENUE_COORDINATES.items():
         row = cursor.execute("SELECT id, name, latitude, longitude, town, county FROM venues WHERE slug = ?", [slug]).fetchone()
         if not row:
-            # Fallback by name match if slug differs
             row = cursor.execute("SELECT id, name, latitude, longitude, town, county FROM venues WHERE name LIKE ?", [f"%{data['name']}%"]).fetchone()
 
         if row:
@@ -170,15 +199,24 @@ def run_backfill(db_path: Path, dry_run: bool = True) -> int:
                     WHERE id = ?
                 """, [lat, lng, town, county, v_id])
             updated_count += 1
-        else:
-            print(f"  [!] Venue slug '{slug}' not found in database.")
+
+    # 2. Link Shows to Confirmed Pinned Venues
+    for item in SHOW_VENUE_LINKS:
+        v_row = cursor.execute("SELECT id, name FROM venues WHERE slug = ?", [item["venue_slug"]]).fetchone()
+        if v_row:
+            s_row = cursor.execute("SELECT id, show, venue_id FROM shows WHERE id = ?", [item["show_id"]]).fetchone()
+            if s_row:
+                print(f"  -> Linking Show ID {s_row['id']} ('{s_row['show']}') to Venue ID {v_row['id']} ('{v_row['name']}'): {item['note']}")
+                if not dry_run:
+                    cursor.execute("UPDATE shows SET venue_id = ? WHERE id = ?", [v_row["id"], s_row["id"]])
+                updated_count += 1
 
     if dry_run:
-        print(f"\n[DRY-RUN COMPLETE] Would update {updated_count} venues. Rolling back.")
+        print(f"\n[DRY-RUN COMPLETE] Would perform {updated_count} updates. Rolling back.")
         conn.rollback()
     else:
         conn.commit()
-        print(f"\n[LIVE UPDATE COMPLETE] Successfully updated {updated_count} venues in {db_path}.")
+        print(f"\n[LIVE UPDATE COMPLETE] Successfully performed {updated_count} updates in {db_path}.")
 
     conn.close()
     return updated_count
