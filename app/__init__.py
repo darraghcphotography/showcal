@@ -310,8 +310,8 @@ def create_app(test_config=None):
         # URL isn't sensitive, but no reason to leak the full path to a
         # third-party image host etc.
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-        # No browser feature here needs geolocation/camera/mic/payment access.
-        response.headers.setdefault("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=()")
+        # Geolocation allowed for same-origin (Near Me show finder); camera/mic/payment disabled.
+        response.headers.setdefault("Permissions-Policy", "geolocation=(self), camera=(), microphone=(), payment=()")
         # script-src is nonce-gated (every <script> tag carries the same
         # per-request g.csp_nonce set in set_csp_nonce() above) rather than
         # 'unsafe-inline', so an injected <script> - the actual XSS risk -

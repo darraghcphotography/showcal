@@ -101,7 +101,7 @@ def test_homepage_has_meta_description(client):
 def test_referrer_and_permissions_policy_headers_present(client):
     resp = client.get("/")
     assert resp.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
-    assert "geolocation=()" in resp.headers.get("Permissions-Policy", "")
+    assert "geolocation=(self)" in resp.headers.get("Permissions-Policy", "")
 
 
 def _show(opening_date=None):
