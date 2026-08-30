@@ -111,8 +111,9 @@ Entry template:
 - `3981d74` — Add pre-selected 1-click request access link and footer callout to society pages
 - `0a1e65e` — Enrich top musical titles with creative credits, licensing houses, and key songs, plus native PWA install banner
 - `3cc51d5` — Update PWA icons and dismissal, enrich repertoire titles view, and add 1-tap season watchlist with iCalendar export
+- `8f580b9` — Elevate season calendar with active week highlight, month scrubber, and enriched show cards
 
-**Branches left open:** none. `main` is clean at `3cc51d5`, **954 tests green**.
+**Branches left open:** none. `main` is clean at `8f580b9`, **954 tests green**.
 
 **Verified live:**
 - Checked production database queues:
