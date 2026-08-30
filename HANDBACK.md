@@ -110,8 +110,9 @@ Entry template:
 - `7779871` — Send email notification to admin when society officer requests access
 - `3981d74` — Add pre-selected 1-click request access link and footer callout to society pages
 - `0a1e65e` — Enrich top musical titles with creative credits, licensing houses, and key songs, plus native PWA install banner
+- `3cc51d5` — Update PWA icons and dismissal, enrich repertoire titles view, and add 1-tap season watchlist with iCalendar export
 
-**Branches left open:** none. `main` is clean at `0a1e65e`, **951 tests green**.
+**Branches left open:** none. `main` is clean at `3cc51d5`, **954 tests green**.
 
 **Verified live:**
 - Checked production database queues:
@@ -138,5 +139,7 @@ Entry template:
 - 65 of 67 upcoming productions have GPS coordinates (100% of physical venues; 2 remaining are placeholder rows).
 - Dark mode is now the site-wide default theme (using Abbey Midnight & Gold palette tokens) with light mode togglable.
 - Passwordless 1-click society magic links and mobile admin approval queue shipped and live at `/society/request-access` and `/admin/access-requests`.
-- Parked mockups for future page-by-page design iterations are preserved in `mockups/site_wide_master_mockups.html`.
+- Repertoire view enriched with composer, lyricist, licensing house, and signature songs on `/titles`.
+- 1-Tap "My Season Watchlist" live with localStorage and iCalendar (.ics) export at `/watchlist`.
+- Parked mockups for future page-by-page design iterations and costumes/props exchange are preserved in `mockups/site_wide_master_mockups.html` and `mockups/costumes_props_exchange.html`.
 
