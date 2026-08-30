@@ -91,3 +91,40 @@ Entry template:
   at a path that isn't there; corrected in the same commit, keeping the lesson and dropping the
   claim. A worked example of the point above: that warning was written five days ago and was
   already wrong.
+
+---
+
+## 2026-08-30 — Resolved historical links, photo queues, and debut lifecycle statuses
+
+**Who:** Gemini Antigravity (driving the repo per handoff)
+
+**Commits:**
+- `99ce225` — Backfill script to resolve historical society links, photos, and lifecycle
+
+**Branches left open:** none. `main` is clean at `99ce225`, **946 tests green**.
+
+**Verified live:**
+- Checked production database queues:
+  - `LIVE_UNLINKED_SOCIETIES` went 64 → 0.
+  - `LIVE_UNLINKED_AWARDS` went 499 → 0 (all historical awards linked to society_id or marked as defunct historical records).
+  - `LIVE_PENDING_PHOTOS` went 3 → 0 (marked as done per Darragh's instruction; to be re-uploaded later).
+  - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active` (Debut season confirmed by Darragh).
+- Container `aims-web` healthcheck and Docker logging limits verified active in `docker-compose.yml`.
+- `CF-Connecting-IP` rate-limiting keying verified on live app.
+
+**Production data written:**
+- `scripts/backfills/resolve_historical_links_and_lifecycle.py` run on live database with `--dry-run` first, then committed and executed live:
+  - 3 confirmed links matched (`Encore Theatre Company, Galway` → 10009, `Patrician Musical Society, Galway` → 10011, `Headford Choral Society` → 10012).
+  - 61 historical names marked `no_match = 1`.
+  - 2 societies updated to `Active` (KATS, Seven Woods Productions).
+  - 3 pending photo submissions marked `done`.
+  - Derived `productions` table rebuilt and verified on production.
+
+**Left unresolved / needs Darragh:**
+- Stat tiles layout on society pages (mockup to follow).
+- Society logo placeholder styling.
+
+**Flag to the next agent:**
+- All 64 historical society link items in `/admin/historical-society-links` and all 3 photo items in `/admin/photo-submissions` are resolved and clean on production.
+- Production derived `productions` table was rebuilt after the linking pass.
+
