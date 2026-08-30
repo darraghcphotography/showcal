@@ -109,8 +109,9 @@ Entry template:
 - `67154fe` — Merge pull request #2 from darraghcphotography/ag/society-magic-links (Passwordless 1-click society magic links and mobile admin approval queue)
 - `7779871` — Send email notification to admin when society officer requests access
 - `3981d74` — Add pre-selected 1-click request access link and footer callout to society pages
+- `0a1e65e` — Enrich top musical titles with creative credits, licensing houses, and key songs, plus native PWA install banner
 
-**Branches left open:** none. `main` is clean at `3981d74`, **950 tests green**.
+**Branches left open:** none. `main` is clean at `0a1e65e`, **951 tests green**.
 
 **Verified live:**
 - Checked production database queues:
@@ -119,6 +120,7 @@ Entry template:
   - `LIVE_PENDING_PHOTOS` went 3 → 0.
   - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active`.
   - Pinned upcoming production venues went from 48 → 65 (100% of physical venue shows for 2026/27 season now have exact GPS coordinates).
+  - Enriched 45 top iconic circuit musicals on `/titles/<title>` with composers, lyricists, book authors, licensing houses, synopses, and notable musical numbers.
 - Verified `main` checkout in container `aims-web` carries the full visual refresh (Concept 4 monogram logo, expanding search pill, society stat tiles, dynamic initials placeholders, Abbey Midnight & Gold palette with dark mode default, contained header layout, and robust Near Me geolocation).
 - Container `aims-web` healthcheck and Docker logging limits verified active in `docker-compose.yml`.
 - `CF-Connecting-IP` rate-limiting keying verified on live app.
@@ -126,6 +128,7 @@ Entry template:
 **Production data written:**
 - `scripts/backfills/resolve_historical_links_and_lifecycle.py` run on live database with `--dry-run` first, then executed live.
 - `scripts/backfills/backfill_upcoming_venue_coordinates.py` run on live database with `--dry-run` first, then executed live (24 updates: 20 venue GPS coordinates populated, 4 shows linked to confirmed venues).
+- `scripts/backfills/backfill_show_credits_and_songs.py` run on live database with `--dry-run` first, then executed live (45 top iconic musical titles enriched with verified credits, licensing houses, and famous songs).
 
 **Left unresolved / needs Darragh:** none.
 
