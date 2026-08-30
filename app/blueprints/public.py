@@ -1575,6 +1575,25 @@ def title_detail(title):
         else:
             past_shows.append(s)
 
+    # Sort upcoming chronologically (soonest first; TBA dates at end)
+    upcoming_shows.sort(
+        key=lambda s: (
+            s["opening_date"] or s["closing_date"] or "9999-99-99",
+            season_start_year(s["season"]) or 9999,
+            s["society_name"],
+        )
+    )
+
+    # Sort past productions reverse-chronologically (most recent first)
+    past_shows.sort(
+        key=lambda s: (
+            season_start_year(s["season"]) or 0,
+            s["opening_date"] or s["closing_date"] or "0000-00-00",
+            s["society_name"],
+        ),
+        reverse=True,
+    )
+
     # The rest of this title's stagings: the ones with no show page of their
     # own to link to. Split on that, not on an era - a skeleton shows row from
     # 12/13 belongs in the table above because it has a real page, and a

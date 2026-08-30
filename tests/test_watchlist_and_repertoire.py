@@ -68,3 +68,25 @@ def test_title_detail_renders_no_date_on_record_for_past_seasons(client, db):
     body = resp.get_data(as_text=True)
     assert "No date on record" in body
     assert "TBA" in body
+
+
+def test_title_detail_orders_past_shows_most_recent_first(client, db):
+    seed_society(db, id=1, name="Society A")
+    seed_society(db, id=2, name="Society B")
+    seed_society(db, id=3, name="Society C")
+
+    # Three shows in same past season with different dates
+    seed_show(db, society_id=1, show="All Shook Up", season="23/24", opening_date="2023-10-18", closing_date="2023-10-22")
+    seed_show(db, society_id=2, show="All Shook Up", season="23/24", opening_date="2023-11-27", closing_date="2023-12-02")
+    seed_show(db, society_id=3, show="All Shook Up", season="23/24", opening_date="2023-11-07", closing_date="2023-11-11")
+
+    resp = client.get("/titles/All%20Shook%20Up")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+
+    # Must appear in reverse chronological order: Society B (27 Nov) before Society C (7 Nov) before Society A (18 Oct)
+    idx_soc_b = body.index("Society B")
+    idx_soc_c = body.index("Society C")
+    idx_soc_a = body.index("Society A")
+    assert idx_soc_b < idx_soc_c < idx_soc_a
+
