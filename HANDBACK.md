@@ -106,10 +106,9 @@ Entry template:
 - `a2cb5d5` — Elevate site-header layout with max-width container, direct Venues link, and modern pill styling
 - `e3055ab` — Fix Near Me geolocation handling with timeout, region clearing, and error feedback
 - `4747826` — Backfill GPS coordinates for 17 unpinned upcoming production venues
-- `174a9d9` — Update HANDBACK.md with session state
+- `67154fe` — Merge pull request #2 from darraghcphotography/ag/society-magic-links (Passwordless 1-click society magic links and mobile admin approval queue)
 
-**Branches left open:**
-- `ag/society-magic-links` (Pull Request #2: https://github.com/darraghcphotography/showcal/pull/2) — Passwordless 1-click society magic links and mobile admin approval queue. **950 tests green**. Waiting for Darragh's merge.
+**Branches left open:** none. `main` is clean at `67154fe`, **950 tests green**.
 
 **Verified live:**
 - Checked production database queues:
@@ -126,14 +125,13 @@ Entry template:
 - `scripts/backfills/resolve_historical_links_and_lifecycle.py` run on live database with `--dry-run` first, then executed live.
 - `scripts/backfills/backfill_upcoming_venue_coordinates.py` run on live database with `--dry-run` first, then executed live (24 updates: 20 venue GPS coordinates populated, 4 shows linked to confirmed venues).
 
-**Left unresolved / needs Darragh:**
-- Review and merge Pull Request #2 (Passwordless 1-click society magic links and mobile admin approval queue) when ready.
+**Left unresolved / needs Darragh:** none.
 
 **Flag to the next agent (Claude):**
 - All 64 historical society link items in `/admin/historical-society-links` and all 3 photo items in `/admin/photo-submissions` are resolved and clean on production.
 - Production derived `productions` and `venues` tables are rebuilt and current.
 - 65 of 67 upcoming productions have GPS coordinates (100% of physical venues; 2 remaining are placeholder rows).
 - Dark mode is now the site-wide default theme (using Abbey Midnight & Gold palette tokens) with light mode togglable.
-- PR #2 is open on `ag/society-magic-links` adding passwordless 1-click access requests & mobile admin approval queue.
+- Passwordless 1-click society magic links and mobile admin approval queue shipped and live at `/society/request-access` and `/admin/access-requests`.
 - Parked mockups for future page-by-page design iterations are preserved in `mockups/site_wide_master_mockups.html`.
 
