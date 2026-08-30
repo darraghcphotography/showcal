@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Request Society Access - DC Show Tracker{% endblock %}
+{% block content %}
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h1>Request 1-Click Society Access</h1>
+    <p class="meta">
+      Are you on the committee of an amateur musical society? Select your society below and submit your details. Once approved, you'll receive a secure 1-click login link directly to your inbox — no passwords or codes to manage.
+    </p>
+
+    <form method="post" class="stacked-form" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-top: 1.25rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label>
+        Your Society <span style="color: var(--danger);">*</span>
+        <select name="society_id" required autofocus style="width: 100%;">
+          <option value="">-- Choose your society --</option>
+          {% for s in societies %}
+            <option value="{{ s['id'] }}">{{ s['name'] }}{% if s['region'] %} ({{ s['region'] }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        Your Full Name <span style="color: var(--danger);">*</span>
+        <input type="text" name="requester_name" required placeholder="e.g. Sarah Murphy">
+      </label>
+
+      <label>
+        Your Email Address <span style="color: var(--danger);">*</span>
+        <input type="email" name="requester_email" required placeholder="e.g. secretary@yourmusicalsociety.com">
+        <span class="hint">The 1-click magic login link will be sent to this email address.</span>
+      </label>
+
+      <label>
+        Your Role in the Society
+        <input type="text" name="requester_role" placeholder="e.g. Secretary, Chairperson, PRO, Committee Member">
+      </label>
+
+      <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center;">
+        <button type="submit" style="background: var(--gold); color: #000; font-weight: 700;">Submit Access Request &rarr;</button>
+        <a href="{{ url_for('society.login') }}" style="color: var(--muted); font-size: 0.88rem;">Back to Code Login</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

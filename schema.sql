@@ -195,6 +195,22 @@ CREATE TABLE IF NOT EXISTS invite_codes (
     created_by      TEXT
 );
 
+-- Access requests from society committee members seeking passwordless 1-click
+-- login links, approvable by an admin from their phone with no code handling.
+CREATE TABLE IF NOT EXISTS society_access_requests (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    society_id      INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
+    requester_name  TEXT NOT NULL,
+    requester_email TEXT NOT NULL,
+    requester_role  TEXT NOT NULL,
+    token           TEXT UNIQUE NOT NULL,
+    invite_code_id  INTEGER REFERENCES invite_codes(id) ON DELETE SET NULL,
+    status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'used')),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    approved_at     TEXT,
+    expires_at      TEXT
+);
+
 -- Simple self-hosted pageview count, no cookies/sessions/third parties - just
 -- "has anyone actually looked at this page". path is the raw request path
 -- (query strings not included, so filtered variants of / all count as one).

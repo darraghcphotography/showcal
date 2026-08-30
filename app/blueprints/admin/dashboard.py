@@ -185,6 +185,10 @@ def dashboard():
         "SELECT COUNT(*) FROM logo_candidates WHERE status = 'pending'"
     ).fetchone()[0]
 
+    pending_access_requests_count = db.execute(
+        "SELECT COUNT(*) FROM society_access_requests WHERE status = 'pending'"
+    ).fetchone()[0]
+
     # Distinct printed names still awaiting a link decision. Deliberately NOT a
     # replacement for unmatched_award_societies_count below: that's a *row*
     # count which is correctly permanent (most of these societies are defunct
@@ -229,6 +233,11 @@ def dashboard():
     # biggest number, not the quickest one.
     quick_win_candidates = [
         {"label": "Pending submissions", "count": pending_count, "url": url_for("admin.queue")},
+        {
+            "label": "Society access requests awaiting approval",
+            "count": pending_access_requests_count,
+            "url": url_for("admin.access_requests"),
+        },
         {
             "label": "Historical reviews awaiting moderation",
             "count": historical_reviews_pending_count,
@@ -289,6 +298,7 @@ def dashboard():
     return render_template(
         "admin/dashboard.html",
         pending_count=pending_count,
+        pending_access_requests_count=pending_access_requests_count,
         needs_review_count=needs_review_count,
         missing_dates_count=missing_dates_count,
         missing_poster_count=missing_poster_count,

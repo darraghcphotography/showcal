@@ -36,6 +36,7 @@ from . import logo_candidates  # noqa: E402,F401
 from . import faq  # noqa: E402,F401
 from . import historical_society_links  # noqa: E402,F401
 from . import people  # noqa: E402,F401
+from . import access_requests  # noqa: E402,F401
 
 # Re-exported: tests/test_adjudicators.py imports this by dotted path.
 from .adjudicators import _adjudicator_grid_seasons  # noqa: E402,F401

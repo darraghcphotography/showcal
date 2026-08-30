@@ -409,6 +409,26 @@ def _backfill_fts_indexes(db):
         db.execute(f"INSERT INTO {fts_table}({fts_table}) VALUES ('rebuild')")
 
 
+def _migrate_society_access_requests(db):
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS society_access_requests (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            society_id      INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
+            requester_name  TEXT NOT NULL,
+            requester_email TEXT NOT NULL,
+            requester_role  TEXT NOT NULL,
+            token           TEXT UNIQUE NOT NULL,
+            invite_code_id  INTEGER REFERENCES invite_codes(id) ON DELETE SET NULL,
+            status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'used')),
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            approved_at     TEXT,
+            expires_at      TEXT
+        )
+        """
+    )
+
+
 def init_schema():
     """(Re-)apply schema.sql plus any pending column migrations. Safe to run
     against an existing database - it never drops or overwrites data."""
@@ -421,6 +441,7 @@ def init_schema():
     _migrate_photo_submission_kinds(db)
     _migrate_shows_natural_key_collation(db)
     _migrate_drop_shows_status(db)
+    _migrate_society_access_requests(db)
     _apply_column_migrations(db)
     _create_migrated_column_indexes(db)
     db.commit()
