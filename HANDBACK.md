@@ -116,6 +116,7 @@ Entry template:
 - `978f099` — Streamline Submit Society History form to Past Productions Listing, Past Show Poster, and Other with clean 1-line description
 - `6603ba3` — Rich OpenGraph/Twitter social cards and multi-column sitemap footer (PR #4)
 - `9bc7c62` — Fix navbar search input width and eliminate layout shift jumping on focus
+- `a71df29` — Update mobile bottom tab bar navigation and backfill Rathmines & Rathgar logo
 
 **Branches left open:** none. `main` is clean, **955 tests green**.
 
@@ -124,6 +125,7 @@ Entry template:
   - `LIVE_UNLINKED_SOCIETIES` went 64 → 0.
   - `LIVE_UNLINKED_AWARDS` went 499 → 0.
   - `LIVE_PENDING_PHOTOS` went 3 → 0.
+  - `LIVE_PENDING_LOGOS` went 1 → 0 (Rathmines & Rathgar Musical Society logo approved).
   - `KATS` (id=10004) and `Seven Woods Productions` (id=10002) updated from `Unverified` to `Active`.
   - Pinned upcoming production venues went from 48 → 65 (100% of physical venue shows for 2026/27 season now have exact GPS coordinates).
   - Enriched 45 top iconic circuit musicals on `/titles/<title>` with composers, lyricists, book authors, licensing houses, synopses, and notable musical numbers.
@@ -135,6 +137,7 @@ Entry template:
 - `scripts/backfills/resolve_historical_links_and_lifecycle.py` run on live database with `--dry-run` first, then executed live.
 - `scripts/backfills/backfill_upcoming_venue_coordinates.py` run on live database with `--dry-run` first, then executed live (24 updates: 20 venue GPS coordinates populated, 4 shows linked to confirmed venues).
 - `scripts/backfills/backfill_show_credits_and_songs.py` run on live database with `--dry-run` first, then executed live (45 top iconic musical titles enriched with verified credits, licensing houses, and famous songs).
+- `scripts/backfills/resolve_randr_logo.py` run on live database with `--dry-run` first, then executed live (Rathmines & Rathgar Musical Society logo attached, candidate approved).
 
 **Left unresolved / needs Darragh:** none.
 
