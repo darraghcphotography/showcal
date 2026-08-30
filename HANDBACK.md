@@ -108,8 +108,9 @@ Entry template:
 - `4747826` — Backfill GPS coordinates for 17 unpinned upcoming production venues
 - `67154fe` — Merge pull request #2 from darraghcphotography/ag/society-magic-links (Passwordless 1-click society magic links and mobile admin approval queue)
 - `7779871` — Send email notification to admin when society officer requests access
+- `3981d74` — Add pre-selected 1-click request access link and footer callout to society pages
 
-**Branches left open:** none. `main` is clean at `7779871`, **950 tests green**.
+**Branches left open:** none. `main` is clean at `3981d74`, **950 tests green**.
 
 **Verified live:**
 - Checked production database queues:
