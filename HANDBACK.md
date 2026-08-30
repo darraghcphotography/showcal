@@ -101,7 +101,8 @@ Entry template:
 **Commits:**
 - `99ce225` — Backfill script to resolve historical society links, photos, and lifecycle
 
-**Branches left open:** none. `main` is clean at `99ce225`, **946 tests green**.
+**Branches left open:**
+- `ag/visual-refresh` — Ready for Darragh's merge. Contains Concept 4 monogram logo in header, expanding search pill, glassmorphic dropdowns, structured stat tiles on society pages, and dynamic gradient initials placeholders for societies without logos. 946 tests green.
 
 **Verified live:**
 - Checked production database queues:
@@ -121,10 +122,10 @@ Entry template:
   - Derived `productions` table rebuilt and verified on production.
 
 **Left unresolved / needs Darragh:**
-- Stat tiles layout on society pages (mockup to follow).
-- Society logo placeholder styling.
+- Merge branch `ag/visual-refresh` (or review PR) to deploy the visual updates to production.
 
 **Flag to the next agent:**
 - All 64 historical society link items in `/admin/historical-society-links` and all 3 photo items in `/admin/photo-submissions` are resolved and clean on production.
 - Production derived `productions` table was rebuilt after the linking pass.
+- Branch `ag/visual-refresh` is ready to merge.
 
