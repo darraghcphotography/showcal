@@ -8,6 +8,7 @@ from ..calendar_links import google_calendar_url
 from ..clock import utcnow_iso
 from ..constants import DATE_RE, SHOW_SECTIONS
 from ..db import get_db
+from .. import notify
 from ..rate_limit import limiter
 from ..season import season_range
 from ..shows import is_upcoming
@@ -60,7 +61,8 @@ def request_access():
         email = request.form.get("requester_email", "").strip()
         role = request.form.get("requester_role", "").strip() or "Committee Officer"
 
-        if not society_id or not db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone():
+        soc = db.execute("SELECT id, name FROM societies WHERE id = ?", (society_id,)).fetchone() if society_id else None
+        if not soc:
             flash("Please choose your society from the list.", "error")
             return redirect(url_for("society.request_access"))
 
@@ -79,6 +81,15 @@ def request_access():
             (society_id, name, email, role, token),
         )
         db.commit()
+
+        notify.send(
+            f"New Society Access Request: {soc['name']}",
+            f"{name} ({role}) has requested 1-click access to manage {soc['name']}.\n\n"
+            f"Requester Email: {email}\n"
+            f"Role: {role}\n\n"
+            f"Approve or reject on your phone:\n{notify.link(url_for('admin.access_requests'))}\n",
+        )
+
         return render_template("society_request_thanks.html", requester_name=name, requester_email=email)
 
     societies = db.execute("SELECT id, name, region FROM societies WHERE NOT hidden ORDER BY name").fetchall()

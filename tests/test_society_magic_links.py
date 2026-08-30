@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from conftest import seed_society, seed_user
 
 
@@ -14,17 +16,23 @@ def test_society_request_access_flow(client, db):
     assert response.status_code == 200
     assert b"Request 1-Click Society Access" in response.data
 
-    post_resp = client.post(
-        "/society/request-access",
-        data={
-            "society_id": "1",
-            "requester_name": "Sarah Connor",
-            "requester_email": "sarah@example.com",
-            "requester_role": "Secretary",
-        },
-    )
-    assert post_resp.status_code == 200
-    assert b"Access Request Submitted" in post_resp.data
+    with patch("app.notify.send") as mock_notify:
+        post_resp = client.post(
+            "/society/request-access",
+            data={
+                "society_id": "1",
+                "requester_name": "Sarah Connor",
+                "requester_email": "sarah@example.com",
+                "requester_role": "Secretary",
+            },
+        )
+        assert post_resp.status_code == 200
+        assert b"Access Request Submitted" in post_resp.data
+        mock_notify.assert_called_once()
+        args = mock_notify.call_args[0]
+        assert "Clane Musical Society" in args[0]
+        assert "Sarah Connor" in args[1]
+        assert "sarah@example.com" in args[1]
 
     req = db.execute("SELECT * FROM society_access_requests WHERE requester_email = 'sarah@example.com'").fetchone()
     assert req is not None
