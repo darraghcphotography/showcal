@@ -1,3 +1,7 @@
+Shared links across WhatsApp, iMessage, Facebook, and Twitter now display rich preview cards with real show poster artwork, society details, and run dates. The site footer has also been upgraded to an organized multi-column sitemap covering What's On, Archives, Societies, and Committee tools
+
+---
+
 The Submit Society History form is now streamlined to focus on past production listings from programmes and vintage show posters, with a simple one-line description field. Navigation bar heights and carets have been harmonized across all displays, society show history tables now feature strict column alignment, and dateless historical shows clearly read "No date on record"
 
 ---

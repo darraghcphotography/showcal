@@ -1,11 +1,16 @@
 {% extends "base.html" %}
 {% import "_tier.html" as tier %}
 {% import "_icons.html" as icons %}
-{% block title %}{{ show['show'] }} - DC Show Tracker{% endblock %}
-{% block og_description %}{{ show['society_name'] }}, {{ show['season'] }}{% if show['opening_date'] %} - opens {{ show['opening_date']|irish_date }}{% endif %}.{% endblock %}
+{% block title %}{{ show['show'] or 'Untitled Production' }} — {{ show['society_name'] }} - DC Show Tracker{% endblock %}
+{% block og_title %}{{ show['show'] or 'Untitled Production' }} — {{ show['society_name'] }}{% endblock %}
+{% block og_description %}{{ show['society_name'] }} presents {{ show['show'] }}{% if show['opening_date'] %} ({{ show['opening_date']|date_range(show['closing_date']) }}){% endif %}{% if show['venue'] %} at {{ show['venue'] }}{% endif %}. Irish amateur musical theatre production details.{% endblock %}
 {% block og_image %}
   {% if show['poster_filename'] %}
     <meta property="og:image" content="{{ url_for('public.uploaded_file', filename=show['poster_filename'], _external=True) }}">
+    <meta name="twitter:image" content="{{ url_for('public.uploaded_file', filename=show['poster_filename'], _external=True) }}">
+  {% else %}
+    <meta property="og:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
   {% endif %}
 {% endblock %}
 {% block content %}

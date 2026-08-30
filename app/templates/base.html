@@ -18,15 +18,21 @@
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <link rel="manifest" href="{{ url_for('feeds.manifest') }}">
-  <meta name="theme-color" content="#c8102e">
+  <meta name="theme-color" content="#0b0f14">
 
-  <meta property="og:site_name" content="DC Show Tracker">
+  <meta property="og:site_name" content="ShowCal — DC Show Tracker">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
   <meta property="og:url" content="{{ request.url }}">
   <meta property="og:description" content="{% block og_description %}Browse AIMS member societies' show history, upcoming productions, and the AIMS awards archive.{% endblock %}">
   <meta name="description" content="{{ self.og_description() }}">
-  {% block og_image %}{% endblock %}
+  {% block og_image %}
+    <meta property="og:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
+  {% endblock %}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ self.og_title() }}">
+  <meta name="twitter:description" content="{{ self.og_description() }}">
   {% block head_extra %}{% endblock %}
 </head>
 {% set mobile_chrome = request.blueprint not in ('admin', 'society') %}
@@ -143,28 +149,65 @@
   </main>
 
   <footer class="site-footer">
-    <p>
-      DC Show Tracker &middot; a project by Darragh C &middot;
-      <a href="{{ url_for('public.about') }}">About</a> &middot;
-      <a href="https://linktr.ee/darraghc" rel="noopener" target="_blank">Get in touch</a> &middot;
-      {# Kept as sitemap links even though Explore now carries them too - a
-         footer link isn't removed just because the header has one. #}
-      <a href="{{ url_for('public.titles_list') }}">All Shows</a> &middot;
-      <a href="{{ url_for('public.faq') }}">FAQ</a> &middot;
-      <a href="{{ url_for('info.season_summary') }}">Seasons</a> &middot;
-      <a href="{{ url_for('info.season_calendar') }}">Season Calendar</a> &middot;
-      {# The only path to this on a desktop browser. It used to be reachable
-         solely from the More page, which is itself only linked from the mobile
-         bottom bar - so the main thing a committee is meant to do here was
-         invisible on a laptop (site audit, finding 02). #}
-      <a href="{{ url_for('submit.unlock') }}">Submit a show</a> &middot;
-      <a href="{{ url_for('submit.photo') }}">Submit society history</a> &middot;
-      <a href="{{ url_for('public.suggest') }}">Suggest a feature</a> &middot;
-      <a href="{{ url_for('public.suggestions_board') }}">Roadmap</a>
-      {% if not current_user %}
-        &middot; <a href="{{ url_for('admin.login') }}">Moderator login</a>
-      {% endif %}
-    </p>
+    <div class="site-footer-inner">
+      <div class="footer-brand-col">
+        <a class="brand" href="{{ url_for('public.index') }}">
+          <span class="brand-text">
+            <span class="gold-word">DC</span> Show Tracker
+            <span class="byline">a project by Darragh C</span>
+          </span>
+        </a>
+        <p class="footer-tagline">The community archive and production tracker for Irish amateur musical societies.</p>
+        <p class="footer-meta-line"><a href="https://linktr.ee/darraghc" rel="noopener" target="_blank">Get in touch</a> &middot; <a href="{{ url_for('public.about') }}">About ShowCal</a></p>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">What's On</h4>
+        <ul class="footer-links">
+          <li><a href="{{ url_for('public.index') }}">Upcoming Productions</a></li>
+          <li><a href="{{ url_for('info.season_calendar') }}">Season Calendar</a></li>
+          <li><a href="{{ url_for('info.season_summary') }}">Seasons</a></li>
+          <li><a href="{{ url_for('public.watchlist') }}">My Watchlist</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Archive</h4>
+        <ul class="footer-links">
+          <li><a href="{{ url_for('public.titles_list') }}">All Shows</a></li>
+          <li><a href="{{ url_for('info.awards') }}">Awards Archive</a></li>
+          <li><a href="{{ url_for('info.stats') }}">Stats &amp; Records</a></li>
+          <li><a href="{{ url_for('public.reviews_index') }}">Adjudications</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Societies &amp; Venues</h4>
+        <ul class="footer-links">
+          <li><a href="{{ url_for('public.societies_list') }}">All Societies</a></li>
+          <li><a href="{{ url_for('public.venues_index') }}">Venues Directory</a></li>
+          <li><a href="{{ url_for('submit.unlock') }}">Submit a show</a></li>
+          <li><a href="{{ url_for('submit.photo') }}">Submit society history</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Project</h4>
+        <ul class="footer-links">
+          <li><a href="{{ url_for('public.faq') }}">FAQ</a></li>
+          <li><a href="{{ url_for('public.suggest') }}">Suggest a feature</a></li>
+          <li><a href="{{ url_for('public.suggestions_board') }}">Roadmap</a></li>
+          {% if not current_user %}
+            <li><a href="{{ url_for('admin.login') }}">Moderator Login</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom-bar">
+      <span>ShowCal is an independent, unofficial community project by Darragh C.</span>
+      <span>Abbey Midnight &amp; Gold Edition</span>
+    </div>
   </footer>
 
   {% if mobile_chrome %}

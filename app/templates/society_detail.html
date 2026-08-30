@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% import "_tier.html" as tier %}
 {% block title %}{{ society['name'] }} - DC Show Tracker{% endblock %}
-{% block og_description %}{{ society['region'] }} &middot; {{ society['section'] }}{% if active_since %} &middot; Active since {{ active_since }}{% endif %}{% if total_wins %} &middot; {{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}{% endif %}{% endblock %}
+{% block og_title %}{{ society['name'] }} — Productions & Awards Archive | ShowCal{% endblock %}
+{% block og_description %}{{ society['name'] }} ({{ society['region'] or 'Ireland' }}). Explore past productions, upcoming shows, and AIMS award records on ShowCal.{% endblock %}
 {% block og_image %}
   {% if society['logo_filename'] %}
     <meta property="og:image" content="{{ url_for('public.uploaded_file', filename=society['logo_filename'], _external=True) }}">
+    <meta name="twitter:image" content="{{ url_for('public.uploaded_file', filename=society['logo_filename'], _external=True) }}">
+  {% else %}
+    <meta property="og:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
   {% endif %}
 {% endblock %}
 {# One badge style for a production's awards, wherever on this page it's
