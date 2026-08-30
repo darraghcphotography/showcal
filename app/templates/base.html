@@ -391,9 +391,11 @@
           if (errorEl) {
             errorEl.style.display = 'block';
             if (err && err.code === 1) {
-              errorEl.textContent = "Location permission was denied. Please allow location access or browse by region.";
+              errorEl.textContent = "Location permission was denied by your browser or device settings. Please allow location access, or browse by region.";
+            } else if (err && err.code === 3) {
+              errorEl.textContent = "Location request timed out - please try again or select a region.";
             } else {
-              errorEl.textContent = "Couldn't get your location - try again, or browse by region instead.";
+              errorEl.textContent = "Couldn't determine your location - try again, or browse by region instead.";
             }
           }
         }, {
