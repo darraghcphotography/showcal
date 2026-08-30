@@ -107,8 +107,9 @@ Entry template:
 - `e3055ab` — Fix Near Me geolocation handling with timeout, region clearing, and error feedback
 - `4747826` — Backfill GPS coordinates for 17 unpinned upcoming production venues
 - `67154fe` — Merge pull request #2 from darraghcphotography/ag/society-magic-links (Passwordless 1-click society magic links and mobile admin approval queue)
+- `7779871` — Send email notification to admin when society officer requests access
 
-**Branches left open:** none. `main` is clean at `67154fe`, **950 tests green**.
+**Branches left open:** none. `main` is clean at `7779871`, **950 tests green**.
 
 **Verified live:**
 - Checked production database queues:
