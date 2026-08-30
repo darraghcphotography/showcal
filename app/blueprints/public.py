@@ -78,6 +78,14 @@ def index():
     db = get_db()
 
     upcoming_region = request.args.get("upcoming_region", "")
+    near_me = request.args.get("near") == "1"
+    try:
+        near_lat = float(request.args["lat"])
+        near_lng = float(request.args["lng"])
+    except (KeyError, ValueError):
+        near_lat = near_lng = None
+    near_active = near_me and near_lat is not None
+
     upcoming_query = """
         SELECT shows.*, societies.name AS society_name, venues.slug AS venue_slug,
                venues.latitude AS venue_lat, venues.longitude AS venue_lng
@@ -89,7 +97,7 @@ def index():
           AND NOT societies.hidden
     """
     upcoming_params = [date.today().isoformat()]
-    if upcoming_region in REGIONS:
+    if upcoming_region in REGIONS and not near_active:
         upcoming_query += " AND shows.region = ?"
         upcoming_params.append(upcoming_region)
     # How many there really are, before the limit - so the page can say "50
@@ -110,15 +118,9 @@ def index():
     # fetch instead. Only about a third of venues have a lat/lng on record
     # yet (the venue content pass is still working through the long tail),
     # so this is always a partial view - near_unpinned_count says how partial.
-    near_me = request.args.get("near") == "1"
-    try:
-        near_lat = float(request.args["lat"])
-        near_lng = float(request.args["lng"])
-    except (KeyError, ValueError):
-        near_lat = near_lng = None
     near_shows = []
     near_unpinned_count = 0
-    if near_me and near_lat is not None:
+    if near_active:
         all_upcoming = db.execute(upcoming_query, upcoming_params).fetchall()
         for row in all_upcoming:
             if row["venue_lat"] is None or row["venue_lng"] is None:

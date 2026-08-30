@@ -239,11 +239,15 @@
       if (geoFormId) {
         var geoForm = document.getElementById(geoFormId);
         var errorEl = document.getElementById('near-me-error');
+        var toggleLabel = el.closest('label');
         if (!el.checked) {
           if (geoForm) {
-            geoForm.querySelector('#near-me-flag').value = '';
-            geoForm.querySelector('#near-me-lat').value = '';
-            geoForm.querySelector('#near-me-lng').value = '';
+            var flag = geoForm.querySelector('#near-me-flag');
+            var lat = geoForm.querySelector('#near-me-lat');
+            var lng = geoForm.querySelector('#near-me-lng');
+            if (flag) flag.value = '';
+            if (lat) lat.value = '';
+            if (lng) lng.value = '';
             geoForm.submit();
           }
           return;
@@ -251,17 +255,41 @@
         if (errorEl) errorEl.style.display = 'none';
         if (!geoForm || !navigator.geolocation) {
           el.checked = false;
-          if (errorEl) errorEl.style.display = '';
+          if (errorEl) {
+            errorEl.textContent = "Location services are not supported by your browser.";
+            errorEl.style.display = 'block';
+          }
           return;
         }
+        if (toggleLabel) toggleLabel.style.opacity = '0.6';
+        el.disabled = true;
+
         navigator.geolocation.getCurrentPosition(function(pos) {
-          geoForm.querySelector('#near-me-flag').value = '1';
-          geoForm.querySelector('#near-me-lat').value = pos.coords.latitude;
-          geoForm.querySelector('#near-me-lng').value = pos.coords.longitude;
+          var regionSelect = geoForm.querySelector('select[name="upcoming_region"]');
+          if (regionSelect) regionSelect.value = '';
+          var flag = geoForm.querySelector('#near-me-flag');
+          var lat = geoForm.querySelector('#near-me-lat');
+          var lng = geoForm.querySelector('#near-me-lng');
+          if (flag) flag.value = '1';
+          if (lat) lat.value = pos.coords.latitude;
+          if (lng) lng.value = pos.coords.longitude;
           geoForm.submit();
-        }, function() {
+        }, function(err) {
           el.checked = false;
-          if (errorEl) errorEl.style.display = '';
+          el.disabled = false;
+          if (toggleLabel) toggleLabel.style.opacity = '1';
+          if (errorEl) {
+            errorEl.style.display = 'block';
+            if (err && err.code === 1) {
+              errorEl.textContent = "Location permission was denied. Please allow location access or browse by region.";
+            } else {
+              errorEl.textContent = "Couldn't get your location - try again, or browse by region instead.";
+            }
+          }
+        }, {
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 300000
         });
         return;
       }
