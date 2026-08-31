@@ -41,7 +41,7 @@
         {% if not society_session %} &middot; <a href="{{ url_for('society.request_access', society_id=society['id']) }}" style="color: var(--gold); font-weight: 600; text-decoration: none;">✨ Committee login</a>{% endif %}
       </p>
 
-      {% if active_since or total_wins or best_show_wins %}
+      {% if active_since or total_wins or best_show_wins or wardrobe_items %}
         {% set prod_count = shows|length + historical_timeline|length %}
         <div class="stat-tiles">
           {% if prod_count %}
@@ -68,6 +68,12 @@
               <span class="stat-label">Active since</span>
             </div>
           {% endif %}
+          {% if wardrobe_items %}
+            <div class="stat-tile">
+              <span class="stat-value">{{ wardrobe_items|length }}</span>
+              <span class="stat-label">Item{{ '' if wardrobe_items|length == 1 else 's' }} for Hire</span>
+            </div>
+          {% endif %}
         </div>
 
         <div class="trophy-case">
@@ -88,20 +94,21 @@
       {% if society['tiktok_url'] %}{% set _ = social_links.append(('TikTok', society['tiktok_url'])) %}{% endif %}
       {% if society['other_url'] %}{% set _ = social_links.append((society['other_label'] or 'More info', society['other_url'])) %}{% endif %}
       {% if social_links %}
-        <p class="meta">
-          {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{% endfor %}
+        <p class="social-links">
+          {% for label, url in social_links %}
+            <a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{{ '' if loop.last else ' · ' }}
+          {% endfor %}
         </p>
       {% endif %}
     </div>
   </div>
 
   {% if badges %}
-    <div class="badge-row">
+    <div class="badges-row">
       {% for b in badges %}
-        <div class="badge {{ b['cls'] }}" tabindex="0">
-          <span class="icon">{{ b['icon'] }}</span>
-          <span>
-            <span class="label">{{ b['label'] }}</span>
+        <div class="badge-item">
+          <span class="badge-pill">
+            <span class="badge-icon">{{ b['icon'] }}</span>
             <span class="criteria">{{ b['criteria'] }}</span>
           </span>
           <div class="tooltip"><b>{{ b['label'] }}</b>{{ b['tooltip'] }}</div>
@@ -174,6 +181,31 @@
         {% endfor %}
       </p>
     {% endif %}
+  {% endif %}
+
+  {% if wardrobe_items %}
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 2rem 0 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.35rem;">
+      <h2 style="font-size: 1.15rem; margin: 0;">🎭 Costumes, Props &amp; Sets for Hire / Loan</h2>
+      <a href="{{ url_for('public.exchange_index', region=society['region']) }}" style="font-size: 0.78rem; color: var(--gold); text-decoration: none; font-weight: 600;">Browse Exchange &rarr;</a>
+    </div>
+    <div class="compact-exchange-strip">
+      {% for item in wardrobe_items %}
+        <a href="{{ url_for('public.exchange_detail', item_id=item['id']) }}" class="compact-exchange-card">
+          {% if item['primary_photo'] %}
+            <img src="{{ url_for('public.uploaded_file', filename=item['primary_photo']) }}" alt="{{ item['title'] }}" class="compact-exchange-thumb">
+          {% else %}
+            <div class="compact-exchange-thumb">🎭</div>
+          {% endif %}
+          <div class="compact-exchange-info">
+            <div class="compact-exchange-title">{{ item['title'] }}</div>
+            <div class="compact-exchange-meta">
+              <span class="badge-terms-compact">{{ terms_labels.get(item['terms'], item['terms']|capitalize) }}</span>
+              <span>{{ item_types.get(item['item_type'], item['item_type']) }}{% if item['show_title'] %} &middot; "{{ item['show_title'] }}"{% endif %}</span>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
   {% endif %}
 
   {% if poster_shows %}

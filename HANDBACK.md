@@ -150,8 +150,10 @@ Entry template:
 - `a5e9829` — Add Costumes Exchange, Venues Map, Circuit Records, Society Vault, and Coffee links to More page
 - `488816e` — Email magic login link directly to requester upon approval and polish admin mobile navbar
 - `acb532e` — Redirect admin login to admin dashboard and clean up mobile admin navbar
+- `806af9f` — Update CHANGELOG with Costumes Exchange and mobile UX enhancements
+- `exchange-crosslinks` — Feature compact wardrobe and props cross-links on society profiles and musical title pages
 
-**Branches left open:** none. `main` is clean, **964 tests green**.
+**Branches left open:** none. `main` is clean, **966 tests green**.
 
 **Verified live:**
 - Checked production database queues:

@@ -1166,6 +1166,15 @@ def society_detail(society_id):
 
     badges = _society_badges(db, society_id)
 
+    wardrobe_items = db.execute(
+        """
+        SELECT * FROM wardrobe_items
+        WHERE society_id = ? AND status != 'delisted'
+        ORDER BY (status = 'available') DESC, created_at DESC
+        """,
+        (society_id,),
+    ).fetchall()
+
     return render_template(
         "society_detail.html", society=society, shows=shows, future_shows=future_shows,
         historical_timeline=historical_timeline, person_awards=person_awards,
@@ -1173,6 +1182,7 @@ def society_detail(society_id):
         total_wins=total_wins, best_show_wins=best_show_wins, active_since=active_since,
         best_show_second=best_show_second, best_show_third=best_show_third, society_code=society_code,
         society_login_url=society_login_url, badges=badges, current_season=current,
+        wardrobe_items=wardrobe_items, item_types=WARDROBE_ITEM_TYPES, terms_labels=WARDROBE_TERMS,
     )
 
 
@@ -1652,11 +1662,26 @@ def title_detail(title):
             "revival": revival_candidate(db, prod_ids, date.today().year),
         }
 
+    wardrobe_items = db.execute(
+        """
+        SELECT wi.*, s.name AS society_name, s.region AS society_region
+        FROM wardrobe_items wi
+        JOIN societies s ON s.id = wi.society_id
+        WHERE (
+            LOWER(wi.show_title) = LOWER(?)
+            OR LOWER(wi.title) LIKE LOWER(?)
+        ) AND wi.status != 'delisted' AND s.hidden = 0
+        ORDER BY (wi.status = 'available') DESC, wi.created_at DESC
+        """,
+        (title, f"%{title}%"),
+    ).fetchall()
+
     return render_template(
         "title_detail.html", title=title, shows=shows,
         upcoming_shows=upcoming_shows, past_shows=past_shows,
         historical=historical, info=info,
         debut_label=debut_label, circuit=circuit,
+        wardrobe_items=wardrobe_items, item_types=WARDROBE_ITEM_TYPES, terms_labels=WARDROBE_TERMS,
     )
 
 

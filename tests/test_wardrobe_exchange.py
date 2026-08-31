@@ -322,3 +322,56 @@ def test_public_exchange_detail_404_for_delisted(client):
 
     assert client.get(f"/exchange/{item_id}").status_code == 404
     assert client.get("/exchange/99999").status_code == 404
+
+
+# --- 5. Society & Title Detail Cross-Links Tests ---
+
+def test_society_detail_displays_active_wardrobe_strip(client):
+    """Society detail page includes compact strip for active wardrobe items and stat tile."""
+    with client.application.app_context():
+        db = get_db()
+        db.execute(
+            """
+            INSERT INTO wardrobe_items (
+                society_id, show_title, title, item_type, terms, status
+            ) VALUES (1, 'We Will Rock You', 'Bohemian Rocker Jackets', 'costume_full_set', 'hire', 'available')
+            """
+        )
+        db.commit()
+
+    res = client.get("/societies/1")
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    assert "Costumes, Props &amp; Sets for Hire / Loan" in html
+    assert "Bohemian Rocker Jackets" in html
+    assert "Item for Hire" in html
+
+
+def test_title_detail_displays_matching_show_wardrobe_strip(client):
+    """Title detail page renders matching costumes & props for that show."""
+    with client.application.app_context():
+        db = get_db()
+        # Seed a show for We Will Rock You
+        db.execute(
+            """
+            INSERT INTO shows (
+                society_id, season, show, region, section, moderation_status, source
+            ) VALUES (1, '24/25', 'We Will Rock You', 'Midlands', 'Gilbert', 'approved', 'submission')
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO wardrobe_items (
+                society_id, show_title, title, item_type, terms, status
+            ) VALUES (1, 'We Will Rock You', 'Galileo Laser Guitar Prop', 'prop', 'hire', 'available')
+            """
+        )
+        db.commit()
+
+    res = client.get("/titles/We%20Will%20Rock%20You")
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    assert "Costumes, Props &amp; Sets for this Show" in html
+    assert "Galileo Laser Guitar Prop" in html
+    assert "Trim Musical Society" in html
+

@@ -2415,6 +2415,107 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
 .popup-link { font-size: 0.82rem; }
 
 /* ---------------------------------------------------------------------------
+   Costumes, Props & Sets Exchange: Compact Cross-Linking Widgets
+   --------------------------------------------------------------------------- */
+.compact-exchange-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0 1.5rem;
+}
+
+.compact-exchange-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.compact-exchange-card:hover {
+  border-color: var(--gold);
+  background: var(--surface-subtle);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.compact-exchange-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--row-alt);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+.compact-exchange-info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.compact-exchange-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.compact-exchange-meta {
+  font-size: 0.74rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-terms-compact {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gold);
+  background: var(--gold-bg);
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--gold-border);
+  flex-shrink: 0;
+}
+.exchange-inline-banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.95rem;
+  margin: 1rem 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.84rem;
+}
+.exchange-inline-banner a {
+  color: var(--gold);
+  font-weight: 700;
+  text-decoration: none;
+}
+.exchange-inline-banner a:hover {
+  text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------------------
    Site Footer: Multi-column sitemap & clean baseline
    --------------------------------------------------------------------------- */
 .site-footer {

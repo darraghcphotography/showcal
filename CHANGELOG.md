@@ -1,3 +1,7 @@
+Society profiles and musical show pages now feature compact cross-links to the Costumes, Props & Sets Exchange, highlighting wardrobe sets, specialist props, and scenery pieces available for hire or loan without cluttering production history
+
+---
+
 The new Costumes, Props & Sets Exchange is now live, letting societies across Ireland list, browse, hire, and borrow wardrobe sets and stage props. Show pages now feature dedicated upcoming production cards and strictly ordered chronological history, and the mobile experience has been upgraded with a streamlined single-row header and compact show cards
 
 ---
