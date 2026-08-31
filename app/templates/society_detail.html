@@ -94,21 +94,20 @@
       {% if society['tiktok_url'] %}{% set _ = social_links.append(('TikTok', society['tiktok_url'])) %}{% endif %}
       {% if society['other_url'] %}{% set _ = social_links.append((society['other_label'] or 'More info', society['other_url'])) %}{% endif %}
       {% if social_links %}
-        <p class="social-links">
-          {% for label, url in social_links %}
-            <a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{{ '' if loop.last else ' · ' }}
-          {% endfor %}
+        <p class="meta">
+          {% for label, url in social_links %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>{% endfor %}
         </p>
       {% endif %}
     </div>
   </div>
 
   {% if badges %}
-    <div class="badges-row">
+    <div class="badge-row">
       {% for b in badges %}
-        <div class="badge-item">
-          <span class="badge-pill">
-            <span class="badge-icon">{{ b['icon'] }}</span>
+        <div class="badge {{ b['cls'] }}" tabindex="0">
+          <span class="icon">{{ b['icon'] }}</span>
+          <span>
+            <span class="label">{{ b['label'] }}</span>
             <span class="criteria">{{ b['criteria'] }}</span>
           </span>
           <div class="tooltip"><b>{{ b['label'] }}</b>{{ b['tooltip'] }}</div>
