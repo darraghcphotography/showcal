@@ -152,6 +152,7 @@ Entry template:
 - `acb532e` — Redirect admin login to admin dashboard and clean up mobile admin navbar
 - `806af9f` — Update CHANGELOG with Costumes Exchange and mobile UX enhancements
 - `dd77052` — Feature compact costumes & props cross-links on society and show pages
+- `05247d8` — Restore original badge-row and tooltip classes on society detail page
 
 **Branches left open:** none. `main` is clean, **966 tests green**.
 
