@@ -1,3 +1,7 @@
+The new Costumes, Props & Sets Exchange is now live, letting societies across Ireland list, browse, hire, and borrow wardrobe sets and stage props. Show pages now feature dedicated upcoming production cards and strictly ordered chronological history, and the mobile experience has been upgraded with a streamlined single-row header and compact show cards
+
+---
+
 Shared links across WhatsApp, iMessage, Facebook, and Twitter now display rich preview cards with real show poster artwork, society details, and run dates. The site footer has also been upgraded to an organized multi-column sitemap covering What's On, Archives, Societies, and Committee tools
 
 ---
