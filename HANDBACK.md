@@ -151,7 +151,7 @@ Entry template:
 - `488816e` — Email magic login link directly to requester upon approval and polish admin mobile navbar
 - `acb532e` — Redirect admin login to admin dashboard and clean up mobile admin navbar
 - `806af9f` — Update CHANGELOG with Costumes Exchange and mobile UX enhancements
-- `exchange-crosslinks` — Feature compact wardrobe and props cross-links on society profiles and musical title pages
+- `dd77052` — Feature compact costumes & props cross-links on society and show pages
 
 **Branches left open:** none. `main` is clean, **966 tests green**.
 
