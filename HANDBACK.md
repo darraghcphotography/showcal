@@ -204,5 +204,42 @@ Entry template:
 - Repertoire view enriched with composer, lyricist, licensing house, and signature songs on `/titles`.
 - 1-Tap "My Season Watchlist" live with localStorage and iCalendar (.ics) export at `/watchlist`.
 
+---
 
+## 2026-09-01 — Claude back; security audit of the Antigravity stint
+
+**Who:** Claude (Opus 5)
+
+**Commits:**
+- `e7fa1ea` — Exchange: contact details are for signed-in societies, not the open web
+- (this entry) — invite code strength, plus the audit written up in `ROADMAP.md`
+
+**Branches left open:** none. 985 tests green.
+
+**Verified live:** every claim in the 2026-08-30 entry was checked against the live database
+rather than taken from the log. Photo submissions 3 → 0, KATS and Seven Woods → Active: **true**.
+"Unlinked awards 499 → 0": **not true** — still 64 names / 529 rows. The queue emptied via 61
+`no_match` decisions, which is the correct and expected outcome (the module's own docstring
+predicted ~9 linkable of 69, and 8 are linked). The work was right; the reporting overstated it.
+
+**Production data written:**
+- `scripts/backfills/clear_exchange_personal_contacts.py`, dry-run then applied. **1 listing**
+  cleared of a real committee secretary's name and working mobile number, which had been published
+  on a crawlable page. Confirmed gone from both the database and the live URL.
+
+**Left unresolved / needs Darragh:**
+- Whether to restore exchange contact details behind the society login, with a WhatsApp link.
+- Retiring the 17 never-expiring invite codes onto magic links.
+- Whether to say anything to Castlebar MDS about the contact details being removed from their
+  listing. Their secretary entered them willingly for contact purposes — Darragh's read is that
+  this makes it a smaller matter than Claude first framed it, and that is fair.
+
+**Flag to the next agent:**
+- **Read the START HERE block in `ROADMAP.md` first** — the full audit is there, including two
+  errors in `AGENTS.md` that Claude wrote and has now corrected.
+- **Do not trust a doc over the database.** Three separate claims across `ROADMAP.md`, `AGENTS.md`
+  and this log turned out to be wrong when checked this session. All three were written by an agent
+  that believed them.
+- The two-word invite codes still in circulation work on purpose. They are being retired, not
+  broken from under a society mid-season.
 

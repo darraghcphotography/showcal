@@ -35,7 +35,11 @@ def _current_society(db):
 
 
 @bp.route("/login", methods=("GET", "POST"))
-@limiter.limit("10 per minute")
+# Two limits, not one. The per-minute cap stops a burst; the hourly cap is what
+# stops patient, low-and-slow guessing, which a minute-only limit happily
+# allows forever. Both matter more here than on most login routes because the
+# thing being guessed is a short human-readable code rather than a password.
+@limiter.limit("10 per minute;40 per hour")
 def login():
     if request.method == "POST":
         code = request.form.get("code", "").strip()

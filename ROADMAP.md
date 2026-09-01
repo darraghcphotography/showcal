@@ -13,6 +13,77 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
+## START HERE - security audit of the Antigravity stint (2026-09-01)
+
+> Claude audited the 63-commit Antigravity stint by reading the code and querying the live
+> database, not by reading its log. **985 tests green at `e7fa1ea`+.** The engineering was solid -
+> ownership is enforced on every vault mutation, uploads reuse `save_poster`'s Pillow validation,
+> no `|safe` in any new template, CSP nonces intact, and the `season_for_date` change is
+> advisory-only. Two things were wrong, one badly.
+>
+> ### FIXED, shipped and verified
+>
+> - **The Costumes & Props Exchange was publishing volunteers' contact details.**
+>   `/exchange/<id>` rendered `contact_name` and `contact_phone` - a named person and a personal
+>   mobile, as a `tel:` link - on a page `robots.txt` lets crawlers index, from a form that never
+>   said so. **This was live, not hypothetical**: the one real listing carried a committee
+>   secretary's name and working mobile. Cleared from production
+>   (`scripts/backfills/clear_exchange_personal_contacts.py`), then fixed in code: stripped in the
+>   *route* not the template (a template guard still ships the number in the HTML), form no longer
+>   collects either field, `vault_edit` NULLs both on save. Darragh's decision: details visible
+>   only to a signed-in society, society address only.
+>   **Antigravity's own test asserted `"Mary Kelly" in html`** - it encoded the exposure as
+>   intended behaviour. Inverted, with the reason recorded beside it.
+>
+> - **Society invite codes could be guessed in about eight minutes.** `adjective-noun` from two
+>   40-word lists = 1,600 codes; with ~21 live that is 1 valid code per 76 guesses, at a 10/min
+>   limit. `invite_words.py` justified 1,600 as "comfortable headroom", which is a *collision*
+>   argument - nobody had asked the *guessing* question. And a society code is not read-only: it
+>   edits that society's shows and uploads posters. Now `adjective-noun-NNNN` (~16 million) plus an
+>   hourly cap on `/society/login`. Old two-word codes still work deliberately - see below.
+>
+> ### OPEN - ranked, none urgent
+>
+> 1. **17 of 21 active invite codes never expire.** The only 4 with an expiry are the ones the
+>    magic-link flow minted itself. Widening the generator does nothing for codes already issued.
+>    Retire the 17 by moving those societies onto magic links.
+> 2. **Magic-link tokens are stored in plaintext and stay valid 30 days, multi-use.** A copy of the
+>    database - and backups sit beside it - yields working society logins. This is the one place
+>    where hashing genuinely applies: a token is only ever verified, never displayed.
+> 3. **`/society/request-access` has no email validation and no honeypot**, unlike `/submit/photo`.
+>    `notify.send` swallows failures, so an approved magic link to a mistyped address vanishes
+>    silently while the moderator believes it sent. Each submission also emails Darragh.
+> 4. **Decision pending from Darragh:** whether to restore contact details behind the login (with a
+>    WhatsApp `wa.me` link, which is good UX but *zero* privacy benefit - the number sits in the
+>    URL), or keep society-address-only as shipped.
+>
+> ### Direction agreed on society access
+>
+> Magic links are the front door; codes stay as the deliberate fallback for a committee meeting
+> where nobody has email to hand. They are **not rivals** - approving a magic link mints an invite
+> code and the link just opens a session keyed to it, so "replace codes with links" would mean
+> rewriting the session model for no gain. What needed to die was the weak permanent code, not the
+> concept.
+>
+> ### Two errors of Claude's own, corrected
+>
+> - `AGENTS.md` told Antigravity the rate-limiting finding was unfixed. It was already fixed -
+>   `app/rate_limit.py` keys on `CF-Connecting-IP`. Claude had grepped `ProxyFix` and never opened
+>   that file.
+> - `AGENTS.md` and this file both claimed the society-links queue would "release 529 award rows".
+>   That module's own docstring says most names never match. 8 are linked against ~9 predicted, so
+>   Antigravity hit the expected number while reporting against a target that never existed.
+>
+> ### On trusting the handback log
+>
+> It is well kept - dry-run-then-apply on every backfill, PRs for the risky work - but it
+> **overstates**. "unlinked awards 499 -> 0" describes an outcome that did not occur; that number is
+> unchanged at 529 (the queue emptied via `no_match`, which is correct). Its tests are thorough but
+> lock in whatever the code did, so they confirm behaviour rather than question it. Verify claims
+> against the database, not the log.
+
+---
+
 ## START HERE - where things stand (2026-08-29, end of session)
 
 > ### The code side is in good shape. What is left is mostly not code.
