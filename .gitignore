@@ -67,3 +67,4 @@ DATA_ENRICHMENT_AND_SCRAPING_OPPORTUNITIES.md
 # Throwaway working files - scratch_*.json etc. get created while checking
 # something against production and are never repo content.
 scratch_*
+/scratch/
