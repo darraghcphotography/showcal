@@ -920,9 +920,19 @@ CREATE TABLE IF NOT EXISTS wardrobe_items (
     status              TEXT NOT NULL DEFAULT 'available' CHECK (status IN (
                             'available', 'on_loan', 'delisted'
                         )),
+    -- UNUSED as of 2026-09-01, and must stay that way. Both held personal
+    -- data (a named volunteer, a personal mobile) that was rendered on the
+    -- public, crawlable /exchange/<id> page - the mobile as a tel: link -
+    -- while the listing form said nothing about any of it being published.
+    -- No code writes them now, vault_edit NULLs both on every save, and
+    -- scripts/backfills/clear_exchange_personal_contacts.py emptied the rows
+    -- that already existed. Kept as columns only because dropping one in
+    -- SQLite means rebuilding a table holding societies' own uploads, which
+    -- is more risk than the tidiness is worth. Do not start using them again.
     contact_name        TEXT,
-    contact_email       TEXT,
     contact_phone       TEXT,
+    -- The society's own shared address, shown only to a signed-in society.
+    contact_email       TEXT,
     primary_photo       TEXT,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at          TEXT NOT NULL DEFAULT (datetime('now'))

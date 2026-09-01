@@ -1,3 +1,7 @@
+Contact details on a Costumes & Props Exchange listing are now shown only to societies signed in to ShowCal, and a listing holds a society's own shared address rather than anyone's name or mobile number. A volunteer helping their society out should not end up with their phone number on a page anyone can find
+
+---
+
 Society committees can now batch-fill production team credits (Director, Musical Director, Choreographer, Venue, and Run Dates) across their society's entire historical record in a single spreadsheet-style workbench from their dashboard
 
 ---

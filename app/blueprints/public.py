@@ -2128,9 +2128,21 @@ def exchange_detail(item_id):
         (item["society_id"], item_id),
     ).fetchall()
 
+    # Contact details are for society-to-society use, not the open web. They
+    # are stripped here rather than hidden in the template on purpose: a
+    # template-only guard still ships the phone number and email inside the
+    # HTML for anyone who views source, which is not "protected", it is just
+    # less visible. What the browser never receives cannot be scraped.
+    viewer_is_society = active_society_code() is not None
+    item = dict(item)
+    if not viewer_is_society:
+        for field in ("contact_name", "contact_email", "contact_phone"):
+            item[field] = None
+
     return render_template(
         "exchange_detail.html",
         item=item,
+        viewer_is_society=viewer_is_society,
         photos=photos,
         other_items=other_items,
         item_types=WARDROBE_ITEM_TYPES,

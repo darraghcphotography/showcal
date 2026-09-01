@@ -81,27 +81,44 @@
           Contact {{ item['society_name'] }} directly to discuss availability dates, deposits, fitting arrangements, or transport.
         </p>
 
-        {% if item['contact_name'] %}
-          <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
-            <strong>Coordinator:</strong> {{ item['contact_name'] }}
+        {% if viewer_is_society %}
+          {% set mail_to = item['contact_email'] or 'info@darraghc.ie' %}
+          {% set mail_subject = '[ShowCal Exchange] Inquiry regarding ' ~ item['title'] %}
+          {% set mail_body = 'Hi ' ~ item['society_name'] ~ ',
+
+I am contacting you via the ShowCal Costumes & Props Exchange regarding \"' ~ item['title'] ~ '\".
+
+Our society would like to check availability for our upcoming production.
+
+Proposed Run Dates:
+Society Name:
+Best way to reach us:
+
+Thank you!' %}
+          {% if item['contact_email'] %}
+            <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
+              <strong>Email:</strong> {{ item['contact_email'] }}
+            </div>
+          {% endif %}
+          <div style="margin-top: 1rem;">
+            <a href="mailto:{{ mail_to }}?subject={{ mail_subject|urlencode }}&body={{ mail_body|urlencode }}" class="button primary-button" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; font-size: 0.95rem;">
+              <span>&#9993;</span> Send Email Inquiry to Society &rarr;
+            </a>
+          </div>
+        {% else %}
+          <p style="font-size: 0.9rem; margin: 0 0 1rem; line-height: 1.5;">
+            Contact details are shown to societies signed in to ShowCal. This keeps a volunteer's
+            address off the open web, where anything published can be copied by anyone.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.6rem;">
+            <a href="{{ url_for('society.login') }}" class="button primary-button" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; font-size: 0.95rem;">
+              Sign in to see contact details
+            </a>
+            <a href="{{ url_for('society.request_access') }}" class="button" style="display: inline-flex; align-items: center; padding: 0.65rem 1.25rem; font-size: 0.95rem;">
+              My society doesn't have a login
+            </a>
           </div>
         {% endif %}
-
-        {% if item['contact_phone'] %}
-          <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
-            <strong>Phone:</strong> <a href="tel:{{ item['contact_phone'] }}">{{ item['contact_phone'] }}</a>
-          </div>
-        {% endif %}
-
-        {% set mail_to = item['contact_email'] or 'info@darraghc.ie' %}
-        {% set mail_subject = '[ShowCal Exchange] Inquiry regarding ' ~ item['title'] %}
-        {% set mail_body = 'Hi ' ~ (item['contact_name'] or item['society_name']) ~ ',\n\nI am contacting you via the ShowCal Costumes & Props Exchange regarding \"' ~ item['title'] ~ '\".\n\nOur society would like to check availability for our upcoming production.\n\nProposed Run Dates:\nSociety Name:\nContact Phone:\n\nThank you!' %}
-
-        <div style="margin-top: 1rem;">
-          <a href="mailto:{{ mail_to }}?subject={{ mail_subject|urlencode }}&body={{ mail_body|urlencode }}" class="button primary-button" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; font-size: 0.95rem;">
-            <span>✉️</span> Send Email Inquiry to Society &rarr;
-          </a>
-        </div>
 
         <!-- Non-Liability Disclaimer inside Contact Card -->
         <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); font-size: 0.76rem; color: var(--muted); line-height: 1.4;">

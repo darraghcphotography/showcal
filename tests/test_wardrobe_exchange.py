@@ -279,7 +279,14 @@ def test_public_exchange_listing_and_filtering(client):
 # --- 4. Public Item Detail & Disclaimer Tests ---
 
 def test_public_exchange_detail_view(client):
-    """Item detail page renders item info, society details, mailto contact, and disclaimer."""
+    """Item detail page renders item info, society details and disclaimer - and
+    NOT the contact details.
+
+    This test originally asserted the opposite: that "Mary Kelly" and a mobile
+    number appeared on the public page. That was the behaviour, and it was the
+    bug (2026-09-01 audit) - a named volunteer and a personal phone published on
+    a crawlable page, from a form that never said it would be. The assertions
+    are inverted deliberately; see tests/test_exchange_contact_privacy.py."""
     with client.application.app_context():
         db = get_db()
         cur = db.execute(
@@ -303,9 +310,10 @@ def test_public_exchange_detail_view(client):
     assert "Ancestors Wardrobe (22 Outfits)" in html
     assert "The Addams Family" in html
     assert "Trim Musical Society" in html
-    assert "Mary Kelly" in html
-    assert "0871234567" in html
-    assert "mailto:wardrobe@trimms.com" in html
+    assert "Mary Kelly" not in html
+    assert "0871234567" not in html
+    assert "mailto:wardrobe@trimms.com" not in html
+    assert "Sign in to see contact details" in html
     assert "Community Disclaimer" in html
     assert "ShowCal provides this listing as an introductory guideline only" in html
 

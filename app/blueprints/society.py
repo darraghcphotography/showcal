@@ -673,9 +673,11 @@ def vault_new():
         sizing_quantity = request.form.get("sizing_quantity", "").strip() or None
         terms = request.form.get("terms", "hire").strip()
         status = request.form.get("status", "available").strip()
-        contact_name = request.form.get("contact_name", "").strip() or None
+        # A listing carries the society's own shared address and nothing else.
+        # It used to collect a named individual and a personal mobile, which
+        # were then rendered on a public, indexable page - see the exchange
+        # privacy fix. The narrower the field, the less there is to protect.
         contact_email = request.form.get("contact_email", "").strip() or None
-        contact_phone = request.form.get("contact_phone", "").strip() or None
         agree_terms = request.form.get("agree_terms")
 
         if not title:
@@ -713,14 +715,13 @@ def vault_new():
             """
             INSERT INTO wardrobe_items (
                 society_id, show_title, title, item_type, description,
-                sizing_quantity, terms, status, contact_name, contact_email,
-                contact_phone, primary_photo, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                sizing_quantity, terms, status, contact_email,
+                primary_photo, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
             """,
             (
                 society["id"], show_title, title, item_type, description,
-                sizing_quantity, terms, status, contact_name, contact_email,
-                contact_phone, primary_photo,
+                sizing_quantity, terms, status, contact_email, primary_photo,
             ),
         )
         item_id = cur.lastrowid
@@ -780,9 +781,7 @@ def vault_edit(item_id):
         sizing_quantity = request.form.get("sizing_quantity", "").strip() or None
         terms = request.form.get("terms", "hire").strip()
         status = request.form.get("status", "available").strip()
-        contact_name = request.form.get("contact_name", "").strip() or None
         contact_email = request.form.get("contact_email", "").strip() or None
-        contact_phone = request.form.get("contact_phone", "").strip() or None
 
         if not title:
             flash("Please enter a title for this item.", "error")
@@ -810,15 +809,19 @@ def vault_edit(item_id):
             """
             UPDATE wardrobe_items SET
                 show_title = ?, title = ?, item_type = ?, description = ?,
-                sizing_quantity = ?, terms = ?, status = ?, contact_name = ?,
-                contact_email = ?, contact_phone = ?, primary_photo = ?,
+                sizing_quantity = ?, terms = ?, status = ?,
+                contact_email = ?, primary_photo = ?,
+                -- Cleared, not merely left alone: an item edited after this
+                -- change should shed any personal details it was created with
+                -- under the old form, without anyone having to remember to.
+                contact_name = NULL, contact_phone = NULL,
                 updated_at = datetime('now')
             WHERE id = ? AND society_id = ?
             """,
             (
                 show_title, title, item_type, description,
-                sizing_quantity, terms, status, contact_name,
-                contact_email, contact_phone, primary_photo,
+                sizing_quantity, terms, status,
+                contact_email, primary_photo,
                 item_id, society["id"],
             ),
         )
