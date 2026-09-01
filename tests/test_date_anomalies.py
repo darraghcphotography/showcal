@@ -5,15 +5,17 @@ from conftest import seed_society, seed_user
 
 
 def test_season_for_date_boundaries():
-    """Verify AIMS season boundaries (Sept 1 - Aug 31)."""
+    """Verify AIMS season boundaries (Mid-June to Early May)."""
+    assert season_for_date("2024-06-20") == "24/25"
+    assert season_for_date("2024-08-15") == "24/25"
     assert season_for_date("2024-09-01") == "24/25"
     assert season_for_date("2024-11-20") == "24/25"
     assert season_for_date("2024-12-31") == "24/25"
     assert season_for_date("2025-01-01") == "24/25"
-    assert season_for_date("2025-05-15") == "24/25"
-    assert season_for_date("2025-08-31") == "24/25"
-    assert season_for_date("2025-09-01") == "25/26"
-    assert season_for_date("2023-05-26") == "22/23"
+    assert season_for_date("2025-04-30") == "24/25"
+    assert season_for_date("2025-05-10") == "24/25"
+    assert season_for_date("2025-05-25") == "25/26"
+    assert season_for_date("2025-06-20") == "25/26"
     assert season_for_date("") is None
     assert season_for_date("invalid") is None
 
@@ -57,11 +59,11 @@ def test_date_anomalies_fix_single_and_batch_seasons(client, db):
     seed_user(db, username="mod", password="password123")
     soc_id = seed_society(db, id=1, name="Mismatch Society")
 
-    # May 2024 is season 23/24, but recorded as 24/25
+    # April 2024 belongs to season 23/24, but recorded as 24/25
     cur1 = db.execute(
         """
         INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status)
-        VALUES (?, '24/25', 'Eastern', 'Mismatch Show 1', '2024-05-10', '2024-05-15', 'approved')
+        VALUES (?, '24/25', 'Eastern', 'Mismatch Show 1', '2024-04-10', '2024-04-15', 'approved')
         """,
         (soc_id,),
     )

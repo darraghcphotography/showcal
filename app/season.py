@@ -140,8 +140,10 @@ def season_label(start_year):
 
 def season_for_date(date_str):
     """Compute the AIMS season label ('yy/yy') from an ISO date string (YYYY-MM-DD).
-    The AIMS season runs from September 1 to August 31.
-    e.g. 2024-11-20 -> '24/25', 2025-03-15 -> '24/25', 2024-04-10 -> '23/24'.
+    The AIMS season runs from Mid-June of Year N to Early May of Year N+1 (concluding
+    with the June National Awards).
+    - Shows opening from mid-May/June through December belong to that starting year's season (e.g. June/August/Nov 2024 -> '24/25').
+    - Shows opening from January through early May belong to the concluding season (e.g. March/April/early May 2025 -> '24/25').
     Returns None if date_str is empty or unparseable.
     """
     if not date_str or len(date_str) < 7:
@@ -150,7 +152,12 @@ def season_for_date(date_str):
         parts = date_str.split("-")
         year = int(parts[0])
         month = int(parts[1])
-        start_year = year if month >= 9 else (year - 1)
+        day = int(parts[2]) if len(parts) >= 3 else 1
+        # Cutoff around mid-May (after annual adjudication deadline closes)
+        if month > 5 or (month == 5 and day > 15):
+            start_year = year
+        else:
+            start_year = year - 1
         return season_label(start_year)
     except (ValueError, IndexError):
         return None
