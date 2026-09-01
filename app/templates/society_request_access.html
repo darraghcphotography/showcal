@@ -10,6 +10,13 @@
     <form method="post" class="stacked-form" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-top: 1.25rem;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+      <!-- honeypot: hidden from real visitors via CSS, bots that fill every field will trip it -->
+      <div class="honeypot" aria-hidden="true">
+        <label>Leave this field blank
+          <input type="text" name="website" tabindex="-1" autocomplete="off">
+        </label>
+      </div>
+
       <label>
         Your Society <span style="color: var(--danger);">*</span>
         <select name="society_id" required autofocus style="width: 100%;">

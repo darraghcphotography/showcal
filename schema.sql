@@ -197,18 +197,29 @@ CREATE TABLE IF NOT EXISTS invite_codes (
 
 -- Access requests from society committee members seeking passwordless 1-click
 -- login links, approvable by an admin from their phone with no code handling.
+-- token_hash holds the SHA-256 of the magic-link token, never the token
+-- itself: it is a bearer credential that is only ever verified, never shown
+-- back, so a copy of this file (backups included) yields no working logins.
+-- See app/auth.py's hash_magic_token, and db.py's migration off the old
+-- plaintext column.
 CREATE TABLE IF NOT EXISTS society_access_requests (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     society_id      INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
     requester_name  TEXT NOT NULL,
     requester_email TEXT NOT NULL,
     requester_role  TEXT NOT NULL,
-    token           TEXT UNIQUE NOT NULL,
+    token_hash      TEXT UNIQUE NOT NULL,
     invite_code_id  INTEGER REFERENCES invite_codes(id) ON DELETE SET NULL,
     status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'used')),
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     approved_at     TEXT,
-    expires_at      TEXT
+    expires_at      TEXT,
+    -- When the link was first clicked, and how often since. A magic link is
+    -- deliberately reusable for its lifetime (see app/blueprints/society.py's
+    -- auth_magic_link), so these are for a moderator's eyes - "did that link
+    -- ever land?" - not a gate.
+    used_at         TEXT,
+    use_count       INTEGER NOT NULL DEFAULT 0
 );
 
 -- Simple self-hosted pageview count, no cookies/sessions/third parties - just
@@ -920,18 +931,20 @@ CREATE TABLE IF NOT EXISTS wardrobe_items (
     status              TEXT NOT NULL DEFAULT 'available' CHECK (status IN (
                             'available', 'on_loan', 'delisted'
                         )),
-    -- UNUSED as of 2026-09-01, and must stay that way. Both held personal
-    -- data (a named volunteer, a personal mobile) that was rendered on the
-    -- public, crawlable /exchange/<id> page - the mobile as a tel: link -
-    -- while the listing form said nothing about any of it being published.
-    -- No code writes them now, vault_edit NULLs both on every save, and
-    -- scripts/backfills/clear_exchange_personal_contacts.py emptied the rows
-    -- that already existed. Kept as columns only because dropping one in
-    -- SQLite means rebuilding a table holding societies' own uploads, which
-    -- is more risk than the tidiness is worth. Do not start using them again.
+    -- All three are shown ONLY to a signed-in society, and are stripped in
+    -- the route (see public.py's exchange_detail), never merely hidden in
+    -- the template - a template guard still ships the number inside the HTML
+    -- for anyone who views source, which is obscurity, not protection.
+    --
+    -- These two briefly went out on the public, crawlable /exchange/<id>
+    -- page (2026-09-01, the mobile as a tel: link), from a form that said
+    -- nothing about publishing them; the real rows were emptied by
+    -- scripts/backfills/clear_exchange_personal_contacts.py. They are back
+    -- deliberately - a coordinator's name is what makes a hire enquiry land
+    -- with a person rather than an inbox - but behind the login, and the
+    -- form now says plainly where they show up.
     contact_name        TEXT,
     contact_phone       TEXT,
-    -- The society's own shared address, shown only to a signed-in society.
     contact_email       TEXT,
     primary_photo       TEXT,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),

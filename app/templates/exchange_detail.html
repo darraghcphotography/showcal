@@ -84,7 +84,7 @@
         {% if viewer_is_society %}
           {% set mail_to = item['contact_email'] or 'info@darraghc.ie' %}
           {% set mail_subject = '[ShowCal Exchange] Inquiry regarding ' ~ item['title'] %}
-          {% set mail_body = 'Hi ' ~ item['society_name'] ~ ',
+          {% set mail_body = 'Hi ' ~ (item['contact_name'] or item['society_name']) ~ ',
 
 I am contacting you via the ShowCal Costumes & Props Exchange regarding \"' ~ item['title'] ~ '\".
 
@@ -95,9 +95,19 @@ Society Name:
 Best way to reach us:
 
 Thank you!' %}
+          {% if item['contact_name'] %}
+            <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
+              <strong>Coordinator:</strong> {{ item['contact_name'] }}
+            </div>
+          {% endif %}
           {% if item['contact_email'] %}
             <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
               <strong>Email:</strong> {{ item['contact_email'] }}
+            </div>
+          {% endif %}
+          {% if item['contact_phone'] %}
+            <div style="font-size: 0.9rem; margin-bottom: 0.4rem;">
+              <strong>Phone:</strong> <a href="tel:{{ item['contact_phone'] }}">{{ item['contact_phone'] }}</a>
             </div>
           {% endif %}
           <div style="margin-top: 1rem;">

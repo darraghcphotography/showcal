@@ -3,7 +3,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
-from ..auth import active_society_code, society_required
+from ..auth import active_society_code, generate_magic_token, hash_magic_token, society_required
 from ..calendar_links import google_calendar_url
 from ..clock import utcnow_iso
 from ..constants import DATE_RE, SHOW_SECTIONS, WARDROBE_ITEM_TYPES, WARDROBE_TERMS, WARDROBE_STATUSES
@@ -20,6 +20,11 @@ bp = Blueprint("society", __name__, url_prefix="/society")
 
 SEASON_RE = re.compile(r"^\d{2}/\d{2}$")
 URL_RE = re.compile(r"^https?://")
+# Deliberately loose - the same shape check /submit uses for a submitter
+# address. It is there to catch a typo that would send an approved magic link
+# into the void (notify.send can't tell us about a bounce), not to police
+# what a valid mailbox looks like.
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 BULK_ROWS = 10
 
 PROFILE_URL_FIELDS = (
@@ -60,6 +65,12 @@ def login():
 def request_access():
     db = get_db()
     if request.method == "POST":
+        # Honeypot: a real visitor never fills this hidden field in. Same
+        # pattern as /submit - this form emails a moderator on every POST, so
+        # a bot working it is a bot working Darragh's inbox.
+        if request.form.get("website", ""):
+            return render_template("society_request_thanks.html", requester_name="", requester_email="")
+
         society_id = request.form.get("society_id", type=int)
         name = request.form.get("requester_name", "").strip()
         email = request.form.get("requester_email", "").strip()
@@ -74,15 +85,21 @@ def request_access():
             flash("Please enter both your name and email address.", "error")
             return redirect(url_for("society.request_access"))
 
-        import secrets
-        token = secrets.token_urlsafe(32)
+        if not EMAIL_RE.match(email):
+            flash("That email address doesn't look right - please check it. Your login link gets sent there, so a typo means it never arrives.", "error")
+            return redirect(url_for("society.request_access", society_id=society_id))
+
+        # A token is minted here only so the row has something unique to hold;
+        # the plaintext is discarded on the spot and this one is never sent
+        # anywhere. Approval rotates it (see admin/access_requests.py), so a
+        # pending request never carries a credential that could be used.
         db.execute(
             """
             INSERT INTO society_access_requests (
-                society_id, requester_name, requester_email, requester_role, token, status
+                society_id, requester_name, requester_email, requester_role, token_hash, status
             ) VALUES (?, ?, ?, ?, ?, 'pending')
             """,
-            (society_id, name, email, role, token),
+            (society_id, name, email, role, hash_magic_token(generate_magic_token())),
         )
         db.commit()
 
@@ -105,14 +122,16 @@ def request_access():
 @limiter.limit("15 per minute")
 def auth_magic_link(token: str):
     db = get_db()
+    # The database holds only the hash, so the lookup hashes what arrived in
+    # the URL. A token that isn't in the table simply doesn't match anything.
     req = db.execute(
         """
         SELECT req.*, societies.name AS society_name
         FROM society_access_requests req
         JOIN societies ON societies.id = req.society_id
-        WHERE req.token = ?
+        WHERE req.token_hash = ?
         """,
-        (token,),
+        (hash_magic_token(token),),
     ).fetchone()
 
     if not req or req["status"] not in ("approved", "used"):
@@ -127,6 +146,20 @@ def auth_magic_link(token: str):
     if not req["invite_code_id"]:
         flash("Unable to authenticate session. Please contact the administrator.", "error")
         return redirect(url_for("society.login"))
+
+    # Reusable for its lifetime, on purpose. A strictly single-use link would
+    # break on an email scanner's prefetch or a second click from a committee
+    # member's phone, and it would buy nothing: the link is an alias for the
+    # 30-day invite code it activates, so anyone who could replay one already
+    # has the other. What was actually worth fixing was the plaintext at rest,
+    # above. These two columns are for a moderator's visibility only.
+    db.execute(
+        "UPDATE society_access_requests "
+        "SET status = 'used', used_at = COALESCE(used_at, ?), use_count = use_count + 1 "
+        "WHERE id = ?",
+        (utcnow_iso(), req["id"]),
+    )
+    db.commit()
 
     session["society_code_id"] = req["invite_code_id"]
     flash(f"Welcome, {req['requester_name']}! You are logged in to manage {req['society_name']}.", "success")
@@ -677,10 +710,12 @@ def vault_new():
         sizing_quantity = request.form.get("sizing_quantity", "").strip() or None
         terms = request.form.get("terms", "hire").strip()
         status = request.form.get("status", "available").strip()
-        # A listing carries the society's own shared address and nothing else.
-        # It used to collect a named individual and a personal mobile, which
-        # were then rendered on a public, indexable page - see the exchange
-        # privacy fix. The narrower the field, the less there is to protect.
+        # All three are shown only to a signed-in society (public.py strips
+        # them for everyone else). They were briefly public - see the exchange
+        # privacy fix - and are collected again on the explicit understanding
+        # that the form now says where they appear.
+        contact_name = request.form.get("contact_name", "").strip() or None
+        contact_phone = request.form.get("contact_phone", "").strip() or None
         contact_email = request.form.get("contact_email", "").strip() or None
         agree_terms = request.form.get("agree_terms")
 
@@ -719,13 +754,15 @@ def vault_new():
             """
             INSERT INTO wardrobe_items (
                 society_id, show_title, title, item_type, description,
-                sizing_quantity, terms, status, contact_email,
+                sizing_quantity, terms, status,
+                contact_name, contact_phone, contact_email,
                 primary_photo, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
             """,
             (
                 society["id"], show_title, title, item_type, description,
-                sizing_quantity, terms, status, contact_email, primary_photo,
+                sizing_quantity, terms, status,
+                contact_name, contact_phone, contact_email, primary_photo,
             ),
         )
         item_id = cur.lastrowid
@@ -785,6 +822,8 @@ def vault_edit(item_id):
         sizing_quantity = request.form.get("sizing_quantity", "").strip() or None
         terms = request.form.get("terms", "hire").strip()
         status = request.form.get("status", "available").strip()
+        contact_name = request.form.get("contact_name", "").strip() or None
+        contact_phone = request.form.get("contact_phone", "").strip() or None
         contact_email = request.form.get("contact_email", "").strip() or None
 
         if not title:
@@ -814,18 +853,15 @@ def vault_edit(item_id):
             UPDATE wardrobe_items SET
                 show_title = ?, title = ?, item_type = ?, description = ?,
                 sizing_quantity = ?, terms = ?, status = ?,
-                contact_email = ?, primary_photo = ?,
-                -- Cleared, not merely left alone: an item edited after this
-                -- change should shed any personal details it was created with
-                -- under the old form, without anyone having to remember to.
-                contact_name = NULL, contact_phone = NULL,
+                contact_name = ?, contact_phone = ?, contact_email = ?,
+                primary_photo = ?,
                 updated_at = datetime('now')
             WHERE id = ? AND society_id = ?
             """,
             (
                 show_title, title, item_type, description,
                 sizing_quantity, terms, status,
-                contact_email, primary_photo,
+                contact_name, contact_phone, contact_email, primary_photo,
                 item_id, society["id"],
             ),
         )

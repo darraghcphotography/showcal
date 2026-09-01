@@ -400,24 +400,70 @@ def _backfill_fts_indexes(db):
         db.execute(f"INSERT INTO {fts_table}({fts_table}) VALUES ('rebuild')")
 
 
-def _migrate_society_access_requests(db):
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS society_access_requests (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            society_id      INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
-            requester_name  TEXT NOT NULL,
-            requester_email TEXT NOT NULL,
-            requester_role  TEXT NOT NULL,
-            token           TEXT UNIQUE NOT NULL,
-            invite_code_id  INTEGER REFERENCES invite_codes(id) ON DELETE SET NULL,
-            status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'used')),
-            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-            approved_at     TEXT,
-            expires_at      TEXT
-        )
-        """
+SOCIETY_ACCESS_REQUESTS_DDL = """
+    CREATE TABLE {name} (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        society_id      INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
+        requester_name  TEXT NOT NULL,
+        requester_email TEXT NOT NULL,
+        requester_role  TEXT NOT NULL,
+        token_hash      TEXT UNIQUE NOT NULL,
+        invite_code_id  INTEGER REFERENCES invite_codes(id) ON DELETE SET NULL,
+        status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'used')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        approved_at     TEXT,
+        expires_at      TEXT,
+        used_at         TEXT,
+        use_count       INTEGER NOT NULL DEFAULT 0
     )
+"""
+
+
+def _migrate_society_access_requests(db):
+    db.execute(SOCIETY_ACCESS_REQUESTS_DDL.format(name="IF NOT EXISTS society_access_requests"))
+    _migrate_magic_tokens_to_hashes(db)
+
+
+def _migrate_magic_tokens_to_hashes(db):
+    """The table originally stored the magic-link token in plaintext, so a
+    copy of the database - and backups sit beside it - handed working society
+    logins to whoever held the copy. This rebuilds it around a token_hash
+    column instead (see app/auth.py for why SHA-256 rather than a password
+    KDF), plus used_at/use_count, which let a moderator see whether a link
+    they issued was ever actually clicked.
+
+    A plain ADD COLUMN isn't enough here: the whole point is that the
+    plaintext stops existing, so the old column has to go, and SQLite can't
+    drop a UNIQUE NOT NULL column in place. Hence the same new-table/copy/
+    drop/rename dance as _migrate_shows_source_check above, with the hashing
+    done in Python on the way across. Links already sitting in societies'
+    inboxes keep working - the URL still carries the plaintext, and lookup
+    now hashes it before comparing. Keyed off whether the pre-migration
+    token column is still there, so this is a no-op on every startup once a
+    database has been migrated, including a brand-new one where the CREATE
+    TABLE above is already in the final shape."""
+    existing = {row[1] for row in db.execute("PRAGMA table_info(society_access_requests)")}
+    if "token" not in existing:
+        return
+
+    from .auth import hash_magic_token
+
+    carried = (
+        "id", "society_id", "requester_name", "requester_email", "requester_role",
+        "invite_code_id", "status", "created_at", "approved_at", "expires_at",
+    )
+    rows = db.execute(
+        "SELECT " + ", ".join(carried) + ", token FROM society_access_requests"
+    ).fetchall()
+
+    db.execute("ALTER TABLE society_access_requests RENAME TO society_access_requests_old")
+    db.execute(SOCIETY_ACCESS_REQUESTS_DDL.format(name="society_access_requests"))
+    db.executemany(
+        "INSERT INTO society_access_requests (" + ", ".join(carried) + ", token_hash) "
+        "VALUES (" + ", ".join("?" * (len(carried) + 1)) + ")",
+        [tuple(r[c] for c in carried) + (hash_magic_token(r["token"]),) for r in rows],
+    )
+    db.execute("DROP TABLE society_access_requests_old")
 
 
 def _migrate_wardrobe_tables(db):

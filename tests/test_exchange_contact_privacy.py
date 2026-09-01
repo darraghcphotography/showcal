@@ -7,8 +7,11 @@ crawlable page (`robots.txt` is `Allow: /`, disallowing only /admin/ and
 Kelly (Wardrobe Head)", "e.g. 087 123 4567" - and said nothing about any of it
 becoming public.
 
-Darragh's decision: contact details are visible only to a signed-in society,
-and a listing holds a society address only - no personal name, no mobile.
+Darragh's decision, revised 2026-09-02: a listing may carry a coordinator and a
+phone again, because an enquiry about hiring a set of costumes needs to reach a
+person rather than an inbox - but they are shown only to a signed-in society,
+and the form now states that plainly. What was wrong was never that the fields
+existed; it was that they were published from a form that didn't say so.
 
 The distinction these tests are really protecting is between *hidden* and *not
 sent*. A template-only guard still ships the phone number inside the HTML for
@@ -70,32 +73,39 @@ def test_a_public_visitor_is_told_how_to_get_them(client, db):
     assert "/society/request-access" in body
 
 
-def test_a_signed_in_society_does_see_the_contact_address(client, db):
+def test_a_signed_in_society_sees_all_three(client, db):
     society_id = seed_society(db)
     code_id = seed_invite_code(db, code="AIMS-SOC001", society_id=society_id)
-    item_id = seed_item(db, society_id, contact_email="wardrobe@testsociety.ie")
+    item_id = seed_item(
+        db, society_id,
+        contact_name="Wardrobe Head", contact_phone="01 234 5678",
+        contact_email="wardrobe@testsociety.ie",
+    )
     unlock_society(client, code_id)
 
     body = client.get(f"/exchange/{item_id}").get_data(as_text=True)
     assert "wardrobe@testsociety.ie" in body
+    assert "Wardrobe Head" in body
+    assert "01 234 5678" in body
 
 
-def test_the_listing_form_does_not_ask_for_a_person_or_a_mobile(client, db):
+def test_the_listing_form_says_where_the_details_will_show_up(client, db):
+    """The original form's failure was silence, not the fields themselves - it
+    collected a person and a mobile while saying nothing about publishing
+    them."""
     society_id = seed_society(db)
     code_id = seed_invite_code(db, code="AIMS-SOC001", society_id=society_id)
     unlock_society(client, code_id)
 
     body = client.get("/society/vault/new").get_data(as_text=True)
-    assert 'name="contact_name"' not in body
-    assert 'name="contact_phone"' not in body
+    assert 'name="contact_name"' in body
+    assert 'name="contact_phone"' in body
     assert 'name="contact_email"' in body
-    # And it says who will see it, which the original form never did.
-    assert "signed in to ShowCal" in body
+    assert "shown only to societies signed in to ShowCal" in body
+    assert "never on the public listing" in body
 
 
-def test_a_posted_name_or_phone_is_ignored_on_create(client, db):
-    """Removing the inputs is not enough - the form is just HTML, and a POST
-    can carry any field. The route must not store them either."""
+def test_a_name_and_phone_are_stored_but_still_never_reach_the_public_page(client, db):
     society_id = seed_society(db)
     code_id = seed_invite_code(db, code="AIMS-SOC001", society_id=society_id)
     unlock_society(client, code_id)
@@ -104,20 +114,26 @@ def test_a_posted_name_or_phone_is_ignored_on_create(client, db):
         "title": "Chorus Coats", "item_type": "costume_full_set", "terms": "hire",
         "status": "available", "contact_email": "wardrobe@testsociety.ie",
         "agree_terms": "1",
-        "contact_name": "Mary Kelly", "contact_phone": "087 123 4567",
+        "contact_name": "Wardrobe Head", "contact_phone": "01 234 5678",
     })
 
     row = db.execute("SELECT * FROM wardrobe_items WHERE title = 'Chorus Coats'").fetchone()
     assert row is not None
-    assert row["contact_name"] is None
-    assert row["contact_phone"] is None
+    assert row["contact_name"] == "Wardrobe Head"
+    assert row["contact_phone"] == "01 234 5678"
     assert row["contact_email"] == "wardrobe@testsociety.ie"
 
+    # Stored is not published. Same listing, signed out:
+    with client.session_transaction() as sess:
+        sess.clear()
+    body = client.get(f"/exchange/{row['id']}").get_data(as_text=True)
+    assert "Wardrobe Head" not in body
+    assert "01 234 5678" not in body
 
-def test_editing_an_old_listing_sheds_details_it_was_created_with(client, db):
-    """Listings created under the old form still hold personal data. Editing
-    one clears it, so the fix reaches existing rows through normal use as well
-    as through the one-off backfill."""
+
+def test_clearing_the_contact_fields_on_an_edit_actually_clears_them(client, db):
+    """A society that wants a name off a listing must be able to take it off by
+    emptying the box - not have the old value quietly survive the save."""
     society_id = seed_society(db)
     code_id = seed_invite_code(db, code="AIMS-SOC001", society_id=society_id)
     item_id = seed_item(
@@ -128,6 +144,7 @@ def test_editing_an_old_listing_sheds_details_it_was_created_with(client, db):
     client.post(f"/society/vault/{item_id}/edit", data={
         "title": "Victorian Chorus Coats", "item_type": "costume_full_set",
         "terms": "hire", "status": "available",
+        "contact_name": "", "contact_phone": "",
         "contact_email": "wardrobe@testsociety.ie",
     })
 

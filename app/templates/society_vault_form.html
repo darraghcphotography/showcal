@@ -72,13 +72,20 @@
     <fieldset style="border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin: 1rem 0;">
       <legend style="padding: 0 0.5rem; font-weight: 700; color: var(--gold);">Direct Society Contact for Inquiries</legend>
       <p class="hint" style="margin-top: 0; margin-bottom: 0.75rem;">
-        Use a shared society address rather than anyone's personal email or mobile. Enquiries from
-        other societies are directed here, and only societies signed in to ShowCal can see it - it
-        is never shown on the public listing.
+        <strong>Everything in this box is shown only to societies signed in to ShowCal.</strong> It is never on the public listing and never reaches a search engine. Even so, prefer a shared society address and a society phone over anyone's personal ones - a committee changes, and whoever is named here fields the enquiries.
       </p>
       <label>
         <strong>Society Email Address</strong>
         <input type="email" name="contact_email" value="{{ item['contact_email'] if item else '' }}" placeholder="e.g. wardrobe@your-society.ie">
+      </label>
+      <label>
+        <strong>Coordinator <span class="hint" style="font-weight: 400;">(optional)</span></strong>
+        <span class="hint">Who an enquiring society should ask for.</span>
+        <input type="text" name="contact_name" value="{{ item['contact_name'] if item else '' }}" placeholder="e.g. Wardrobe Head">
+      </label>
+      <label>
+        <strong>Phone <span class="hint" style="font-weight: 400;">(optional)</span></strong>
+        <input type="tel" name="contact_phone" value="{{ item['contact_phone'] if item else '' }}" placeholder="e.g. 01 234 5678">
       </label>
     </fieldset>
 

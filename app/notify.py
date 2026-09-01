@@ -31,9 +31,17 @@ def link(path):
 def send(subject, body, to=None):
     """Best-effort: silently does nothing if SMTP isn't configured (so local
     dev never needs real credentials), and never raises on failure - a
-    submission/suggestion must always succeed regardless of mail delivery."""
+    submission/suggestion must always succeed regardless of mail delivery.
+
+    Returns True if the message went out, False if sending was attempted and
+    failed, and None if SMTP isn't configured so nothing was attempted.
+    Most callers ignore this and should: a visitor's submission must not
+    depend on mail. It exists for the one case where a human is standing
+    there and needs to know - approving a society's magic link, where a
+    silently-lost email means the moderator believes access was granted and
+    the society never hears anything (see admin/access_requests.py)."""
     if not SMTP_USER or not SMTP_PASSWORD:
-        return
+        return None
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = SMTP_USER
@@ -46,3 +54,5 @@ def send(subject, body, to=None):
             server.send_message(msg)
     except Exception:
         current_app.logger.exception("Failed to send notification email (subject=%r, to=%r)", subject, to or NOTIFY_EMAIL)
+        return False
+    return True

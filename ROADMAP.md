@@ -13,7 +13,51 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - security audit of the Antigravity stint (2026-09-01)
+## START HERE - security follow-ups closed (2026-09-02)
+
+> **995 tests green.** Three of the four items left open by the 2026-09-01 audit are done; the
+> fourth is Darragh's outreach, not code.
+>
+> - **Magic-link tokens are hashed at rest.** `society_access_requests` was rebuilt around a
+>   `token_hash` column (SHA-256; the plaintext column is gone, not merely renamed, and a test
+>   dumps the file to prove it). **Links already in societies' inboxes still work** - the URL
+>   carries the plaintext and lookup hashes it. The token is now also minted at *approval* rather
+>   than at request time, so a pending or rejected request has never held a usable credential.
+>   `used_at`/`use_count` were added for a moderator's visibility.
+>
+>   **Links stay reusable for their 30 days, deliberately.** Single-use would break on an email
+>   scanner's prefetch and buys nothing: the link is an alias for the 30-day invite code it
+>   activates, so anyone who could replay one already has the other. Plaintext at rest was the
+>   real finding; that is what got fixed.
+>
+> - **`/society/request-access` hardened.** Email shape check, honeypot (it emails Darragh on
+>   every POST), and `notify.send` now *reports* whether it sent. The approval screen tells the
+>   moderator when an email failed and hands them the link to pass on by hand - previously a lost
+>   email and a delivered one looked identical.
+>
+> - **Exchange contact details are back, behind the login** (Darragh's call, 2026-09-02). A
+>   listing can name a coordinator and a phone again; the route still strips all three for
+>   anonymous viewers, and the form now states where they appear. No WhatsApp link - `wa.me` puts
+>   the number in the URL, so it is UX with no privacy benefit; raise it separately if wanted.
+>
+> - **A time-bomb test was fixed, not the code.** `test_season_page_lists_shows_soonest_first`
+>   hardcoded two September 2026 dates; on 2026-09-02 the earlier became the past and the test went
+>   red on a clean `main` for a reason unrelated to sort order. It now derives its dates from today
+>   and steps around the season boundary. **`main` was red before this session started** - the
+>   "985 tests green" claim in the block below was 984.
+>
+> ### Still open from the audit
+>
+> 1. **17 of 21 active invite codes never expire.** Widening the generator did nothing for codes
+>    already issued. Retire them by moving those societies onto magic links - **outreach, needs
+>    Darragh**.
+> 2. Whether to say anything to Castlebar MDS about the contact details having been removed from
+>    their listing. Now that a coordinator name is collectable again behind the login, this is a
+>    smaller conversation than it was.
+
+---
+
+## Security audit of the Antigravity stint (2026-09-01)
 
 > Claude audited the 63-commit Antigravity stint by reading the code and querying the live
 > database, not by reading its log. **985 tests green at `e7fa1ea`+.** The engineering was solid -
@@ -44,18 +88,17 @@ again.
 >
 > ### OPEN - ranked, none urgent
 >
+> **Items 2, 3 and 4 were all closed on 2026-09-02 - see the block above.** Only item 1 remains,
+> and it is outreach rather than code.
+>
 > 1. **17 of 21 active invite codes never expire.** The only 4 with an expiry are the ones the
 >    magic-link flow minted itself. Widening the generator does nothing for codes already issued.
 >    Retire the 17 by moving those societies onto magic links.
-> 2. **Magic-link tokens are stored in plaintext and stay valid 30 days, multi-use.** A copy of the
->    database - and backups sit beside it - yields working society logins. This is the one place
->    where hashing genuinely applies: a token is only ever verified, never displayed.
-> 3. **`/society/request-access` has no email validation and no honeypot**, unlike `/submit/photo`.
->    `notify.send` swallows failures, so an approved magic link to a mistyped address vanishes
->    silently while the moderator believes it sent. Each submission also emails Darragh.
-> 4. **Decision pending from Darragh:** whether to restore contact details behind the login (with a
->    WhatsApp `wa.me` link, which is good UX but *zero* privacy benefit - the number sits in the
->    URL), or keep society-address-only as shipped.
+> 2. ~~Magic-link tokens are stored in plaintext.~~ **Hashed 2026-09-02.**
+> 3. ~~`/society/request-access` has no email validation and no honeypot.~~ **Done 2026-09-02**,
+>    along with surfacing `notify.send` failures to the moderator.
+> 4. ~~Decision pending on exchange contact details.~~ **Decided and shipped 2026-09-02:** restored
+>    behind the society login, no WhatsApp link.
 >
 > ### Direction agreed on society access
 >

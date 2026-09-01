@@ -1,9 +1,34 @@
 import functools
+import hashlib
+import secrets
 from datetime import date
 
 from flask import redirect, session, url_for
 
 from .db import get_db
+
+# A society magic-link token is a bearer credential: whoever holds the URL is
+# that society. It is only ever *verified*, never displayed back, so there is
+# no reason to keep the plaintext once the link has been emailed - the
+# database stores the SHA-256 of it and nothing else. That matters here more
+# than it does for most secrets in this app because the database is a single
+# file that gets copied around: backups sit beside it on the NAS, and a copy
+# is pulled down for analysis. Hashing means a stolen copy yields no working
+# logins. Plain SHA-256, not a password KDF, is the right tool: the input is
+# 32 bytes of `secrets` output, not something a human chose, so there is no
+# dictionary to run against it and nothing for a slow hash to buy.
+MAGIC_TOKEN_BYTES = 32
+
+
+def generate_magic_token():
+    return secrets.token_urlsafe(MAGIC_TOKEN_BYTES)
+
+
+def hash_magic_token(token):
+    """Hash a magic-link token for storage/lookup. Both the writer and the
+    reader go through this, so the plaintext exists only in the email and in
+    the URL the recipient clicks."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def current_user():

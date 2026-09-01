@@ -1,18 +1,31 @@
-import secrets
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from flask import flash, redirect, render_template, request, url_for
 
 from ... import notify
-from ...auth import current_user, login_required
+from ...auth import current_user, generate_magic_token, hash_magic_token, login_required
 from ...clock import utcnow_iso
 from ...db import get_db
 from . import bp
 from .auth import _generate_invite_code
 
 
-def _generate_magic_token() -> str:
-    return secrets.token_urlsafe(32)
+def _delivery_note(verb, sent, email, magic_url):
+    """What to tell the moderator about the email that just went out. The
+    failure case is the one that matters: notify.send never raises, so
+    without this a lost email looks exactly like a delivered one and the
+    moderator walks away believing a society has access it never got. The
+    link is in every variant, so there is always a way to finish the job by
+    hand."""
+    if sent is False:
+        return (
+            f"{verb}, but the email to {email} FAILED to send - copy this link and pass it on "
+            f"yourself: {magic_url}",
+            "error",
+        )
+    if sent is None:
+        return (f"{verb}. No email was sent - pass this link on yourself: {magic_url}", "info")
+    return (f"{verb} - magic link emailed to {email}. Link: {magic_url}", "success")
 
 
 @bp.route("/access-requests")
@@ -72,6 +85,11 @@ def approve_access_request(req_id: int):
 
     # 1. Create or get 30-day invite code for this society
     expires_date = (date.today() + timedelta(days=30)).isoformat()
+    # The token is minted here, at approval, not when the request came in -
+    # only the hash is stored, so the plaintext exists exactly once, in the
+    # email below and in this flash. A pending request therefore never holds
+    # a usable credential, and there is nothing to recover if one is denied.
+    token = generate_magic_token()
     code_str = _generate_invite_code(db)
     label = f"Magic Link: {req['requester_name']} ({req['requester_role']})"
 
@@ -88,18 +106,20 @@ def approve_access_request(req_id: int):
     db.execute(
         """
         UPDATE society_access_requests
-        SET status = 'approved', approved_at = ?, invite_code_id = ?, expires_at = ?
+        SET status = 'approved', approved_at = ?, invite_code_id = ?, expires_at = ?,
+            token_hash = ?
         WHERE id = ?
         """,
-        (utcnow_iso(), code_id, expires_date, req_id),
+        (utcnow_iso(), code_id, expires_date, hash_magic_token(token), req_id),
     )
     db.commit()
 
-    magic_url = url_for("society.auth_magic_link", token=req["token"], _external=True)
+    magic_url = url_for("society.auth_magic_link", token=token, _external=True)
 
     # 3. Send magic link email to the requester
+    sent = None
     if req["requester_email"]:
-        notify.send(
+        sent = notify.send(
             f"Your access to {req['society_name']} on ShowCal is approved!",
             f"Hi {req['requester_name']},\n\n"
             f"Your request to manage {req['society_name']} on ShowCal has been approved.\n\n"
@@ -110,10 +130,8 @@ def approve_access_request(req_id: int):
             to=req["requester_email"],
         )
 
-    flash(
-        f"Approved access for {req['requester_name']} ({req['society_name']})! Magic link emailed to {req['requester_email']}. Link: {magic_url}",
-        "success",
-    )
+    message, category = _delivery_note("Approved", sent, req["requester_email"], magic_url)
+    flash(f"{req['requester_name']} ({req['society_name']}): {message}", category)
     return redirect(url_for("admin.access_requests"))
 
 
@@ -153,7 +171,7 @@ def create_direct_magic_link():
         flash("Society not found.", "error")
         return redirect(url_for("admin.access_requests"))
 
-    token = _generate_magic_token()
+    token = generate_magic_token()
     expires_date = (date.today() + timedelta(days=30)).isoformat()
     code_str = _generate_invite_code(db)
     label = f"Direct Magic Link: {name} ({role})"
@@ -171,17 +189,18 @@ def create_direct_magic_link():
         """
         INSERT INTO society_access_requests (
             society_id, requester_name, requester_email, requester_role,
-            token, invite_code_id, status, approved_at, expires_at
+            token_hash, invite_code_id, status, approved_at, expires_at
         ) VALUES (?, ?, ?, ?, ?, ?, 'approved', ?, ?)
         """,
-        (society_id, name, email, role, token, code_id, utcnow_iso(), expires_date),
+        (society_id, name, email, role, hash_magic_token(token), code_id, utcnow_iso(), expires_date),
     )
     db.commit()
 
     magic_url = url_for("society.auth_magic_link", token=token, _external=True)
 
+    sent = None
     if email and email != "unknown@email.com":
-        notify.send(
+        sent = notify.send(
             f"Your access to {soc['name']} on ShowCal is ready!",
             f"Hi {name},\n\n"
             f"A 1-click Magic Login Link has been generated for you to manage {soc['name']} on ShowCal.\n\n"
@@ -192,5 +211,6 @@ def create_direct_magic_link():
             to=email,
         )
 
-    flash(f"Generated Magic Login Link for {soc['name']}: {magic_url}", "success")
+    message, category = _delivery_note("Link generated", sent, email, magic_url)
+    flash(f"{soc['name']}: {message}", category)
     return redirect(url_for("admin.access_requests"))

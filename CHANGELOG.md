@@ -1,3 +1,15 @@
+Exchange listings can name a coordinator and a phone number again, now that contact details are only ever shown to societies signed in to ShowCal. An enquiry about hiring a wardrobe set should reach a person rather than an inbox, and the listing form now says plainly where those details appear and where they do not
+
+---
+
+Society login links sent by email are now stored as a one-way fingerprint rather than as the link itself, so a copy of the site's database no longer contains anything that can be used to sign in. Links already sitting in a committee's inbox keep working exactly as before
+
+---
+
+The society access request form now checks the email address you enter and tells a moderator when an approval email fails to send, instead of both problems passing silently while everyone assumes the login link arrived
+
+---
+
 Contact details on a Costumes & Props Exchange listing are now shown only to societies signed in to ShowCal, and a listing holds a society's own shared address rather than anyone's name or mobile number. A volunteer helping their society out should not end up with their phone number on a page anyone can find
 
 ---

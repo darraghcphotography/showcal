@@ -3,8 +3,11 @@ instead of cluttering the main "Productions by season" table (see info.py's
 stats() and stats.html). Season Archive page: a "hide cancelled shows"
 filter and a soonest/latest sort toggle."""
 import re
+from datetime import date, timedelta
 
 from conftest import seed_society
+
+from app.season import season_for_date
 
 
 def test_stats_splits_seasons_at_coverage_boundary(client, db):
@@ -209,15 +212,31 @@ def test_signature_show_and_leaderboards_removed(client):
 def test_season_page_lists_shows_soonest_first(client, db):
     """The sort-direction toggle was removed (see ROADMAP, 2026-08-20) -
     always soonest/earliest-first now, the fixed order the toggle already
-    defaulted to."""
+    defaulted to.
+
+    The dates are relative to today on purpose. This test used to hardcode two
+    September 2026 dates; on 2026-09-02 the earlier of the two became the past,
+    /season sorted it out of the upcoming list, and the test went red for a
+    reason that had nothing to do with sort direction."""
     society_id = seed_society(db)
-    for show, opening in [("Late Bloomer", "2026-09-20"), ("Early Bird", "2026-09-01")]:
+
+    early = date.today() + timedelta(days=10)
+    late = early + timedelta(days=7)
+    # Step past a season boundary rather than straddling it: /season shows one
+    # season at a time, so a pair split across the mid-May cutoff would render
+    # apart for a reason that isn't sort order either.
+    while season_for_date(early.isoformat()) != season_for_date(late.isoformat()):
+        early += timedelta(days=7)
+        late = early + timedelta(days=7)
+    season = season_for_date(early.isoformat())
+
+    for show, opening in [("Late Bloomer", late), ("Early Bird", early)]:
         db.execute(
             "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date, moderation_status) "
-            "VALUES (?, '26/27', 'Eastern', ?, ?, ?, 'approved')",
-            (society_id, show, opening, opening),
+            "VALUES (?, ?, 'Eastern', ?, ?, ?, 'approved')",
+            (society_id, season, show, opening.isoformat(), opening.isoformat()),
         )
     db.commit()
 
-    table = client.get("/season?season=26/27").get_data(as_text=True).split("Upcoming productions")[-1]
+    table = client.get(f"/season?season={season}").get_data(as_text=True).split("Upcoming productions")[-1]
     assert table.index("Early Bird") < table.index("Late Bloomer")

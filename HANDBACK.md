@@ -243,3 +243,39 @@ predicted ~9 linkable of 69, and 8 are linked). The work was right; the reportin
 - The two-word invite codes still in circulation work on purpose. They are being retired, not
   broken from under a society mid-season.
 
+
+---
+
+## 2026-09-02 — Claude; the audit's code half closed
+
+**Who:** Claude (Opus 5)
+
+**Commits:** one — magic-link token hashing, request-access hardening, exchange contact details
+restored behind the login.
+
+**Branches left open:** none. **995 tests green.**
+
+**Verified:** `main` was **already red** when this session picked it up —
+`test_season_page_lists_shows_soonest_first` hardcoded two September 2026 dates and the earlier one
+became the past on 2026-09-02. So the previous entry's "985 tests green" was 984. The test was the
+bug, not the code; it now derives its dates from today. Checked by stashing the session's work and
+running it against clean `main`, not inferred.
+
+**Production data written:** none. The `society_access_requests` rebuild runs itself at container
+startup (`app/db.py`), hashing the ~4 existing tokens in place. **Links already in societies'
+inboxes keep working** — the URL carries the plaintext and lookup hashes it before comparing.
+Tested directly (`tests/test_magic_token_hash_migration.py`) rather than assumed.
+
+**Left unresolved / needs Darragh:**
+- **The 17 never-expiring invite codes.** Outreach: move those societies onto magic links.
+- Whether to say anything to Castlebar MDS. Smaller now — a coordinator name is collectable again,
+  just not publishable.
+
+**Flag to the next agent:**
+- **Magic links are still reusable for their 30 days on purpose.** Single-use would break on an
+  email scanner's prefetch and buys nothing, because the link is an alias for the 30-day invite
+  code it activates. Don't "fix" it without reading `auth_magic_link`'s comment first.
+- `notify.send` now returns True/False/None. Nearly every caller should keep ignoring it — a
+  visitor's submission must not depend on mail. Only the magic-link approval acts on it.
+- No WhatsApp link on exchange listings. `wa.me` puts the number in the URL, so it is UX with no
+  privacy benefit. It was raised with Darragh as a caveat, not chosen.
