@@ -154,6 +154,7 @@ Entry template:
 - `dd77052` — Feature compact costumes & props cross-links on society and show pages
 - `05247d8` — Restore original badge-row and tooltip classes on society detail page
 - `0d07a78` — Add Date & Season Anomaly Auditor and Bulk Production Credits Workbench
+- `77c8bf4` — Update season chronology to match real AIMS mid-June to early May cycle
 
 **Branches left open:** none. `main` is clean, **972 tests green**.
 
