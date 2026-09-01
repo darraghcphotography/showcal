@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Date & Season Anomalies - Admin - DC Show Tracker{% endblock %}
+{% block container_class %} narrow{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to dashboard</a></p>
+  <h1>Date &amp; Season Anomalies</h1>
+  <p class="meta">
+    AIMS seasons run from <strong>September 1 to August 31</strong> (e.g. October 2024 &rarr; <code>24/25</code>; May 2025 &rarr; <code>24/25</code>).
+    This tool catches inverted dates and shows whose recorded season differs from their performance dates.
+  </p>
+
+  {% if not inverted and not season_mismatches %}
+    <div class="site-notice">
+      <p>✨ <strong>No date or season anomalies detected.</strong> All performance dates and season boundaries are consistent across the archive.</p>
+    </div>
+  {% endif %}
+
+  {% if inverted %}
+    <h2>Inverted Dates (Opening &gt; Closing) ({{ inverted|length }})</h2>
+    <p class="meta">Shows where the opening date is recorded after the closing date.</p>
+    <table class="data-table">
+      <thead>
+        <tr><th>Show</th><th>Society</th><th>Recorded Dates</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for s in inverted %}
+          <tr>
+            <td><a href="{{ url_for('public.show_detail', show_id=s['id']) }}">{{ s['show'] }}</a> ({{ s['season'] }})</td>
+            <td>{{ s['society_name'] }}</td>
+            <td><code>{{ s['opening_date'] }}</code> &gt; <code>{{ s['closing_date'] }}</code></td>
+            <td>
+              <form method="post" action="{{ url_for('admin.date_anomalies') }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="swap_dates">
+                <input type="hidden" name="show_id" value="{{ s['id'] }}">
+                <button type="submit" class="button small-button">Swap Dates</button>
+              </form>
+              <a href="{{ url_for('admin.edit_show', show_id=s['id']) }}" class="button small-button">Edit</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if season_mismatches %}
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2.5rem;">
+      <h2>Season / Date Mismatches ({{ season_mismatches|length }})</h2>
+      <form method="post" action="{{ url_for('admin.date_anomalies') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="fix_all_seasons">
+        <button type="submit" class="button primary-button" onclick="return confirm('Fix all {{ season_mismatches|length }} mismatched seasons automatically?');">
+          Fix All Seasons ({{ season_mismatches|length }})
+        </button>
+      </form>
+    </div>
+    <p class="meta">Shows where the performance date belongs to a different AIMS season than recorded in the table.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr><th>Show</th><th>Society</th><th>Dates</th><th>Recorded</th><th>Expected</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for s in season_mismatches %}
+          <tr>
+            <td><a href="{{ url_for('public.show_detail', show_id=s['id']) }}">{{ s['show'] }}</a></td>
+            <td>{{ s['society_name'] }}</td>
+            <td>{{ s['opening_date'] or s['closing_date'] }}</td>
+            <td><span class="tag tag-past">{{ s['season'] }}</span></td>
+            <td><span class="tag tag-gold">{{ s['calculated_season'] }}</span></td>
+            <td>
+              <form method="post" action="{{ url_for('admin.date_anomalies') }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="fix_season">
+                <input type="hidden" name="show_id" value="{{ s['id'] }}">
+                <input type="hidden" name="target_season" value="{{ s['calculated_season'] }}">
+                <button type="submit" class="button small-button">Set to {{ s['calculated_season'] }}</button>
+              </form>
+              <a href="{{ url_for('admin.edit_show', show_id=s['id']) }}" class="button small-button">Edit</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+{% endblock %}

@@ -7,7 +7,7 @@ from ...db import get_db
 from ...dedupe import find_candidates
 from ...venues import dismissed_venue_pairs, merge_candidates
 from .societies import _is_chaseable, _society_coverage
-from ...season import current_season, historical_results_year
+from ...season import current_season, historical_results_year, season_for_date
 from . import bp
 from ._shared import (
     MISSING_DATES_WHERE,
@@ -226,6 +226,8 @@ def dashboard():
         if not has_awards:
             awards_pending_season = concluded["season"]
 
+    date_anomalies_count = _date_anomalies_count(db)
+
     # The smallest non-zero, realistically-clearable count on the page - featured
     # up top as a "start here" pick. Excludes unmatched_award_societies_count,
     # which is explicitly a permanent, not-meant-to-reach-zero count (see its
@@ -290,6 +292,11 @@ def dashboard():
             "count": mismatched_skeleton_shows_count,
             "url": url_for("admin.historical_shows_title_check"),
         },
+        {
+            "label": "Chronology & season anomalies",
+            "count": date_anomalies_count,
+            "url": url_for("admin.date_anomalies"),
+        },
     ]
     quick_win = min(
         (c for c in quick_win_candidates if c["count"]), key=lambda c: c["count"], default=None
@@ -311,6 +318,7 @@ def dashboard():
         duplicate_historical_count=duplicate_historical_count,
         orphaned_titles_count=orphaned_titles_count,
         mismatched_skeleton_shows_count=mismatched_skeleton_shows_count,
+        date_anomalies_count=date_anomalies_count,
         awards_pending_season=awards_pending_season,
         historical_reviews_pending_count=historical_reviews_pending_count,
         photo_submissions_pending_count=photo_submissions_pending_count,
@@ -319,6 +327,25 @@ def dashboard():
         person_pairs_count=person_pairs_count,
         quick_win=quick_win,
     )
+
+
+def _date_anomalies_count(db):
+    shows = db.execute(
+        "SELECT season, opening_date, closing_date FROM shows WHERE moderation_status = 'approved' AND (opening_date IS NOT NULL OR closing_date IS NOT NULL)"
+    ).fetchall()
+    count = 0
+    for s in shows:
+        op = s["opening_date"]
+        cl = s["closing_date"]
+        if op and cl and op > cl:
+            count += 1
+            continue
+        d = op or cl
+        if d:
+            calc = season_for_date(d)
+            if calc and calc != s["season"]:
+                count += 1
+    return count
 
 
 def _real_titles(db):

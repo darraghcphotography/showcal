@@ -747,3 +747,113 @@ def missing_posters():
         "admin/missing_posters.html", shows=shows, total_upcoming=total_upcoming,
         society_login_url=society_login_url,
     )
+
+
+@bp.route("/shows/bulk-credits", methods=("GET", "POST"))
+@login_required
+def bulk_credits():
+    db = get_db()
+    society_id = request.args.get("society_id", type=int)
+
+    if request.method == "POST":
+        target_society_id = request.form.get("society_id", type=int) or society_id
+        if not target_society_id:
+            flash("No society selected.", "error")
+            return redirect(url_for("admin.bulk_credits"))
+
+        i = 0
+        updated = 0
+        errors = []
+        updates = []
+        while f"show_id_{i}" in request.form:
+            show_id = request.form.get(f"show_id_{i}")
+            director = request.form.get(f"director_{i}", "").strip() or None
+            musical_director = request.form.get(f"musical_director_{i}", "").strip() or None
+            choreographer = request.form.get(f"choreographer_{i}", "").strip() or None
+            venue = request.form.get(f"venue_{i}", "").strip() or None
+            opening_date = request.form.get(f"opening_date_{i}", "").strip() or None
+            closing_date = request.form.get(f"closing_date_{i}", "").strip() or None
+
+            for label, val in (("Opening date", opening_date), ("Closing date", closing_date)):
+                if val and not DATE_RE.match(val):
+                    errors.append(f"Row {i + 1}: {label} '{val}' must be YYYY-MM-DD.")
+
+            updates.append({
+                "id": show_id,
+                "director": director,
+                "musical_director": musical_director,
+                "choreographer": choreographer,
+                "venue": venue,
+                "opening_date": opening_date,
+                "closing_date": closing_date,
+            })
+            i += 1
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+        else:
+            for u in updates:
+                current = db.execute(
+                    "SELECT director, musical_director, choreographer, venue, opening_date, closing_date FROM shows WHERE id = ? AND society_id = ?",
+                    (u["id"], target_society_id),
+                ).fetchone()
+                if current and (
+                    current["director"] != u["director"] or
+                    current["musical_director"] != u["musical_director"] or
+                    current["choreographer"] != u["choreographer"] or
+                    current["venue"] != u["venue"] or
+                    current["opening_date"] != u["opening_date"] or
+                    current["closing_date"] != u["closing_date"]
+                ):
+                    db.execute(
+                        """
+                        UPDATE shows SET
+                            director = ?, musical_director = ?, choreographer = ?,
+                            venue = ?, opening_date = ?, closing_date = ?, updated_at = ?
+                        WHERE id = ? AND society_id = ?
+                        """,
+                        (u["director"], u["musical_director"], u["choreographer"], u["venue"], u["opening_date"], u["closing_date"], utcnow_iso(), u["id"], target_society_id),
+                    )
+                    updated += 1
+            db.commit()
+            if updated:
+                flash(f"Successfully saved credits for {updated} production{'s' if updated != 1 else ''}.", "success")
+            else:
+                flash("No changes detected.", "info")
+        return redirect(url_for("admin.bulk_credits", society_id=target_society_id))
+
+    societies = db.execute(
+        """
+        SELECT soc.id, soc.name, COUNT(s.id) AS show_count
+        FROM societies soc
+        LEFT JOIN shows s ON s.society_id = soc.id AND s.moderation_status = 'approved'
+        GROUP BY soc.id, soc.name
+        ORDER BY soc.name
+        """
+    ).fetchall()
+
+    selected_society = None
+    shows = []
+    if society_id:
+        selected_society = db.execute("SELECT * FROM societies WHERE id = ?", (society_id,)).fetchone()
+        if selected_society:
+            shows = db.execute(
+                """
+                SELECT id, season, show, section, opening_date, closing_date, venue, director, musical_director, choreographer
+                FROM shows
+                WHERE society_id = ? AND moderation_status = 'approved'
+                ORDER BY season DESC, opening_date DESC
+                """,
+                (society_id,),
+            ).fetchall()
+
+    venues = [r[0] for r in db.execute("SELECT DISTINCT name FROM venues ORDER BY name").fetchall()]
+    return render_template(
+        "admin/bulk_credits.html",
+        societies=societies,
+        selected_society=selected_society,
+        shows=shows,
+        venues=venues,
+    )
+

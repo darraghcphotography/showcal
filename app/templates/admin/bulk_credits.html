@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Bulk Production Credits - Admin - DC Show Tracker{% endblock %}
+{% block container_class %} wide{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to dashboard</a></p>
+  <h1>Bulk Production Credits Workbench</h1>
+  <p class="meta">
+    Fast spreadsheet matrix to view, enter, and correct Director, Musical Director, Choreographer, Venue, and Dates across a society's entire production history.
+  </p>
+
+  <form method="get" action="{{ url_for('admin.bulk_credits') }}" style="margin-bottom: 2rem; background: var(--surface-subtle); padding: 1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
+    <label for="society_select" style="font-weight: 700; margin-right: 0.5rem;">Select Society:</label>
+    <select name="society_id" id="society_select" onchange="this.form.submit()" style="padding: 0.4rem 0.75rem; font-size: 0.9rem; max-width: 400px;">
+      <option value="">-- Choose a society --</option>
+      {% for soc in societies %}
+        <option value="{{ soc['id'] }}" {% if selected_society and selected_society['id'] == soc['id'] %}selected{% endif %}>
+          {{ soc['name'] }} ({{ soc['show_count'] }} shows)
+        </option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit" class="button small-button">Load</button></noscript>
+  </form>
+
+  {% if selected_society %}
+    <h2>{{ selected_society['name'] }} <span style="font-size: 0.85rem; font-weight: normal; color: var(--muted);">({{ shows|length }} productions)</span></h2>
+
+    {% if not shows %}
+      <p>No approved productions on record for {{ selected_society['name'] }}.</p>
+    {% else %}
+      <form method="post" action="{{ url_for('admin.bulk_credits', society_id=selected_society['id']) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <span class="meta">Editing {{ shows|length }} show{{ '' if shows|length == 1 else 's' }}</span>
+          <button type="submit" class="button primary-button">Save All Changes</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="min-width: 70px;">Season</th>
+                <th style="min-width: 160px;">Show</th>
+                <th style="min-width: 150px;">Director</th>
+                <th style="min-width: 150px;">Musical Director</th>
+                <th style="min-width: 150px;">Choreographer</th>
+                <th style="min-width: 160px;">Venue</th>
+                <th style="min-width: 120px;">Opening Date</th>
+                <th style="min-width: 120px;">Closing Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in shows %}
+                <tr>
+                  <td>
+                    <strong>{{ s['season'] }}</strong>
+                    <input type="hidden" name="show_id_{{ loop.index0 }}" value="{{ s['id'] }}">
+                  </td>
+                  <td>
+                    <a href="{{ url_for('public.show_detail', show_id=s['id']) }}" target="_blank">{{ s['show'] }}</a>
+                    {% if s['section'] %}<div style="font-size: 0.75rem; color: var(--muted);">{{ s['section'] }}</div>{% endif %}
+                  </td>
+                  <td>
+                    <input type="text" name="director_{{ loop.index0 }}" value="{{ s['director'] or '' }}" placeholder="Director" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                  </td>
+                  <td>
+                    <input type="text" name="musical_director_{{ loop.index0 }}" value="{{ s['musical_director'] or '' }}" placeholder="Musical Director" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                  </td>
+                  <td>
+                    <input type="text" name="choreographer_{{ loop.index0 }}" value="{{ s['choreographer'] or '' }}" placeholder="Choreographer" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                  </td>
+                  <td>
+                    <input type="text" name="venue_{{ loop.index0 }}" list="venue-list" value="{{ s['venue'] or '' }}" placeholder="Venue" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                  </td>
+                  <td>
+                    <input type="text" name="opening_date_{{ loop.index0 }}" value="{{ s['opening_date'] or '' }}" placeholder="YYYY-MM-DD" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                  </td>
+                  <td>
+                    <input type="text" name="closing_date_{{ loop.index0 }}" value="{{ s['closing_date'] or '' }}" placeholder="YYYY-MM-DD" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <datalist id="venue-list">
+          {% for v in venues %}
+            <option value="{{ v }}"></option>
+          {% endfor %}
+        </datalist>
+
+        <div style="margin-top: 1.5rem; text-align: right;">
+          <button type="submit" class="button primary-button">Save All Changes</button>
+        </div>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endblock %}

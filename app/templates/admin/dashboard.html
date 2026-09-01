@@ -219,6 +219,16 @@
         <td>{{ mismatched_skeleton_shows_count }}</td>
         <td><a href="{{ url_for('admin.historical_shows_title_check') }}">Check titles</a></td>
       </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if date_anomalies_count else 'admin-dot-off' }}"></span>
+            Chronology &amp; season anomalies (inverted dates or season mismatches)
+          </span>
+        </td>
+        <td>{{ date_anomalies_count }}</td>
+        <td><a href="{{ url_for('admin.date_anomalies') }}">Audit dates</a></td>
+      </tr>
     </tbody>
   </table>
 
@@ -254,6 +264,8 @@
         <li><a href="{{ url_for('admin.venues') }}">Backfill default venues</a></li>
         <li><a href="{{ url_for('admin.adjudicators') }}">Adjudicators</a></li>
         <li><a href="{{ url_for('admin.fix_dates') }}">Fix dates</a></li>
+        <li><a href="{{ url_for('admin.date_anomalies') }}">Date &amp; season anomalies</a></li>
+        <li><a href="{{ url_for('admin.bulk_credits') }}">Bulk production credits</a></li>
         <li><a href="{{ url_for('admin.duplicate_titles') }}">Duplicate titles</a></li>
         <li><a href="{{ url_for('admin.people_queue') }}">People</a></li>
       </ul>

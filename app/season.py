@@ -138,6 +138,24 @@ def season_label(start_year):
     return f"{start_year % 100:02d}/{(start_year + 1) % 100:02d}"
 
 
+def season_for_date(date_str):
+    """Compute the AIMS season label ('yy/yy') from an ISO date string (YYYY-MM-DD).
+    The AIMS season runs from September 1 to August 31.
+    e.g. 2024-11-20 -> '24/25', 2025-03-15 -> '24/25', 2024-04-10 -> '23/24'.
+    Returns None if date_str is empty or unparseable.
+    """
+    if not date_str or len(date_str) < 7:
+        return None
+    try:
+        parts = date_str.split("-")
+        year = int(parts[0])
+        month = int(parts[1])
+        start_year = year if month >= 9 else (year - 1)
+        return season_label(start_year)
+    except (ValueError, IndexError):
+        return None
+
+
 def season_start_year(season):
     """Real four-digit start year for a 'yy/yy' season string, so seasons can
     be compared across the 1999/2000 rollover. Plain string comparison is

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Batch Fill Credits - {{ society['name'] }} - DC Show Tracker{% endblock %}
+{% block container_class %} wide{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to society dashboard</a></p>
+  <h1>Batch Fill Credits &amp; Production Team</h1>
+  <p class="meta">
+    Fill in Director, Musical Director, Choreographer, Venue, and Run Dates for <strong>{{ society['name'] }}</strong> across multiple productions at once.
+    Dates should be formatted as <code>YYYY-MM-DD</code>.
+  </p>
+
+  {% if not shows %}
+    <p>No approved productions on record yet. <a href="{{ url_for('society.new_show') }}">Add a show first &rarr;</a></p>
+  {% else %}
+    <form method="post" action="{{ url_for('society.bulk_credits') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <span class="meta">{{ shows|length }} production{{ '' if shows|length == 1 else 's' }} on record</span>
+        <button type="submit" class="button primary-button">Save All Credits</button>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="min-width: 70px;">Season</th>
+              <th style="min-width: 160px;">Show</th>
+              <th style="min-width: 150px;">Director</th>
+              <th style="min-width: 150px;">Musical Director</th>
+              <th style="min-width: 150px;">Choreographer</th>
+              <th style="min-width: 160px;">Venue</th>
+              <th style="min-width: 120px;">Opening Date</th>
+              <th style="min-width: 120px;">Closing Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in shows %}
+              <tr>
+                <td>
+                  <strong>{{ s['season'] }}</strong>
+                  <input type="hidden" name="show_id_{{ loop.index0 }}" value="{{ s['id'] }}">
+                </td>
+                <td>
+                  <a href="{{ url_for('public.show_detail', show_id=s['id']) }}" target="_blank">{{ s['show'] }}</a>
+                  {% if s['section'] %}<div style="font-size: 0.75rem; color: var(--muted);">{{ s['section'] }}</div>{% endif %}
+                </td>
+                <td>
+                  <input type="text" name="director_{{ loop.index0 }}" value="{{ s['director'] or '' }}" placeholder="Director" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                </td>
+                <td>
+                  <input type="text" name="musical_director_{{ loop.index0 }}" value="{{ s['musical_director'] or '' }}" placeholder="Musical Director" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                </td>
+                <td>
+                  <input type="text" name="choreographer_{{ loop.index0 }}" value="{{ s['choreographer'] or '' }}" placeholder="Choreographer" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                </td>
+                <td>
+                  <input type="text" name="venue_{{ loop.index0 }}" list="venue-list" value="{{ s['venue'] or '' }}" placeholder="Venue" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                </td>
+                <td>
+                  <input type="text" name="opening_date_{{ loop.index0 }}" value="{{ s['opening_date'] or '' }}" placeholder="YYYY-MM-DD" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                </td>
+                <td>
+                  <input type="text" name="closing_date_{{ loop.index0 }}" value="{{ s['closing_date'] or '' }}" placeholder="YYYY-MM-DD" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <datalist id="venue-list">
+        {% for v in venues %}
+          <option value="{{ v }}"></option>
+        {% endfor %}
+      </datalist>
+
+      <div style="margin-top: 1.5rem; text-align: right;">
+        <button type="submit" class="button primary-button">Save All Credits</button>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

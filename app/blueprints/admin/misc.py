@@ -7,6 +7,7 @@ from ...auth import login_required
 from ...constants import REGIONS, SUGGESTION_CATEGORIES, SUGGESTION_STATUSES
 from ...db import get_db
 from ...search import escape_like
+from ...season import season_for_date
 from . import bp
 from ._shared import DATE_RE, MISSING_DATES_WHERE
 
@@ -96,6 +97,79 @@ def fix_dates():
         "admin/fix_dates.html", shows=shows, q=q, season=season, region=region,
         seasons=seasons, regions=REGIONS, missing=missing,
     )
+
+
+@bp.route("/shows/date-anomalies", methods=("GET", "POST"))
+@login_required
+def date_anomalies():
+    db = get_db()
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "swap_dates":
+            show_id = request.form.get("show_id")
+            show = db.execute("SELECT id, opening_date, closing_date FROM shows WHERE id = ?", (show_id,)).fetchone()
+            if show and show["opening_date"] and show["closing_date"] and show["opening_date"] > show["closing_date"]:
+                db.execute(
+                    "UPDATE shows SET opening_date = ?, closing_date = ?, updated_at = ? WHERE id = ?",
+                    (show["closing_date"], show["opening_date"], utcnow_iso(), show_id),
+                )
+                db.commit()
+                flash("Swapped opening and closing dates.", "success")
+        elif action == "fix_season":
+            show_id = request.form.get("show_id")
+            target_season = request.form.get("target_season")
+            if show_id and target_season:
+                db.execute(
+                    "UPDATE shows SET season = ?, updated_at = ? WHERE id = ?",
+                    (target_season, utcnow_iso(), show_id),
+                )
+                db.commit()
+                flash(f"Updated season to {target_season}.", "success")
+        elif action == "fix_all_seasons":
+            shows = db.execute(
+                "SELECT id, season, opening_date, closing_date FROM shows WHERE moderation_status = 'approved'"
+            ).fetchall()
+            fixed = 0
+            for s in shows:
+                d = s["opening_date"] or s["closing_date"]
+                if d:
+                    calc = season_for_date(d)
+                    if calc and calc != s["season"]:
+                        db.execute(
+                            "UPDATE shows SET season = ?, updated_at = ? WHERE id = ?",
+                            (calc, utcnow_iso(), s["id"]),
+                        )
+                        fixed += 1
+            db.commit()
+            flash(f"Fixed {fixed} mismatched season{'s' if fixed != 1 else ''}.", "success")
+        return redirect(url_for("admin.date_anomalies"))
+
+    shows = db.execute(
+        """
+        SELECT s.*, soc.name AS society_name
+        FROM shows s
+        JOIN societies soc ON soc.id = s.society_id
+        WHERE s.moderation_status = 'approved' AND (s.opening_date IS NOT NULL OR s.closing_date IS NOT NULL)
+        ORDER BY s.season DESC, s.opening_date DESC
+        """
+    ).fetchall()
+
+    inverted = []
+    season_mismatches = []
+    for s in shows:
+        op = s["opening_date"]
+        cl = s["closing_date"]
+        if op and cl and op > cl:
+            inverted.append(s)
+        d = op or cl
+        if d:
+            calc = season_for_date(d)
+            if calc and calc != s["season"]:
+                item = dict(s)
+                item["calculated_season"] = calc
+                season_mismatches.append(item)
+
+    return render_template("admin/date_anomalies.html", inverted=inverted, season_mismatches=season_mismatches)
 
 
 @bp.route("/suggestions")

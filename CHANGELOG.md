@@ -1,3 +1,7 @@
+Society committees can now batch-fill production team credits (Director, Musical Director, Choreographer, Venue, and Run Dates) across their society's entire historical record in a single spreadsheet-style workbench from their dashboard
+
+---
+
 Society profiles and musical show pages now feature compact cross-links to the Costumes, Props & Sets Exchange, highlighting wardrobe sets, specialist props, and scenery pieces available for hire or loan without cluttering production history
 
 ---
