@@ -155,6 +155,8 @@ Entry template:
 - `05247d8` — Restore original badge-row and tooltip classes on society detail page
 - `0d07a78` — Add Date & Season Anomaly Auditor and Bulk Production Credits Workbench
 - `77c8bf4` — Update season chronology to match real AIMS mid-June to early May cycle
+- `d11bf79` — Update HANDBACK.md with 77c8bf4
+- `3f129c4` — Ignore root /scratch/ directory
 
 **Branches left open:** none. `main` is clean, **972 tests green**.
 
@@ -169,6 +171,8 @@ Entry template:
   - Pinned upcoming production venues went from 48 → 65 (100% of physical venue shows for 2026/27 season now have exact GPS coordinates).
   - Enriched 45 top iconic circuit musicals on `/titles/<title>` with composers, lyricists, book authors, licensing houses, synopses, and notable musical numbers.
 - Verified `main` checkout in container `aims-web` carries:
+  - Bulk Production Credits Workbench (`/admin/shows/bulk-credits` & `/society/bulk-credits`).
+  - Date & Season Chronology Anomaly Auditor (`/admin/shows/date-anomalies`) based on real AIMS mid-June to early-May cycle.
   - Costumes, Props & Sets Exchange (`/exchange`) and Society Vault (`/society/vault`).
   - Single-row sleek top mobile header and thumb-friendly bottom tab bar (`/more` cataloging all tools).
   - Compact horizontal show cards on mobile phones (126px height).
@@ -186,15 +190,19 @@ Entry template:
 **Left unresolved / needs Darragh:** none.
 
 **Flag to the next agent (Claude):**
-- All 964 tests pass green (`py -m pytest`).
+- All **972 tests pass green** (`py -m pytest`).
 - `main` is clean, pushed, and running live on the NAS container (`aims-web`).
 - All 64 historical society link items in `/admin/historical-society-links`, all 3 photo items in `/admin/photo-submissions`, and all pending logos are resolved.
-- Costumes, Props & Sets Exchange is live at `/exchange` with full CRUD support for societies at `/society/vault`.
+- Costumes, Props & Sets Exchange is live at `/exchange` with full CRUD support for societies at `/society/vault` and compact cross-links on society & title pages.
+- Bulk Production Credits Workbench is live at `/admin/shows/bulk-credits` and `/society/bulk-credits`.
+- Date & Season Chronology Anomaly Auditor is live at `/admin/shows/date-anomalies` matching the real AIMS mid-June to early-May season cycle.
+- Interactive HTML mockup for AIMS official website integration is ready for exploration at `mockups/aims_official_portal_mockup.html`.
 - Mobile public views use a slim single-row header + 5-tab bottom navigation with compact 126px horizontal cards.
 - Title detail pages (`/titles/<title>`) partition upcoming shows as cards and order past productions by exact calendar dates (most recent first).
 - Society history tables feature fixed-column layout (`table-layout: fixed`), and dateless past shows read "No date on record".
 - Passwordless 1-click society magic links and mobile admin approval queue shipped and live at `/society/request-access` and `/admin/access-requests`.
 - Repertoire view enriched with composer, lyricist, licensing house, and signature songs on `/titles`.
 - 1-Tap "My Season Watchlist" live with localStorage and iCalendar (.ics) export at `/watchlist`.
+
 
 
