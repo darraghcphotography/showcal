@@ -90,6 +90,12 @@ body {
   background: var(--bg);
   margin: 0;
   line-height: 1.5;
+  /* Society and venue names are user/import data and some are long enough to
+     beat a 320px column on their own ("Thunderstruck Productions [TSP Theatre
+     Group]" scrolled /season sideways). break-word only breaks a word that
+     genuinely cannot fit on its own line, so ordinary text is untouched -
+     unlike break-all, which would chop mid-word wherever it liked. */
+  overflow-wrap: break-word;
 }
 
 /* Public-page heading typeface - a self-hosted display sans on public-page
@@ -620,6 +626,10 @@ table.data-table {
   gap: 0.25rem;
   font-size: 0.9rem;
   color: var(--muted);
+  /* Without this the label is as wide as the control it wraps, so capping the
+     control alone would not have been enough. */
+  max-width: 100%;
+  min-width: 0;
 }
 
 .filter-form label.near-me-toggle {
@@ -667,6 +677,16 @@ input, select, button, textarea {
   border-radius: 4px;
   background: var(--bg);
   color: var(--fg);
+  /* A <select> sizes itself to its widest <option>, which is content the page
+     does not control - /awards has award-category names long enough to push
+     the select to 382px and scroll the whole page sideways on every phone
+     (found 2026-09-02 by measuring scrollWidth against the viewport at 320
+     and 390px, not by eye). Capping every control at its container's width
+     is the general fix; min-width:0 is what actually lets it shrink, since
+     form controls carry an intrinsic minimum that max-width alone won't
+     override inside a flex item. */
+  max-width: 100%;
+  min-width: 0;
 }
 
 textarea { resize: vertical; }
@@ -807,6 +827,15 @@ details table { margin-top: 0.5rem; }
    doesn't carry a poster's visual weight. */
 .society-hero { grid-template-columns: 160px 1fr; }
 @media (max-width: 700px) {
+  /* This has to restate the single-column collapse, it cannot inherit it.
+     .detail-hero's own @media rule above has the same specificity (0,1,0)
+     and comes EARLIER in the file, so .society-hero's 160px column silently
+     won at every width - the phone layout was never actually applying. At
+     320px that left ~128px for the text beside a fixed 160px logo and the
+     meta line pushed the page 36px wider than the viewport. Found by
+     measuring scrollWidth, 2026-09-02; it is invisible in a 390px screenshot
+     because the overflow there is small enough to look like padding. */
+  .society-hero { grid-template-columns: 1fr; }
   .society-hero .poster { max-width: 160px; }
 }
 
@@ -1253,7 +1282,12 @@ details table { margin-top: 0.5rem; }
 .pill-nom { background: none; color: var(--muted); border: 1px dashed var(--border); cursor: help; }
 
 @media (max-width: 760px) {
-  .run { grid-template-columns: 3.6rem 1fr; gap: 0.25rem 0.7rem; padding: 0.7rem 0.4rem; }
+  /* minmax(0, 1fr), not 1fr: a bare 1fr is minmax(auto, 1fr), and `auto`
+     floors the track at its content's min-content width, so a long show title
+     widened the whole row instead of letting the title's own
+     text-overflow:ellipsis do its job. The desktop rule above already uses
+     minmax(0, 1fr) for exactly this reason; the mobile override didn't. */
+  .run { grid-template-columns: 3.6rem minmax(0, 1fr); gap: 0.25rem 0.7rem; padding: 0.7rem 0.4rem; }
   .run .dts, .run .awd, .run .act { grid-column: 2; text-align: left; }
   .run .awd { margin-top: 0.25rem; }
 }
@@ -1920,7 +1954,20 @@ code { background: var(--row-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
   display: flex; flex-wrap: wrap; row-gap: 0.15rem;
   color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem;
 }
-.meta-chips span { white-space: nowrap; }
+.meta-chips span {
+  /* nowrap keeps a short chip ("Gilbert", "3 nominations") on one line, which
+     is the common case and what it was written for. But a chip can also hold
+     a society or venue name - "Maynooth University Musical and Dramatics
+     Society", "National Opera House, Wexford" - and nowrap makes those
+     unbreakable, so they escaped the 238px flex container and scrolled
+     /awards and /societies/<id> sideways on a phone. A chip that cannot fit
+     its line wraps instead; a slightly taller pill beats an unreadable page.
+     max-width is what stops it pushing past the container in the first
+     place, nowrap or not. */
+  white-space: normal;
+  max-width: 100%;
+  min-width: 0;
+}
 
 /* Mobile bottom tab bar (installable-app nav) - public pages only, never
    rendered on /admin or /society (see base.html's mobile_chrome check), so
