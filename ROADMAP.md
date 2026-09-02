@@ -13,7 +13,57 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - UX sweep (2026-09-02, later)
+## START HERE - audit of computed figures (2026-09-02, latest)
+
+> Prompted by the show-page circuit line turning out to be wrong on the live site for months with
+> nothing catching it. **Method: recompute each public figure independently from the live database
+> and compare, rather than reading the code.** The audit scripts are in scratch; the method is the
+> part worth keeping.
+>
+> ### Checked and CLEAN - verified, not assumed
+>
+> `historical_results.year = season_start_year + 1` (**0 mismatches in 4,847** linked rows, so the
+> comment in `title_detail` claiming that relationship is trustworthy) · production season vs its
+> show's opening date (0 disagreements) · society production count, index card vs society page
+> (exact) · homepage upcoming count · revival "quiet since" · "rare gem - staged once" · wins never
+> exceeding total award records · no reversed opening/closing dates · no orphaned productions ·
+> **every one of 523 venue strings maps to a venue page** · title spellings (1 trivial case).
+>
+> **Two `season_start_year + 1` sites were suspected and turned out correct** - both are scoped to
+> archive-only productions (`NOT EXISTS ... shows`), where the award year is the only year there is.
+> Do not "fix" them.
+>
+> ### Found and fixed
+>
+> - **The circuit line on every show page was wrong twice over** (`9861e90`). `+1` labelled autumn
+>   productions with the following year; "most recently" ordered by season alone so it could name a
+>   production that had not happened yet. Now a span of seasons, and only ever a show that has
+>   opened.
+> - **`/stats` promised a cancelled filter that no longer exists** (`df147f4`). `shows.status` was
+>   dropped in August as unreliable; the copy still claimed the guarantee.
+> - **A decade leaderboard named a society by whichever variant SQLite picked** (`bccc8f8`). Three
+>   societies carry two archive names.
+> - **One production deleted from production data** (`b9cbf32`, dry-run then applied): "A Chorus
+>   Line (Cancelled)", Maynooth, May 2020 - a COVID casualty recorded by putting the cancellation in
+>   the title, and counted as a real staging. Productions on record 2942 -> 2941. Darragh's call.
+>
+> ### Known latent, deliberately not changed
+>
+> `/stats/trends` groups "most-staged shows" on the raw `historical_results.show` string rather than
+> a normalized key. Exactly one title in the whole archive is recorded under two spellings
+> (Honk / Honk!) and the 2010s top five is identical either way. Fragility, not a defect. It becomes
+> real if a bulk import ever introduces spelling variants.
+>
+> ### The thing worth carrying forward
+>
+> **Two of my own checks were wrong before the code was.** A revival query used `MAX(season)` on a
+> string, so `'99/00'` beat `'18/19'`; two tests used year 2098 as "the future" and the productions
+> rebuild resolved `98/99` back to 1998 through `season_start_year()`'s 50-pivot. Check the check
+> before believing the finding.
+
+---
+
+## UX sweep (2026-09-02, earlier)
 
 > Full write-up published as an artifact: **ShowCal Polish Pass**
 > (https://claude.ai/code/artifact/2837b038-6e88-4737-b011-08a249211ca2) - five ranked proposals,
