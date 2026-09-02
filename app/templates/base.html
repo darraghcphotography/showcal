@@ -440,6 +440,117 @@
     })();
   </script>
   <script nonce="{{ csp_nonce }}">
+    // Paste-to-upload. See _paste_upload.html for what this is for and why it
+    // is single-file only.
+    (function() {
+      var zone = document.querySelector('.paste-zone[data-paste-for]');
+      if (!zone) return;
+
+      var input = document.getElementById(zone.getAttribute('data-paste-for'));
+      if (!input) return;
+
+      var preview = zone.querySelector('.paste-preview');
+      var previewImg = preview.querySelector('img');
+      var nameEl = zone.querySelector('.paste-name');
+      var statusEl = zone.querySelector('.paste-status');
+      var clearBtn = zone.querySelector('.paste-clear');
+
+      // The server derives the extension from the filename and only accepts
+      // the list in app/uploads.py, so a pasted blob has to be named to match
+      // what it actually is. Clipboard images are PNG almost everywhere; JPEG
+      // shows up when copying from some native apps.
+      var EXT = {
+        'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
+        'image/gif': 'gif', 'image/heic': 'heic', 'image/heif': 'heif'
+      };
+
+      function say(message, isError) {
+        statusEl.textContent = message;
+        statusEl.classList.toggle('is-error', !!isError);
+      }
+
+      function attach(blob) {
+        var ext = EXT[blob.type];
+        if (!ext) {
+          say('That looks like a ' + (blob.type || 'file we cannot read') +
+              '. Copy the image itself and try again.', true);
+          return;
+        }
+        // DataTransfer is the only way to put a File into a file input.
+        var dt = new DataTransfer();
+        var stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        var file = new File([blob], 'pasted-' + stamp + '.' + ext, { type: blob.type });
+        dt.items.add(file);
+        input.files = dt.files;
+        // The form reads input.files directly, but anything listening for a
+        // normal file choice (validation, other handlers) should still fire.
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // A data: URL, not URL.createObjectURL. The CSP is
+        // `img-src 'self' data:` (app/__init__.py) and does NOT allow blob:,
+        // so an object URL renders as a broken image and logs a CSP violation
+        // - found by the browser test, invisible in the unit tests. Widening
+        // the CSP for a thumbnail would be the wrong trade; data: is already
+        // permitted and the preview is transient.
+        var reader = new FileReader();
+        reader.onload = function() { previewImg.src = reader.result; };
+        reader.readAsDataURL(blob);
+
+        // Round-to-KB reads "0 KB" for anything under half a kilobyte, which
+        // looks like a failed paste rather than a small image.
+        var size = blob.size < 1024 ? '<1 KB' : Math.round(blob.size / 1024) + ' KB';
+        nameEl.textContent = file.name + ' · ' + size;
+        preview.hidden = false;
+        say('Pasted. It uploads when you save.');
+      }
+
+      document.addEventListener('paste', function(e) {
+        if (!e.clipboardData) return;
+
+        var items = e.clipboardData.items || [];
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].kind === 'file' && items[i].type.indexOf('image/') === 0) {
+            var blob = items[i].getAsFile();
+            if (blob) {
+              // Only now - a text paste into a real text field must behave
+              // exactly as it always did.
+              e.preventDefault();
+              attach(blob);
+            }
+            return;
+          }
+        }
+
+        // Nothing pasteable. The overwhelmingly likely mistake is "Copy image
+        // address" instead of "Copy image", which puts a URL on the clipboard,
+        // so name it rather than failing silently.
+        var text = e.clipboardData.getData('text') || '';
+        if (/^https?:\/\/\S+/i.test(text.trim())) {
+          say('That is a link, not an image. Use right-click → Copy image ' +
+              '(not Copy image address), or download it and choose the file.', true);
+        }
+      });
+
+      clearBtn.addEventListener('click', function() {
+        input.value = '';
+        previewImg.removeAttribute('src');
+        preview.hidden = true;
+        say('Removed.');
+      });
+
+      // A file chosen the ordinary way should clear a stale paste preview.
+      input.addEventListener('change', function() {
+        if (input.files.length && preview.hidden === false &&
+            input.files[0].name.indexOf('pasted-') !== 0) {
+          previewImg.removeAttribute('src');
+          preview.hidden = true;
+          say('');
+        }
+      });
+    })();
+  </script>
+
+  <script nonce="{{ csp_nonce }}">
     (function() {
       var btn = document.getElementById('theme-toggle');
       if (!btn) return;

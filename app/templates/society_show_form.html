@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_paste_upload.html" as paste %}
 {% block title %}{{ 'Add a show' if mode == 'new' else 'Edit show' }} - DC Show Tracker{% endblock %}
 {% block content %}
   <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to {{ society['name'] }}</a></p>
@@ -112,8 +113,9 @@
       {% endif %}
       <label>
         {{ 'Replace poster' if (mode == 'edit' and show['poster_filename']) else 'Upload poster' }}
-        <input type="file" name="poster" accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif">
+        <input type="file" name="poster" id="poster-input" accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif">
       </label>
+      {{ paste.paste_zone("poster-input", "poster") }}
     </fieldset>
 
     <button type="submit">{{ 'Add show' if mode == 'new' else 'Save' }}</button>

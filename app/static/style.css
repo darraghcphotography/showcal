@@ -1308,6 +1308,39 @@ details table { margin-top: 0.5rem; }
   color: var(--accent);
 }
 
+/* Paste-to-upload (see _paste_upload.html). Deliberately quiet - it sits under
+   a file input as a second way in, not a competing call to action. */
+.paste-zone { margin-top: 0.5rem; }
+.paste-hint { margin: 0; font-size: var(--t-sm); color: var(--muted); }
+.paste-hint strong { color: var(--fg); font-weight: 600; }
+.paste-zone kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78em;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--row-alt);
+  color: var(--fg);
+}
+.paste-preview {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-top: 0.6rem; padding: 0.6rem;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--row-alt);
+}
+.paste-preview img {
+  /* contain, not cover: this zone is used for square society logos as well as
+     portrait posters, and cropping a logo to a poster shape misrepresents what
+     is about to be uploaded. */
+  width: 56px; height: 74px; object-fit: contain; flex: none;
+  border-radius: var(--radius-sm); background: var(--bg);
+}
+.paste-name { display: block; font-size: var(--t-sm); word-break: break-all; }
+.paste-status { margin: 0.4rem 0 0; font-size: var(--t-sm); color: var(--success); }
+.paste-status:empty { margin: 0; }
+.paste-status.is-error { color: var(--warning); }
+
 .tag {
   display: inline-block;
   font-size: 0.75rem;

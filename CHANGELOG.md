@@ -6,6 +6,10 @@ Fixed a wrong line on show pages. "Staged 11 times since 2026, most recently by 
 
 ---
 
+You can now paste a poster straight onto the form instead of saving it and finding it again. Copy the image, press Ctrl+V anywhere on the show page, and it attaches with a preview - the same works for a society logo. Choosing a file still works exactly as before
+
+---
+
 The Societies directory now tells you something about each society: how many productions are on record, how far back the record goes, and what they have coming up next. It used to carry only a name, a region and a tier for all 143 of them
 
 ---

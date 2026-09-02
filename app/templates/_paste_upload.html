@@ -1,0 +1,42 @@
+{#- Paste-to-upload for a single-file image input.
+
+    Darragh's ask, 2026-09-02: chasing posters means finding one on a society's
+    Facebook page, and the file-picker route is save-to-Downloads, click Choose
+    file, find it again, open it. Copying the image and pressing Ctrl+V on the
+    form is the whole job instead.
+
+    Usage - put this immediately after the <input type="file">, passing its id:
+
+        {% import "_paste_upload.html" as paste %}
+        <input type="file" name="poster" id="poster-input" accept="...">
+        {{ paste.paste_zone("poster-input", "poster") }}
+
+    Single-file inputs only. A multi-file input (the vault's photos, the photo
+    submission form) would need paste to *append* rather than replace, and the
+    interaction for "you have pasted 3 of 5" is a different design - not worth
+    inventing before anyone has asked for it.
+
+    No drag-and-drop. Dragging an image out of a web page hands over a URL
+    rather than a file in every major browser, so it would only help for
+    dragging out of a file manager - which is the one case the existing file
+    picker already handles well. -#}
+
+{% macro paste_zone(input_id, label="image") %}
+  <div class="paste-zone" data-paste-for="{{ input_id }}">
+    <p class="paste-hint">
+      <strong>Or paste it.</strong> Copy the {{ label }} (right-click &rarr; Copy image)
+      and press <kbd>Ctrl</kbd>+<kbd>V</kbd> anywhere on this page.
+    </p>
+    <div class="paste-preview" hidden>
+      <img alt="">
+      <div>
+        <span class="paste-name"></span>
+        <button type="button" class="link-button paste-clear">Remove</button>
+      </div>
+    </div>
+    {#- role=status so the result is announced rather than only shown: the file
+        input's own text changes silently, and a paste that did nothing looks
+        identical to one that worked. -#}
+    <p class="paste-status" role="status" aria-live="polite"></p>
+  </div>
+{% endmacro %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_paste_upload.html" as paste %}
 {% block title %}Edit {{ society['name'] }} - DC Show Tracker{% endblock %}
 {% block content %}
   <p><a href="{{ url_for('admin.societies_list') }}">&larr; Back to societies</a></p>
@@ -116,7 +117,8 @@
       {% endif %}
       <label>
         {{ 'Replace logo' if society['logo_filename'] else 'Upload logo' }}
-        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif">
+        <input type="file" name="logo" id="logo-input" accept="image/png,image/jpeg,image/webp,image/gif">
+      {{ paste.paste_zone("logo-input", "logo") }}
       </label>
     </fieldset>
 

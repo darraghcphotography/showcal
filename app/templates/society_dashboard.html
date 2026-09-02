@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_paste_upload.html" as paste %}
 {% block title %}{{ society['name'] }} dashboard - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>{{ society['name'] }}</h1>
@@ -35,7 +36,8 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>
       {{ 'Replace your logo' if society['logo_filename'] else 'Upload a logo' }} <span class="hint">(shows on your public society page)</span>
-      <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif">
+      <input type="file" name="logo" id="logo-input" accept="image/png,image/jpeg,image/webp,image/gif">
+      {{ paste.paste_zone("logo-input", "logo") }}
     </label>
     <button type="submit">Save logo</button>
   </form>
