@@ -130,6 +130,20 @@ copy you pull down, and don't assume a path is live because it looks right.
 **Local `aims.db` is not production.** It is a dev copy and drifts. Any number you are going to
 state as fact — a count, a gap, an audit finding — comes from the live database.
 
+**`url_for(..., _external=True)` and `request.url` report `http://` in production, and they are
+not wrong.** The Cloudflare Tunnel terminates TLS and hands the origin a plain request with no
+`X-Forwarded-Proto`, so `ProxyFix(x_proto=1)` has nothing to promote. This is invisible for links a
+browser follows and very visible in Open Graph tags - it shipped an `http://` `og:url` and
+`og:image` on an https site. **Use the `absolute_url()` Jinja global** (built from `SITE_URL`, the
+same way `notify.link` does it) for anything that has to be absolute. A test fails if
+`content="http://` reappears in the page head.
+
+**Cloudflare re-encodes images and will composite away an alpha channel.** An RGBA PNG served over
+https came back RGB with its transparency flattened against crimson, which is how every WhatsApp
+preview ended up a gold "M" on a red field. Brand assets under `app/static/` are flat RGB
+deliberately; `scripts/build_brand_images.py` regenerates them and a test fails if the share card
+regains an alpha channel. Do not "restore transparency" on those files.
+
 **Some bugs are only visible in a browser.** Playwright is installed here (1.62.0, **Chromium
 only** - `--device="iPhone 13"` fails because it defaults to WebKit; use `--browser chromium` with
 device emulation). Two things this session found that no server-side test could: four layout faults

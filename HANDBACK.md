@@ -398,3 +398,40 @@ then paste, submit, and the poster lands on disk as a re-encoded `.webp`.
 Firefox are not, so `--device="iPhone 13"` fails (it defaults to WebKit) — use `--browser chromium`
 with device emulation, which is what every mobile check this session used. `py -m playwright install
 webkit` if a real Safari engine is ever needed.
+
+---
+
+## 2026-09-03 — Claude; share previews, and the society checklist
+
+**Who:** Claude (Opus 5)
+
+**Commits:** `a43228e` (society checklist: batch save + filters), `a016554` (share previews).
+**1063 tests green.**
+
+**Why the WhatsApp preview was a gold "M" on red** — three faults stacked, all live on every shared
+link:
+- the icons were never updated when the logo changed on 2026-08-30;
+- `icon-512.png` was RGBA, and Cloudflare's image optimisation flattens transparency against
+  crimson when serving over https — `(11,15,20)` becomes `(200,16,46)`. Over http the file is
+  correct, which is why it was easy to miss;
+- **every absolute URL on the site says `http://`**, because the tunnel gives the origin no
+  `X-Forwarded-Proto` for `ProxyFix` to promote. New `absolute_url()` helper, built from `SITE_URL`.
+
+All brand assets are flat RGB now and regenerate from the header SVG's own geometry via
+`scripts/build_brand_images.py`, so the mark cannot drift from the logo again.
+
+**Production data written:** none.
+
+**Left unresolved / needs Darragh:**
+- The 15 poster-chase messages (codes are all issued, nothing is blocked).
+- The 17 never-expiring invite codes.
+- Whether nomination counts belong on `/titles`.
+
+**Flag to the next agent:**
+- **Do not restore transparency to the brand PNGs**, and do not swap `absolute_url()` back to
+  `url_for(_external=True)`. Both look like tidy-ups and both reintroduce a live bug. Tests guard
+  each, and `AGENTS.md` explains why.
+- **WhatsApp caches link previews hard.** Append `?x=1` to see a change.
+- **A push sends everything on `main`, not just the change under discussion.** Two user-facing
+  commits went up together on 2026-09-03 because one had been sitting unpushed while a second was
+  built. Check `git log origin/main..main` before pushing when the deploy policy is in play.

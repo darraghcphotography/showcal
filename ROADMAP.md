@@ -13,7 +13,45 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - posters are a lead-time problem, not a coverage problem (2026-09-02, latest)
+## START HERE - share previews, and a scheme bug worth knowing about (2026-09-03)
+
+> Darragh sent a photo of a WhatsApp preview showing a gold "M" on a **crimson** field. Three faults
+> stacked, all live on every shared link, all fixed in `a016554`.
+>
+> 1. **It was the old logo.** The header switched to a DC monogram on 2026-08-30; `favicon.svg` and
+>    every PNG under `static/icons/` kept the previous "M" for three days.
+> 2. **Cloudflare was mangling it.** `icon-512.png` was RGBA. Over **https** Cloudflare's image
+>    optimisation re-encodes it to RGB and composites the transparency against crimson - corner pixel
+>    `(11,15,20)` becomes `(200,16,46)`. Over http you get the correct file. Every share scraper uses
+>    https. **All brand assets are flat RGB now**; a test fails if the card regains an alpha channel.
+> 3. **Every absolute URL on the site says `http://`.** This is the one worth remembering. The
+>    Cloudflare Tunnel terminates TLS and hands the origin a plain request with **no
+>    `X-Forwarded-Proto`**, so `ProxyFix(x_proto=1)` has nothing to promote and
+>    `url_for(_external=True)` / `request.url` honestly report http. Harmless for a link a browser
+>    follows; not harmless for `og:url` and `og:image`. Use the new **`absolute_url()`** Jinja global
+>    (built from `SITE_URL`, same as `notify.link`) for anything that must be absolute. A test fails
+>    if `content="http://` reappears in the head.
+>
+> `scripts/build_brand_images.py` regenerates the card and all four icons from the header SVG's own
+> geometry, so the mark cannot drift from the logo again. Needs `fonttools` (deliberately not in
+> requirements.txt - one-off asset build).
+>
+> **WhatsApp caches previews hard.** After a change, share the link with `?x=1` appended to see it.
+>
+> ### Also shipped 2026-09-03: the society checklist reworked (`a43228e`)
+>
+> Every cell used to be its own form, so a tick or a status change reloaded all 195 rows - and the
+> grid re-sorts as gaps close, so the row you were about to click had moved. It is one form with a
+> sticky Save bar now, plus filters for tier, missing-field, progress, upcoming-show and name.
+>
+> **The correctness question is partial saves.** An unticked checkbox is indistinguishable from one
+> that was never rendered, so a save made while filtered would otherwise read as "nothing is ticked
+> anywhere" and wipe every society not on screen. Hidden `rows` and `editable` markers name what was
+> actually rendered, and only those are reconciled. There is a test for exactly that.
+
+---
+
+## Posters are a lead-time problem, not a coverage problem (2026-09-02)
 
 > **This corrects the framing used all through the sessions below, including by Claude.** Darragh:
 > *"we shouldn't worry too much about posters - normally they're not designed until closer to
