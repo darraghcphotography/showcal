@@ -379,3 +379,22 @@ no expiry, 19 with one** — the 17 are still the open item.
 
 Codes are in the commit log for this session and on `/admin/invite-codes`. All 15 societies are
 reachable — every one has Facebook and Instagram on record, eight also have a website.
+
+**Paste-to-upload shipped, 2026-09-02 (`b36d39a`).** Darragh's ask, and the natural companion to the
+15 login codes: a committee member copies their poster off their own Facebook page and presses
+Ctrl+V on the form rather than saving it and hunting for the file. Live on both show forms, both
+logo forms and the new-show form.
+
+**A real bug was caught only by driving a browser.** The preview used `URL.createObjectURL`, and the
+CSP is `img-src 'self' data:` — no `blob:` — so the thumbnail was silently blocked and the paste
+looked like it had failed. It uses a FileReader `data:` URL now. The unit tests could not have seen
+this; they pin the template/handler contract, which was correct throughout.
+
+Verified end to end in Chromium: paste attaches a correctly-named file, the preview renders, Remove
+clears it, a pasted URL is refused with an explanation, a page with no paste zone binds nothing —
+then paste, submit, and the poster lands on disk as a re-encoded `.webp`.
+
+**Playwright note for the next agent:** it is installed (1.62.0) with **Chromium only**. WebKit and
+Firefox are not, so `--device="iPhone 13"` fails (it defaults to WebKit) — use `--browser chromium`
+with device emulation, which is what every mobile check this session used. `py -m playwright install
+webkit` if a real Safari engine is ever needed.

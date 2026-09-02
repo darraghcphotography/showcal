@@ -50,6 +50,18 @@ again.
 >
 > **Nothing further is blocked on code.** The next step is Darragh sending 15 messages.
 >
+> **Paste-to-upload shipped the same day** (`b36d39a`), which is what makes those messages worth
+> sending: a committee member copies their poster off their own Facebook page and presses Ctrl+V on
+> the form. Live on both show forms, both logo forms and the new-show form. See
+> `app/templates/_paste_upload.html` for why it is single-file only and why there is no
+> drag-and-drop.
+>
+> **One thing to not undo:** the preview builds a `data:` URL via FileReader rather than
+> `URL.createObjectURL`. The CSP is `img-src 'self' data:` and does **not** allow `blob:` - an
+> object URL renders as a broken image and logs a violation. That was invisible to the unit tests
+> and only turned up when a real browser was driven. Do not "simplify" it back to an object URL,
+> and do not widen the CSP for a thumbnail.
+>
 > These codes **expire 2027-05-31** (end of the 26/27 season), unlike the ones
 > `admin.generate_society_code` mints. Active society codes now stand at 17 never-expiring - still
 > the open audit item, unchanged - and 19 with an expiry. **Do not "fix" the new ones to match the
