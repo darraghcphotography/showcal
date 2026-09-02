@@ -462,12 +462,24 @@ def stats_trends():
         (decade, decade_end, DECADE_TOP_N),
     ).fetchall()
 
+    # Grouped by id (right - the same society can be recorded under more than
+    # one name), but the LABEL used to come from historical_results.society_name,
+    # which SQLite picks arbitrarily from the group. Three societies carry two
+    # names in the archive - "Pioneer Musical Society" vs "Pioneer Musical &
+    # Dramatic Society" - so the leaderboard could print a variant that is not
+    # what the society is actually called today. The societies table is the
+    # authority on that, and the archive name only stands in for a defunct
+    # society that never matched one.
     top_societies = db.execute(
         """
-        SELECT COALESCE(society_name, 'Unknown') AS label, COUNT(*) AS n
+        SELECT COALESCE(societies.name, historical_results.society_name, 'Unknown') AS label,
+               COUNT(*) AS n
         FROM historical_results
-        WHERE society_name IS NOT NULL AND year BETWEEN ? AND ?
-        GROUP BY COALESCE(society_id, society_name) ORDER BY n DESC, label LIMIT ?
+        LEFT JOIN societies ON societies.id = historical_results.society_id
+        WHERE historical_results.society_name IS NOT NULL
+          AND historical_results.year BETWEEN ? AND ?
+        GROUP BY COALESCE(historical_results.society_id, historical_results.society_name)
+        ORDER BY n DESC, label LIMIT ?
         """,
         (decade, decade_end, DECADE_TOP_N),
     ).fetchall()

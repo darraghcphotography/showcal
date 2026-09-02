@@ -34,15 +34,20 @@ import argparse
 import sqlite3
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-
 SHOW_ID = 1997
 SHOW_TITLE = "A Chorus Line (Cancelled)"
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--db", default=str(ROOT / "aims.db"))
+    # Resolved lazily rather than at import: this file gets piped straight into
+    # `docker exec -i ... python -` on the NAS, where __file__ is "<stdin>" and
+    # parents[2] raises before argparse ever runs - even though --db is being
+    # passed explicitly and the default is never used.
+    default_db = "aims.db"
+    if __file__ not in ("<stdin>", "-"):
+        default_db = str(Path(__file__).resolve().parents[2] / "aims.db")
+    parser.add_argument("--db", default=default_db)
     parser.add_argument("--dry-run", action="store_true",
                         help="say what would change, then roll back")
     args = parser.parse_args()

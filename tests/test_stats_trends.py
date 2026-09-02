@@ -6,6 +6,8 @@ from datetime import date
 
 import pytest
 
+from conftest import seed_society
+
 
 def _add_result(db, year, show=None, society_name=None, category_name="Best Overall Show", result="Nominee", tier=None):
     db.execute(
@@ -134,3 +136,45 @@ def test_best_overall_show_winners_listed_for_the_decade(client, db):
 def test_stats_page_links_to_decades(client):
     body = client.get("/stats").get_data(as_text=True)
     assert 'href="/stats/trends"' in body
+
+
+def test_the_decade_society_leaderboard_uses_the_societys_current_name(client, db):
+    """Grouping is by society_id, which is right - the same society appears in
+    the archive under more than one name. But the label came from
+    historical_results.society_name, picked arbitrarily from the group, so the
+    page could print a variant name rather than what the society is called
+    today. Three real societies carry two names ("Pioneer Musical Society" vs
+    "Pioneer Musical & Dramatic Society"), found 2026-09-02."""
+    seed_society(db, id=1, name="Pioneer Musical Society")
+    for year, archive_name in ((2011, "Pioneer Musical & Dramatic Society"),
+                               (2013, "Pioneer Musical Society")):
+        db.execute(
+            "INSERT INTO historical_results (year, tier, category_name, result, show, "
+            "society_id, society_name, source) VALUES (?, 'Gilbert', 'Best Overall Show', "
+            "'Winner', 'Oliver!', 1, ?, 'manual')",
+            (year, archive_name),
+        )
+    db.commit()
+
+    body = client.get("/stats/trends?decade=2010").get_data(as_text=True)
+    # Scoped to the leaderboard card. The "Best Overall Show winners" list lower
+    # down deliberately still prints the name as the archive recorded it that
+    # year - that one is a year-by-year record, not an aggregate over a decade,
+    # and a society that renamed should read as it did at the time.
+    board = body[body.index("Most-nominated societies"):body.index("Best Overall Show winners")]
+    assert "Pioneer Musical Society" in board
+    assert "Pioneer Musical &amp; Dramatic Society" not in board
+
+
+def test_a_defunct_society_still_falls_back_to_its_archive_name(client, db):
+    """The join must not blank out societies that never matched a current row -
+    the archive name is all there is for them."""
+    db.execute(
+        "INSERT INTO historical_results (year, tier, category_name, result, show, "
+        "society_name, source) VALUES (1985, 'Gilbert', 'Best Overall Show', 'Winner', "
+        "'The Mikado', 'Long Gone Operatic Society', 'manual')"
+    )
+    db.commit()
+
+    body = client.get("/stats/trends?decade=1980").get_data(as_text=True)
+    assert "Long Gone Operatic Society" in body
