@@ -23,7 +23,12 @@
   <meta property="og:site_name" content="ShowCal — DC Show Tracker">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
-  <meta property="og:url" content="{{ absolute_url(request.full_path.rstrip('?')) }}">
+  {#- script_root, not just the path. wsgi.py mounts the app under URL_PREFIX by
+      setting SCRIPT_NAME, so `url_for` includes "/showcal" but `request.path`
+      and `request.full_path` do not - they are the path as the app sees it
+      after the prefix is stripped. Without this the canonical URL for every
+      page pointed at the domain root. -#}
+  <meta property="og:url" content="{{ absolute_url(request.script_root + request.full_path.rstrip('?')) }}">
   <meta property="og:description" content="{% block og_description %}Browse AIMS member societies' show history, upcoming productions, and the AIMS awards archive.{% endblock %}">
   <meta name="description" content="{{ self.og_description() }}">
   {#- A purpose-built 1200x630 card rather than the square app icon. WhatsApp,

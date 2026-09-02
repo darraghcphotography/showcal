@@ -123,3 +123,38 @@ def test_the_favicon_is_the_same_mark_as_the_header():
     # The D's path is the identifying part of the mark.
     assert "M7 8h6a7 7 0 0 1 0 14H7V8z" in favicon
     assert "M7 8h6a7 7 0 0 1 0 14H7V8z" in header
+
+
+# The prefix. wsgi.py mounts the app under URL_PREFIX by setting SCRIPT_NAME, so
+# `url_for` includes "/showcal" while `request.path` does not. The first version
+# of these tests only ever ran without a prefix - which is how og:url shipped
+# pointing at the domain root while og:image was correct, and passed.
+PREFIXED = {"environ_overrides": {"SCRIPT_NAME": "/showcal"}}
+
+
+def test_og_url_keeps_the_url_prefix(client, monkeypatch):
+    monkeypatch.setattr("app.notify.SITE_URL", "https://darraghc.ie")
+    head = client.get("/", **PREFIXED).get_data(as_text=True)
+    assert 'property="og:url" content="https://darraghc.ie/showcal/"' in head
+
+
+def test_og_image_keeps_the_url_prefix(client, monkeypatch):
+    monkeypatch.setattr("app.notify.SITE_URL", "https://darraghc.ie")
+    head = client.get("/", **PREFIXED).get_data(as_text=True)
+    assert 'property="og:image" content="https://darraghc.ie/showcal/static/og-card.png"' in head
+
+
+def test_og_url_points_at_the_page_being_shared_not_the_homepage(client, db, monkeypatch):
+    """A society page shared to WhatsApp has to link back to that society."""
+    monkeypatch.setattr("app.notify.SITE_URL", "https://darraghc.ie")
+    seed_society(db, id=7, name="Some Society")
+    db.commit()
+
+    head = client.get("/societies/7", **PREFIXED).get_data(as_text=True)
+    assert 'property="og:url" content="https://darraghc.ie/showcal/societies/7"' in head
+
+
+def test_nothing_absolute_is_http_even_behind_the_prefix(client, monkeypatch):
+    monkeypatch.setattr("app.notify.SITE_URL", "https://darraghc.ie")
+    body = client.get("/", **PREFIXED).get_data(as_text=True)
+    assert 'content="http://' not in body[:body.index("</head>")]
