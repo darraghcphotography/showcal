@@ -47,6 +47,22 @@ again.
 >   Line (Cancelled)", Maynooth, May 2020 - a COVID casualty recorded by putting the cancellation in
 >   the title, and counted as a real staging. Productions on record 2942 -> 2941. Darragh's call.
 >
+> ### Round three found no new defects - it confirmed three claims the docs make
+>
+> Diminishing returns reached, which is the signal to stop rather than keep digging.
+>
+> - **The award-category merges are right.** "Best Chorus" (1977-2025) -> "Best Choral Singing"
+>   (2026 only) and "Adjudicator's Special Award" -> "Spirit of AIMS" each have **zero overlapping
+>   years**, which is what a clean rename looks like. "Best Choreography" and "Best Choreographer"
+>   ran in parallel in **six** years (2019, 2020, 2022-2025), so keeping them separate is right too.
+>   The August note claiming both of these was "confirmed year-by-year" is trustworthy.
+> - **Adjudicator data is clean.** One season+tier carries two adjudicators (13/14 Gilbert, Richie
+>   Ryan / Damien Murray) - the real mid-season change the table was rebuilt to allow. **0 of 876**
+>   reviews are attributed to an adjudicator not assigned that season.
+> - **Orphaned reviews are 54, not ~112.** This file's older figure is out of date; correcting it
+>   here rather than leaving a stale number to be re-derived. Still open, still awaiting a better
+>   verification method than "it looks unmatched".
+>
 > ### Known latent, deliberately not changed
 >
 > `/stats/trends` groups "most-staged shows" on the raw `historical_results.show` string rather than
@@ -451,8 +467,8 @@ pantomime category (his scope call); the 60-society logo redo still out with Gem
 
 - **The 4 place-name artifacts** (`Cork`, `Wexford`, `Cork run`, `40th Anniversary (March run)`) are
   `shows.venue` text naming no building.
-- **~112 stale orphaned `historical_reviews` rows** — real, but not deleted pending a better
-  verification method.
+- **54 stale orphaned `historical_reviews` rows** (was recorded here as ~112; re-counted against
+  the live database 2026-09-02). Real, but not deleted pending a better verification method.
 - **297 `historical_results` rows with `category_name IS NULL`**, 274 pre-2001 — needs real archival
   research, not a scrape.
 - **Off-box backup** — backups still sit on the same volume as the database. A NAS config job.

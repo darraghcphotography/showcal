@@ -279,3 +279,54 @@ Tested directly (`tests/test_magic_token_hash_migration.py`) rather than assumed
   visitor's submission must not depend on mail. Only the magic-link approval acts on it.
 - No WhatsApp link on exchange listings. `wa.me` puts the number in the URL, so it is UX with no
   privacy benefit. It was raised with Darragh as a caveat, not chosen.
+
+---
+
+## 2026-09-02 — Claude; security follow-ups, a design pass, and an audit of computed figures
+
+**Who:** Claude (Opus 5)
+
+**Commits (10):** magic-link token hashing + request-access hardening + exchange contacts
+(`5058805`) · four mobile layout faults (`0804ec6`) · society page awards below the fold + playbill
++ card hierarchy (`59d4061`) · societies index rebuild (`da2de1e`) · first two charts on /stats
+(`bae67c8`) · bare `.tag` badges (`0a5b17a`) · show-page circuit line + "Elsewhere on ShowCal"
+(`9861e90`) · /stats cancelled claim (`df147f4`) · cancelled-production backfill (`b9cbf32`) ·
+decade leaderboard society naming (`bccc8f8`), plus ROADMAP and CHANGELOG.
+
+**1034 tests green** (from 984 — see below). All deployed and verified by md5 against the GitOps
+checkout at `/share/CACHEDEV2_DATA/Data/config/portainer/compose/8/`, plus live page checks.
+
+**`main` was already red when this session started.** `test_season_page_lists_shows_soonest_first`
+hardcoded two September 2026 dates and the earlier one became the past on 2026-09-02. The previous
+entry's "985 tests green" was 984. The test was the bug; it derives its dates from today now.
+
+**Production data written:** one row deleted, dry-run first, `b9cbf32`. `shows.id 1997`, "A Chorus
+Line (Cancelled)" — Maynooth, May 2020, a COVID casualty recorded by putting the cancellation in the
+title, and counted as a real staging. Darragh's call. Productions on record 2942 → 2941; the genuine
+"A Chorus Line" (4 productions) is untouched.
+
+**Left unresolved / needs Darragh:**
+- **55 posters, 176 logos.** Still the highest-value thing available and still not code. The
+  chasing tools are built and have never been worked.
+- **The 17 never-expiring invite codes** — the last item from the 2026-09-01 security audit.
+- **Whether nomination counts belong on /titles.** Every one of 316 rows carries a gold trophy and a
+  count, right-aligned — the same comparison-grid shape Darragh rejected for societies. Raised, not
+  decided; it is per title rather than per society, so it may be a different thing.
+
+**Flag to the next agent:**
+- **Award counts are never a headline number.** Darragh's steer: volunteer societies, a record not a
+  leaderboard. No award figure appears on /societies at all, and a test asserts that absence. See
+  the `awards-are-secondary` memory before designing anything that surfaces a count.
+- **A deploy policy was agreed.** Fixes, data work and internal changes push straight through;
+  anything a visitor can *see* gets described to Darragh before the push. It has already caught one
+  real deviation (a Tickets button built green against an approved gold).
+- **Read the audit section in ROADMAP before re-checking anything.** Several figures that look
+  wrong are right — in particular two `season_start_year + 1` sites that are correct because they
+  are scoped to archive-only productions. Do not "fix" them.
+- **Check the check.** Two of this session's own audit queries were wrong before the code was: a
+  `MAX(season)` string comparison where `'99/00'` beat `'18/19'`, and two tests using year 2098 as
+  "the future" which the productions rebuild silently resolved back to 1998. One test was passing on
+  a false premise as a result.
+- **A component drawn standalone will not show you what it does beside its neighbours.** The first
+  playbill carried title, society and dates — correct in the mockup, wrong in place, because the
+  card body repeats two of the three directly below it.
