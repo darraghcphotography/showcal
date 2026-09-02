@@ -13,6 +13,61 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
+## START HERE - UX sweep (2026-09-02, later)
+
+> Full write-up published as an artifact: **ShowCal Polish Pass**
+> (https://claude.ai/code/artifact/2837b038-6e88-4737-b011-08a249211ca2) - five ranked proposals,
+> each with a before/after rendered in the app's own tokens, plus two charts built from live data.
+> Read that rather than re-deriving it.
+>
+> ### Method, because it changes what the findings are worth
+>
+> 18 public routes rendered at 320/390/1280px against **the live site**, with
+> `document.scrollWidth` measured against the viewport on every one - not a screenshot review.
+> **Every page returned 200.** Three of the four faults found are invisible by eye because the
+> overflow reads as padding. The probe is at `scratchpad/overflow_audit.py` if it is worth keeping;
+> it is ~90 lines and would work as a CI check.
+>
+> ### Fixed and deployed (`0804ec6`)
+>
+> Four real mobile layout faults - the site scrolled sideways on a phone. `/awards` on **every**
+> phone (an uncapped `<select>` sized to a long award-category name); `.society-hero`'s mobile
+> collapse **never applied at any width** (equal specificity, later in the file than
+> `.detail-hero`'s media query); `.meta-chips span` nowrap on chips holding venue names; `.run`'s
+> mobile grid using `1fr` where desktop correctly used `minmax(0, 1fr)`. Also set
+> `overflow-wrap: break-word` on `body` - **nothing in 99KB of CSS set it at all**.
+> Re-measured after: 36 of 36 page x width combinations scroll vertically only.
+>
+> ### The five proposals, ranked (none started)
+>
+> 1. **Duplicate pills on the society page.** 4 stat tiles then 5 pills, 3 of which repeat a tile
+>    verbatim. ~20 min. Do this first because it costs nothing.
+> 2. **The playbill placeholder.** 55 of 67 upcoming shows have no poster, 176 of 194 societies no
+>    logo - **the blank card is the normal card**, five in a row on the October homepage. Replace
+>    the flat initials box with a designed playbill (title in Archivo, society, dates, rule) that
+>    carries an "Add your poster" ask. Biggest visible win, and the only proposal that also chips
+>    at the data gap.
+> 3. **Homepage card hierarchy.** Five facts at one weight; the dates - the thing people came for -
+>    are buried mid-sentence. CSS-only.
+> 4. **The societies index.** The weakest page and a common search landing point. 143 societies,
+>    3 underlined links each, and a gold initial badge that is **meaningless** (alphabetical sort,
+>    so column 1 reads A, A, A). Needs production/win counts carried into the list query - they are
+>    already computed for the coverage checklist. Watch for the N+1.
+> 5. **Charts on /stats.** 2,857 productions, 5,019 award records, 114 years, **zero charts**. Two
+>    single-hue SVG charts would carry most of the value; no library, no CSP change. The artifact
+>    has both built with live numbers.
+>
+> ### Verdict on the question "should we slow down"
+>
+> **Slow the deployments; don't stop the polish** - two different questions. The feature surface is
+> already ahead of the user base (an exchange with one live listing, a bulk-credits workbench, a
+> watchlist, a date-anomaly auditor). GitOps puts a push in production in ~5 minutes with no human
+> checkpoint, which was fine with no audience and is a different proposition now. All five
+> proposals above are deliberately **not scope** - same pages, rendered better. None adds a table,
+> a route or a queue.
+
+---
+
 ## START HERE - security follow-ups closed (2026-09-02)
 
 > **995 tests green.** Three of the four items left open by the 2026-09-01 audit are done; the
