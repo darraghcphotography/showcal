@@ -24,7 +24,14 @@
 {% block content %}
   <h1>Statistics</h1>
   <p><a href="{{ url_for('feeds.export_shows_csv') }}">Download the full dataset (CSV) &darr;</a></p>
-  <p class="meta">Counts below only include shows that have actually opened and weren't cancelled -
+  {#- "and weren't cancelled" was removed 2026-09-02: it described a filter the
+      site no longer has. shows.status was the only cancelled flag and it was
+      dropped in August as unreliable (see app/db.py's
+      _migrate_drop_shows_status), so nothing here excludes a cancelled run and
+      the sentence was promising a guarantee the code could not keep. What the
+      queries actually do is exclude shows that have not run yet, which is what
+      it says now. -#}
+  <p class="meta">Counts below only include shows that have actually run -
      announced-but-not-yet-run shows don't count until they happen.</p>
 
   <a class="trends-callout" href="{{ url_for('info.stats_trends') }}">
