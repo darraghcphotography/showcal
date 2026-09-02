@@ -1,3 +1,15 @@
+A production without a poster on file now gets a proper playbill on the listings - the show's own title, set large, instead of two initials on a blank tile. Most upcoming productions don't have artwork uploaded yet, so this is what the What's On page mostly shows, and it should look like a card rather than a gap. Societies signed in to ShowCal see a one-tap "Add your poster" on their own shows
+
+---
+
+Show cards now put the run dates on their own line rather than tucking them in after the society's name. What's on, who's staging it, when, then where - in that order, which is the order people read them in
+
+---
+
+A society's page now opens with what they've staged and how long they've been going. Award records, placings and trophies have moved to their own section further down. Societies are volunteer groups putting on shows, not entries in a league table, and the top of their page should say what they do
+
+---
+
 Exchange listings can name a coordinator and a phone number again, now that contact details are only ever shown to societies signed in to ShowCal. An enquiry about hiring a wardrobe set should reach a person rather than an inbox, and the listing form now says plainly where those details appear and where they do not
 
 ---
