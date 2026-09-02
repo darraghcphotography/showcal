@@ -6,25 +6,9 @@ from werkzeug.security import check_password_hash
 
 from ...auth import current_user, login_required
 from ...db import get_db
-from ...invite_words import ADJECTIVES, NOUNS
+from ...invite_words import ADJECTIVES, CODE_DIGITS, NOUNS
 from ...rate_limit import limiter
 from . import bp
-
-
-# Digits appended to the adjective-noun pair, and the reason is guessing, not
-# collisions. The word lists give 40 x 40 = 1,600 pairs, which invite_words.py
-# correctly calls "comfortable headroom for issuing codes to every AIMS
-# society" - that is a collision argument. It is not a guessing argument: with
-# ~21 codes live, roughly 1 in 76 guesses at /society/login was a valid code,
-# so at that route's rate limit somebody was into *a* society in about eight
-# minutes. A society code is not a read-only key either - it can edit that
-# society's shows and upload posters (2026-09-01 audit).
-#
-# Four digits takes the space to ~16 million, i.e. about 1 in 760,000 with the
-# same number of codes live. Digits rather than a third word because the whole
-# point of these codes is being read aloud down a phone or across a committee
-# room, and "golden-otter-4821" survives that better than three adjectives do.
-CODE_DIGITS = 4
 
 
 def _generate_invite_code(db):
