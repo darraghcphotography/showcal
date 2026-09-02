@@ -1278,6 +1278,14 @@ details table { margin-top: 0.5rem; }
   padding: 0.1rem 0.5rem;
   border-radius: var(--radius-pill);
   margin-left: 0.5rem;
+  /* A bare .tag used to inherit its colour and have no fill, so it rendered as
+     a stray word floating in the text rather than a badge - "info" beside every
+     title on /titles, "current" beside the season calendar heading, "500 seats"
+     on a venue card next to a properly-filled "Theatre" pill. 14 of them across
+     10 templates, all clearly meant to be badges. Every modifier below still
+     overrides both, and an inline style still beats this. */
+  background: var(--row-alt);
+  color: var(--muted);
 }
 
 .tag-cancelled { background: rgba(160, 47, 47, 0.15); color: var(--danger); }
