@@ -365,3 +365,17 @@ active login code**, so they cannot upload a poster even if they have one. Gener
 one of the outreach, not sending messages.
 
 Not applied to logos: 174 of 195 societies have none, and that has no seasonal timing.
+
+**15 society login codes minted, 2026-09-02.** `scripts/backfills/generate_poster_chase_codes.py`,
+dry-run then applied. Every society with a production opening inside the 93-day poster window that
+had no active code now has one. Verified after: **0 chaseable productions without a code**, 0
+societies given two.
+
+**These expire 2027-05-31 (end of the 26/27 season), unlike the ones the admin button makes.**
+`admin.generate_society_code` inserts with no `expires_at`, which is how the 2026-09-01 audit found
+17 of 21 codes never expiring. Minting 15 more permanent credentials to close a poster gap would
+have taken that to 32 and made an open finding worse. Active society codes now stand at **17 with
+no expiry, 19 with one** — the 17 are still the open item.
+
+Codes are in the commit log for this session and on `/admin/invite-codes`. All 15 societies are
+reachable — every one has Facebook and Instagram on record, eight also have a website.
