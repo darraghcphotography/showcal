@@ -38,7 +38,49 @@ again.
 > `overflow-wrap: break-word` on `body` - **nothing in 99KB of CSS set it at all**.
 > Re-measured after: 36 of 36 page x width combinations scroll vertically only.
 >
-> ### The five proposals, ranked (none started)
+> ### DECIDED with Darragh, 2026-09-02. Two of four shipped (`59d4061`).
+>
+> **The governing call, and it outranks any mockup:** *"this is an amateur organisation, the awards
+> are secondary not something that they should be flaunting openly."* Award counts are never a
+> flagship number. Activity (productions, years active, next show) can lead; ranking (wins,
+> placings) goes lower and never in a grid comparing societies. See the `awards-are-secondary`
+> memory.
+>
+> | # | Job | State |
+> |---|---|---|
+> | 1 | Society page: awards below the fold, header = Productions + Active-since | **SHIPPED** |
+> | 2 | Playbill placeholder + homepage/season card restack | **SHIPPED** |
+> | 3 | Societies index rebuild - **no award number on the card at all** | open |
+> | 4 | /stats charts - **productions** by decade + societies by region | open |
+>
+> **Job 3 spec.** Monogram (the society's own initials, e.g. WLOS - not the first letter of an
+> alphabetical sort, which is what the current badge is), name, then Productions / Active-since,
+> tier as a quiet dot, region as muted text, and the next announced show. Counts need carrying into
+> the list query; they already exist for the coverage checklist. **Watch for the N+1** across 143
+> rows - see the `perf-per-row-expensive-ops` memory, this is exactly that shape.
+>
+> **Job 4 spec.** Darragh chose **productions** by decade over award records by decade - same story,
+> about the work rather than the prizes. **The hard part is the data, not the chart:** `productions`
+> stores a two-digit season, so "12" is both 1912 and 2012 and a naive `substr` chart will be
+> wrong. Resolve the century before drawing anything. Second chart is societies by region (Eastern
+> 54, Northern 38, South-West 35, Western 31, South-East 24, Midlands 13). Both single-series and
+> single-hue - magnitude, not identity, so no legend and nothing to colour-code. Hand-rolled SVG,
+> no library, no CSP change.
+>
+> **Deploy policy, agreed same day.** GitOps auto-deploy stays for fixes, data work and internal
+> changes. Anything a visitor or committee member can *see* gets described to Darragh before the
+> push. First applied to `59d4061`.
+>
+> **One deviation worth remembering:** the mockup showed a solid gold Tickets button and Darragh
+> approved it; built green instead and flagged it, because gold on the button costs the run dates
+> their exclusive claim on gold. He kept green. Flag deviations, don't absorb them.
+>
+> **A flaw the mockup hid.** The first playbill carried title, society *and* dates. Correct in
+> isolation, wrong in place: the card body repeats the society and dates directly below, so every
+> card said everything twice - the exact fault being fixed on the society page in the same commit.
+> A component drawn standalone will not show you what it does next to its neighbours.
+>
+> ### The five proposals, as originally ranked
 >
 > 1. **Duplicate pills on the society page.** 4 stat tiles then 5 pills, 3 of which repeat a tile
 >    verbatim. ~20 min. Do this first because it costs nothing.
