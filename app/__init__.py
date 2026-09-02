@@ -9,6 +9,7 @@ from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import db as db_module
+from . import notify
 from . import productions_build, venues_build
 from .rate_limit import limiter
 
@@ -248,6 +249,28 @@ def create_app(test_config=None):
         db = db_module.get_db()
         productions_build.ensure_current(db)
         venues_build.ensure_current(db)
+
+    def absolute_url(path):
+        """An absolute URL that survives the Cloudflare Tunnel.
+
+        `url_for(..., _external=True)` and `request.url` both report **http://**
+        in production. The tunnel terminates TLS at Cloudflare and hands the
+        origin a plain HTTP request without `X-Forwarded-Proto`, so
+        `ProxyFix(x_proto=1)` has nothing to promote and Flask honestly reports
+        the scheme it was actually spoken to on.
+
+        That is invisible for links a browser follows, and not invisible at all
+        for Open Graph: `og:url` advertised an http:// address for an https://
+        site, and every share scraper was handed an http:// image. `SITE_URL` is
+        the value that is actually correct, which is why notify.py already
+        builds its links this way.
+        """
+        from urllib.parse import urljoin
+        if notify.SITE_URL:
+            return f"{notify.SITE_URL}{path}"
+        return urljoin(request.url_root, path)
+
+    app.jinja_env.globals["absolute_url"] = absolute_url
 
     @app.context_processor
     def inject_globals():

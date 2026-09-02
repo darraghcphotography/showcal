@@ -5,11 +5,11 @@
 {% block og_description %}{{ society['name'] }} ({{ society['region'] or 'Ireland' }}). Explore past productions, upcoming shows, and AIMS award records on ShowCal.{% endblock %}
 {% block og_image %}
   {% if society['logo_filename'] %}
-    <meta property="og:image" content="{{ url_for('public.uploaded_file', filename=society['logo_filename'], _external=True) }}">
-    <meta name="twitter:image" content="{{ url_for('public.uploaded_file', filename=society['logo_filename'], _external=True) }}">
+    <meta property="og:image" content="{{ absolute_url(url_for('public.uploaded_file', filename=society['logo_filename'])) }}">
+    <meta name="twitter:image" content="{{ absolute_url(url_for('public.uploaded_file', filename=society['logo_filename'])) }}">
   {% else %}
-    <meta property="og:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
-    <meta name="twitter:image" content="{{ url_for('static', filename='icons/icon-512.png', _external=True) }}">
+    <meta property="og:image" content="{{ absolute_url(url_for('static', filename='og-card.png')) }}">
+    <meta name="twitter:image" content="{{ absolute_url(url_for('static', filename='og-card.png')) }}">
   {% endif %}
 {% endblock %}
 {# One badge style for a production's awards, wherever on this page it's

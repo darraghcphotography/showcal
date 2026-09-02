@@ -6,6 +6,10 @@ Fixed a wrong line on show pages. "Staged 11 times since 2026, most recently by 
 
 ---
 
+Links shared to WhatsApp now show a proper preview card with the site's own logo, instead of the old mark on a red background. Three things were wrong at once: the icons were never updated when the logo changed, the image had transparency that Cloudflare was flattening against red, and every shared address was being advertised as http rather than https
+
+---
+
 You can now paste a poster straight onto the form instead of saving it and finding it again. Copy the image, press Ctrl+V anywhere on the show page, and it attaches with a preview - the same works for a society logo. Choosing a file still works exactly as before
 
 ---
