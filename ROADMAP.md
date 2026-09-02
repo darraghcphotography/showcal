@@ -40,6 +40,21 @@ again.
 > `permanent-vs-fixable-queues` rule at the other end - a counter including a show 18 months away can
 > never reach zero.
 >
+> ### The login-code bottleneck is CLEARED - the ball is with Darragh
+>
+> 15 of the 17 chaseable societies had no active login code, so they could not upload a poster even
+> if they had one. All 15 were minted on 2026-09-02 via
+> `scripts/backfills/generate_poster_chase_codes.py` (dry-run then applied). **All 17 chaseable rows
+> now show a code on `/admin/missing-posters`, each with a Copy message button.** Every one of the
+> 15 societies is reachable - all have Facebook and Instagram on record, 8 also a website.
+>
+> **Nothing further is blocked on code.** The next step is Darragh sending 15 messages.
+>
+> These codes **expire 2027-05-31** (end of the 26/27 season), unlike the ones
+> `admin.generate_society_code` mints. Active society codes now stand at 17 never-expiring - still
+> the open audit item, unchanged - and 19 with an expiry. **Do not "fix" the new ones to match the
+> old ones**; the old ones are the defect.
+>
 > **Not applied to logos.** 174 of 195 societies have no logo and that has no seasonal timing; it is
 > a real, chaseable gap all year round.
 >

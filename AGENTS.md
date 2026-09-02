@@ -339,9 +339,16 @@ Every figure here was counted against the **live** database on that date, not ca
   is what `POSTER_CHASE_DAYS` in `app/blueprints/admin/_shared.py` now scopes the dashboard
   counter and `/admin/missing-posters` to. **Never quote a raw "54 missing posters" as a
   deficiency** - say how many are chaseable.
-- **The real bottleneck is login codes, not posters.** 15 of those 17 chaseable societies have no
-  active code, so they physically cannot upload one. `/admin/missing-posters` generates a code
-  inline per row; that is step one of any outreach.
+- ~~**The real bottleneck is login codes, not posters.**~~ **Cleared 2026-09-02.** 15 of the 17
+  chaseable societies had no active code - they physically could not upload a poster. All 15 were
+  minted via `scripts/backfills/generate_poster_chase_codes.py` (dry-run then applied), so **all
+  17 chaseable rows on `/admin/missing-posters` now show a code and a Copy message button.**
+  Nothing is blocked on code any more; the outreach itself is Darragh's.
+
+  **Those 15 expire 2027-05-31**, unlike the ones `admin.generate_society_code` mints, which have
+  no expiry at all - that is the open never-expiring-codes finding, and it would have gone from 17
+  to 32 if this script had copied the button's behaviour. **Do not "fix" the new codes to match the
+  old ones.** If you mint society codes, give them an expiry.
 - **174 of 195 societies have no logo**, and that *is* a genuine year-round gap - a logo has no
   seasonal timing, so the poster reasoning above does not apply to it.
 - **Open queues are empty**: 0 undecided society links, 0 pending photo submissions. The one
