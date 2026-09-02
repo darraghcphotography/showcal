@@ -50,18 +50,6 @@
               <span class="stat-label">Production{{ '' if prod_count == 1 else 's' }}</span>
             </div>
           {% endif %}
-          {% if total_wins %}
-            <div class="stat-tile stat-tile-gold">
-              <span class="stat-value">{{ total_wins }}</span>
-              <span class="stat-label">Award win{{ '' if total_wins == 1 else 's' }}</span>
-            </div>
-          {% endif %}
-          {% if best_show_wins %}
-            <div class="stat-tile stat-tile-gold">
-              <span class="stat-value">{{ best_show_wins }}&times;</span>
-              <span class="stat-label">Best Overall Show</span>
-            </div>
-          {% endif %}
           {% if active_since %}
             <div class="stat-tile">
               <span class="stat-value">{{ active_since }}</span>
@@ -76,13 +64,6 @@
           {% endif %}
         </div>
 
-        <div class="trophy-case">
-          {% if active_since %}<span class="tag tag-gold">Active since {{ active_since }}</span>{% endif %}
-          {% if best_show_wins %}<span class="tag tag-gold">🏆 {{ best_show_wins }}&times; Best Overall Show</span>{% endif %}
-          {% if best_show_second %}<span class="tag tag-silver">🥈 {{ best_show_second }}&times; Best Overall Show runner-up</span>{% endif %}
-          {% if best_show_third %}<span class="tag tag-bronze">🥉 {{ best_show_third }}&times; Best Overall Show third place</span>{% endif %}
-          {% if total_wins %}<span class="tag tag-gold">{{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}</span>{% endif %}
-        </div>
       {% endif %}
 
       {% if society['notes'] %}<p class="notes">{{ society['notes'] }}</p>{% endif %}
@@ -100,21 +81,6 @@
       {% endif %}
     </div>
   </div>
-
-  {% if badges %}
-    <div class="badge-row">
-      {% for b in badges %}
-        <div class="badge {{ b['cls'] }}" tabindex="0">
-          <span class="icon">{{ b['icon'] }}</span>
-          <span>
-            <span class="label">{{ b['label'] }}</span>
-            <span class="criteria">{{ b['criteria'] }}</span>
-          </span>
-          <div class="tooltip"><b>{{ b['label'] }}</b>{{ b['tooltip'] }}</div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
 
   {% if current_user %}
     <p><a href="{{ url_for('admin.edit_society', society_id=society['id']) }}" class="edit-callout">Edit this society &rarr;</a></p>
@@ -222,6 +188,40 @@
         </li>
       {% endfor %}
     </ul>
+  {% endif %}
+
+  {# Awards sit here, below the fold, rather than in the header - Darragh's
+     call 2026-09-02. These are volunteer community groups, not competitors on
+     a leaderboard: the top of a society's page should be about the work it has
+     staged and how long it has been going, with the silverware as a record
+     further down rather than a headline. Nothing is hidden - the counts, the
+     placings and the trophy badges are all still here, and the full archive is
+     still linked from "Also on record" below. #}
+  {% if total_wins or best_show_wins or best_show_second or best_show_third or badges %}
+    <section class="awards-record">
+      <h2>Awards on record</h2>
+      <div class="trophy-case">
+        {% if total_wins %}<span class="tag">{{ total_wins }} award win{{ '' if total_wins == 1 else 's' }}</span>{% endif %}
+        {% if best_show_wins %}<span class="tag tag-gold">🏆 {{ best_show_wins }}&times; Best Overall Show</span>{% endif %}
+        {% if best_show_second %}<span class="tag tag-silver">🥈 {{ best_show_second }}&times; Best Overall Show runner-up</span>{% endif %}
+        {% if best_show_third %}<span class="tag tag-bronze">🥉 {{ best_show_third }}&times; Best Overall Show third place</span>{% endif %}
+      </div>
+
+      {% if badges %}
+        <div class="badge-row">
+          {% for b in badges %}
+            <div class="badge {{ b['cls'] }}" tabindex="0">
+              <span class="icon">{{ b['icon'] }}</span>
+              <span>
+                <span class="label">{{ b['label'] }}</span>
+                <span class="criteria">{{ b['criteria'] }}</span>
+              </span>
+              <div class="tooltip"><b>{{ b['label'] }}</b>{{ b['tooltip'] }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
   {% endif %}
 
   <h2>Show history</h2>

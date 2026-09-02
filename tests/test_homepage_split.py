@@ -81,24 +81,85 @@ def test_homepage_lists_upcoming_shows_with_their_poster_inline(client, db):
     assert 'class="whatson-poster"' in body
 
 
-def test_a_show_without_a_poster_gets_an_initials_placeholder(client, db):
-    """Only a handful of upcoming shows have a poster, so no poster is the
-    normal case - the row must not look like it's missing something. A
-    tinted initials box (Second Act backlog item 2) fills the same
-    poster-sized slot instead of leaving it out."""
+def _seed_undated_poster_show(db, title="Chess"):
     society_id = seed_society(db, id=1, name="Test Soc", region="Eastern")
     db.execute(
         "INSERT INTO shows (society_id, season, region, show, opening_date, closing_date) "
-        "VALUES (?, '26/27', 'Eastern', 'Chess', '2099-09-01', '2099-09-05')",
-        (society_id,),
+        "VALUES (?, '26/27', 'Eastern', ?, '2099-09-01', '2099-09-05')",
+        (society_id, title),
     )
     db.commit()
+    return society_id
+
+
+def test_a_show_without_a_poster_gets_a_playbill(client, db):
+    """No poster is the NORMAL case - 55 of 67 upcoming productions have none -
+    so this box is most of what the homepage renders, and it must not look like
+    something failed to load. It used to be two initials on a gradient; it is
+    now a playbill set from the show's own title (2026-09-02)."""
+    _seed_undated_poster_show(db)
 
     body = client.get("/").get_data(as_text=True)
-    assert "Chess" in body
-    assert "Test Soc" in body
-    assert 'class="whatson-poster is-placeholder"' in body
-    assert "<span>CH</span>" in body
+    assert 'class="whatson-poster is-playbill"' in body
+
+    # It has to carry real content, not just a nicer background.
+    playbill = body[body.index("is-playbill"):body.index("whatson-body")]
+    assert "Chess" in playbill
+    assert "September 2099" in playbill
+
+
+def test_the_playbill_does_not_repeat_the_card_body(client, db):
+    """The first cut carried the society and the run dates on the playbill as
+    well, which read fine in isolation and badly in place - the body repeats
+    both a couple of centimetres below, so every card said everything twice.
+    A poster's job here is to be the title; the body carries the facts."""
+    _seed_undated_poster_show(db)
+
+    body = client.get("/").get_data(as_text=True)
+    playbill = body[body.index("is-playbill"):body.index("whatson-body")]
+
+    assert "Test Soc" not in playbill
+    assert "1–5 Sep" not in playbill and "Sep 2099" not in playbill
+    # ...and the body still carries both, so nothing was lost.
+    card_body = body[body.index("whatson-body"):]
+    assert "Test Soc" in card_body
+    assert "Sep 2099" in card_body
+
+
+def test_the_add_a_poster_ask_is_not_shown_to_the_public(client, db):
+    """A visitor has nothing to act on, and 55 of 67 cards carrying "add your
+    poster" would advertise the gap rather than close it."""
+    _seed_undated_poster_show(db)
+
+    body = client.get("/").get_data(as_text=True)
+    assert "Add your poster" not in body
+
+
+def test_the_owning_society_does_see_the_add_a_poster_ask(client, db):
+    """...but the committee member signed in and looking at their own show is
+    exactly the person who can fix it."""
+    from conftest import seed_invite_code
+
+    society_id = _seed_undated_poster_show(db)
+    code_id = seed_invite_code(db, code="AIMS-SOC001", society_id=society_id)
+    with client.session_transaction() as sess:
+        sess["society_code_id"] = code_id
+
+    body = client.get("/").get_data(as_text=True)
+    assert "Add your poster" in body
+
+
+def test_another_society_does_not_see_the_ask_on_someone_elses_show(client, db):
+    from conftest import seed_invite_code
+
+    _seed_undated_poster_show(db)
+    other_id = seed_society(db, id=2, name="Other Soc", region="Western")
+    code_id = seed_invite_code(db, code="AIMS-SOC002", society_id=other_id)
+    with client.session_transaction() as sess:
+        sess["society_code_id"] = code_id
+
+    body = client.get("/").get_data(as_text=True)
+    assert "Add your poster" not in body
 
 
 def test_listings_are_grouped_by_month(client, db):

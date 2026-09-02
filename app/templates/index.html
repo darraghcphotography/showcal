@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
-{% import "_upcoming_card.html" as cards %}
+{# with context: the card reads society_session (a context processor
+   global) to decide whether to show its owner the "add your poster"
+   ask. A plain import would silently leave it undefined. #}
+{% import "_upcoming_card.html" as cards with context %}
 {% block title %}DC Show Tracker{% endblock %}
 
 {# One production, as it appears in the month lists. Most upcoming shows have

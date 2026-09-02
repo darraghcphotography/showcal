@@ -976,24 +976,82 @@ details table { margin-top: 0.5rem; }
 }
 .whatson-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-/* Filled in when a show has no poster upload yet - same box, same footprint,
-   so the row doesn't lose visual weight next to one that has a real poster
-   (Second Act backlog item 2). Show-title initials, not a single letter, so
-   it reads as a deliberate monogram rather than a blank swatch. */
-.whatson-poster.is-placeholder {
+/* ---------------------------------------------------------------------------
+   The playbill: what a production with no poster renders as (2026-09-02).
+
+   This replaced two initials on a flat gradient. The reason it is worth real
+   design effort rather than a tidier swatch is that it is the MAJORITY state -
+   55 of 67 upcoming productions have no poster on file, so five of these can
+   sit in a row on the homepage next to one real piece of artwork. The old box
+   made those five look broken; this one carries the same facts a poster would
+   (title, society, dates) and reads as a finished card.
+
+   The vertical banding is a very low-contrast nod to a stage curtain. It has
+   to stay under about 3% alpha: any louder and it competes with the real
+   posters beside it, which is exactly backwards.
+--------------------------------------------------------------------------- */
+.whatson-poster.is-playbill {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--accent) 22%, var(--bg)),
-    color-mix(in srgb, var(--gold) 18%, var(--bg)));
-  border-color: transparent;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  padding: 0.7rem 0.6rem 0.6rem;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background:
+    repeating-linear-gradient(90deg,
+      color-mix(in srgb, var(--fg) 3%, transparent) 0 2px,
+      transparent 2px 9px),
+    linear-gradient(168deg,
+      color-mix(in srgb, var(--accent) 14%, var(--bg)) 0%,
+      var(--bg) 62%,
+      color-mix(in srgb, var(--accent) 8%, var(--bg)) 100%);
 }
-.whatson-poster.is-placeholder span {
+.whatson-poster.is-playbill .pb-kicker {
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  line-height: 1.2;
+}
+.whatson-poster.is-playbill .pb-mid {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+}
+.whatson-poster.is-playbill .pb-title {
+  display: block;
   font-family: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-weight: 800;
-  font-size: var(--t-2xl);
-  letter-spacing: -0.02em;
+  font-size: var(--t-xl);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+  text-wrap: balance;
+  /* A long title has to clamp rather than overflow the poster box - there is
+     no image here to crop against. */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+.whatson-poster.is-playbill .pb-rule {
+  display: block;
+  width: 28px;
+  height: 2px;
+  background: var(--gold);
+  margin: 0.45rem auto;
+}
+.whatson-poster.is-playbill .pb-foot { display: block; min-height: 0.5rem; }
+/* Only ever rendered for the society that owns the show - see the template. */
+.whatson-poster.is-playbill .pb-ask {
+  display: block;
+  margin-top: 0.35rem;
+  padding-top: 0.32rem;
+  border-top: 1px dashed color-mix(in srgb, var(--gold) 40%, transparent);
+  font-size: var(--t-xs);
   color: var(--gold);
 }
 
@@ -1015,19 +1073,43 @@ details table { margin-top: 0.5rem; }
    as the venue it belongs to. */
 .whatson-body .venue-link { color: var(--muted); font-weight: 400; font-size: var(--t-xs); }
 
-.whatson-tickets {
-  display: inline-block;
-  margin-left: 0.4rem;
-  font-size: 0.72rem;
+/* Card hierarchy, 2026-09-02. The society, the dates and the venue/region line
+   used to be three .meta paragraphs at one weight, with the dates tacked onto
+   the society's line. Ordered now by what a visitor came for: what it is, who
+   is doing it, WHEN, then where. Nothing was removed. */
+.whatson-society {
+  margin: 0.2rem 0 0;
+  font-size: var(--t-sm);
   font-weight: 600;
+}
+.whatson-society a { color: var(--fg); }
+.whatson-when {
+  margin: 0.28rem 0 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.whatson-actions { margin: 0.6rem 0 0; }
+.whatson-tickets {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 0.1rem 0.45rem;
+  padding: 0.3rem 0.7rem;
   border-radius: var(--radius-pill);
+  /* Solid, not outlined. It was an outlined pill sitting beside the show title,
+     where it competed with the name for the eye; at the foot of the card as a
+     real button it reads as the action rather than a badge. */
   border: 1px solid var(--success);
-  color: var(--success);
-  vertical-align: 0.1em;
+  background: var(--success);
+  color: var(--bg);
 }
+.whatson-item a.whatson-tickets:hover { text-decoration: none; filter: brightness(1.08); }
 
 /* .venue-link is display:block elsewhere (it sits under a show title in the
    table layouts). Here the venue name and its map link belong on one line with
@@ -1357,6 +1439,33 @@ button.dot { cursor: pointer; }
    earned (see app/blueprints/public.py's _society_badges), same as the
    trophy case's own tags. */
 .badge-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.9rem 0 1.4rem; }
+
+/* Awards moved out of the society-page header and into their own block above
+   Show history (2026-09-02). Set as a quiet aside rather than a feature panel:
+   these are volunteer societies, and the top of the page is for the work they
+   staged, not a trophy count. The rule and the muted heading are what say
+   "record" instead of "scoreboard". */
+.awards-record {
+  margin: 2rem 0 1.6rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
+}
+.awards-record h2 {
+  font-size: var(--t-lg);
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+}
+.awards-record .trophy-case { margin-top: 0.7rem; }
+
+/* With the two award tiles gone, a society header often has just two tiles
+   left, and auto-fit's 1fr stretched them to half the hero each - two very
+   wide boxes holding a three-digit number. Scoped to the society hero so
+   /venues, which still shows a full row, is untouched. */
+.society-hero .stat-tiles {
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  justify-content: start;
+}
 .badge {
   display: flex; align-items: center; gap: 0.5rem;
   padding: 0.45rem 0.85rem 0.45rem 0.6rem;

@@ -19,6 +19,8 @@ missing ON_RECORD_PRODUCTION filter would sit latent until the next member
 submission and then leak it onto a public page - no real data and no accident
 would catch it. It has to be seeded deliberately.
 """
+import re
+
 from conftest import seed_society
 
 
@@ -428,6 +430,20 @@ def test_a_pending_submission_is_not_listed_on_a_society_page(client, db):
     assert "Secret Submission" not in body
 
 
+# "Active since" used to render as one contiguous pill ("Active since 2001"),
+# so these tests could match it as a plain substring. The awards move of
+# 2026-09-02 retired that pill - the same fact now lives only in the header
+# stat tile, where the value and its label are separate elements. Matching the
+# tile's own markup keeps the assertion as strict as the substring was: a bare
+# "2001" appearing somewhere else on the page still won't satisfy it.
+def _active_since(body):
+    match = re.search(
+        r'<span class="stat-value">(\d{4})</span>\s*<span class="stat-label">Active since</span>',
+        body,
+    )
+    return match.group(1) if match else None
+
+
 def test_active_since_is_the_first_year_on_record_not_the_first_win(client, db):
     seed_society(db)
     _add_award(db, 2001, "Carousel", result="Nominee")
@@ -435,7 +451,7 @@ def test_active_since_is_the_first_year_on_record_not_the_first_win(client, db):
     db.commit()
 
     body = client.get("/societies/1").get_data(as_text=True)
-    assert "Active since 2001" in body
+    assert _active_since(body) == "2001"
 
 
 def test_active_since_can_express_a_year_before_2001(client, db):
@@ -446,7 +462,7 @@ def test_active_since_can_express_a_year_before_2001(client, db):
     db.commit()
 
     body = client.get("/societies/1").get_data(as_text=True)
-    assert "Active since 1954" in body
+    assert _active_since(body) == "1954"
 
 
 def test_the_century_club_count_is_one_production_per_staging(client, db):

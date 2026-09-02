@@ -1,7 +1,15 @@
 """The trophy-case summary on a society's public page: win / runner-up /
 third-place counts for Best Overall Show specifically, plus a total win
 count across all award categories (app/blueprints/public.py:society_detail).
+
+Moved out of the page header and into an "Awards on record" section above
+Show history on 2026-09-02 - Darragh's call that award counts must not be a
+society's headline. The counts themselves are unchanged and still required to
+be present and correct; what changed is where on the page they sit, which
+these tests deliberately do not pin down.
 """
+import re
+
 from conftest import seed_society
 
 
@@ -38,7 +46,34 @@ def test_trophy_case_counts(client, db):
     assert "🥈 1" in body and "runner-up" in body
     assert "🥉 2" in body and "third place" in body
     assert "3 award wins" in body
-    assert "Active since 2017" in body
+
+    # "Active since" stayed in the header - it describes how long the society
+    # has been going, not what it won, so it is not part of the awards move.
+    # It is a stat tile rather than a pill now, hence the markup match: a bare
+    # "2017" elsewhere on the page must not satisfy this.
+    assert re.search(
+        r'<span class="stat-value">2017</span>\s*<span class="stat-label">Active since</span>',
+        body,
+    )
+
+
+def test_awards_are_not_in_the_page_header(client, db):
+    """The point of the move: a visitor landing on a society page sees the work
+    first. The award block must render below the show-history heading's section
+    start, not up beside the name and logo."""
+    society_id = seed_society(db)
+    _add_result(db, society_id, 2023, "Best Overall Show", "Winner", show="Chess")
+    db.commit()
+
+    body = client.get(f"/societies/{society_id}").get_data(as_text=True)
+
+    hero_end = body.index("Show history")
+    assert body.index("awards-record") < hero_end          # sits above Show history
+    assert body.index("detail-hero") < body.index("awards-record")   # but below the hero
+    # No award number inside the header block itself.
+    hero = body[body.index("detail-hero"):body.index("awards-record")]
+    assert "award win" not in hero
+    assert "Best Overall Show" not in hero
 
 
 def test_trophy_case_absent_when_no_awards(client, db):

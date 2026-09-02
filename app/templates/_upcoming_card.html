@@ -10,8 +10,35 @@
         <img src="{{ url_for('public.uploaded_file', filename=show['poster_filename']) }}" alt="" loading="lazy">
       </a>
     {% else %}
-      <a class="whatson-poster is-placeholder" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
-        <span>{{ show['show']|initials }}</span>
+      {#- No poster on file, which is the NORMAL case, not the edge one: 55 of
+          67 upcoming productions have none, so this box is what the homepage
+          mostly renders. It used to be two initials on a flat gradient, which
+          read as broken beside a real poster. It is now a playbill carrying
+          the same facts a poster would - title, society, dates - so the card
+          looks finished rather than missing.
+
+          The "Add your poster" line is shown ONLY to the society that owns the
+          show. A public visitor has nothing to act on, and advertising the gap
+          on 55 of 67 cards would make the site look emptier than it is; the
+          one person who can fix it is the committee member already signed in
+          and looking at their own show. -#}
+      {% set owns_show = society_session and society_session['society_id'] == show['society_id'] %}
+      <a class="whatson-poster is-playbill" href="{{ url_for('public.show_detail', show_id=show['id']) }}" tabindex="-1" aria-hidden="true">
+        <span class="pb-kicker">
+          {%- if show['opening_date'] %}{{ show['opening_date'][:7]|month_label }}{% else %}{{ show['season'] }}{% endif -%}
+        </span>
+        {#- Title and rule only. The first cut of this carried the society and
+            the run dates too, which looked right in isolation and wrong in
+            place: the card body repeats both, two centimetres below, so the
+            card said everything twice. A real poster's job on this card is to
+            be the title as an image - the body is what carries the facts. -#}
+        <span class="pb-mid">
+          <span class="pb-title">{{ show['show'] }}</span>
+          <span class="pb-rule"></span>
+        </span>
+        <span class="pb-foot">
+          {% if owns_show %}<span class="pb-ask">Add your poster &rarr;</span>{% endif %}
+        </span>
       </a>
     {% endif %}
     <div class="whatson-body">
@@ -19,15 +46,18 @@
         <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
         <button type="button" class="watchlist-btn" data-watchlist-id="{{ show['id'] }}" data-watchlist-title="{{ show['show'] }}" data-watchlist-society="{{ show['society_name'] }}" data-watchlist-dates="{% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}" data-watchlist-venue="{{ show['venue'] or '' }}" data-watchlist-url="{{ url_for('public.show_detail', show_id=show['id']) }}" aria-label="Bookmark show" title="Save to Watchlist">🔖</button>
         {% if distance_km is not none %}<span class="meta">&middot; {{ '%.0f'|format(distance_km) }}km away</span>{% endif %}
-        {% if show['ticket_url'] %}
-          <a class="whatson-tickets" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ icons.ticket() }}Tickets</a>
-        {% endif %}
       </div>
-      <p class="meta">
+      {#- One fact per line, ordered by what someone actually came for. These
+          used to be a single run-on meta line - society, dates, venue, "(map)"
+          and region all at one weight - so the run dates, the thing a visitor
+          is looking for, sat buried mid-sentence after the society name. -#}
+      <p class="whatson-society">
         <a href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">{{ show['society_name'] }}</a>
-        {#- The homepage's own query only ever passes dated shows, but /season
-            carries slots a society has announced without dates yet. -#}
-        &middot; {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}TBA{% endif %}
+      </p>
+      {#- The homepage's own query only ever passes dated shows, but /season
+          carries slots a society has announced without dates yet. -#}
+      <p class="whatson-when">
+        {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}Dates to be announced{% endif %}
       </p>
       <p class="meta">
         {% if show['venue'] %}
@@ -51,6 +81,14 @@
         <p class="meta"><a href="{{ show['review_url'] }}" rel="noopener" target="_blank">Read review</a></p>
       {% elif show['review_status'] == 'Not adjudicated' %}
         <p class="meta">Not adjudicated</p>
+      {% endif %}
+      {#- Moved out of the title line and down to the foot of the card: it is
+          the action you take after reading the card, not a label on the name.
+          Solid rather than outlined so it reads as a button. -#}
+      {% if show['ticket_url'] %}
+        <p class="whatson-actions">
+          <a class="whatson-tickets" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ icons.ticket() }}Tickets</a>
+        </p>
       {% endif %}
     </div>
   </li>
