@@ -73,7 +73,19 @@ def _load_word_lists():
     root = _repo_root()
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
-    from app.invite_words import ADJECTIVES, CODE_DIGITS, NOUNS
+    from app.invite_words import ADJECTIVES, NOUNS
+
+    # CODE_DIGITS moved into invite_words.py in the same commit as this script.
+    # A container running a slightly older deploy will not have it there yet -
+    # a new script always lands before the app change it depends on, because
+    # GitOps ships them in the same push but the running image lags a poll. The
+    # fallback is the value that constant has always had, and the app's own
+    # tests pin the code format, so a drift here would fail loudly rather than
+    # silently minting codes in the wrong shape.
+    try:
+        from app.invite_words import CODE_DIGITS
+    except ImportError:
+        CODE_DIGITS = 4
     return ADJECTIVES, NOUNS, CODE_DIGITS
 
 
