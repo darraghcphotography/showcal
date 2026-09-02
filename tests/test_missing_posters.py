@@ -13,6 +13,15 @@ The scoping is the important part, and it's the lesson MISSING_DATES_WHERE
 already records: count only what someone can actually action. A poster is
 promotional material for a run that hasn't happened, so past shows are
 excluded - unscoped, this counter would read ~5,000 and never move.
+
+Scoped a second time on 2026-09-02, for the same reason at the other end.
+Darragh: a society does not commission its poster until the show is close, so a
+run eight months out has no poster to ask for. The live numbers agreed - every
+production opening within a month already had its artwork, while the one-to-
+three-month band had almost none. The dashboard counter and the chasing list now
+stop at POSTER_CHASE_DAYS; anything further ahead is listed for reference, not
+as work. Without that the counter reads 54 when the actual job is 17, and a
+queue that can never reach zero stops being read.
 """
 from datetime import date, timedelta
 
@@ -63,7 +72,48 @@ def test_a_show_that_has_a_poster_is_not_listed(client, db):
     login_as(client, admin_id)
     body = client.get("/admin/missing-posters").get_data(as_text=True)
     assert "Has A Poster" not in body
-    assert "Every upcoming production has a poster" in body
+    assert "Nothing worth chasing right now" in body
+
+
+def test_a_show_too_far_out_is_not_presented_as_work(client, db):
+    """The 2026-09-02 scoping. A run eight months away has no poster to ask for,
+    so it must not sit in the chasing table beside next month's - it goes in the
+    reference list underneath."""
+    society_id = seed_society(db)
+    _add_show(db, society_id, "Opens Soon", days_ahead=30)
+    _add_show(db, society_id, "Opens Next Summer", days_ahead=280, season="27/28")
+    db.commit()
+
+    login_as(client, seed_user(db))
+    body = client.get("/admin/missing-posters").get_data(as_text=True)
+
+    chase_table = body[:body.index("not yet worth a message")]
+    assert "Opens Soon" in chase_table
+    assert "Opens Next Summer" not in chase_table
+    # Still visible, just not as a job.
+    assert "Opens Next Summer" in body
+
+
+def test_the_dashboard_counter_only_counts_what_can_be_chased(client, db):
+    """A counter that includes a show 18 months out can never reach zero, and a
+    queue that never clears stops being read - the same rule as the dismissal
+    tables."""
+    society_id = seed_society(db)
+    _add_show(db, society_id, "Opens Soon", days_ahead=30)
+    for i, days in enumerate((200, 300, 400)):
+        _add_show(db, society_id, f"Far Off {i}", days_ahead=days, season="27/28")
+    db.commit()
+
+    login_as(client, seed_user(db))
+    body = client.get("/admin/").get_data(as_text=True)
+
+    # Read the number out of the poster row itself. A bare ">4<" search matches
+    # the unrelated "Fix dates" counter on the same table, which is how the
+    # first version of this test failed for the wrong reason.
+    row_end = body.index("Chase posters")
+    row = body[body.rindex("<tr>", 0, row_end):row_end]
+    assert ">1<" in row, f"expected 1 chaseable poster in the dashboard row, got: {row}"
+    assert ">4<" not in row
 
 
 def test_the_page_surfaces_the_society_login_code(client, db):

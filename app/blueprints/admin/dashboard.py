@@ -11,8 +11,8 @@ from ...season import current_season, historical_results_year, season_for_date
 from . import bp
 from ._shared import (
     MISSING_DATES_WHERE,
-    MISSING_POSTER_WHERE,
     NEEDS_REVIEW_WHERE,
+    MISSING_POSTER_CHASEABLE_WHERE,
     missing_poster_params,
     needs_review_params,
 )
@@ -101,9 +101,11 @@ def dashboard():
         f"SELECT COUNT(*) FROM shows WHERE {MISSING_DATES_WHERE}"
     ).fetchone()[0]
 
-    # Upcoming only, so this can actually reach zero - see MISSING_POSTER_WHERE.
+    # Chaseable, not every upcoming show without artwork: a society commissions
+    # its poster close to opening, so counting a run eight months out makes a
+    # counter that can never reach zero (see the note on POSTER_CHASE_DAYS).
     missing_poster_count = db.execute(
-        f"SELECT COUNT(*) FROM shows WHERE {MISSING_POSTER_WHERE}", missing_poster_params()
+        f"SELECT COUNT(*) FROM shows WHERE {MISSING_POSTER_CHASEABLE_WHERE}", missing_poster_params()
     ).fetchone()[0]
 
     titles = {

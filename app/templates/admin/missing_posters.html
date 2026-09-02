@@ -5,10 +5,10 @@
   <h1>Upcoming shows without a poster</h1>
 
   <p class="meta" style="max-width: 68ch;">
-    {{ shows|length }} of the {{ total_upcoming }} production{{ '' if total_upcoming == 1 else 's' }}
-    currently on sale {{ 'has' if shows|length == 1 else 'have' }} no poster uploaded. Since
-    2026-08-29 the homepage lists productions as poster-led cards, so each of these renders as a
-    blank card beside societies that have supplied artwork.
+    <strong>{{ chaseable|length }}</strong> production{{ '' if chaseable|length == 1 else 's' }}
+    opening in the next {{ chase_days }} days {{ 'has' if chaseable|length == 1 else 'have' }} no
+    poster uploaded. The homepage is poster-led, so each renders as a playbill rather than the
+    society's own artwork.
   </p>
 
   <div class="site-notice">
@@ -16,17 +16,19 @@
        these posters, not us. The lever is their login code - with it they can upload the poster
        themselves from their own dashboard, along with a ticket link. Each row below shows the code
        where one is already active.</p>
-    <p class="meta">Sorted soonest-first: a run opening in a fortnight is worth a message, one
-       eleven months out is not.</p>
+    <p class="meta">A society doesn't commission its poster until the show is close, so this list
+       stops at {{ chase_days }} days out. {{ later|length }} production{{ '' if later|length == 1 else 's' }}
+       further ahead also {{ 'has' if later|length == 1 else 'have' }} no artwork yet - that is the
+       calendar, not a gap, and they are listed at the bottom for reference rather than as work.</p>
   </div>
 
-  {% if shows %}
+  {% if chaseable %}
     <table class="data-table table-wide">
       <thead>
         <tr><th>Opens</th><th>Show</th><th>Society</th><th>Login code</th><th></th></tr>
       </thead>
       <tbody>
-        {% for show in shows %}
+        {% for show in chaseable %}
           <tr>
             <td>{{ show['opening_date']|date_range(show['closing_date']) }}</td>
             <td><a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a></td>
@@ -54,7 +56,7 @@
     </table>
 
     <div class="table-cards">
-      {% for show in shows %}
+      {% for show in chaseable %}
         <div class="queue-item">
           <div class="primary">
             <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
@@ -78,7 +80,25 @@
       {% endfor %}
     </div>
   {% else %}
-    <p>Every upcoming production has a poster. Nothing to chase.
-       <a href="{{ url_for('admin.dashboard') }}">Back to the dashboard &rarr;</a></p>
+    <p>Nothing worth chasing right now - every production opening in the next {{ chase_days }} days
+       has its poster. <a href="{{ url_for('admin.dashboard') }}">Back to the dashboard &rarr;</a></p>
+  {% endif %}
+
+  {% if later %}
+    <details style="margin-top: 1.5rem;">
+      <summary>{{ later|length }} further ahead, not yet worth a message</summary>
+      <p class="meta" style="max-width: 68ch;">Listed so the full picture is visible, not as a
+         queue. Chasing a society in September for a poster they will design in February gets a
+         polite reply and no poster, and teaches them the email is safe to ignore.</p>
+      <ul class="plain-list">
+        {% for show in later %}
+          <li>
+            {{ show['opening_date']|date_range(show['closing_date']) }} &middot;
+            <a href="{{ url_for('public.show_detail', show_id=show['id']) }}">{{ show['show'] }}</a>
+            <span class="meta">&middot; {{ show['society_name'] }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
   {% endif %}
 {% endblock %}

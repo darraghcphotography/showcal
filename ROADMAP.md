@@ -13,7 +13,41 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
-## START HERE - audit of computed figures (2026-09-02, latest)
+## START HERE - posters are a lead-time problem, not a coverage problem (2026-09-02, latest)
+
+> **This corrects the framing used all through the sessions below, including by Claude.** Darragh:
+> *"we shouldn't worry too much about posters - normally they're not designed until closer to
+> showtime - we should always prioritise posters for the next 2/3 months."*
+>
+> **The live data agrees emphatically.** Of 68 upcoming productions on 2026-09-02:
+>
+> | Opening | Upcoming | No poster |
+> |---|---|---|
+> | within 1 month | 7 | **0** |
+> | 1-2 months | 7 | 7 |
+> | 2-3 months | 13 | 10 |
+> | 3-6 months | 14 | 12 |
+> | 6+ months | 27 | 25 |
+>
+> **Every show opening within a month already has its poster.** The process works. "54 missing
+> posters" - repeated in this file, in `HANDBACK.md`, in `AGENTS.md` and by Claude all session as
+> *the single most valuable thing left* - was mostly counting the calendar. The real job is the ~17
+> in the one-to-three-month band, and **15 of those 17 societies have no active login code**, which
+> is the actual bottleneck: you cannot ask for a poster from someone who cannot upload one.
+>
+> `POSTER_CHASE_DAYS = 93` in `app/blueprints/admin/_shared.py` now scopes the dashboard counter and
+> `/admin/missing-posters`. Anything further out is listed for reference, not as work. This is the
+> `permanent-vs-fixable-queues` rule at the other end - a counter including a show 18 months away can
+> never reach zero.
+>
+> **Not applied to logos.** 174 of 195 societies have no logo and that has no seasonal timing; it is
+> a real, chaseable gap all year round.
+>
+> **Do not quote a raw "N missing posters" total as a deficiency again.** Say how many are chaseable.
+
+---
+
+## Audit of computed figures (2026-09-02)
 
 > Prompted by the show-page circuit line turning out to be wrong on the live site for months with
 > nothing catching it. **Method: recompute each public figure independently from the live database

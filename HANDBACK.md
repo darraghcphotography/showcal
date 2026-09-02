@@ -346,3 +346,22 @@ handover.
 Also corrected there against the live database rather than carried forward: society-link and photo
 queues are **0**, posters missing is **54 of 68**, societies without a logo is **174 of 195** (this
 log and ROADMAP had been repeating 55 and 176/194).
+
+**Poster framing corrected, 2026-09-02 (same day, after the wrap-up above).** Darragh: societies do
+not design a poster until close to showtime, so only the next 2-3 months are worth chasing.
+
+**He is right and the data is emphatic.** Of 68 upcoming productions, every one opening **within a
+month already has its poster** — full coverage. The shows without artwork are almost all months out,
+where the poster does not exist yet. So "54 missing posters", which this log, `ROADMAP.md`,
+`AGENTS.md` and Claude all called the single most valuable thing left, was largely counting the
+calendar. The real job is ~17.
+
+`POSTER_CHASE_DAYS = 93` now scopes the dashboard counter and `/admin/missing-posters`; anything
+further out is listed for reference, not as work. Same rule as the dismissal tables — a counter that
+can never reach zero stops being read.
+
+**The actual bottleneck turned out to be different again: 15 of the 17 chaseable societies have no
+active login code**, so they cannot upload a poster even if they have one. Generating codes is step
+one of the outreach, not sending messages.
+
+Not applied to logos: 174 of 195 societies have none, and that has no seasonal timing.

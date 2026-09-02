@@ -6,7 +6,7 @@ risking a circular import through __init__.py itself.
 """
 
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from flask import request, url_for
 
@@ -87,7 +87,27 @@ MISSING_DATES_WHERE = """
 # Became worth tracking on 2026-08-29, when the homepage moved from 54px
 # thumbnails to poster-led cards: a missing poster went from barely visible
 # to a large blank card sitting beside real artwork.
-MISSING_POSTER_WHERE = """
+# How far ahead a missing poster is worth chasing. Darragh's steer, 2026-09-02:
+# a society does not commission its poster until the show is close, so a run
+# eight months out has no poster to ask for and counting it as a gap is
+# counting the calendar, not a deficiency.
+#
+# The live data backs him completely. Of the 68 upcoming productions on
+# 2026-09-02:
+#
+#     opening within 1 month     7 upcoming,  0 without a poster
+#     1-2 months                 7 upcoming,  7 without a poster
+#     2-3 months                13 upcoming, 10 without a poster
+#     3-6 months                14 upcoming, 12 without a poster
+#     6+ months                 27 upcoming, 25 without a poster
+#
+# Shows opening within a month are at FULL poster coverage. The system already
+# works; the "54 missing posters" figure was almost entirely shows whose
+# artwork does not exist yet. 93 days catches the band where the poster
+# plausibly exists and has not been sent - 17 rows rather than 54.
+POSTER_CHASE_DAYS = 93
+
+_MISSING_POSTER_BASE = """
     shows.moderation_status = 'approved'
     AND shows.show IS NOT NULL
     AND shows.poster_filename IS NULL
@@ -95,9 +115,24 @@ MISSING_POSTER_WHERE = """
     AND shows.opening_date >= :today
 """
 
+# Every upcoming show with no poster, however far off - the full picture, for
+# the chasing page's "further out" section.
+MISSING_POSTER_WHERE = _MISSING_POSTER_BASE
+
+# The ones actually worth an email today. This is what the dashboard counts:
+# a counter that includes a show 18 months away can never reach zero, and a
+# queue that can never be cleared stops being read.
+MISSING_POSTER_CHASEABLE_WHERE = _MISSING_POSTER_BASE + """
+    AND shows.opening_date <= :chase_until
+"""
+
 
 def missing_poster_params():
-    return {"today": date.today().isoformat()}
+    today = date.today()
+    return {
+        "today": today.isoformat(),
+        "chase_until": (today + timedelta(days=POSTER_CHASE_DAYS)).isoformat(),
+    }
 
 
 # Admin-only, single-segment allowlist. A "come back where I was" redirect

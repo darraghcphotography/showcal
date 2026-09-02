@@ -331,10 +331,19 @@ Every figure here was counted against the **live** database on that date, not ca
   - **Design and correctness:** the playbill placeholder, homepage card hierarchy, societies
     index rebuild, first two charts on `/stats`, and four wrong figures (see `ROADMAP.md`'s
     audit block).
-- **54 of 68 upcoming productions have no poster; 174 of 195 societies have no logo.** This is
-  unchanged in substance and is **still the highest-value thing available, and still not code.**
-  `/admin/missing-posters` will generate a society login code inline, which is the first step of
-  any outreach.
+- **Posters are a lead-time problem, not a coverage problem** (Darragh, 2026-09-02 - this
+  corrects what earlier entries in this file and `HANDBACK.md` said). A society does not
+  commission its poster until the run is close. Of 68 upcoming productions, **every one opening
+  within a month already has its artwork**; the shows without one are almost all months away and
+  have no poster to ask for yet. The chaseable set is the ~17 opening in the next 93 days, which
+  is what `POSTER_CHASE_DAYS` in `app/blueprints/admin/_shared.py` now scopes the dashboard
+  counter and `/admin/missing-posters` to. **Never quote a raw "54 missing posters" as a
+  deficiency** - say how many are chaseable.
+- **The real bottleneck is login codes, not posters.** 15 of those 17 chaseable societies have no
+  active code, so they physically cannot upload one. `/admin/missing-posters` generates a code
+  inline per row; that is step one of any outreach.
+- **174 of 195 societies have no logo**, and that *is* a genuine year-round gap - a logo has no
+  seasonal timing, so the poster reasoning above does not apply to it.
 - **Open queues are empty**: 0 undecided society links, 0 pending photo submissions. The one
   remaining logo candidate is Rathmines & Rathgar — an SVG the image fetcher cannot decode; it
   needs a PNG or JPG address, not another import run.

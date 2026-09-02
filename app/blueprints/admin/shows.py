@@ -18,6 +18,7 @@ from ._shared import (
     DATE_RE,
     MISSING_POSTER_WHERE,
     NEEDS_REVIEW_WHERE,
+    POSTER_CHASE_DAYS,
     back_to,
     missing_poster_params,
     needs_review_params,
@@ -709,6 +710,13 @@ def missing_posters():
     (a run that opens next week is the urgent one), with each society's own
     login code surfaced where one exists, since handing that over is what
     actually lets them upload it themselves.
+
+    Split into two lists 2026-09-02. A society does not commission its poster
+    until the show is close, so a run months away has no poster to ask for and
+    listing it alongside next month's makes the real work look three times
+    bigger than it is. The live numbers made the case: every show opening
+    within a month already had its poster, while the band from one to three
+    months out had almost none. That band is the whole job.
     """
     db = get_db()
     shows = db.execute(
@@ -726,6 +734,10 @@ def missing_posters():
         missing_poster_params(),
     ).fetchall()
 
+    chase_until = missing_poster_params()["chase_until"]
+    chaseable = [s for s in shows if s["opening_date"] <= chase_until]
+    later = [s for s in shows if s["opening_date"] > chase_until]
+
     # How much of the upcoming slate this actually represents - a bare "55"
     # doesn't say whether that's most of them or a handful.
     total_upcoming = db.execute(
@@ -742,9 +754,12 @@ def missing_posters():
     # Cloudflare Tunnel/PrefixMiddleware setup (same reason society_detail
     # builds its copy of this link this way).
     society_login_url = notify.link(url_for("society.login"))
+    # Surfaced so the split is arguable rather than a magic number on a page.
+    chase_days = POSTER_CHASE_DAYS
 
     return render_template(
-        "admin/missing_posters.html", shows=shows, total_upcoming=total_upcoming,
+        "admin/missing_posters.html", shows=shows, chaseable=chaseable, later=later,
+        total_upcoming=total_upcoming, chase_days=chase_days,
         society_login_url=society_login_url,
     )
 
