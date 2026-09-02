@@ -1,3 +1,11 @@
+The Societies directory now tells you something about each society: how many productions are on record, how far back the record goes, and what they have coming up next. It used to carry only a name, a region and a tier for all 143 of them
+
+---
+
+Statistics now has its first charts - productions on record by decade, going back to the 1910s, and the regional split drawn as bars rather than a row of numbers. The most recent decade is marked as still in progress, so a half-finished decade does not read as a decline
+
+---
+
 A production without a poster on file now gets a proper playbill on the listings - the show's own title, set large, instead of two initials on a blank tile. Most upcoming productions don't have artwork uploaded yet, so this is what the What's On page mostly shows, and it should look like a card rather than a gap. Societies signed in to ShowCal see a one-tap "Add your poster" on their own shows
 
 ---
