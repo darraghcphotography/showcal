@@ -1,3 +1,11 @@
+A show's page no longer runs out after the credits. It now points you on to other societies who have staged the same show, other productions at the same venue, and the rest of that society's history - which matters most for a show that hasn't opened yet, where there is no review or award record to read
+
+---
+
+Fixed a wrong line on show pages. "Staged 11 times since 2026, most recently by Portrush Music Society (2027)" got both numbers wrong: it labelled autumn productions with the following year, and "most recently" could name a production that hasn't happened yet. It now gives a span of seasons and only ever names a show that has actually opened
+
+---
+
 The Societies directory now tells you something about each society: how many productions are on record, how far back the record goes, and what they have coming up next. It used to carry only a name, a region and a tier for all 143 of them
 
 ---

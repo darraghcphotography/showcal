@@ -1272,6 +1272,42 @@ details table { margin-top: 0.5rem; }
 .review-block p:last-of-type { margin-bottom: 0; }
 .review-credit { font-size: 0.82rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 0.6rem; margin-top: 0.8rem; }
 
+/* "Elsewhere on ShowCal" on a show page (see show_detail.html). An upcoming
+   show has no review and no awards yet, so the page used to stop after the
+   credits and leave a screenful of nothing above the footer. Set quietly - it
+   is a way onward, not a feature panel competing with the show's own facts. */
+.related {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+.container .related h2 { font-size: var(--t-lg); color: var(--muted); margin: 0 0 var(--space-4); }
+.related-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-5);
+}
+.related-col h3 {
+  font-size: var(--t-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+  font-weight: 600;
+}
+.related-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+.related-col li { font-size: var(--t-sm); line-height: 1.4; }
+.related-col li a { font-weight: 600; text-decoration: none; }
+.related-col li a:hover { text-decoration: underline; }
+.related-col .who { display: block; color: var(--muted); font-size: var(--t-xs); }
+.related-col .when { color: var(--muted); font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
+.related-more {
+  display: inline-block;
+  margin-top: var(--space-3);
+  font-size: var(--t-xs);
+  color: var(--accent);
+}
+
 .tag {
   display: inline-block;
   font-size: 0.75rem;

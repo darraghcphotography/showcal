@@ -42,7 +42,13 @@
   </p>
   {% if circuit_summary %}
     <p class="meta">
-      Staged {{ circuit_summary['count'] }} times{% if circuit_summary['since'] %} since {{ circuit_summary['since'] }}{% endif %}{% if circuit_summary['most_recent'] %}, most recently by {{ circuit_summary['most_recent']['society_name'] }} ({{ circuit_summary['most_recent']['year'] }}){% endif %} &middot;
+      {#- A span of seasons, not a single year: a production belongs to a
+          season, and naming one year meant inventing one (an autumn 2025 run
+          was being printed as 2026). "Most recently" only appears when there
+          is a production that has actually opened. -#}
+      Staged {{ circuit_summary['count'] }} times{% if circuit_summary['first_season'] != circuit_summary['last_season'] %},
+      {{ circuit_summary['first_season'] }} to {{ circuit_summary['last_season'] }}{% else %} in {{ circuit_summary['first_season'] }}{% endif %}{% if circuit_summary['most_recent'] %},
+      most recently by {{ circuit_summary['most_recent']['society_name'] }} ({{ circuit_summary['most_recent']['season'] }}){% endif %} &middot;
       <a href="{{ url_for('public.title_detail', title=show['show']) }}">See every AIMS production &rarr;</a>
     </p>
   {% else %}
@@ -181,6 +187,71 @@
         {% endif %}
       {% endif %}
     </div>
+  {% endif %}
+
+  {#- Somewhere to go next. An upcoming show has no review and no awards yet -
+      which is every show in the current season - so without this the page ran
+      out after the credits and left a screen of nothing above the footer.
+      Every link here goes further into the archive rather than off the site,
+      and each column is dropped entirely when it is empty rather than standing
+      as a heading over a blank. -#}
+  {% if related['same_title'] or related['same_venue'] or related['same_society'] %}
+    <section class="related">
+      <h2>Elsewhere on ShowCal</h2>
+      <div class="related-cols">
+        {% if related['same_title'] %}
+          <div class="related-col">
+            <h3>Others who staged {{ show['show'] }}</h3>
+            <ul>
+              {% for r in related['same_title'] %}
+                <li>
+                  {% if r['society_id'] %}
+                    <a href="{{ url_for('public.society_detail', society_id=r['society_id']) }}">{{ r['society_name'] }}</a>
+                  {% else %}
+                    {{ r['society_name'] }}
+                  {% endif %}
+                  <span class="when">{{ r['season'] }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+            <a class="related-more" href="{{ url_for('public.title_detail', title=show['show']) }}">Every production of {{ show['show'] }} &rarr;</a>
+          </div>
+        {% endif %}
+
+        {% if related['same_venue'] %}
+          <div class="related-col">
+            <h3>Also at {{ show['venue'] }}</h3>
+            <ul>
+              {% for r in related['same_venue'] %}
+                <li>
+                  <a href="{{ url_for('public.show_detail', show_id=r['id']) }}">{{ r['show'] }}</a>
+                  <span class="who">{{ r['society_name'] }}</span>
+                  <span class="when">{{ r['season'] }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+            {% if show['venue_slug'] %}
+              <a class="related-more" href="{{ url_for('public.venue_detail', venue=show['venue_slug']) }}">Everything at this venue &rarr;</a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if related['same_society'] %}
+          <div class="related-col">
+            <h3>More from {{ show['society_name'] }}</h3>
+            <ul>
+              {% for r in related['same_society'] %}
+                <li>
+                  <a href="{{ url_for('public.show_detail', show_id=r['id']) }}">{{ r['show'] }}</a>
+                  <span class="when">{{ r['season'] }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+            <a class="related-more" href="{{ url_for('public.society_detail', society_id=show['society_id']) }}">Their full history &rarr;</a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
   {% endif %}
 
   {% if award_history %}

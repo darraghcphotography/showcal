@@ -25,7 +25,7 @@ from ..filters import place_label
 from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
 from ..search import build_phrase_query, escape_like, fts_match_ids
-from ..season import current_season, season_has_ended, season_range, season_start_year
+from ..season import current_season, season_has_ended, season_label, season_range, season_start_year
 from ..shows import is_upcoming as _is_upcoming
 from ..similarity import normalize_title
 from ..venues import normalize_venue
@@ -1269,6 +1269,65 @@ def _may_see_own_show_admin(show):
     return current_user() is not None
 
 
+RELATED_LIMIT = 5
+
+
+def _related_to_show(db, show):
+    """Three short lists of somewhere else to go from a show page.
+
+    An upcoming show with no review and no awards yet - which is every show in
+    the current season - had literally nothing below the poster and the credits,
+    so the page filled its top third and then stopped. Everything here is
+    already in the database and every link goes deeper into the archive rather
+    than out of it.
+
+    Each list is capped and each is rendered only when it has something in it,
+    so a genuinely isolated production still gets a short page rather than three
+    empty headings. Three small queries per show page, not per row of anything.
+    """
+    title_key = normalize_title(show["show"]) if show["show"] else None
+
+    same_title = db.execute(
+        f"""
+        SELECT society_id, society_name, season, season_start_year
+        FROM productions
+        WHERE title_key = ? AND {ON_RECORD_PRODUCTION} AND id != COALESCE(?, -1)
+        ORDER BY season_start_year DESC
+        LIMIT ?
+        """,
+        (title_key, show["production_id"], RELATED_LIMIT),
+    ).fetchall() if title_key else []
+
+    # A dateless row sorts last rather than first - "no date on record" is not
+    # the most recent thing that happened here.
+    same_venue = db.execute(
+        """
+        SELECT shows.id, shows.show, shows.season, shows.opening_date,
+               shows.society_id, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.venue_id = ? AND shows.id != ? AND shows.show IS NOT NULL
+          AND shows.moderation_status = 'approved'
+        ORDER BY shows.opening_date IS NULL, shows.opening_date DESC
+        LIMIT ?
+        """,
+        (show["venue_id"], show["id"], RELATED_LIMIT),
+    ).fetchall() if show["venue_id"] else []
+
+    same_society = db.execute(
+        """
+        SELECT id, show, season, opening_date
+        FROM shows
+        WHERE society_id = ? AND id != ? AND show IS NOT NULL
+          AND moderation_status = 'approved'
+        ORDER BY opening_date IS NULL, opening_date DESC
+        LIMIT ?
+        """,
+        (show["society_id"], show["id"], RELATED_LIMIT),
+    ).fetchall()
+
+    return {"same_title": same_title, "same_venue": same_venue, "same_society": same_society}
+
+
 @bp.route("/shows/<int:show_id>")
 def show_detail(show_id):
     db = get_db()
@@ -1291,23 +1350,55 @@ def show_detail(show_id):
     # who did it most recently - reusing the same title_key identity as
     # /titles/<title>, but only the two numbers a show page needs rather
     # than that page's full award-tally panel.
+    # This line used to read "Staged 11 times since 2026, most recently by
+    # Portrush Music Society (2027)", and both numbers were wrong.
+    #
+    #   season_start_year + 1 is the year a season ENDS, so an autumn
+    #   production was labelled with the following year - St. Agnes opened
+    #   2025-09-04 and the page called it 2026.
+    #
+    #   "most recently" ordered by season alone, so within a season the winner
+    #   was whichever row SQLite happened to return. For Come From Away it
+    #   picked a May 2026 run and called it 2027, while ignoring four later
+    #   productions - two of which have not happened yet, so "most recently"
+    #   was naming the future.
+    #
+    # A production belongs to a season, not a year, so the span is stated in
+    # seasons - always true, and no single year has to be invented. "Most
+    # recently" is now restricted to productions that have actually opened and
+    # ordered by their real date, so it cannot name something still to come.
     circuit_summary = None
     title_key = normalize_title(show["show"])
     circuit_row = db.execute(
-        f"SELECT COUNT(*) AS n, MIN(season_start_year) + 1 AS since FROM productions "
+        f"SELECT COUNT(*) AS n, MIN(season_start_year) AS first_year, "
+        f"MAX(season_start_year) AS last_year FROM productions "
         f"WHERE title_key = ? AND {ON_RECORD_PRODUCTION}",
         (title_key,),
     ).fetchone()
     if circuit_row["n"] > 1:
         most_recent = db.execute(
             f"""
-            SELECT society_name, season_start_year + 1 AS year FROM productions
-            WHERE title_key = ? AND {ON_RECORD_PRODUCTION} AND id != COALESCE(?, -1)
-            ORDER BY season_start_year DESC LIMIT 1
+            SELECT p.society_name, p.season,
+                   (SELECT MIN(s.opening_date) FROM shows s
+                     WHERE s.production_id = p.id AND s.opening_date IS NOT NULL) AS opened
+            FROM productions p
+            WHERE p.title_key = ? AND {ON_RECORD_PRODUCTION.replace("productions.", "p.")}
+              AND p.id != COALESCE(?, -1)
+              AND (p.season_start_year < ? OR (SELECT MIN(s.opening_date) FROM shows s
+                                                WHERE s.production_id = p.id) <= ?)
+            ORDER BY p.season_start_year DESC, opened DESC
+            LIMIT 1
             """,
-            (title_key, show["production_id"]),
+            (title_key, show["production_id"], date.today().year - 1, date.today().isoformat()),
         ).fetchone()
-        circuit_summary = {"count": circuit_row["n"], "since": circuit_row["since"], "most_recent": most_recent}
+        circuit_summary = {
+            "count": circuit_row["n"],
+            "first_season": season_label(circuit_row["first_year"]),
+            "last_season": season_label(circuit_row["last_year"]),
+            "most_recent": most_recent,
+        }
+
+    related = _related_to_show(db, show)
 
     # Same "upcoming" definition as the homepage's Upcoming shows list -
     # only nudge for details on shows that haven't happened yet.
@@ -1416,6 +1507,7 @@ def show_detail(show_id):
         gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
         historical_review=historical_review, award_history=award_history,
         season_ended=season_has_ended(db, show["season"]), circuit_summary=circuit_summary,
+        related=related,
     )
 
 
