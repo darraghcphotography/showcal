@@ -38,8 +38,14 @@
                 <code>{{ show['society_code'] }}</code>
                 {# Hidden field holds the message; base.html's delegated
                    data-copy-target handler reads its .value. #}
+                {#- Reworded 2026-09-02. It used to say the show "shows as a blank
+                    card", which stopped being true the day the playbill shipped -
+                    it now renders the show's own title, typeset. Leading with a
+                    complaint about how their page looks also reads worse than
+                    leading with what they get: their artwork, and a ticket link,
+                    which is the thing that actually sells seats. -#}
                 <input type="hidden" id="invite-msg-{{ show['id'] }}"
-                       value="Hi {{ show['society_name'] }} - your production of {{ show['show'] }} is listed on DC Show Tracker but has no poster yet, so it shows as a blank card. You can upload one (and add a ticket link) here: {{ society_login_url }} - your login code is {{ show['society_code'] }}">
+                       value="Hi {{ show['society_name'] }} - your production of {{ show['show'] }} ({{ show['opening_date']|date_range(show['closing_date']) }}) is up on DC Show Tracker. We don't have your poster, so it's showing a plain typeset playbill - if you'd like your own artwork there instead you can upload it yourself in about a minute: {{ society_login_url }} - your login code is {{ show['society_code'] }}. The same login lets you add a ticket link, which is the bit people actually click.">
                 <button type="button" class="link-button" data-copy-target="invite-msg-{{ show['id'] }}">Copy message</button>
               {% else %}
                 <form method="post" action="{{ url_for('admin.generate_society_code', society_id=show['society_id']) }}" class="inline-form">
