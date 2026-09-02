@@ -52,23 +52,73 @@
         {% if s['section'] == 'Non-AIMS' and (loop.first or societies[loop.index0 - 1]['section'] != 'Non-AIMS') %}
           <p class="grid-note">Non-AIMS societies below - not members, kept here for completeness where they've featured in the awards or review archive.</p>
         {% endif %}
+        {% set act = activity.get(s['id']) %}
+        {% set next_show = next_shows.get(s['id']) %}
         <a class="society-card" href="{{ url_for('public.society_detail', society_id=s['id']) }}">
           <div class="society-card-top">
             {% if s['logo_filename'] %}
               <img class="society-logo" src="{{ url_for('public.uploaded_file', filename=s['logo_filename']) }}" alt="">
             {% else %}
-              <div class="society-logo society-logo-placeholder" aria-hidden="true">{{ s['name'][0]|upper }}</div>
+              {#- The society's own initials, not the first letter of its name.
+                  A single letter carried no information on an alphabetically
+                  sorted list - the first column read A, A, A, B, B, B - whereas
+                  WLOS or TMS is what a committee actually calls itself. -#}
+              <div class="society-logo society-logo-placeholder" aria-hidden="true">{{ s['name']|society_monogram }}</div>
             {% endif %}
             <h3>{{ s['name'] }}</h3>
           </div>
+
+          {#- Activity, not achievement. No award count appears anywhere on this
+              page on purpose (Darragh, 2026-09-02): a directory that ranks
+              volunteer societies by silverware stops being a record of who
+              staged what. What they have put on, and how long they have been
+              putting it on, is the fact worth showing. -#}
+          {% if act %}
+            <div class="society-figures">
+              <div class="figure">
+                <b>{{ act['productions'] }}</b>
+                <span>Production{{ '' if act['productions'] == 1 else 's' }}</span>
+              </div>
+              {% if act['active_since'] %}
+                <div class="figure">
+                  <b>{{ act['active_since'] }}</b>
+                  <span>Active since</span>
+                </div>
+              {% endif %}
+            </div>
+          {% else %}
+            {#- Not a rendering gap: 3 societies are on the AIMS list with no
+                production on record at all, and several more are schools or
+                academies. Naming the absence beats leaving a hole where the
+                figures would be, and matches how the rest of the site handles
+                a real blank ("No date on record"). -#}
+            <p class="society-no-record">No productions on record yet</p>
+          {% endif %}
+
           <div class="stat-line">
-            {{ s['region'] or 'No region' }}
             {% if s['section'] in ('Gilbert', 'Sullivan') %}
-              &middot; <span class="tier-dot tier-dot-{{ s['section']|lower }}"></span> {{ s['section'] }}
+              <span class="tier-dot tier-dot-{{ s['section']|lower }}"></span> {{ s['section'] }} &middot;
             {% else %}
-              &middot; {{ s['section'] }}
+              {{ s['section'] }} &middot;
             {% endif %}
+            {{ s['region'] or 'No region' }}
           </div>
+
+          {% if next_show %}
+            <div class="society-next">
+              {#- Always "Next": the query behind this only returns shows that
+                  have not opened yet, matching the society page's own "coming
+                  up" definition. A run that is on stage tonight is deliberately
+                  not here, so the two pages cannot disagree. -#}
+              <span class="label">Next</span>
+              <span class="show">{{ next_show['show'] }}</span>
+              {% if next_show['opening_date'] %}
+                <span class="when">{{ next_show['opening_date']|date_range(next_show['closing_date']) }}</span>
+              {% else %}
+                <span class="when">{{ next_show['season'] }} season</span>
+              {% endif %}
+            </div>
+          {% endif %}
         </a>
       {% endfor %}
     </div>

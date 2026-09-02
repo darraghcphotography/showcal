@@ -129,6 +129,28 @@ def initials(value):
     return (words[0][0] + words[1][0]).upper()
 
 
+def society_monogram(value):
+    """The letters a society actually calls itself by - "Wexford Light Opera
+    Society" -> WLOS, "Thurles Musical Society" -> TMS.
+
+    Distinct from initials() above, which caps at two characters because it
+    fills a poster box where a longer string would not fit. On the /societies
+    directory the box is small but the point is identity: with 176 of 194
+    societies carrying no logo, the placeholder is the normal case, and two
+    letters shared across dozens of similarly-named societies identify nothing.
+    Capped at four so it stays a monogram rather than an acronym soup - the
+    longest real names run to six or seven significant words.
+    """
+    words = [w for w in re.findall(r"[A-Za-z0-9]+", value or "") if w.lower() not in INITIALS_STOPWORDS]
+    if not words:
+        words = re.findall(r"[A-Za-z0-9]+", value or "")
+    if not words:
+        return "?"
+    if len(words) == 1:
+        return words[0][:2].upper()
+    return "".join(w[0] for w in words[:4]).upper()
+
+
 def maps_search_url(venue):
     """Google's free "Maps URL" text-search scheme - no API key or billing
     account needed (unlike the Maps Embed/Static/Geocoding APIs), and works
@@ -157,6 +179,7 @@ def register(app):
     app.jinja_env.filters["month_label"] = month_label
     app.jinja_env.filters["place_label"] = place_label
     app.jinja_env.filters["initials"] = initials
+    app.jinja_env.filters["society_monogram"] = society_monogram
     app.jinja_env.filters["maps_search_url"] = maps_search_url
     app.jinja_env.filters["maps_directions_url"] = maps_directions_url
     app.jinja_env.filters["destub"] = destub

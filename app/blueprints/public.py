@@ -206,9 +206,13 @@ def societies_list():
     per_page, page, total_pages = paginate_args(total)
     societies = societies[(page - 1) * per_page:page * per_page]
 
+    activity, next_shows = _society_card_facts(db, [s["id"] for s in societies])
+
     return render_template(
         "societies_list.html",
         societies=societies,
+        activity=activity,
+        next_shows=next_shows,
         regions=REGIONS,
         sections=SOCIETY_SECTIONS,
         selected_region=region,
@@ -221,6 +225,75 @@ def societies_list():
         per_page=per_page,
         page_sizes=LIST_PAGE_SIZES,
     )
+
+
+def _society_card_facts(db, society_ids):
+    """What a society's card on /societies shows beyond its name: how many
+    productions are on record, the first year it is on record, and its next
+    announced show.
+
+    TWO queries for the whole page, never one per card. The obvious shape here
+    is a loop calling the same helpers the society detail page uses, and at 50
+    rows a page that is 100 round trips per render - the exact per-row pattern
+    that put a /admin page into a 524 on 2026-08-19. Both queries are also run
+    AFTER pagination, so they only ever cover the rows actually being drawn,
+    not all 143 matches.
+
+    Deliberately no award counts. Darragh's call, 2026-09-02: these are
+    volunteer societies, and a directory that ranks them by silverware becomes
+    a league table rather than a record of who staged what.
+    """
+    if not society_ids:
+        return {}, {}
+
+    marks = ",".join("?" * len(society_ids))
+
+    activity = {
+        row["society_id"]: row
+        for row in db.execute(
+            f"""
+            SELECT society_id,
+                   COUNT(*) AS productions,
+                   MIN(season_start_year) + 1 AS active_since
+            FROM productions
+            WHERE society_id IN ({marks}) AND {ON_RECORD_PRODUCTION}
+            GROUP BY society_id
+            """,
+            society_ids,
+        ).fetchall()
+    }
+
+    # Same definition as the society page's own "coming up" callout: a titled
+    # show with a real future date, or one in a genuinely later season that has
+    # been announced without dates yet. The season half needs current_season
+    # once, not per society, so it costs nothing extra here.
+    current_start_year = season_start_year(current_season(db))
+    rows = db.execute(
+        f"""
+        SELECT society_id, show, season, opening_date, closing_date
+        FROM shows
+        WHERE society_id IN ({marks})
+          AND moderation_status = 'approved'
+          AND show IS NOT NULL
+        ORDER BY opening_date IS NULL, opening_date
+        """,
+        society_ids,
+    ).fetchall()
+
+    today_iso = date.today().isoformat()
+    next_shows = {}
+    for row in rows:
+        if row["society_id"] in next_shows:
+            continue
+        dated_and_future = row["opening_date"] and row["opening_date"] >= today_iso
+        announced_later_season = (
+            not row["opening_date"]
+            and season_start_year(row["season"]) > current_start_year
+        )
+        if dated_and_future or announced_later_season:
+            next_shows[row["society_id"]] = row
+
+    return activity, next_shows
 
 
 SEARCH_RESULT_LIMIT = 12

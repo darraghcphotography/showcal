@@ -2348,14 +2348,29 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
    "Non-AIMS societies" divider that used to be a colspan table row -
    Non-AIMS entries always sort last (societies_list()'s ORDER BY), so the
    note only ever needs to appear once, right before the first one. */
-.society-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+/* Cards are stretched to a common height per row (the grid default) and the
+   footer is pushed to the bottom with margin-top:auto, so a two-line society
+   name doesn't leave its neighbours ragged - the old cards ended wherever
+   their text did, and names run to three lines. */
+.society-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .society-card {
   display: flex; flex-direction: column; gap: 0.7rem;
   border-radius: var(--radius-xl); padding: 1rem 1.1rem;
 }
 .society-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .society-card-top { display: flex; align-items: center; gap: 0.7rem; }
-.society-card h3 { margin: 0; font-size: 1rem; color: var(--accent); line-height: 1.3; }
+/* The whole card is one anchor, so the underline the browser puts on link text
+   was landing on every line inside it - name, region and tier all struck
+   through together, which is what made this page read as a wall of links. The
+   name alone picks the underline back up on hover. */
+.society-card, .society-card:hover { text-decoration: none; }
+.society-card h3 {
+  margin: 0; font-size: 1rem; line-height: 1.3;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-weight: 700; letter-spacing: -0.015em;
+  color: var(--fg);
+}
+.society-card:hover h3 { color: var(--accent); text-decoration: underline; }
 .society-logo {
   flex-shrink: 0; width: 2.6rem; height: 2.6rem; border-radius: var(--radius-md);
   object-fit: contain; background: var(--row-alt); border: 1px solid var(--border);
@@ -2363,14 +2378,50 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
 .society-logo-placeholder {
   display: flex; align-items: center; justify-content: center;
   font-family: "Archivo", system-ui, -apple-system, sans-serif;
-  font-weight: 800; font-size: 1.05rem;
+  font-weight: 800;
+  /* A monogram runs to four characters (BMDS, WLOS), which will not fit the
+     2.6rem square a logo image gets. The tile keeps the logo's height so the
+     row stays aligned, but grows sideways and drops a step in size rather than
+     letting the letters spill past the border. */
+  width: auto; min-width: 2.6rem; padding: 0 0.4rem;
+  font-size: 0.82rem; letter-spacing: 0.01em;
   color: var(--gold);
   background: linear-gradient(135deg,
     color-mix(in srgb, var(--accent) 25%, var(--row-alt)),
     color-mix(in srgb, var(--gold) 15%, var(--row-alt)));
   border: 1px solid color-mix(in srgb, var(--gold) 30%, var(--border));
 }
-.society-card .stat-line { font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+/* What the society has actually done, which is what the card had none of -
+   every one of 143 carried only a name, a region and a tier. Deliberately no
+   award count: see societies_list.html and _society_card_facts(). */
+.society-figures { display: flex; gap: 1.4rem; }
+.society-figures .figure b {
+  display: block;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-weight: 700; font-size: var(--t-lg); line-height: 1;
+  color: var(--fg); font-variant-numeric: tabular-nums;
+}
+.society-figures .figure span {
+  font-size: 0.62rem; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+.society-card .stat-line {
+  font-size: 0.82rem; color: var(--muted);
+  display: flex; align-items: center; gap: 0.4rem;
+  margin-top: auto; padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.society-no-record { margin: 0; font-size: 0.82rem; color: var(--muted); font-style: italic; }
+
+.society-next { font-size: 0.8rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem; }
+.society-next .label {
+  font-size: 0.6rem; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted); flex: none;
+}
+.society-next .show { color: var(--fg); font-weight: 600; }
+.society-next .when { color: var(--gold); font-variant-numeric: tabular-nums; }
 .tier-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; flex-shrink: 0; display: inline-block; }
 /* Same dot, used wherever "Section" (Gilbert/Sullivan) renders as text
    outside a card - table cells, meta lines - see _tier.html. */
