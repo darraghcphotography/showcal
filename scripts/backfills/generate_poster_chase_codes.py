@@ -75,13 +75,15 @@ def _load_word_lists():
         sys.path.insert(0, str(root))
     from app.invite_words import ADJECTIVES, NOUNS
 
-    # CODE_DIGITS moved into invite_words.py in the same commit as this script.
-    # A container running a slightly older deploy will not have it there yet -
-    # a new script always lands before the app change it depends on, because
-    # GitOps ships them in the same push but the running image lags a poll. The
-    # fallback is the value that constant has always had, and the app's own
-    # tests pin the code format, so a drift here would fail loudly rather than
-    # silently minting codes in the wrong shape.
+    # CODE_DIGITS moved into invite_words.py in the same commit as this script,
+    # so a deployed container has both or neither - they cannot arrive apart.
+    # The fallback is for the other way of running this: piping the file
+    # straight into `docker exec -i ... python -` from a working tree that is
+    # ahead of the deploy, which is how it was first run and how it will be run
+    # again whenever something needs doing before GitOps has caught up. The
+    # value is the one that constant has always had, and the app's own tests
+    # pin the code format, so drift would fail loudly rather than silently
+    # minting codes in the wrong shape.
     try:
         from app.invite_words import CODE_DIGITS
     except ImportError:
