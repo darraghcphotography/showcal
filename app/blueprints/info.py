@@ -23,6 +23,38 @@ bp = Blueprint("info", __name__)
 TOP_N = 10
 
 
+def _decade_series(season_rows):
+    """Productions per decade, folded out of the per-season rows the table
+    below already uses. No extra query, and - more to the point - no separate
+    definition of what counts: the chart and the "productions on record" total
+    printed above it are the same numbers summed two ways, so they cannot drift
+    apart the way two hand-rolled queries would.
+
+    productions.season_start_year is a real four-digit year (the table spans
+    1911-2027), so a decade is plain integer division. It is NOT the two-digit
+    season string, and season_start_year() the *function* would be the wrong
+    tool here - its 50-pivot cannot tell 1911/12 from 2011/12. The stored
+    column already resolved that when the table was built.
+
+    The most recent decade is flagged rather than dropped: it is genuinely
+    in progress, and a bar that reads as a collapse when it is really a
+    half-finished decade is the standard way this chart lies.
+    """
+    counts = {}
+    for row in season_rows:
+        decade = (row["start_year"] // 10) * 10
+        counts[decade] = counts.get(decade, 0) + row["productions"]
+    if not counts:
+        return []
+
+    newest = max(counts)
+    return [
+        {"decade": decade, "label": f"{decade}s", "productions": counts[decade],
+         "in_progress": decade == newest}
+        for decade in sorted(counts)
+    ]
+
+
 @bp.route("/stats")
 def stats():
     db = get_db()
@@ -232,6 +264,8 @@ def stats():
     productions_total = sum(row["productions"] for row in season_rows)
     reviewed_total = sum(row["reviewed"] for row in season_rows)
 
+    productions_by_decade = _decade_series(season_rows)
+
     # Three bands, each answering a different question honestly:
     #  - recent: the seasons the live shows catalogue covers, listed plainly.
     #  - earlier: the awards archive proper, listed season by season but
@@ -355,6 +389,7 @@ def stats():
         total_titles=total_titles,
         one_offs=one_offs,
         productions_total=productions_total,
+        productions_by_decade=productions_by_decade,
         reviewed_total=reviewed_total,
         productions_by_season=productions_by_season_recent,
         productions_by_season_earlier=productions_by_season_earlier,

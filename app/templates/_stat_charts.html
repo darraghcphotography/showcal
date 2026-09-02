@@ -1,0 +1,103 @@
+{#- Two charts for /stats. Hand-rolled SVG on purpose: a charting library would
+    need a CDN script and therefore a CSP relaxation (see app/__init__.py), and
+    these are a bar chart and a ranked bar chart - the two forms that cost the
+    least to draw and read the clearest.
+
+    Both are SINGLE-SERIES and SINGLE-HUE. The job here is magnitude, not
+    identity: there is nothing to colour-code, so there is no legend to read and
+    no palette to get wrong. Values are labelled selectively rather than on
+    every bar, and each chart carries a <details> table so the numbers are
+    reachable without seeing colour or shape at all.
+
+    Both are drawn from data the page already computed for the table and the
+    chip strip below them - no extra query, and no second definition of what
+    counts, so a chart can never disagree with the total printed above it. -#}
+
+{% macro decade_bars(rows, total) %}
+  {% if rows %}
+    {% set peak = rows | map(attribute='productions') | max %}
+    {# One round number above the tallest bar, so the axis reads in 4 steps. #}
+    {% set ceiling = ((peak / 250) | round(0, 'ceil') | int) * 250 %}
+    {% set width = 40 + rows|length * 52 %}
+    <figure class="chart">
+      <figcaption>
+        <span class="chart-title">Productions on record, by decade</span>
+        <span class="chart-sub">
+          {{ total }} in total, from the live catalogue and the awards archive together.
+          The {{ rows[-1]['label'] }} bar is a decade still in progress, not a decline.
+        </span>
+      </figcaption>
+
+      <div class="chart-scroll">
+        <svg viewBox="0 0 {{ width }} 210" width="{{ width }}" height="210" role="img"
+             aria-label="Bar chart of productions on record per decade. {% for r in rows %}{{ r['label'] }}: {{ r['productions'] }}{{ '. ' if loop.last else ', ' }}{% endfor %}">
+          {% for tick in [0, (ceiling / 4)|int, (ceiling / 2)|int, (ceiling * 3 / 4)|int, ceiling] %}
+            {% set y = 168 - (tick / ceiling * 150) %}
+            <line x1="40" x2="{{ width - 6 }}" y1="{{ y }}" y2="{{ y }}" class="chart-grid"
+                  {% if tick %}stroke-dasharray="2 4"{% endif %}></line>
+            <text x="34" y="{{ y + 3.5 }}" class="chart-axis" text-anchor="end">{{ tick }}</text>
+          {% endfor %}
+
+          {% for r in rows %}
+            {% set x = 40 + loop.index0 * 52 + 11 %}
+            {% set h = [2, (r['productions'] / ceiling * 150)]|max %}
+            <g class="chart-bar">
+              {#- The in-progress decade is drawn as an outline, not a solid
+                  bar: it is a partial count and should not read as a finished
+                  one sitting lower than its neighbour. -#}
+              <rect x="{{ x }}" y="{{ 168 - h }}" width="30" height="{{ h }}" rx="4"
+                    class="chart-mark{{ ' is-partial' if r['in_progress'] }}"></rect>
+              <title>{{ r['productions'] }} productions · {{ r['label'] }}{{ ' (still in progress)' if r['in_progress'] }}</title>
+            </g>
+            <text x="{{ x + 15 }}" y="190" class="chart-axis" text-anchor="middle">{{ r['label'] }}</text>
+            {#- Only the peak and the unfinished decade carry a number. A value
+                on every bar is noise; these two are the ones a reader needs to
+                not misread the shape. -#}
+            {% if r['productions'] == peak or r['in_progress'] %}
+              <text x="{{ x + 15 }}" y="{{ 168 - h - 6 }}" class="chart-value" text-anchor="middle">{{ r['productions'] }}</text>
+            {% endif %}
+          {% endfor %}
+        </svg>
+      </div>
+
+      <details class="chart-table">
+        <summary>View as a table</summary>
+        <table class="data-table">
+          <thead><tr><th scope="col">Decade</th><th scope="col">Productions on record</th></tr></thead>
+          <tbody>
+            {% for r in rows %}
+              <tr><td>{{ r['label'] }}{{ ' (in progress)' if r['in_progress'] }}</td><td>{{ r['productions'] }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </details>
+    </figure>
+  {% endif %}
+{% endmacro %}
+
+
+{% macro region_bars(rows) %}
+  {% if rows %}
+    {% set peak = rows | map(attribute='n') | max %}
+    <figure class="chart">
+      <figcaption>
+        <span class="chart-title">Shows by region</span>
+        <span class="chart-sub">Productions that have opened, counted where the society is based.</span>
+      </figcaption>
+
+      <div class="region-bars">
+        {% for r in rows %}
+          <div class="region-row">
+            <span class="region-name">{{ r['label'] or 'No region' }}</span>
+            <span class="region-track">
+              <span class="region-fill" style="width: {{ (r['n'] / peak * 100)|round(1) }}%"></span>
+            </span>
+            {#- Every bar labelled here, unlike the decade chart: this is a
+                ranked list of six, where the number IS the content. -#}
+            <span class="region-value">{{ r['n'] }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </figure>
+  {% endif %}
+{% endmacro %}

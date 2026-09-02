@@ -2413,6 +2413,68 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
   border-top: 1px solid var(--border);
 }
 
+/* ---------------------------------------------------------------------------
+   /stats charts (see _stat_charts.html).
+
+   The page carried 2,900-odd productions, 5,000-odd award records and 114
+   years, and not one chart - every figure was a number in a table or a count
+   in a pill. These two are single-series and single-hue on purpose: the job is
+   magnitude, not identity, so there is nothing to colour-code, no legend to
+   read, and no palette that can go wrong for a colourblind reader. Gold is the
+   site's own accent and carries enough contrast on both themes.
+--------------------------------------------------------------------------- */
+.chart { margin: 1.2rem 0 1.8rem; }
+.chart figcaption { display: block; margin-bottom: 0.9rem; }
+.chart .chart-title {
+  display: block;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-weight: 700; font-size: var(--t-lg); letter-spacing: -0.015em;
+}
+.chart .chart-sub {
+  display: block; margin-top: 0.2rem;
+  font-size: var(--t-sm); color: var(--muted); max-width: 62ch;
+}
+/* A wide chart scrolls inside its own box rather than widening the page -
+   the fault this file spent 2026-09-02 fixing everywhere else. */
+.chart-scroll { overflow-x: auto; }
+.chart-scroll svg { display: block; }
+
+.chart-grid { stroke: var(--border); stroke-width: 1; }
+.chart-axis { fill: var(--muted); font-size: 10px; }
+.chart-value { fill: var(--fg); font-size: 10.5px; font-weight: 600; }
+.chart-mark { fill: var(--gold); transition: opacity 120ms ease; }
+/* An unfinished decade is an outline, not a short solid bar - a partial count
+   drawn the same way as a complete one reads as a decline. */
+.chart-mark.is-partial {
+  fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-dasharray: 3 3;
+}
+.chart-bar:hover .chart-mark { opacity: 0.75; }
+
+.region-bars { display: grid; gap: 0.5rem; max-width: 620px; }
+.region-row {
+  display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 3rem;
+  align-items: center; gap: 0.7rem;
+}
+.region-name { font-size: var(--t-sm); color: var(--muted); }
+.region-track {
+  height: 0.95rem; border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--border) 55%, transparent);
+  overflow: hidden;
+}
+.region-fill { display: block; height: 100%; border-radius: var(--radius-sm); background: var(--accent); }
+.region-value {
+  font-size: var(--t-sm); font-weight: 600; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-table { margin-top: 0.7rem; }
+.chart-table summary { font-size: var(--t-sm); }
+.chart-table .data-table { margin-top: 0.6rem; max-width: 420px; }
+
+@media (max-width: 560px) {
+  .region-row { grid-template-columns: 6rem minmax(0, 1fr) 2.6rem; gap: 0.5rem; }
+}
+
 .society-no-record { margin: 0; font-size: 0.82rem; color: var(--muted); font-style: italic; }
 
 .society-next { font-size: 0.8rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem; }

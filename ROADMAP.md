@@ -50,22 +50,28 @@ again.
 > |---|---|---|
 > | 1 | Society page: awards below the fold, header = Productions + Active-since | **SHIPPED** |
 > | 2 | Playbill placeholder + homepage/season card restack | **SHIPPED** |
-> | 3 | Societies index rebuild - **no award number on the card at all** | open |
-> | 4 | /stats charts - **productions** by decade + societies by region | open |
+> | 3 | Societies index rebuild - **no award number on the card at all** | **SHIPPED** |
+> | 4 | /stats charts - productions by decade + shows by region | **SHIPPED** |
 >
-> **Job 3 spec.** Monogram (the society's own initials, e.g. WLOS - not the first letter of an
-> alphabetical sort, which is what the current badge is), name, then Productions / Active-since,
-> tier as a quiet dot, region as muted text, and the next announced show. Counts need carrying into
-> the list query; they already exist for the coverage checklist. **Watch for the N+1** across 143
-> rows - see the `perf-per-row-expensive-ops` memory, this is exactly that shape.
+> **All four are done.** 1020 tests green.
 >
-> **Job 4 spec.** Darragh chose **productions** by decade over award records by decade - same story,
-> about the work rather than the prizes. **The hard part is the data, not the chart:** `productions`
-> stores a two-digit season, so "12" is both 1912 and 2012 and a naive `substr` chart will be
-> wrong. Resolve the century before drawing anything. Second chart is societies by region (Eastern
-> 54, Northern 38, South-West 35, Western 31, South-East 24, Midlands 13). Both single-series and
-> single-hue - magnitude, not identity, so no legend and nothing to colour-code. Hand-rolled SVG,
-> no library, no CSP change.
+> **Job 3, as built.** Two aggregate queries for the whole page, run *after* pagination so they
+> only cover the ~50 rows being drawn. A test renders 40 societies and fails above 30 queries - an
+> absolute ceiling, not a comparison, because a ceiling is what actually protects the page. New
+> `society_monogram` filter (WLOS, TMS); `initials()` stays at two characters for the poster boxes
+> it was written for.
+>
+> **Job 4, and a correction to what this file said.** The warning here that `productions` stores a
+> two-digit season, so a decade chart would confuse 1912 with 2012, was **wrong** - checked against
+> the live database rather than assumed. `productions.season_start_year` is a real four-digit
+> INTEGER spanning 1911-2027; the ambiguity was resolved when the table was built. (The trap is
+> real for `season_start_year()` the *function*, whose 50-pivot cannot tell 1911/12 from 2011/12 -
+> that is what its own docstring warns about, and it is not what this column is.) Left here rather
+> than deleted so a future session does not re-derive the same wrong caution.
+>
+> Neither chart needed a new query: both fold out of rows `stats()` already computed for its season
+> table and its chip strip, so a chart cannot drift from the total printed above it. Hand-rolled
+> SVG, no library, no CSP change.
 >
 > **Deploy policy, agreed same day.** GitOps auto-deploy stays for fixes, data work and internal
 > changes. Anything a visitor or committee member can *see* gets described to Darragh before the

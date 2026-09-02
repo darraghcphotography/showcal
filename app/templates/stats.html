@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_stat_charts.html" as charts %}
 {% block title %}Statistics - DC Show Tracker{% endblock %}
 
 {% macro rank_list(rows, linked=true) %}
@@ -118,18 +119,22 @@
   </div>
 
   <h2>Shows by region &amp; section{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
+  {#- The region split was a row of six chips, which is a ranked comparison
+      rendered as text you have to do the arithmetic on. As bars it reads at a
+      glance and costs no extra query - same by_region rows. The tier chips
+      stay chips: two values is not a chart. -#}
+  {% if not selected_region %}
+    {{ charts.region_bars(by_region) }}
+  {% endif %}
   <div class="chip-strip">
-    {% if not selected_region %}
-      {% for row in by_region %}
-        <div class="chip"><span class="chip-n">{{ row['n'] }}</span><span class="chip-label">{{ row['label'] }}</span></div>
-      {% endfor %}
-    {% endif %}
     {% for row in by_tier %}
       <div class="chip"><span class="chip-n">{{ row['n'] }}</span><span class="chip-label">{{ row['label'] }}</span></div>
     {% else %}
       <p class="meta">No shows on record for {{ selected_region }}.</p>
     {% endfor %}
   </div>
+
+  {{ charts.decade_bars(productions_by_decade, productions_total) }}
 
   <h2>Productions by season{% if selected_region %} ({{ selected_region }}){% endif %}</h2>
   <p class="meta">One row per season, from the live database and the AIMS awards archive together - a
