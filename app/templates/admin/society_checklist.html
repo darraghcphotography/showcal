@@ -1,28 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Society coverage checklist - DC Show Tracker{% endblock %}
 
-{#- A gap that can be filled, or marked as "checked, nothing to get". Both are
-    real answers; only the first changes the society record. -#}
+{#- A gap that can be filled, or marked "checked, nothing to get". Both are real
+    answers; only the first changes the society record.
+
+    Every editable cell is a checkbox inside the one big form, not its own
+    submitting form - see admin.save_society_checklist for why, and for why the
+    hidden `editable` marker matters. A field already on record renders as a
+    plain dot with nothing to toggle. -#}
 {% macro cell(row, field, label) %}
   {% set sid = row['society']['id'] %}
   <td class="c">
     {% if row['present'][field] %}
       <span class="dot ok" title="{{ label }} on record"></span>
-    {% elif field in row['checked'] %}
-      <form method="post" action="{{ url_for('admin.mark_society_field_checked', society_id=sid) }}" class="inline-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="field" value="{{ field }}">
-        <input type="hidden" name="undo" value="1">
-        <input type="hidden" name="next" value="admin.society_checklist">
-        <button type="submit" class="dot checked" title="{{ label }}: checked, nothing to get. Click to undo."></button>
-      </form>
     {% else %}
-      <form method="post" action="{{ url_for('admin.mark_society_field_checked', society_id=sid) }}" class="inline-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="field" value="{{ field }}">
-        <input type="hidden" name="next" value="admin.society_checklist">
-        <button type="submit" class="dot gap" title="{{ label }} missing - click to mark &quot;checked, nothing to get&quot;"></button>
-      </form>
+      <input type="hidden" name="editable" value="{{ sid }}:{{ field }}">
+      <label class="dot-toggle"
+             title="{{ label }} missing. Tick to record &quot;checked, nothing to get&quot;.">
+        <input type="checkbox" name="checked-{{ sid }}-{{ field }}" value="1"
+               {% if field in row['checked'] %}checked{% endif %}>
+        <span class="dot"></span>
+        <span class="sr-only">{{ label }} for {{ row['society']['name'] }}: checked, nothing to get</span>
+      </label>
     {% endif %}
   </td>
 {% endmacro %}
@@ -39,91 +38,184 @@
 
   <div class="site-notice">
     <p><strong>A gap is only a gap until someone looks.</strong> Plenty of societies genuinely have no
-       website, no logo and no founding year on record anywhere. Click a gap to mark it
+       website, no logo and no founding year on record anywhere. Tick a gap to mark it
        <em>checked, nothing to get</em> - it stops counting, and this list can actually be finished
-       rather than permanently looking undone. Click it again to undo.</p>
+       rather than permanently looking undone.</p>
+    <p class="meta">Make as many changes as you like, then <strong>Save</strong> at the bottom. Nothing
+       is written until you do.</p>
     <p class="meta">{{ open_count }} societ{{ 'y' if open_count == 1 else 'ies' }} with something outstanding &middot; {{ total_gaps }} gap{{ '' if total_gaps == 1 else 's' }} in total.</p>
   </div>
 
-  <form method="get" class="filter-form">
+  {#- Filters are a separate GET form and deliberately do NOT auto-submit any
+      more: with a Save button there are now unsaved edits to lose, and a
+      select that submits the moment you touch it would throw them away. -#}
+  <form method="get" class="filter-form" id="checklist-filters">
     <label>Region
-      <select name="region" data-auto-submit>
+      <select name="region">
         <option value="">All regions</option>
         {% for r in regions %}
-          <option value="{{ r }}" {% if r == selected_region %}selected{% endif %}>{{ r }}</option>
+          <option value="{{ r }}" {% if r == selected.get('region') %}selected{% endif %}>{{ r }}</option>
         {% endfor %}
       </select>
     </label>
     <label>Status
-      <select name="status" data-auto-submit>
+      <select name="status">
         <option value="">Any status</option>
         {% for s in statuses %}
-          <option value="{{ s }}" {% if s == selected_status %}selected{% endif %}>{{ s }}</option>
+          <option value="{{ s }}" {% if s == selected.get('status') %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
       </select>
     </label>
+    <label>Tier
+      <select name="section">
+        <option value="">Any tier</option>
+        {% for s in sections %}
+          <option value="{{ s }}" {% if s == selected.get('section') %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Missing
+      <select name="missing">
+        <option value="">Any field</option>
+        {% for f in fields %}
+          <option value="{{ f }}" {% if f == selected.get('missing') %}selected{% endif %}>{{ field_labels[f] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Progress
+      <select name="outstanding">
+        <option value="">All societies</option>
+        <option value="1" {% if selected.get('outstanding') == '1' %}selected{% endif %}>Still outstanding</option>
+        <option value="0" {% if selected.get('outstanding') == '0' %}selected{% endif %}>Fully complete</option>
+      </select>
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="upcoming" value="1" {% if selected.get('upcoming') == '1' %}checked{% endif %}>
+      Has an upcoming show
+    </label>
+    <label>Society name
+      <input type="text" name="q" value="{{ selected.get('q', '') }}" placeholder="Search by name">
+    </label>
     <button type="submit">Filter</button>
-    {% if selected_region or selected_status %}
+    {% if any_filter %}
       <a href="{{ url_for('admin.society_checklist') }}">Clear filters</a>
     {% endif %}
   </form>
 
   {% if rows %}
-    <table class="data-table checklist-grid">
-      <thead>
-        <tr>
-          <th>Society</th><th>Status</th>
-          <th class="num">Shows</th><th class="num">Upcoming</th><th class="num">Posters</th>
-          <th class="c">About</th><th class="c">Venue</th><th class="c">Social</th>
-          <th class="c">Web</th><th class="c">Logo</th><th class="c">Founded</th>
-          <th class="num">Gaps</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-          {% set s = row['society'] %}
+    <form method="post" action="{{ url_for('admin.save_society_checklist') }}" id="checklist-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="admin.society_checklist">
+
+      <table class="data-table checklist-grid">
+        <thead>
           <tr>
-            <td class="nm">
-              <a href="{{ url_for('public.society_detail', society_id=s['id']) }}">{{ s['name'] }}</a>
-              <small>{{ s['region'] }} &middot; {{ s['section'] }}</small>
-            </td>
-            <td>
-              <form method="post" action="{{ url_for('admin.set_society_lifecycle', society_id=s['id']) }}" class="inline-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="next" value="admin.society_checklist">
-                <select name="lifecycle_status" data-auto-submit class="st">
+            <th>Society</th><th>Status</th>
+            <th class="num">Shows</th><th class="num">Upcoming</th><th class="num">Posters</th>
+            {% for f in fields %}<th class="c">{{ field_heads[f] }}</th>{% endfor %}
+            <th class="num">Gaps</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            {% set s = row['society'] %}
+            <tr>
+              <td class="nm">
+                {#- Names which rows were on the page. Without it, saving while
+                    filtered would look like "every society not shown has
+                    nothing ticked". -#}
+                <input type="hidden" name="rows" value="{{ s['id'] }}">
+                <a href="{{ url_for('public.society_detail', society_id=s['id']) }}">{{ s['name'] }}</a>
+                <small>{{ s['region'] }} &middot; {{ s['section'] }}</small>
+              </td>
+              <td>
+                <select name="status-{{ s['id'] }}" class="st">
                   <option value="" {% if not s['lifecycle_status'] %}selected{% endif %}>&mdash;</option>
                   {% for st in statuses %}
                     <option value="{{ st }}" {% if s['lifecycle_status'] == st %}selected{% endif %}>{{ st }}</option>
                   {% endfor %}
                 </select>
-              </form>
-            </td>
-            <td class="num">{{ row['shows'] }}</td>
-            <td class="num">{{ row['upcoming'] }}</td>
-            <td class="num">
-              {# Posters against upcoming shows, since that is what the homepage renders. #}
-              {% if row['upcoming'] %}
-                <span class="pill {{ 'good' if row['upcoming_posters'] == row['upcoming'] else 'dim' }}">{{ row['upcoming_posters'] }}/{{ row['upcoming'] }}</span>
-              {% else %}
-                <span class="meta">&mdash;</span>
-              {% endif %}
-            </td>
-            {{ cell(row, 'about', 'About') }}
-            {{ cell(row, 'venue', 'Default venue') }}
-            {{ cell(row, 'social', 'Social link') }}
-            {{ cell(row, 'web', 'Website') }}
-            {{ cell(row, 'logo', 'Logo') }}
-            {{ cell(row, 'founded', 'Founded year') }}
-            <td class="num">
-              {% if row['gap_count'] %}<strong>{{ row['gap_count'] }}</strong>{% else %}<span class="meta">0</span>{% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+              </td>
+              <td class="num">{{ row['shows'] }}</td>
+              <td class="num">{{ row['upcoming'] }}</td>
+              <td class="num">
+                {# Posters against upcoming shows, since that is what the homepage renders. #}
+                {% if row['upcoming'] %}
+                  <span class="pill {{ 'good' if row['upcoming_posters'] == row['upcoming'] else 'dim' }}">{{ row['upcoming_posters'] }}/{{ row['upcoming'] }}</span>
+                {% else %}
+                  <span class="meta">&mdash;</span>
+                {% endif %}
+              </td>
+              {{ cell(row, 'about', 'About') }}
+              {{ cell(row, 'venue', 'Default venue') }}
+              {{ cell(row, 'social', 'Social link') }}
+              {{ cell(row, 'web', 'Website') }}
+              {{ cell(row, 'logo', 'Logo') }}
+              {{ cell(row, 'founded', 'Founded year') }}
+              <td class="num">
+                {% if row['gap_count'] %}<strong>{{ row['gap_count'] }}</strong>{% else %}<span class="meta">0</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {#- Sticky so it is reachable from anywhere in a 195-row grid without
+          scrolling to the bottom to find out whether anything is pending. -#}
+      <div class="save-bar" id="checklist-save-bar">
+        <span class="save-count" data-pending-label>No unsaved changes</span>
+        <button type="submit">Save changes</button>
+      </div>
+    </form>
   {% else %}
     <p>No societies match those filters.
       <a href="{{ url_for('admin.society_checklist') }}">Clear filters</a></p>
   {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script nonce="{{ csp_nonce }}">
+    (function() {
+      var form = document.getElementById('checklist-form');
+      if (!form) return;
+
+      var label = form.querySelector('[data-pending-label]');
+      var bar = document.getElementById('checklist-save-bar');
+      var fields = form.querySelectorAll('select[name^="status-"], input[type="checkbox"]');
+      var initial = new Map();
+      fields.forEach(function(el) {
+        initial.set(el, el.type === 'checkbox' ? el.checked : el.value);
+      });
+
+      function pending() {
+        var n = 0;
+        initial.forEach(function(was, el) {
+          var now = el.type === 'checkbox' ? el.checked : el.value;
+          var changed = now !== was;
+          el.closest('td').classList.toggle('is-dirty', changed);
+          if (changed) n++;
+        });
+        return n;
+      }
+
+      function render() {
+        var n = pending();
+        label.textContent = n ? (n + ' unsaved change' + (n === 1 ? '' : 's')) : 'No unsaved changes';
+        bar.classList.toggle('has-changes', n > 0);
+        return n;
+      }
+
+      form.addEventListener('change', render);
+
+      // Leaving with edits pending loses them silently otherwise - and the
+      // filter form on this page is a normal link away.
+      window.addEventListener('beforeunload', function(e) {
+        if (form.dataset.saving === '1') return;
+        if (render() > 0) { e.preventDefault(); e.returnValue = ''; }
+      });
+      form.addEventListener('submit', function() { form.dataset.saving = '1'; });
+
+      render();
+    })();
+  </script>
 {% endblock %}

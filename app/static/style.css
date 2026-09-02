@@ -1462,6 +1462,43 @@ details table { margin-top: 0.5rem; }
 .checklist-grid td.num, .checklist-grid th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .checklist-grid td.nm small { display: block; color: var(--muted); font-size: var(--t-xs); }
 .checklist-grid .st { font-size: var(--t-xs); padding: 0.1rem 0.2rem; }
+/* The gap dots are checkboxes now, not submit buttons - the whole grid saves
+   in one go (see admin.save_society_checklist). The real input is hidden and
+   the dot draws its state, so the hit target is the label and keyboard focus
+   still lands somewhere visible. */
+.dot-toggle { display: inline-flex; cursor: pointer; padding: 0.2rem; }
+.dot-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.dot-toggle .dot { background: none; border-style: dashed; border-color: var(--warning); }
+.dot-toggle input:checked + .dot {
+  /* Deliberately quiet, not another "done" green - it means "asked and
+     answered", which is different from "we have it". */
+  background: var(--border); border-color: var(--border); border-style: solid;
+}
+.dot-toggle input:focus-visible + .dot { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dot-toggle:hover .dot { border-color: var(--accent); }
+
+/* An edit that has not been saved yet, so the Save button is not the only
+   thing telling you something is pending. */
+.checklist-grid td.is-dirty { background: color-mix(in srgb, var(--gold) 14%, transparent); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Sticky, because the grid runs to ~195 rows and "have I got unsaved changes"
+   should not require scrolling to the bottom to find out. */
+.save-bar {
+  position: sticky; bottom: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: flex-end; gap: 1rem;
+  padding: 0.7rem 1rem; margin-top: 0.5rem;
+  background: var(--bg); border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 18px color-mix(in srgb, var(--bg) 80%, transparent);
+}
+.save-bar .save-count { color: var(--muted); font-size: var(--t-sm); }
+.save-bar.has-changes { border-top-color: var(--gold); }
+.save-bar.has-changes .save-count { color: var(--gold); font-weight: 600; }
+
 .checklist-grid .inline-form { display: inline; margin: 0; }
 
 .dot {

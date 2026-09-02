@@ -517,75 +517,187 @@ def _society_coverage(db):
     return rows
 
 
-@bp.route("/society-checklist")
-@login_required
-def society_checklist():
-    db = get_db()
-    rows = _society_coverage(db)
-    region = request.args.get("region", "")
-    status = request.args.get("status", "")
+# Human labels for the filter dropdown, so it reads "Founding year" rather
+# than "founded". Keys match CHECKLIST_FIELDS.
+CHECKLIST_FIELD_LABELS = {
+    "about": "About text", "venue": "Default venue", "social": "Social link",
+    "web": "Website", "logo": "Logo", "founded": "Founding year",
+}
+
+# Column headings. Deliberately not derived from the labels above - the first
+# word of "Default venue" is "Default", which reads as nothing at all.
+CHECKLIST_FIELD_HEADS = {
+    "about": "About", "venue": "Venue", "social": "Social",
+    "web": "Web", "logo": "Logo", "founded": "Founded",
+}
+
+
+def _filter_checklist(rows, args):
+    """Narrow the grid. Every filter here exists to let a moderator work one
+    kind of gap at a time - the way this job is actually done is "let me fill
+    in founding years for an hour", not "let me fix one society completely".
+    """
+    region = args.get("region", "")
+    status = args.get("status", "")
+    section = args.get("section", "")
+    missing = args.get("missing", "")
+    outstanding = args.get("outstanding", "")
+    upcoming = args.get("upcoming", "")
+    q = args.get("q", "").strip()
+
     if region in REGIONS:
         rows = [r for r in rows if r["society"]["region"] == region]
     if status:
         rows = [r for r in rows if (r["society"]["lifecycle_status"] or "Unverified") == status]
+    if section in SOCIETY_SECTIONS:
+        rows = [r for r in rows if r["society"]["section"] == section]
+    if missing in CHECKLIST_FIELDS:
+        # Still an open gap on that field specifically - not merely absent,
+        # since "checked, nothing to get" is an answer.
+        rows = [r for r in rows if missing in r["gaps"]]
+    if outstanding == "1":
+        rows = [r for r in rows if r["gap_count"] and _is_chaseable(r)]
+    elif outstanding == "0":
+        rows = [r for r in rows if not r["gap_count"]]
+    if upcoming == "1":
+        rows = [r for r in rows if r["upcoming"]]
+    if q:
+        needle = q.lower()
+        rows = [r for r in rows if needle in r["society"]["name"].lower()]
+    return rows
+
+
+@bp.route("/society-checklist")
+@login_required
+def society_checklist():
+    db = get_db()
+    rows = _filter_checklist(_society_coverage(db), request.args)
 
     open_rows = [r for r in rows if r["gap_count"] and _is_chaseable(r)]
     return render_template(
         "admin/society_checklist.html",
         rows=rows,
         fields=CHECKLIST_FIELDS,
+        field_labels=CHECKLIST_FIELD_LABELS,
+        field_heads=CHECKLIST_FIELD_HEADS,
         statuses=LIFECYCLE_STATUSES,
         regions=REGIONS,
-        selected_region=region,
-        selected_status=status,
+        sections=SOCIETY_SECTIONS,
+        selected=request.args,
+        any_filter=any(request.args.get(k) for k in
+                       ("region", "status", "section", "missing", "outstanding", "upcoming", "q")),
         open_count=len(open_rows),
         total_gaps=sum(r["gap_count"] for r in open_rows),
     )
 
 
-@bp.route("/society-checklist/<int:society_id>/status", methods=("POST",))
+@bp.route("/society-checklist/save", methods=("POST",))
 @login_required
-def set_society_lifecycle(society_id):
-    db = get_db()
-    status = request.form.get("lifecycle_status", "").strip()
-    if status and status not in LIFECYCLE_STATUSES:
-        abort(400)
-    if db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone() is None:
-        abort(404)
-    db.execute(
-        "UPDATE societies SET lifecycle_status = ? WHERE id = ?",
-        (status or None, society_id),
-    )
-    db.commit()
-    return redirect(back_to(url_for("admin.society_checklist")))
+def save_society_checklist():
+    """Apply every change made on the grid in one go.
 
+    This replaced a form per cell - a select that submitted on change, and a
+    button per gap dot - each of which round-tripped and re-rendered all 195
+    rows. Working down a column meant a full page load per click, and the grid
+    re-sorts as gaps close, so the row you were about to click had moved by the
+    time the page came back. Darragh, 2026-09-02: make several changes and save
+    at the end.
 
-@bp.route("/society-checklist/<int:society_id>/checked", methods=("POST",))
-@login_required
-def mark_society_field_checked(society_id):
-    """Record "I looked, there is nothing to get" for one field - or undo it.
-
-    Without this the grid can only ever be filled in, never finished: a
-    society with no website will show a gap under Web forever, and a list
-    that always looks unfinished stops getting used.
+    Only the rows and cells the page actually rendered are reconciled. That is
+    what `rows` and `editable` carry, and it is the whole correctness question
+    here: an unchecked checkbox is indistinguishable from one that was never on
+    the page, so without them, saving while filtered to one region would clear
+    every "checked, nothing to get" on every society not shown.
     """
     db = get_db()
-    field = request.form.get("field", "")
-    if field not in CHECKLIST_FIELDS:
-        abort(400)
-    if db.execute("SELECT id FROM societies WHERE id = ?", (society_id,)).fetchone() is None:
+    user = current_user()
+    username = user["username"] if user else None
+
+    rendered_ids = set()
+    for raw in request.form.getlist("rows"):
+        try:
+            rendered_ids.add(int(raw))
+        except ValueError:
+            abort(400)
+
+    if not rendered_ids:
+        flash("Nothing to save.", "warning")
+        return redirect(back_to(url_for("admin.society_checklist")))
+
+    known = {
+        r["id"]: r["lifecycle_status"]
+        for r in db.execute(
+            "SELECT id, lifecycle_status FROM societies WHERE id IN "
+            f"({','.join('?' * len(rendered_ids))})",
+            tuple(rendered_ids),
+        )
+    }
+    if set(known) != rendered_ids:
         abort(404)
 
-    if request.form.get("undo"):
+    # --- lifecycle status -------------------------------------------------
+    status_changes = 0
+    for society_id in rendered_ids:
+        submitted = request.form.get(f"status-{society_id}", "").strip()
+        if submitted and submitted not in LIFECYCLE_STATUSES:
+            abort(400)
+        if (submitted or None) != known[society_id]:
+            db.execute(
+                "UPDATE societies SET lifecycle_status = ? WHERE id = ?",
+                (submitted or None, society_id),
+            )
+            status_changes += 1
+
+    # --- "checked, nothing to get" ---------------------------------------
+    # `editable` is one "<id>:<field>" per gap cell that was rendered. A cell
+    # for a field already on record is not editable and never appears here, so
+    # its state cannot be disturbed.
+    editable = set()
+    for raw in request.form.getlist("editable"):
+        society_raw, _, field = raw.partition(":")
+        if field not in CHECKLIST_FIELDS:
+            abort(400)
+        try:
+            society_id = int(society_raw)
+        except ValueError:
+            abort(400)
+        if society_id not in rendered_ids:
+            abort(400)
+        editable.add((society_id, field))
+
+    already = {
+        (r["society_id"], r["field"])
+        for r in db.execute("SELECT society_id, field FROM society_field_checked")
+    }
+    wanted = {
+        pair for pair in editable
+        if request.form.get(f"checked-{pair[0]}-{pair[1]}")
+    }
+
+    to_add = wanted - already
+    to_remove = (editable & already) - wanted
+
+    for society_id, field in to_add:
+        db.execute(
+            "INSERT OR IGNORE INTO society_field_checked (society_id, field, checked_by) "
+            "VALUES (?, ?, ?)",
+            (society_id, field, username),
+        )
+    for society_id, field in to_remove:
         db.execute(
             "DELETE FROM society_field_checked WHERE society_id = ? AND field = ?",
             (society_id, field),
         )
-    else:
-        user = current_user()
-        db.execute(
-            "INSERT OR IGNORE INTO society_field_checked (society_id, field, checked_by) VALUES (?, ?, ?)",
-            (society_id, field, user["username"] if user else None),
-        )
+
     db.commit()
+
+    parts = []
+    if status_changes:
+        parts.append(f"{status_changes} status{'' if status_changes == 1 else 'es'} updated")
+    if to_add:
+        parts.append(f"{len(to_add)} marked checked")
+    if to_remove:
+        parts.append(f"{len(to_remove)} unmarked")
+    flash(", ".join(parts).capitalize() + "." if parts else "No changes to save.",
+          "success" if parts else "warning")
     return redirect(back_to(url_for("admin.society_checklist")))
