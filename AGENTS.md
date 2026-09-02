@@ -130,6 +130,13 @@ copy you pull down, and don't assume a path is live because it looks right.
 **Local `aims.db` is not production.** It is a dev copy and drifts. Any number you are going to
 state as fact — a count, a gap, an audit finding — comes from the live database.
 
+**Some bugs are only visible in a browser.** Playwright is installed here (1.62.0, **Chromium
+only** - `--device="iPhone 13"` fails because it defaults to WebKit; use `--browser chromium` with
+device emulation). Two things this session found that no server-side test could: four layout faults
+that made the site scroll sideways on a phone, caught by comparing `document.scrollWidth` to the
+viewport across 18 routes at 320/390px; and a CSP violation that silently blocked an image preview.
+Both were invisible in screenshots and in pytest.
+
 **`--db /data/aims.db` is not optional in the container.** Every management script defaults to
 a bare `aims.db` relative to `/app`. Omit the flag and the script silently creates a fresh
 empty database inside the container's writable layer, does its work against *that*, and reports
@@ -349,6 +356,12 @@ Every figure here was counted against the **live** database on that date, not ca
   no expiry at all - that is the open never-expiring-codes finding, and it would have gone from 17
   to 32 if this script had copied the button's behaviour. **Do not "fix" the new codes to match the
   old ones.** If you mint society codes, give them an expiry.
+- **Paste-to-upload is live** (`b36d39a`) on both show forms, both logo forms and the new-show form:
+  copy an image, press Ctrl+V on the page, it attaches with a preview. See
+  `app/templates/_paste_upload.html` for why it is single-file only and has no drag-and-drop.
+  **Do not replace the preview's `data:` URL with `URL.createObjectURL`** - the CSP is
+  `img-src 'self' data:` and does not allow `blob:`, so an object URL is a broken image plus a
+  console violation. It looks like a simplification and is a regression.
 - **174 of 195 societies have no logo**, and that *is* a genuine year-round gap - a logo has no
   seasonal timing, so the poster reasoning above does not apply to it.
 - **Open queues are empty**: 0 undecided society links, 0 pending photo submissions. The one
