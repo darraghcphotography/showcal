@@ -158,13 +158,31 @@ shell there:
    When a session fully resolves an open item, move its entry out of `ROADMAP.md` rather than
    letting resolved items accumulate there again.
 
-5. **Someone else may have been driving.** `AGENTS.md` is the handover written for Gemini
-   Antigravity (2026-08-29, while Darragh's Claude usage was reset), and `HANDBACK.md` is the
-   append-only log of what happened during any such stint - commits, what was verified against
-   production, what was written to the live database, and what was left for Darragh. **Read
-   `HANDBACK.md` after `ROADMAP.md`** whenever you are picking up cold; it covers the gap that
-   chat history doesn't survive. `AGENTS.md` deliberately does not restate this file - if a rule
-   here changes, it stays here, and `AGENTS.md` keeps pointing at it.
+5. **Someone else may have been driving.** `AGENTS.md` is the standing handover for Gemini
+   Antigravity (first written 2026-08-29, for the periods when Darragh's Claude usage is reset),
+   and `HANDBACK.md` is the append-only log of what happened during any such stint - commits,
+   what was verified against production, what was written to the live database, and what was
+   left for Darragh. **Read `HANDBACK.md` after `ROADMAP.md`** whenever you are picking up cold;
+   it covers the gap that chat history doesn't survive. `AGENTS.md` deliberately does not
+   restate this file - if a rule here changes, it stays here, and `AGENTS.md` keeps pointing
+   at it.
+
+6. **Wrapping up a session means updating three files, not one.** Darragh's standing request
+   (2026-09-02): every wrap-up must leave the repo pickup-ready **both for the next Claude
+   session and for Antigravity**, because a usage reset can land at any point and whoever
+   arrives next should not have to reconstruct anything.
+
+   | File | Reader | What goes in it |
+   |---|---|---|
+   | `ROADMAP.md` | next Claude session | Current phase, what is genuinely open, and **what was checked and found fine** so nobody re-derives it. Move resolved items to `ROADMAP_ARCHIVE.md`. |
+   | `HANDBACK.md` | Darragh, and whoever picks up | Append one entry: commits, what was verified against production, **what was written to the live database**, what needs Darragh, and what to flag to the next agent. |
+   | `AGENTS.md` | Antigravity | Refresh the **Current state** block at the bottom, the test count in §3, and §10's work list. Cross out what shipped rather than deleting it, so a stale claim can't be silently re-derived. |
+
+   **Every number in `AGENTS.md`'s current-state block is counted against the live database at
+   wrap-up, never carried forward.** This is not pedantry: on 2026-09-01 two errors in that file
+   were identified and the correction was written into `ROADMAP.md` only - `AGENTS.md` kept
+   telling Antigravity that a fixed security finding was unfixed, and quoted an award-row figure
+   that had never been real. Fixing the tracking doc is not fixing the handover.
 
 ## Things worth knowing before editing
 

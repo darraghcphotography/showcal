@@ -1,9 +1,14 @@
 # Handoff — running this project while Claude is unavailable
 
-**Written 2026-08-29 by Claude (Opus 5), for Gemini Antigravity, at Darragh's request.**
-Darragh's Claude usage resets on **Friday 5 September 2026**. Until then you are the one
-driving this repo, the live site, and git — not a research delegate handing outputs back, which
-is the role you have had here before.
+**Written 2026-08-29 by Claude (Opus 5), for Gemini Antigravity, at Darragh's request.
+Kept current at the end of every Claude session — see "Current state" at the bottom for the
+date it was last refreshed.**
+
+This is a **standing** handover, not a one-week note. Darragh's Claude usage resets
+periodically, and whenever it does you are the one driving this repo, the live site, and git —
+not a research delegate handing outputs back, which is the role you have had here before. If the
+"Current state" date at the bottom is more than a few days old, trust `ROADMAP.md`'s START HERE
+block and `HANDBACK.md`'s last entry over this file's specifics.
 
 This file is the handover. It does **not** restate `CLAUDE.md`; that file is accurate and
 current, and two copies of the same instructions drift apart within a week.
@@ -59,7 +64,14 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **945 tests pass as of `d0b591e`.**
+Before any push to `main`: `py -m pytest` must be green. **1034 tests pass as of `0a8c8ae`**
+(2026-09-02).
+
+**One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
+replacing it: anything a visitor or committee member can *see* gets **described to him before
+the push**, even when the table says it could go straight to `main`. Fixes, data work, tests and
+docs still flow. He wants the last look on visible change, and it has already caught a real
+deviation — a button built in the wrong colour against an approved mockup.
 
 ## 4. Production access, and the one hard rule
 
@@ -192,9 +204,16 @@ Also, so `git log` alone answers "who did this":
   public `/suggestions` Roadmap page on the next deploy — no command needed. One line per
   bullet, blocks separated by `---`, newest at the top. Internal/moderator-only changes do
   **not** get an entry.
-- **Verify before you claim.** Twice this session a `ROADMAP.md` statement turned out to be
-  wrong when checked against the live database (the logo import "had never been run" — it had,
-  and 10 candidates were already approved). Check code and data, not the tracking doc.
+- **Verify before you claim, and check the check.** Repeatedly now, a statement in `ROADMAP.md`
+  or in *this file* has turned out to be wrong when tested against the live database — the logo
+  import "had never been run" (it had), the rate-limiting finding "still unfixed" (it was fixed),
+  "529 award rows" (a number that never existed). Check code and data, not the tracking doc.
+
+  And check your own query before you believe its answer. On 2026-09-02 two audit checks were
+  wrong before the code was: one compared seasons as strings, where `'99/00'` beats `'18/19'`;
+  two tests used year 2098 as "the future" and the productions rebuild resolved `98/99` back to
+  **1998** through `season_start_year()`'s 50-pivot, so a test passed on a false premise. A
+  finding you have not sanity-checked is a guess with a number attached.
 - **Adding a column** to an existing table needs an entry in `app/db.py`'s `COLUMN_MIGRATIONS`;
   `CREATE TABLE IF NOT EXISTS` never adds a column to a table that already exists. Changing a
   `CHECK` constraint needs a table rebuild — `_migrate_photo_submission_kinds` and
@@ -228,11 +247,13 @@ pre-Christmas shows.
    `main` is a live-site risk, not just an untidy badge. This outranks everything below.
 
 2. **Data and outreach support** — high value, small blast radius:
-   - `/admin/historical-society-links` — **64 printed names** awaiting a decision, releasing
-     **529 award rows** that are missing for no other reason. Roughly ten minutes of clicking,
-     and the single best value-per-effort item on the board.
-   - `/admin/photo-submissions` — **3 unread**, from 28 August (Carnew ×2, St. Mary's Choral
-     Society Clonmel). Real society history waiting to be transcribed by hand.
+   - ~~`/admin/historical-society-links` — 64 printed names releasing 529 award rows~~
+     **Both wrong, and both cleared.** The queue is at **0 undecided** (checked against the live
+     database 2026-09-02); it emptied largely via `no_match` decisions, which is the correct
+     outcome — the module's own docstring predicted only ~9 of 69 would ever link, and 8 did.
+     **The "529 award rows" figure was never real.** It sat in this file and in `ROADMAP.md` for
+     a week and neither was checked. Do not resurrect it.
+   - ~~`/admin/photo-submissions` — 3 unread~~ **Cleared, 0 pending** (verified 2026-09-02).
    - **13 lifecycle judgement calls to sanity-check** (see `ROADMAP.md`, 2026-08-29). The 10
      marked `Closed` and the 3 marked `Unverified` — Armagh Creative Theatre Group, KATS, Seven
      Woods Productions. Several rows classed from production history (Belfast School of
@@ -246,12 +267,16 @@ pre-Christmas shows.
    about Darragh's hardware and accounts. **Investigate and propose options with trade-offs;
    do not pick one.** `backup_db.py` and `verify_backup.py` already exist — read them first.
 
-4. **The rate-limiting finding** — `docs/SECURITY_AND_ARCHITECTURE_OBSERVATIONS.md` §1, still
-   unfixed. `ProxyFix` is configured `x_proto=1` with no `x_for`, so behind the Cloudflare
-   Tunnel every visitor shares one rate-limit bucket and ten failed logins can 429 real users.
-   **The naive fix is dangerous**: trusting more forwarded hops than actually exist lets a
-   client spoof its own IP and evade the limits entirely. The hop count must match the real
-   tunnel path, verified, not assumed. **Branch, not `main`.**
+4. ~~**The rate-limiting finding** — still unfixed.~~ **This was wrong when it was written and
+   it is still wrong. It was already fixed.** `app/rate_limit.py` keys on Cloudflare's own
+   `CF-Connecting-IP` header, which their edge sets and a client cannot forge, precisely so that
+   `ProxyFix(x_proto=1)` never has to be widened to trust forged `X-Forwarded-For` hops. Claude
+   wrote this item by grepping for `ProxyFix` without opening `rate_limit.py`, noticed the error
+   on 2026-09-01, recorded the correction in `ROADMAP.md` — **and never applied it here**, so it
+   sat wrong for another day. Left visible rather than deleted, because the failure mode it
+   demonstrates (fixing the tracking doc and not the handover) is worth more than the item was.
+
+   Still genuinely open in that same document: **off-box backup** — see item 3.
 
 5. **Costumes / props / sets listings, per show.** The only backlog item with a written,
    attributable request from a real member (`feature_suggestions` row 4, triaged *Planned* by
@@ -259,16 +284,25 @@ pre-Christmas shows.
    model, new admin UI, a matching concept — so it wants its own scoping pass and a written
    proposal before any code.
 
-6. **The two design items**, both of which need Darragh's eye:
-   - Stat tiles on society pages. `/venues/<slug>` uses the clearest summary pattern on the
-     site and is the only page that does; society pages carry the same information as beige tag
-     pills, which scan far worse. The coverage checklist already computes the numbers.
-   - Society logo placeholders. With 176 of 194 societies missing a logo, the flat initials box
-     is the *normal* case, and it sits directly above a colourful poster wall on the societies
-     that have one.
+6. ~~**The two design items**~~ — **both shipped 2026-09-02**, along with a full design pass.
+   Society pages now lead with stat tiles; the missing-poster placeholder is a typeset playbill
+   rather than an initials box; the societies index, the homepage cards and `/stats` were all
+   rebuilt. See `ROADMAP.md`.
 
-   **Build a mockup first and show it to him.** The last design item of this kind went far
-   better as a mockup than as a direct edit, and that is recorded as a working agreement.
+   **Two working agreements came out of that, and they outrank any mockup:**
+
+   - **Award counts are never a headline number.** Darragh's steer: *"this is an amateur
+     organisation, the awards are secondary not something that they should be flaunting
+     openly."* No award figure appears on `/societies` at all and a test asserts that absence; a
+     society's own page leads with productions and years active, with awards in their own
+     section further down. When a design surfaces a count, ask whether it describes **activity**
+     (productions, years, next show) or **ranking** (wins, placings). Activity can lead; ranking
+     goes lower, never gold, never in a grid comparing societies.
+   - **Build a mockup first and show it to him** — still true, and with one caveat learned the
+     hard way: a component drawn standalone will not show you what it does beside its
+     neighbours. The first playbill carried title, society and dates, which read perfectly in
+     isolation and badly in place, because the card body repeats two of the three directly
+     below it.
 
 Explicitly **not** worth a session, per the roadmap's own argument: re-matching the 52 unmatched
 ShowTimes reviews (only about 3 will clear), and splitting `public.py` (~1,930 lines — a
@@ -276,18 +310,39 @@ judgement call, not a defect; do not let it jump the queue).
 
 ---
 
-## Current state, 2026-08-29
+## Current state, 2026-09-02
 
-- **HEAD `d0b591e`**, deployed and verified live. **945 tests green.**
-- Shipped today: `SECRET_KEY` fail-fast; photo submissions split into four kinds; show edits
-  return you to the page you came from; lifecycle status guessed for all 194 societies; person
-  identity resolution (internal only).
-- **54 of 67 upcoming productions have no poster; 176 of 194 societies have no logo.** Darragh
-  is working the poster list by hand. Only 5 of those 54 societies have an active login code —
-  generating one is the first step of any outreach, and `/admin/missing-posters` does it inline.
-- Open queues right now: 64 society-link decisions, 3 photo submissions, 1 logo candidate
-  (Rathmines & Rathgar — an SVG the image fetcher cannot decode; it needs a PNG or JPG address,
-  not another import run), 1 feature suggestion.
+Every figure here was counted against the **live** database on that date, not carried forward.
+
+- **HEAD `0a8c8ae`**, deployed and verified live by md5 against the Stack 8 checkout.
+  **1034 tests green.**
+- **`main` had been red since 2026-09-02 before that session noticed** — a test hardcoded two
+  September 2026 dates and the earlier one silently became the past. The previous handback entry
+  claiming 985 green was 984. CI does not gate the deploy, so check it rather than trusting a
+  count you were handed.
+- Shipped 2026-09-01/02, in three groups:
+  - **Security:** magic-link tokens hashed at rest (a copy of `aims.db` no longer yields working
+    society logins); `/society/request-access` given an email check and a honeypot;
+    `notify.send` now reports failure so a lost approval email is visible; exchange contact
+    details restricted to signed-in societies.
+  - **Layout:** four measured faults — the site scrolled sideways on a phone. Found by comparing
+    `document.scrollWidth` to the viewport across 18 routes at 320/390px, not by eye; three of
+    the four are invisible in a screenshot.
+  - **Design and correctness:** the playbill placeholder, homepage card hierarchy, societies
+    index rebuild, first two charts on `/stats`, and four wrong figures (see `ROADMAP.md`'s
+    audit block).
+- **54 of 68 upcoming productions have no poster; 174 of 195 societies have no logo.** This is
+  unchanged in substance and is **still the highest-value thing available, and still not code.**
+  `/admin/missing-posters` will generate a society login code inline, which is the first step of
+  any outreach.
+- **Open queues are empty**: 0 undecided society links, 0 pending photo submissions. The one
+  remaining logo candidate is Rathmines & Rathgar — an SVG the image fetcher cannot decode; it
+  needs a PNG or JPG address, not another import run.
+- **Still open from the security audit:** 17 of 21 active invite codes never expire. Retiring
+  them means moving those societies onto magic links, which is outreach rather than code.
+- **One design question raised and not decided:** `/titles` puts a gold trophy and a nomination
+  count on every one of 316 rows — the same comparison-grid shape Darragh rejected for
+  societies. It is per title rather than per society, so it may be a different thing. His call.
 
 Anything unclear, or any judgement that is really Darragh's: ask him rather than guessing. He is
 the product owner, not a developer, so explain trade-offs in plain terms and make the technical

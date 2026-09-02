@@ -330,3 +330,19 @@ title, and counted as a real staging. Darragh's call. Productions on record 2942
 - **A component drawn standalone will not show you what it does beside its neighbours.** The first
   playbill carried title, society and dates — correct in the mockup, wrong in place, because the
   card body repeats two of the three directly below it.
+
+**Wrap-up convention changed, 2026-09-02.** Darragh's standing request: every session wrap-up now
+updates **three** files, not two — `ROADMAP.md` (next Claude session), this log, and **`AGENTS.md`**
+(Antigravity), so a usage reset landing at any point finds a current handover rather than a stale
+one. Written into `CLAUDE.md` rule 6 so it survives a `/clear`.
+
+Applied here for the first time, and it immediately paid for itself: `AGENTS.md` was still telling
+Antigravity that the rate-limiting finding was unfixed (it has been fixed since before 2026-09-01 —
+`app/rate_limit.py` keys on `CF-Connecting-IP`) and still quoting "529 award rows" from the
+society-links queue, a figure that was never real. **Both errors were identified on 2026-09-01 and
+the correction was written into `ROADMAP.md` only.** Fixing the tracking doc is not fixing the
+handover.
+
+Also corrected there against the live database rather than carried forward: society-link and photo
+queues are **0**, posters missing is **54 of 68**, societies without a logo is **174 of 195** (this
+log and ROADMAP had been repeating 55 and 176/194).
