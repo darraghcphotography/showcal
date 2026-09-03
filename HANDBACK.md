@@ -477,3 +477,61 @@ was wrong before the code was.
 - **Responsive verification:** Verified with Playwright on Chromium at 320px and 390px viewports that `document.scrollWidth <= window.innerWidth` across `/`, `/venues`, and `/titles`.
 
 **Production data written:** None.
+
+---
+
+## 2026-09-03 — Claude (Sonnet 5, picking up mid-session from Opus); Venues map: CartoDB → Esri tile swap
+
+**Who:** Claude Sonnet 5 (Opus 5 was overloaded; user asked me to continue where it left off)
+
+**Branch:** `main` (direct push, per the deploy rule — bug fix, no schema/route/auth change)
+
+**Tests:** **1071 passed**, no change in count (one test failed on the first run because it still
+asserted the old Carto layer names — fixed, then green).
+
+**What prompted this:** Opus had just reviewed Gemini Antigravity's venues-hub work (previous entry)
+and found the new `/venues` map — now on the top-level nav — was rendering CartoDB's keyless tiles
+with **"API KEY REQUIRED" watermarked across every tile**. Confirmed this was *already* live on
+production's pre-existing `/venues/map` too, so it's a pricing/ToS change on Carto's side since that
+page was built, not something either agent introduced. But Gemini's change moved this watermarked
+map from a rarely-visited corner page onto the primary `/venues` nav destination, which raised the
+stakes on fixing it.
+
+**What was done:**
+- Compared 7 keyless tile providers side-by-side by fetching real tiles and inspecting them (OSM
+  standard, OSM Humanitarian, Esri Dark/Light Gray Canvas, Esri Topo, OpenTopoMap, current Carto).
+  Esri's Canvas basemaps were the only clean, keyless alternative that matched the site's existing
+  light/dark theme pairing without a stylistic downgrade.
+- Swapped tile URLs in `venues_list.html` and `venues_map.html` from
+  `{s}.basemaps.cartocdn.com/{light_all,dark_all,rastertiles/voyager}` to
+  `server.arcgisonline.com/.../Canvas/World_{Light,Dark}_Gray_Base/MapServer/tile/{z}/{y}/{x}`.
+  Esri's tile scheme is `{z}/{y}/{x}` — reversed from Carto/Leaflet's `{z}/{x}/{y}` — and a single
+  host with no `{s}` subdomain rotation, both handled in the URL template changes.
+- Updated the CSP `img-src` in `app/__init__.py` from `*.basemaps.cartocdn.com` to
+  `server.arcgisonline.com`, still scoped to just `public.venues_map` and `public.venues_index`.
+- Updated stale CartoDB references in comments/docstrings (`public.py`, `test_venues_map.py`).
+- Fixed two tests that hardcoded the old Carto host/layer names: `test_csp.py` and
+  `test_venues_map.py::test_map_page_picks_theme_at_load_and_reacts_to_a_live_toggle` (the latter
+  asserted `"dark_all" in body and "light_all" in body`, now asserts the Esri layer names).
+- Verified in a real Playwright-driven browser, not just `pytest` or `curl`: both `/venues` and
+  `/venues/map`, both light and dark theme, both 1280px and 390px — 8 combinations, all loading real
+  tiles from `server.arcgisonline.com` with zero console errors and no watermark. Confirmed the
+  theme toggle live-repicks the tile set, and that a pin click still opens its popup (that JS logic
+  was untouched but worth confirming after the URL-scheme change).
+- **Verified the actual deploy**, not just the push: matched local file hashes against the GitOps
+  checkout on the NAS (`/share/CACHEDEV2_DATA/Data/config/portainer/compose/8/...`), then matched
+  those against the hash *inside the running `aims-web` container* (`docker exec ... md5sum`), then
+  screenshotted the live `https://darraghc.ie/showcal/venues` page with Playwright to confirm no
+  watermark in production, not just locally.
+
+**Production data written:** None.
+
+**Left unresolved / flag for next agent:**
+- **I have not verified Esri's ToS for this specific use with certainty** — the tiles serve keyless
+  in practice (confirmed), but some providers allow keyless technical access while asking for an
+  account contractually for production use at scale. Worth a look at Esri's terms before this scales
+  up. If that turns out to be a problem, OSM standard tiles are the documented fallback — genuinely
+  public-policy keyless, just a lighter/more colourful style than the dark-gray match Esri gives.
+- Same caveat applies to whatever Carto tier the site's original build assumed was free forever —
+  worth checking whether they've *actually* discontinued anonymous tiles or just added a soft nag,
+  in case Esri's terms turn out worse and Carto-with-a-key becomes the better option.
