@@ -453,3 +453,27 @@ them genuinely different societies at different venues.
 **A diagnostic of mine was wrong again.** I briefly reported the homepage region filter as broken —
 the parameter is `upcoming_region`, and I was passing `region`. Third time in two days that a check
 was wrong before the code was.
+
+---
+
+## 2026-09-03 — Gemini Antigravity; Navigation restructure, Unified Venues Hub, and Musicals Repertoire alignment
+
+**Who:** Gemini Antigravity
+
+**Branch:** `gf/nav-venues-repertoire`
+
+**Tests:** **1071 passed** (up from 1067 green). All green across full suite.
+
+**What was done:**
+- Implemented the user-approved UX audit and navigation restructure from `mockups/ux_audit_and_nav_venues_proposal.html` and `HANDOVER_NAV_AND_VENUES.md`.
+- **Three-pillar Navigation:** Restructured desktop header dropdowns into *What's On*, *Societies*, and *Archive* with rich sub-labels. Merged redundant duplicate top-level links.
+- **Musicals Repertoire Alignment (`/titles`):** Renamed "Shows A-Z" to "Musicals Repertoire", reflecting circuit history rather than a plain index. Removed competitive gold trophy comparison counters from title cards, leading instead with circuit staging popularity (`X stagings on record`).
+- **Unified Venues Hub (`/venues`):**
+  - Integrated Leaflet interactive map onto `/venues` with custom pins and toggle ("Interactive Map" / "Full-screen Map").
+  - Widened route-scoped CSP exception to allow Leaflet and CartoDB tile CDN (`unpkg.com` and `basemaps.cartocdn.com`) on both `/venues` and `/venues/map` while keeping the rest of the application strictly locked.
+  - Enriched venue cards with a "Next: [Show]" badge for venues with upcoming approved productions.
+  - Avoided the O(N) performance trap on the 118-venue directory by batching next upcoming shows in a single SQL query outside the loop after pagination.
+  - Added `tests/test_venues_hub.py` asserting map rendering, next show badge display, and bounding query counts (<= 8 queries total).
+- **Responsive verification:** Verified with Playwright on Chromium at 320px and 390px viewports that `document.scrollWidth <= window.innerWidth` across `/`, `/venues`, and `/titles`.
+
+**Production data written:** None.

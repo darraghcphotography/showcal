@@ -1,18 +1,36 @@
 {% extends "base.html" %}
 {% import "_pagination.html" as pg %}
 {% import "_venue_type.html" as vt %}
-{% block title %}Venues - DC Show Tracker{% endblock %}
-{% block og_description %}Every venue an AIMS member society has staged a production in.{% endblock %}
+{% block title %}Theatres &amp; Venues - DC Show Tracker{% endblock %}
+{% block og_description %}Every theatre and venue an AIMS member society has staged a production in, with seating specs, map pins, and upcoming shows.{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
+
 {% block content %}
-  <h1>Venues</h1>
+  <h1>Theatres &amp; Venues</h1>
   <p class="meta" style="max-width: 62ch;">
-    Every venue on record from the shows database (05/06 on) - who's performed there and how often.
+    Every venue on record from the shows database (05/06 on) &mdash; seating capacities, staging history, and what’s playing next across the circuit.
     {{ total }} venue{{ '' if total == 1 else 's' }}.
   </p>
+
   <p class="mapped-line">
-    <strong>{{ mapped_count }}</strong> of {{ total }} have a map pin (<span aria-hidden="true">&#9679;</span>) -
-    <a href="{{ url_for('public.venues_map') }}">see them on a map &rarr;</a>
+    <strong>{{ mapped_count }}</strong> of {{ total }} have a map pin (<span aria-hidden="true">&#9679;</span>) &mdash;
+    <a href="{{ url_for('public.venues_map') }}">see them full-screen &rarr;</a>
   </p>
+
+  <div class="venue-view-toggle">
+    <button type="button" id="btn-toggle-map" class="venue-toggle-btn active">🗺️ Interactive Map ({{ mapped_count }})</button>
+    <a href="{{ url_for('public.venues_map') }}" class="venue-toggle-btn" style="text-decoration: none;">Full-screen Map &rarr;</a>
+  </div>
+
+  <div id="venues-hub-map-container" class="venues-hub-map-section">
+    <div id="venues-map" role="application" aria-label="Map of AIMS venues"></div>
+  </div>
 
   <form method="get" class="filter-form">
     <label>Venue, town or county
@@ -81,6 +99,17 @@
               {% if v['auditorium_type'] %}<span class="tag">{{ v['auditorium_type'] }}</span>{% endif %}
             </div>
           {% endif %}
+          {% set next_show = next_shows.get(v['id']) %}
+          {% if next_show %}
+            <div class="now-playing-badge">
+              <span aria-hidden="true">🎭</span>
+              <span><strong>Next:</strong> {{ next_show['show'] }}
+                {% if next_show['opening_date'] %}
+                  <span class="now-playing-dates">({{ next_show['opening_date']|date_range(next_show['closing_date']) }})</span>
+                {% endif %}
+              </span>
+            </div>
+          {% endif %}
           <div class="stat-line">
             <strong>{{ v['n'] }}</strong> production{{ '' if v['n'] == 1 else 's' }} &middot;
             <strong>{{ v['soc_n'] }}</strong> {{ 'society' if v['soc_n'] == 1 else 'societies' }}
@@ -95,4 +124,81 @@
   {% endif %}
 
   {{ pg.pager('public.venues_index', page, total_pages) }}
+{% endblock %}
+
+{% block scripts %}
+  <script nonce="{{ csp_nonce }}">
+    (function () {
+      var pins = {{ pins|tojson }};
+      var mapContainer = document.getElementById("venues-hub-map-container");
+      var toggleBtn = document.getElementById("btn-toggle-map");
+      if (!mapContainer || !pins || pins.length === 0) return;
+
+      function currentTheme() {
+        var stored = localStorage.getItem('theme');
+        if (stored === 'light' || stored === 'dark') return stored;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      }
+
+      var lightTiles = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      var darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      var subdomains = 'abcd';
+      var attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+      var map = L.map('venues-map', { scrollWheelZoom: false }).setView([53.4, -7.9], 7);
+      var tileLayer = L.tileLayer(currentTheme() === 'light' ? lightTiles : darkTiles, {
+        attribution: attribution,
+        subdomains: subdomains,
+        maxZoom: 18
+      }).addTo(map);
+
+      var markers = [];
+      pins.forEach(function (p) {
+        if (p.lat == null || p.lng == null) return;
+        var m = L.circleMarker([p.lat, p.lng], {
+          radius: 7,
+          fillColor: '#d4af37',
+          color: '#0b0f14',
+          weight: 1.5,
+          opacity: 1,
+          fillOpacity: 0.9
+        }).addTo(map);
+
+        var html = '<div class="popup-title">' + p.name + '</div>';
+        if (p.place) html += '<div class="popup-meta">' + p.place + '</div>';
+        html += '<a class="popup-link" href="' + p.url + '">View venue details &rarr;</a>';
+        m.bindPopup(html);
+        markers.push(m);
+      });
+
+      if (markers.length > 0) {
+        var group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.05));
+      }
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener("click", function () {
+          if (mapContainer.style.display === "none") {
+            mapContainer.style.display = "block";
+            toggleBtn.classList.add("active");
+            toggleBtn.textContent = "🗺️ Hide Map";
+            setTimeout(function() { map.invalidateSize(); }, 150);
+          } else {
+            mapContainer.style.display = "none";
+            toggleBtn.classList.remove("active");
+            toggleBtn.textContent = "🗺️ Show Map ({{ mapped_count }})";
+          }
+        });
+      }
+
+      var themeToggle = document.getElementById('theme-toggle');
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+          setTimeout(function () {
+            tileLayer.setUrl(currentTheme() === 'light' ? lightTiles : darkTiles);
+          }, 50);
+        });
+      }
+    })();
+  </script>
 {% endblock %}

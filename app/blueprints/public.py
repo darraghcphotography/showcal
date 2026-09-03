@@ -1914,10 +1914,70 @@ def venues_index():
     per_page, page, total_pages = paginate_args(total)
     venues = venues[(page - 1) * per_page:page * per_page]
 
+    # Batch query for next upcoming show per venue on this page - single query
+    # outside the loop, avoiding the O(n) trap on a 118-row list.
+    venue_ids = [v["id"] for v in venues]
+    next_shows = {}
+    if venue_ids:
+        today_str = date.today().isoformat()
+        placeholders = ",".join("?" * len(venue_ids))
+        next_rows = db.execute(
+            f"""
+            SELECT s.venue_id, s.show, s.opening_date, s.closing_date, s.season, soc.name AS society_name
+              FROM shows s
+              JOIN societies soc ON soc.id = s.society_id
+             WHERE s.moderation_status = 'approved' AND NOT soc.hidden
+               AND s.venue_id IN ({placeholders})
+               AND (s.closing_date >= ? OR (s.closing_date IS NULL AND s.opening_date >= ?))
+             ORDER BY COALESCE(s.opening_date, '9999-12-31') ASC
+            """,
+            (*venue_ids, today_str, today_str),
+        ).fetchall()
+        for r in next_rows:
+            vid = r["venue_id"]
+            if vid not in next_shows:
+                next_shows[vid] = {
+                    "show": r["show"],
+                    "opening_date": r["opening_date"],
+                    "closing_date": r["closing_date"],
+                    "society_name": r["society_name"],
+                    "season": r["season"],
+                }
+
+    # Map pins: real coordinates only (109 of 118 venues). Venues with NULL lat/lng
+    # (including the four spreadsheet artefacts like "Cork run") are excluded here.
+    mapped_venues = db.execute(
+        """
+        SELECT venues.*,
+               COUNT(shows.id) AS n,
+               COUNT(DISTINCT shows.society_id) AS soc_n
+          FROM venues
+          JOIN shows ON shows.venue_id = venues.id
+          JOIN societies ON societies.id = shows.society_id
+         WHERE shows.moderation_status = 'approved' AND NOT societies.hidden
+           AND venues.latitude IS NOT NULL AND venues.longitude IS NOT NULL
+         GROUP BY venues.id ORDER BY venues.name COLLATE NOCASE
+        """
+    ).fetchall()
+
+    pins = [
+        {
+            "name": v["name"],
+            "place": place_label(v["town"], v["county"]),
+            "county": v["county"] or "",
+            "region": v["region"] or "",
+            "lat": v["latitude"], "lng": v["longitude"],
+            "capacity": v["capacity"],
+            "n": v["n"], "soc_n": v["soc_n"],
+            "url": url_for("public.venue_detail", venue=v["slug"]),
+        }
+        for v in mapped_venues
+    ]
+
     return render_template(
         "venues_list.html", venues=venues, q=q, regions=REGIONS, selected_region=region,
         venue_types=VENUE_TYPES, selected_venue_type=venue_type,
-        mapped_count=mapped_count,
+        mapped_count=mapped_count, pins=pins, next_shows=next_shows,
         page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=LIST_PAGE_SIZES,
     )
 

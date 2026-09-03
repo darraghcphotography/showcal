@@ -2457,6 +2457,55 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
 .mapped-line { color: var(--muted); font-size: 0.88rem; margin-bottom: 1rem; }
 .mapped-line strong { color: var(--fg); }
 
+.now-playing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(77, 208, 225, 0.12);
+  border: 1px solid rgba(77, 208, 225, 0.35);
+  color: var(--accent);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  margin: 0.35rem auto 0.5rem;
+  max-width: 100%;
+  text-align: left;
+}
+.now-playing-badge strong { color: var(--fg); }
+.now-playing-badge .now-playing-dates { font-size: 0.72rem; color: var(--muted); }
+
+.venues-hub-map-section {
+  margin-bottom: 1.5rem;
+}
+.venues-hub-map-section #venues-map {
+  height: 420px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.venue-view-toggle {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.venue-toggle-btn {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.venue-toggle-btn:hover { color: var(--fg); background: var(--surface); }
+.venue-toggle-btn.active {
+  background: var(--gold-bg);
+  border-color: var(--gold-border);
+  color: var(--gold);
+}
+
 /* /societies - a card grid replacing the old bare data-table (see
    societies_list.html). .grid-note spans the full grid width for the
    "Non-AIMS societies" divider that used to be a colspan table row -

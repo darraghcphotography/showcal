@@ -210,26 +210,25 @@ def test_submit_cta_shown_for_logged_in_society_and_points_to_own_dashboard(clie
 
 
 def test_nav_matches_new_arrangement(client):
-    """The header is Home plus two grouped menus (23 Aug 2026). The flat row
-    of seven links wrapped at ordinary widths and had no room for Venues or
-    Adjudicators, which is why both were footer-only and nobody found them."""
+    """The header is Home plus three grouped menus: What's On, Societies, Archive.
+    Reorganized 3 Sep 2026 per the nav proposal to eliminate the 8-item grab-bag."""
     body = client.get("/").get_data(as_text=True)
     header = body.split("</header>")[0]
     footer = body.split("<footer")[1]
 
     assert ">Home</a>" in header
     # The menu triggers, specifically - not just the words appearing somewhere.
-    for label in ["Explore", "History"]:
+    for label in ["What's On", "Societies", "Archive"]:
         assert '{}<span class="nav-chevron"'.format(label) in header
 
-    # Explore, including Venues and Adjudicators, which were footer-only.
-    for label in ["All Shows", "Seasons", "Societies", "Venues", "Reviews", "Adjudicators"]:
+    # Key destinations in header
+    for label in ["Season Calendar", "Theatres &amp; Venues", "Costumes &amp; Props", "Directory by Region", "Musicals Repertoire"]:
         assert label in header
-    for label in ["Awards", "Decades", "Statistics"]:
+    for label in ["AIMS Awards Archive", "Decades &amp; Trends", "Circuit Statistics", "Adjudications &amp; Reviews"]:
         assert label in header
 
     # The footer keeps its sitemap links even where the header duplicates them.
-    for label in ["All Shows", "Seasons"]:
+    for label in ["Musicals Repertoire", "Seasons"]:
         assert label in footer
 
     # "/" IS the upcoming-productions list, and the brand logo already links
@@ -276,7 +275,7 @@ def test_the_menus_work_without_javascript(client):
     only thing holding the nav together, the nav is broken for anyone whose
     JS hasn't loaded."""
     nav = client.get("/").get_data(as_text=True).split('<nav aria-label="Main">')[1].split("</nav>")[0]
-    assert nav.count("<details") == 2
+    assert nav.count("<details") == 3
     assert "<summary" in nav
     assert "<script" not in nav
 

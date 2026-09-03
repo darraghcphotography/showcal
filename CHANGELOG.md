@@ -1,3 +1,7 @@
+The main navigation has been restructured into three clean pillars: What's On, Societies, and Archive. The repertoire catalog is now clearly titled "Musicals Repertoire", and the Venues directory is unified with an interactive theatre map and "Next Show on Stage" badges for stages across Ireland
+
+---
+
 A show's page no longer runs out after the credits. It now points you on to other societies who have staged the same show, other productions at the same venue, and the rest of that society's history - which matters most for a show that hasn't opened yet, where there is no review or award record to read
 
 ---

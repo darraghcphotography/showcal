@@ -86,3 +86,17 @@ def test_society_copy_button_uses_data_copy_target(client, db):
 
     body = client.get(f"/societies/{society_id}").get_data(as_text=True)
     assert 'data-copy-target="society-code-message"' in body
+
+
+def test_venues_routes_receive_leaflet_cartodb_csp(client):
+    """public.venues_index and public.venues_map must allow Leaflet CDN and
+    CartoDB tile domains, while regular routes maintain the strict policy."""
+    for path in ("/venues", "/venues/map"):
+        csp = client.get(path).headers.get("Content-Security-Policy", "")
+        assert "https://unpkg.com" in csp
+        assert "https://*.basemaps.cartocdn.com" in csp
+
+    # Home route keeps strict policy without third-party CDNs
+    home_csp = client.get("/").headers.get("Content-Security-Policy", "")
+    assert "https://unpkg.com" not in home_csp
+    assert "https://*.basemaps.cartocdn.com" not in home_csp

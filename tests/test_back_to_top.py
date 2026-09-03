@@ -16,7 +16,7 @@ def test_societies_page_has_the_button_and_target(client):
 def test_titles_page_has_the_button_and_target(client):
     body = client.get("/titles").get_data(as_text=True)
     assert '<a href="#page-top" class="back-to-top" aria-label="Back to top">' in body
-    assert '<h1 id="page-top">Shows A-Z</h1>' in body
+    assert '<h1 id="page-top">Musicals Repertoire</h1>' in body
 
 
 def test_reviews_page_has_the_button_and_target(client):

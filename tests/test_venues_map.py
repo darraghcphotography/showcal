@@ -92,13 +92,17 @@ def test_map_route_relaxes_csp_for_the_map_libraries_only(client, db):
 
 
 def test_other_routes_keep_the_strict_csp_with_no_map_hosts(client, db):
-    home_csp = client.get("/").headers["Content-Security-Policy"]
-    assert "unpkg.com" not in home_csp
-    assert "basemaps.cartocdn.com" not in home_csp
+    """Routes that don't render a map (/ and /societies) must keep the strict CSP
+    without unpkg.com or basemaps.cartocdn.com, while /venues and /venues/map have it."""
+    for path in ("/", "/societies", "/stats"):
+        csp = client.get(path).headers["Content-Security-Policy"]
+        assert "unpkg.com" not in csp
+        assert "basemaps.cartocdn.com" not in csp
 
-    venues_csp = client.get("/venues").headers["Content-Security-Policy"]
-    assert "unpkg.com" not in venues_csp
-    assert "basemaps.cartocdn.com" not in venues_csp
+    for map_path in ("/venues", "/venues/map"):
+        csp = client.get(map_path).headers["Content-Security-Policy"]
+        assert "unpkg.com" in csp
+        assert "basemaps.cartocdn.com" in csp
 
 
 def test_map_page_has_region_county_and_society_quick_filters(client, db):
