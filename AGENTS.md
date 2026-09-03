@@ -15,6 +15,12 @@ current, and two copies of the same instructions drift apart within a week.
 
 ---
 
+**If you are here to implement the nav / venues / titles proposal
+(`mockups/ux_audit_and_nav_venues_proposal.html`), read `HANDOVER_NAV_AND_VENUES.md` after this
+file.** It checks each of that proposal's findings against the live database, names the two things
+most likely to go wrong (the map's route-scoped CSP, and per-row queries on a 118-row list), and
+lists the tests that will need updating.
+
 ## 1. Read these first, in this order
 
 1. **`CLAUDE.md`** — the stack, every command you will need, and the repo's own rules. Assume
