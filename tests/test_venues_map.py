@@ -3,7 +3,7 @@
 replacing the fabricated-data parked prototype (mockups/ireland_theatre_map.html
 used 9 invented venues/shows). Also covers the /venues card grid's mapped-count
 line and pin indicator, and the per-route CSP relaxation the map needs to load
-Leaflet/CartoDB from a CDN (see app/__init__.py's set_security_headers)."""
+Leaflet and the Esri basemap from a CDN (see app/__init__.py's set_security_headers)."""
 from conftest import seed_society
 
 
@@ -88,21 +88,21 @@ def test_map_route_relaxes_csp_for_the_map_libraries_only(client, db):
 
     map_csp = client.get("/venues/map").headers["Content-Security-Policy"]
     assert "unpkg.com" in map_csp
-    assert "basemaps.cartocdn.com" in map_csp
+    assert "server.arcgisonline.com" in map_csp
 
 
 def test_other_routes_keep_the_strict_csp_with_no_map_hosts(client, db):
     """Routes that don't render a map (/ and /societies) must keep the strict CSP
-    without unpkg.com or basemaps.cartocdn.com, while /venues and /venues/map have it."""
+    without unpkg.com or server.arcgisonline.com, while /venues and /venues/map have it."""
     for path in ("/", "/societies", "/stats"):
         csp = client.get(path).headers["Content-Security-Policy"]
         assert "unpkg.com" not in csp
-        assert "basemaps.cartocdn.com" not in csp
+        assert "server.arcgisonline.com" not in csp
 
     for map_path in ("/venues", "/venues/map"):
         csp = client.get(map_path).headers["Content-Security-Policy"]
         assert "unpkg.com" in csp
-        assert "basemaps.cartocdn.com" in csp
+        assert "server.arcgisonline.com" in csp
 
 
 def test_map_page_has_region_county_and_society_quick_filters(client, db):
@@ -133,7 +133,7 @@ def test_map_page_picks_theme_at_load_and_reacts_to_a_live_toggle(client, db):
     """Added after real feedback: the map tiles were hardcoded to light-only,
     so unlike the rest of the page (which follows CSS custom properties and
     repaints for free) the actual map background stayed light in dark mode.
-    CartoDB ships separate light_all/dark_all tile sets, so this has to be
+    Esri ships separate World_Light_Gray_Base/World_Dark_Gray_Base tile sets, so this has to be
     picked in JS - both at initial load and live if the toggle is used while
     the page is already open."""
     society_id = seed_society(db)
@@ -142,7 +142,7 @@ def test_map_page_picks_theme_at_load_and_reacts_to_a_live_toggle(client, db):
     set_coords(db, "Pinned Theatre", 53.35, -6.26)
 
     body = client.get("/venues/map").get_data(as_text=True)
-    assert "dark_all" in body and "light_all" in body
+    assert "World_Dark_Gray_Base" in body and "World_Light_Gray_Base" in body
     assert "currentTheme" in body
     # The toggle listener must be attached, or a live theme switch while
     # already on the map page would leave the tiles stuck on whichever

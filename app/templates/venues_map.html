@@ -51,25 +51,31 @@
       var pins = {{ pins|tojson }};
 
       // Same theme detection as base.html's own toggle (localStorage
-      // override, else prefers-color-scheme) - CartoDB ships separate
-      // light/dark tile sets, so unlike the rest of the page (which just
-      // follows CSS custom properties automatically) the map tiles need to
-      // be picked explicitly, and re-picked live if the toggle is used
-      // while this page is open.
+      // override, else prefers-color-scheme) - the map tiles need to be
+      // picked explicitly, and re-picked live if the toggle is used while
+      // this page is open, unlike the rest of the page which just follows
+      // CSS custom properties automatically.
+      //
+      // Swapped from Carto to Esri's Canvas basemaps 2026-09-03: Carto's
+      // keyless tiles now render "API KEY REQUIRED" across every tile (a
+      // pricing/ToS change since this map was built - not a bug here).
+      // Esri's tile scheme is {z}/{y}/{x}, reversed from Carto/Leaflet's
+      // {z}/{x}/{y}, and a single host with no {s} subdomain rotation.
       function currentTheme() {
         var stored = localStorage.getItem('theme');
         if (stored === 'light' || stored === 'dark') return stored;
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
       function tileUrl(theme) {
-        return 'https://{s}.basemaps.cartocdn.com/' + (theme === 'dark' ? 'dark_all' : 'light_all') +
-          '/{z}/{x}/{y}{r}.png';
+        var layer = theme === 'dark' ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base';
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/' + layer +
+          '/MapServer/tile/{z}/{y}/{x}';
       }
 
       var map = L.map('venues-map', { scrollWheelZoom: false }).setView([53.35, -7.8], 7);
       var tiles = L.tileLayer(tileUrl(currentTheme()), {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd', maxZoom: 19
+        attribution: '&copy; OpenStreetMap contributors &copy; Esri',
+        maxZoom: 16
       }).addTo(map);
 
       var themeToggle = document.getElementById('theme-toggle');

@@ -88,15 +88,21 @@ def test_society_copy_button_uses_data_copy_target(client, db):
     assert 'data-copy-target="society-code-message"' in body
 
 
-def test_venues_routes_receive_leaflet_cartodb_csp(client):
+def test_venues_routes_receive_leaflet_esri_csp(client):
     """public.venues_index and public.venues_map must allow Leaflet CDN and
-    CartoDB tile domains, while regular routes maintain the strict policy."""
+    Esri tile domains, while regular routes maintain the strict policy.
+
+    Tiles moved from CartoDB to server.arcgisonline.com (Esri) 2026-09-03 -
+    Carto's keyless tiles started rendering "API KEY REQUIRED" across every
+    tile, a pricing/ToS change on their side. Esri's Canvas basemaps are
+    still genuinely keyless.
+    """
     for path in ("/venues", "/venues/map"):
         csp = client.get(path).headers.get("Content-Security-Policy", "")
         assert "https://unpkg.com" in csp
-        assert "https://*.basemaps.cartocdn.com" in csp
+        assert "https://server.arcgisonline.com" in csp
 
     # Home route keeps strict policy without third-party CDNs
     home_csp = client.get("/").headers.get("Content-Security-Policy", "")
     assert "https://unpkg.com" not in home_csp
-    assert "https://*.basemaps.cartocdn.com" not in home_csp
+    assert "https://server.arcgisonline.com" not in home_csp

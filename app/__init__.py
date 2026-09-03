@@ -345,17 +345,22 @@ def create_app(test_config=None):
         # shape, and a CSS-only injection is a much smaller risk than script.
         # /venues/map and /venues (the unified venues hub) are the pages that need
         # third-party resources - Leaflet's JS/CSS from unpkg (SRI-pinned on the
-        # <script>/<link> tags themselves as a second layer) and CartoDB's
-        # tile images. Vendoring Leaflet into /static instead of a CDN would
-        # avoid this entirely, but there's no safe way here to fetch and
-        # verify an exact binary-correct copy of a minified JS library to
-        # commit - a CDN with SRI hashes both loads and verifies it in one
-        # step. Scoped to just these routes rather than loosened site-wide, so
-        # everywhere else keeps the fully strict policy.
+        # <script>/<link> tags themselves as a second layer) and basemap tile
+        # images. Vendoring Leaflet into /static instead of a CDN would avoid
+        # this entirely, but there's no safe way here to fetch and verify an
+        # exact binary-correct copy of a minified JS library to commit - a CDN
+        # with SRI hashes both loads and verifies it in one step. Scoped to
+        # just these routes rather than loosened site-wide, so everywhere else
+        # keeps the fully strict policy.
+        #
+        # Tiles moved from CartoDB to server.arcgisonline.com (Esri) on
+        # 2026-09-03 - Carto's keyless tiles started rendering "API KEY
+        # REQUIRED" across every tile, a pricing/ToS change on their side, not
+        # a bug here. Esri's Canvas basemaps are still genuinely keyless.
         if request.endpoint in ("public.venues_map", "public.venues_index"):
             script_src = f"'self' 'nonce-{csp_nonce()}' https://unpkg.com"
             style_src = "'self' 'unsafe-inline' https://unpkg.com"
-            img_src = "'self' data: https://*.basemaps.cartocdn.com"
+            img_src = "'self' data: https://server.arcgisonline.com"
         else:
             script_src = f"'self' 'nonce-{csp_nonce()}'"
             style_src = "'self' 'unsafe-inline'"

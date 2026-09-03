@@ -1986,8 +1986,9 @@ def venues_index():
 def venues_map():
     """Real interactive map, real pin coordinates - the parked Leaflet
     prototype (mockups/ireland_theatre_map.html) used 9 entirely fabricated
-    venues; this reuses its layout (sidebar + map, keyless CartoDB tiles)
-    against every venue that actually has a lat/lon on record. Separate page
+    venues; this reuses its layout (sidebar + map, keyless Esri tiles - see
+    __init__.py, moved off CartoDB 2026-09-03) against every venue that
+    actually has a lat/lon on record. Separate page
     rather than folded into /venues itself - a map needs the full unfiltered
     set to be useful (a filtered subset with 3 pins isn't), and loading
     Leaflet only where it's actually used keeps the plain card grid light."""

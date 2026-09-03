@@ -140,16 +140,20 @@
         return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       }
 
-      var lightTiles = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-      var darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-      var subdomains = 'abcd';
-      var attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>';
+      // Carto's keyless tiles now watermark every tile with "API KEY REQUIRED"
+      // (found 2026-09-03 - a pricing/ToS change since this map was built, not
+      // a bug here). Esri's Canvas basemaps are still genuinely keyless and
+      // have no such watermark. Esri's REST tile scheme is {z}/{y}/{x} - the
+      // reverse of the {z}/{x}/{y} Leaflet/Carto convention it replaced - and
+      // a single host, no {s} subdomain rotation.
+      var lightTiles = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+      var darkTiles = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+      var attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://www.esri.com">Esri</a>';
 
       var map = L.map('venues-map', { scrollWheelZoom: false }).setView([53.4, -7.9], 7);
       var tileLayer = L.tileLayer(currentTheme() === 'light' ? lightTiles : darkTiles, {
         attribution: attribution,
-        subdomains: subdomains,
-        maxZoom: 18
+        maxZoom: 16
       }).addTo(map);
 
       var markers = [];
