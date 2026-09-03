@@ -435,3 +435,21 @@ All brand assets are flat RGB now and regenerate from the header SVG's own geome
 - **A push sends everything on `main`, not just the change under discussion.** Two user-facing
   commits went up together on 2026-09-03 because one had been sitting unpushed while a second was
   built. Check `git log origin/main..main` before pushing when the deploy policy is in play.
+
+**Duplicate society merged, 2026-09-03.** Darragh spotted Elf twice on the November homepage
+(Eastern filter). One society, two records: `[108] Stage One New-Musical Group (S.O.N.G.)` and
+`[10014] SONG Dundalk`, whose own About text names Stage One. Merged via
+`scripts/backfills/merge_song_dundalk.py`, dry-run then applied: the duplicate's website and About
+copied onto 108 (which had neither), both duplicate shows deleted (108's copies had the dates,
+venues and posters), the society deleted, and the login code my poster-chase script had minted for it
+deleted with it. **Darragh's poster list drops from 15 to 14** — remove SONG Dundalk.
+
+**Only one such duplicate exists.** Ranking candidates by name similarity flagged ten pairs, all
+false positives (Tralee vs Tralee Youths, Waterford vs Wexford, UCC vs UCD — the case
+`society_names.py` warns about) and missed this one entirely, since the two names share no
+distinctive words. The signal that works is **same title, same opening date**: seven pairs, six of
+them genuinely different societies at different venues.
+
+**A diagnostic of mine was wrong again.** I briefly reported the homepage region filter as broken —
+the parameter is `upcoming_region`, and I was passing `region`. Third time in two days that a check
+was wrong before the code was.
