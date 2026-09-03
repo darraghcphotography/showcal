@@ -171,12 +171,9 @@ prefix branches `gf/`.
 
 ---
 
-## 8. One judgement call to put back to Darragh
+## 8. Decided, so you do not need to ask
 
-The proposal renames **"All Shows" → "Repertoire"**. The diagnosis is right — "All Shows" reads as
-*upcoming* shows and delivers a 315-title script catalogue. But "Repertoire" is industry language,
-and the audience is volunteer committee members and theatre-goers, not producers. "Shows A–Z" or
-"Every Musical" may land better with them.
-
-Worth one question rather than a silent decision, since the whole point of the rename is that the
-current word confuses the people using it.
+**"All Shows" becomes "Repertoire".** I put it back to Darragh on 2026-09-03 - the diagnosis is
+right ("All Shows" reads as *upcoming* shows and delivers a 315-title script catalogue), but
+"Repertoire" is industry language for an audience of volunteer committee members. His answer:
+it's fine. Implement the rename as the proposal has it.
