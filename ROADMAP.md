@@ -20,6 +20,70 @@ cause is entering an item here and never re-checking it against the code. **Befo
 open, grep for it.** The file has now been wrong in both directions - claiming work was outstanding
 when it had shipped, and claiming a security finding was unfixed when it had been fixed.
 
+## START HERE - calendar + social card shipped, repertoire finder unblocked (2026-09-04, later)
+
+> Darragh reviewed a proposals mockup
+> (https://claude.ai/code/artifact/6b2c3233-689f-4fa1-88f7-42bf2dfb23d9, built in the site's own
+> tokens) and picked two to build. **1108 tests green.**
+>
+> ### Add to calendar (`41582d0`)
+>
+> He asked for Add-to-Google-Calendar *instead of* the .ics. Both halves of that were wrong and the
+> corrections are worth keeping:
+>
+> - **The Google link already existed** - a 13px text link inside the Dates row, which is why he had
+>   never seen it. The gap was presentation, not capability.
+> - **Dropping the .ics would have made mobile worse.** Apple Calendar has no pre-filled-event URL
+>   of any kind, so the .ics is the *only* route to it, and on an iPhone opening one is the native
+>   path. A Google-only control excludes a large share of an Irish committee.
+>
+> Now one **Add to calendar** control offering Google, Apple, Outlook and a plain download.
+> New `/shows/<id>/calendar.ics` shares `_vevent()` with the feed, so the same show added by hand
+> and arriving via a subscription carries the same UID and merges instead of duplicating.
+> **The subscribable `/calendar.ics` feed is untouched and must stay that way** - it answers "keep
+> me updated with all of these", which per-show links cannot.
+>
+> ### The social card (`41582d0`, `app/social_card.py`)
+>
+> **Not the link preview.** `og-card.png` is what a scraper renders when someone pastes a link and
+> already worked; this is an image a society *downloads and posts* to its own Instagram. Three
+> shapes (post/square/story) because each platform crops a wrong ratio differently. A society with
+> no poster still gets a real card via the typeset playbill, with the upload ask attached once -
+> which is the point, since 175 of 194 have never uploaded one and every previous approach asked
+> them for something rather than giving them something.
+>
+> `/shows/<id>/card.png?size=` is public on purpose (a society has to be able to paste the URL into
+> a committee WhatsApp group); `/society/shows/<id>/card` is their own page for it.
+>
+> **Two layout faults were caught by rendering the image and looking at it, not by tests passing.**
+> Both now have tests, and both are the kind that a "did a PNG come back?" check sails past:
+> the playbill clipped `EVERYBODY'S` to `VERYBODY'` (the shrink loop checked line *count* but not
+> line *width*, against centred text), and the story shape keyed every size to canvas height, so at
+> 1920 tall the countdown was drawn on top of the venue line. **Render it and look at it.**
+>
+> New runtime dependency: `segno` (pure Python, no compiled deps) for the QR, plus the two Archivo
+> weights committed as `.ttf` - Pillow cannot read woff2 and `fonttools` is deliberately not a
+> runtime dependency. The card degrades to no-QR rather than 500ing if segno ever goes missing.
+>
+> ### The repertoire finder is unblocked, and it is a casting tool
+>
+> Darragh answered the question that had parked it: *"committees like to find shows based on cast
+> size, number of male/female parts, supporting characters, etc."* It is a **can-we-cast-this**
+> tool, not a taste tool - my earlier guess (rights status, regional gaps, recent stagings) had the
+> emphasis wrong.
+>
+> The data does not exist. `enrichment/REPERTOIRE_DATA_BRIEF.md` and
+> `enrichment/repertoire_worklist.json` (299 titles, most-staged first) are written and ready for
+> Antigravity. **This is the good shape of delegated task** - 221 rows already name the licensing
+> house's own page, so it is transcription from a source we can check, not research. The brief
+> carries hidden controls, two canaries and batch-discard scoring, because this project has been
+> burned three times by plausible values wearing invented citations.
+>
+> **Do not build the filters before the data lands.** A cast-size filter over mostly-blank rows
+> hides titles rather than admitting it does not know.
+
+---
+
 ## START HERE - fresh site review, two fixes shipped and verified live (2026-09-04)
 
 > Darragh asked for a fresh full-site review (not a rehash of the backlog) and to fix whatever
@@ -395,21 +459,43 @@ listing something as open, every time.
 - **The genre taxonomy for `/titles`** - blocked on his call on the taxonomy itself. No genre data
   exists in the schema; this is real new work, and the delegated half needs the full calibration
   protocol (hidden controls, canaries, citation per tag).
-- **What committees actually asked for in a repertoire finder.** He confirmed they raise it with
-  him directly; the shape (rights status + regional gap + recent stagings) is still a guess.
+- ~~**What committees actually asked for in a repertoire finder.**~~ **ANSWERED 2026-09-04.**
+  Darragh: *"committees like to find shows based on cast size, number of male/female parts,
+  supporting characters, etc - the more filters and info we have for them to select and filter on
+  the better."* So the finder is a **casting-constraint** tool, not a taste tool. A society with
+  nine strong women and four men cannot stage *Guys and Dolls*, and finding that out in November
+  after choosing in September is an expensive mistake. My earlier guess at the shape (rights
+  status + regional gap + recent stagings) was wrong in emphasis - those are secondary to "can we
+  cast it?". **The data does not exist yet; see the build item below.**
 
-### Build items - verified not started
+### Build items
 
-- **Social card generator** (per show: poster + society logo + opening countdown + QR). Confirmed
-  absent from the codebase. The one backlog item that *gives* societies something rather than
-  asking them for something, which is plausibly the lever that gets posters uploaded. Needs a
-  mockup first.
+- ~~**Social card generator**~~ **SHIPPED 2026-09-04** (`41582d0`), along with a proper
+  add-to-calendar control - both chosen by Darragh off the proposals mockup
+  (https://claude.ai/code/artifact/6b2c3233-689f-4fa1-88f7-42bf2dfb23d9). See `app/social_card.py`
+  and the START HERE block above.
+- **The repertoire finder - now a real, scoped job.** Darragh has answered the question that was
+  blocking it (see above): committees filter on **casting constraints**. Two halves:
+  1. **The data, which does not exist.** `enrichment/REPERTOIRE_DATA_BRIEF.md` +
+     `enrichment/repertoire_worklist.json` (299 titles, most-staged first, 221 already carrying the
+     licensing house's own `rights_url`) are written and ready to hand to Antigravity.
+     `scripts/enrichment/build_repertoire_worklist.py` regenerates the worklist.
+  2. **The schema and the UI**, once data comes back and is verified. Columns go on `show_info` via
+     `COLUMN_MIGRATIONS` in `app/db.py` - the field list is in the brief.
+  **Do not build the filters before the data lands.** A cast-size filter over mostly-blank rows is
+  worse than no filter, because it silently hides titles rather than admitting it does not know.
 - **Society edit audit log.** Confirmed absent. Societies share one login code, so there is
   currently no way to tell who made an edit or to undo it. Scope was already cut to the cheap 80%:
-  build the append-only log, drop the revert UI.
-- **Poster / programme museum.** Wanted, and genuinely gated on poster count rather than on the
-  withdrawn content-supply argument. **Trigger was ~100 posters; we are at 60.** Confirm the
-  number with Darragh - it was Claude's proposal, not his.
+  build the append-only log, drop the revert UI. Mocked up on 2026-09-04 and **not selected** -
+  still wanted, just not next.
+
+### Parked for the future, with a trigger
+
+- **Poster / programme museum.** Wanted, genuinely gated on poster count, and **Darragh's call
+  2026-09-04 was to park it rather than lower the bar** - "put it in one for the future". At 60
+  posters against a ~100 trigger (a number Claude proposed, and he has not disputed). It unblocks
+  itself if the social card does its job, since that is the thing designed to get posters uploaded.
+  **Re-raise it when the poster count passes 100**, not before.
 
 ### Data work
 

@@ -592,3 +592,73 @@ backlog, and to fix what turned up.
   heading, not `.detail-list`) — not fixed here, since it wasn't one of the two named findings and
   deserved its own look rather than a rushed tack-on. Worth queuing; not urgent (320px-only, one
   venue).
+
+---
+
+## 2026-09-04 (later) — Claude (Opus 5); add-to-calendar, the social card, and a brief for you
+
+**Who:** Claude Opus 5.
+
+**Branch:** `main` (direct push). Both features are visitor-visible, and both were **described to
+Darragh first** — as a mockup he reviewed and picked from, which is the deploy rule working as
+intended rather than being skipped.
+
+**Tests:** 1079 -> 1108 passed.
+
+**What prompted this:** Darragh asked for "add to Google Calendar instead of downloadable .ics",
+said he thought the sharing card was already working, and asked for a mockup of the remaining
+features. The mockup is published at
+https://claude.ai/code/artifact/6b2c3233-689f-4fa1-88f7-42bf2dfb23d9 (built in the site's own
+Abbey Midnight & Gold tokens, real September listings). He picked two to build.
+
+**Two corrections that shaped the work, both worth keeping:**
+
+1. **"Add to Google Calendar" already existed** — a 13px text link inside the Dates row, which is
+   why he had never noticed it. The gap was presentation.
+2. **Removing the .ics would have made mobile worse, not better.** Apple Calendar has no
+   pre-filled-event URL at all, so the .ics is the *only* route that reaches it, and on iOS it is
+   the native path. Google-only excludes a large share of an Irish committee. Kept all four routes
+   behind one control instead.
+
+**What was built:**
+
+- **`/shows/<id>/calendar.ics`** plus an "Add to calendar" `<details>` menu on the show page
+  (Google / Apple / Outlook / download). Shares `_vevent()` with the subscribable feed so both
+  emit the same UID and a calendar merges them rather than showing the show twice. The
+  subscribable `/calendar.ics` feed is deliberately untouched.
+- **`app/social_card.py` + `/shows/<id>/card.png?size=`** — the postable card, three shapes, with
+  the society's poster or a typeset playbill, a countdown and a QR. Plus
+  `/society/shows/<id>/card`, the society's own page for downloading it with a suggested caption.
+  The card image is public on purpose: a society has to be able to paste the URL into a WhatsApp
+  group.
+- **`enrichment/REPERTOIRE_DATA_BRIEF.md` + `enrichment/repertoire_worklist.json`** — ready to hand
+  to Antigravity, see below.
+
+**Verification, beyond tests passing:** I rendered the cards and looked at them, which is the only
+reason two real faults were caught — a "did a PNG come back?" test passes straight through both.
+The playbill clipped `EVERYBODY'S` to `VERYBODY'` (shrink loop checked line count, not line width,
+against centred text) and the story shape keyed every size to canvas height, so at 1920 tall the
+countdown was drawn on top of the venue line and the QR caption ran off the edge. Both fixed, both
+now have pixel-level tests that fail on recurrence.
+
+**New runtime dependency:** `segno==1.6.6` (pure Python, no compiled extensions) for the QR, and
+the two Archivo weights committed as `.ttf` — Pillow cannot read woff2 and `fonttools` is
+deliberately not a runtime dependency. `_qr_matrix` degrades to no-QR rather than raising if segno
+is ever absent. **The Dockerfile installs requirements.txt on build, so this needs a real image
+rebuild, not just a file sync** — worth confirming on the next deploy after this one.
+
+**Production data written:** None.
+
+**For the next agent / for Antigravity:**
+- **`enrichment/REPERTOIRE_DATA_BRIEF.md` is written and unsent.** Darragh answered the question
+  that had parked the repertoire finder: committees choose on **casting constraints** — cast size,
+  male/female split, supporting roles. The worklist is 299 titles, most-staged first, and 221 of
+  them already carry the licensing house's own `rights_url`, which makes this transcription from a
+  named page rather than research — the one shape of delegated task with a good record here. The
+  brief carries hidden controls, two canaries and batch-discard scoring; **the controls are held
+  back deliberately and are not in the brief.**
+- **Do not build the repertoire filters before that data lands and is verified.** A cast-size
+  filter over mostly-blank rows hides titles instead of admitting it does not know.
+- **The poster museum is parked, on Darragh's explicit call** ("put it in one for the future") —
+  60 posters against a ~100 trigger. Re-raise it when the count passes 100. The social card is the
+  thing most likely to move that number, so the two are linked.

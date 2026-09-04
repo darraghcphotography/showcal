@@ -316,13 +316,25 @@ pre-Christmas shows.
 
    Still genuinely open in that same document: **off-box backup** — see item 3.
 
+5a. **The repertoire finder — unblocked 2026-09-04, and it is a casting tool.** Darragh answered
+   the question that had parked it: committees filter on **cast size, the male/female split and
+   supporting roles**, not on taste. The data does not exist yet.
+   `enrichment/REPERTOIRE_DATA_BRIEF.md` and `enrichment/repertoire_worklist.json` are written and
+   ready — **that brief is for you.** 299 titles, most-staged first, 221 already naming the
+   licensing house's own page, so it is transcription from a named source rather than research.
+   Read `enrichment/RULES.md` first; the brief carries hidden controls, two canaries and
+   batch-discard scoring, and every `cast_source_url` you return will be opened before anything is
+   imported. **Blank beats guessed, every time.**
+   **Do not build the filters before the data lands** — a cast-size filter over mostly-blank rows
+   hides titles rather than admitting it does not know.
+
 5. ~~**Costumes / props / sets listings, per show.**~~ **SHIPPED** — it is the Costumes & Props
    Exchange (`/exchange`, `wardrobe_items` / `wardrobe_photos`), and it was already live when this
    item still described it as "the biggest lift on the board". Verified in code 2026-09-04. One
    real listing so far. Contact details on a listing are restricted to signed-in societies — that
-   was a live privacy exposure once, so do not widen it back. **Two genuinely-unbuilt items took
-   its place on the board: the social card generator and the society edit audit log** — both
-   confirmed absent, both in `ROADMAP.md`'s open list.
+   was a live privacy exposure once, so do not widen it back. Of the two items that took its place
+   on the board, **the social card generator shipped 2026-09-04** (`app/social_card.py`); the
+   **society edit audit log** is still genuinely unbuilt and is in `ROADMAP.md`'s open list.
 
 6. ~~**The two design items**~~ — **both shipped 2026-09-02**, along with a full design pass.
    Society pages now lead with stat tiles; the missing-poster placeholder is a typeset playbill
@@ -367,10 +379,14 @@ judgement call, not a defect; do not let it jump the queue).
 
 Every figure here was counted against the **live** database on that date, not carried forward.
 
-- **HEAD `b8d9d39`**, deployed and verified live by md5 against the Stack 8 checkout (both the
-  running container's file and, for the CSS fix, the actual versioned URL the live page links to —
-  an unversioned fetch reads a stale Cloudflare edge cache and is not a real check).
-  **1075 tests green.**
+- **HEAD `41582d0`**, pushed 2026-09-04. **1108 tests green.**
+- **A new runtime dependency landed with that commit: `segno` (the QR on the social card).** The
+  Dockerfile runs `pip install -r requirements.txt` at build time, so this needs a genuine image
+  rebuild, not just a file sync. If the card renders without its QR, that is the symptom — the code
+  degrades on purpose rather than 500ing.
+- Deploy verification here means md5 against the Stack 8 checkout **and** the running container's
+  own copy — and for anything under `static/`, the versioned URL the live page actually links to.
+  An unversioned fetch reads a stale Cloudflare edge cache and proves nothing.
 - **Since 2026-09-02 (below):** Gemini Flash implemented the nav/venues/titles restructure it was
   handed (`ae1899c`) — 3-pillar nav, a unified `/venues` hub with the map merged in, "All Shows"
   renamed to "Repertoire" per Darragh's call. Then the merged map turned out to render CartoDB's
