@@ -1252,9 +1252,9 @@ details table { margin-top: 0.5rem; }
 }
 .share-button:hover { border-color: var(--accent); }
 
-.detail-list { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1rem; }
+.detail-list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.4rem 1rem; }
 .detail-list dt { color: var(--muted); }
-.detail-list dd { margin: 0; }
+.detail-list dd { margin: 0; overflow-wrap: break-word; }
 .detail-list.compact { font-size: 0.9rem; }
 
 .review-block { margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.15rem; background: var(--row-alt); }
