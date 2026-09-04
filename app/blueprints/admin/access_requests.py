@@ -114,7 +114,7 @@ def approve_access_request(req_id: int):
     )
     db.commit()
 
-    magic_url = url_for("society.auth_magic_link", token=token, _external=True)
+    magic_url = notify.link(url_for("society.auth_magic_link", token=token))
 
     # 3. Send magic link email to the requester
     sent = None
@@ -196,7 +196,7 @@ def create_direct_magic_link():
     )
     db.commit()
 
-    magic_url = url_for("society.auth_magic_link", token=token, _external=True)
+    magic_url = notify.link(url_for("society.auth_magic_link", token=token))
 
     sent = None
     if email and email != "unknown@email.com":

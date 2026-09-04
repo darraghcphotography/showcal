@@ -1427,7 +1427,7 @@ def show_detail(show_id):
             text=f"{show['show']} - {show['society_name']}",
             start=opening,
             end_exclusive=closing + timedelta(days=1),
-            details=f"AIMS production - {url_for('public.show_detail', show_id=show['id'], _external=True)}",
+            details=f"AIMS production - {notify.link(url_for('public.show_detail', show_id=show['id']))}",
             location=show["venue"] or "",
         )
         if show["review_status"] != "Not adjudicated" and _may_see_own_show_admin(show):
