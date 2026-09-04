@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Share card - {{ show['show'] }} - DC Show Tracker{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('society.dashboard') }}">&larr; Back to your shows</a></p>
+  <h1>Share your show</h1>
+
+  <p class="meta" style="max-width: 62ch;">
+    A ready-made image for Instagram, Facebook or WhatsApp, with your show on it. Download it and
+    post it &mdash; the countdown updates itself, so grabbing it again nearer the run gives you a
+    fresh one.
+  </p>
+
+  {% if not show['opening_date'] %}
+    <div class="site-notice">
+      <p><strong>Add your dates first.</strong> The card carries the run dates and a countdown to
+         opening night, so it needs an opening date before it is worth posting.</p>
+      <p><a href="{{ url_for('society.edit_show', show_id=show['id']) }}">Add dates to {{ show['show'] }} &rarr;</a></p>
+    </div>
+  {% endif %}
+
+  {% if not show['poster_filename'] %}
+    {#- The whole point of the feature. A society with no poster still gets a
+        usable card, and this is the one moment they are being given something
+        rather than asked for something - so the ask goes here, once. -#}
+    <div class="site-notice">
+      <p><strong>Your card is using a typeset playbill.</strong> That is a real, postable card &mdash;
+         but if you upload your poster it becomes the artwork on every card from then on, and on
+         your show&rsquo;s page on the site.</p>
+      <p><a href="{{ url_for('society.edit_show', show_id=show['id']) }}">Upload a poster for {{ show['show'] }} &rarr;</a></p>
+    </div>
+  {% endif %}
+
+  <div class="card-sizes">
+    {% for key, label, dims, blurb in sizes %}
+      <section class="card-size">
+        <h2>{{ label }}</h2>
+        <p class="meta">{{ dims }} &middot; {{ blurb }}</p>
+        <a href="{{ url_for('public.show_card', show_id=show['id'], size=key) }}" target="_blank" rel="noopener">
+          <img src="{{ url_for('public.show_card', show_id=show['id'], size=key) }}"
+               alt="Share card for {{ show['show'] }}, {{ label|lower }} size" loading="lazy">
+        </a>
+        <a class="edit-callout" download
+           href="{{ url_for('public.show_card', show_id=show['id'], size=key) }}">Download {{ label|lower }} &darr;</a>
+      </section>
+    {% endfor %}
+  </div>
+
+  <h2>A caption to go with it</h2>
+  <p class="meta">Copy this, edit it however you like.</p>
+  <textarea class="card-caption" rows="4" readonly aria-label="Suggested caption">{{ show['show'] }} - {{ society['name'] }}
+{% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% endif %}{% if show['venue'] %}
+{{ show['venue'] }}{% endif %}
+
+Full details: {{ absolute_url(url_for('public.show_detail', show_id=show['id'])) }}</textarea>
+{% endblock %}

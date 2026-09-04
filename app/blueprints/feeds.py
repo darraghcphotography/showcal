@@ -1,9 +1,11 @@
 import csv
 import io
 import json
+import re
 from datetime import date, timedelta
 
-from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
+from flask import (Blueprint, Response, abort, current_app, request,
+                   send_from_directory, url_for)
 
 from .. import notify
 from ..clock import utcnow_compact
@@ -51,6 +53,85 @@ def export_shows_csv():
 
 def _ics_escape(text):
     return text.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
+
+
+def _vevent(row, stamp):
+    """One show as an all-day VEVENT.
+
+    Shared by the subscribable feed and the single-show download so the two
+    cannot drift - a show added to a calendar from its own page and the same
+    show arriving via the feed must be the same event, or a subscriber ends up
+    with both."""
+    opening = row["opening_date"].replace("-", "")
+    # DTEND for an all-day event is exclusive (the day *after* it ends), per
+    # RFC 5545 - closing_date itself is the last day of the run.
+    closing = row["closing_date"] or row["opening_date"]
+    end_exclusive = (date.fromisoformat(closing) + timedelta(days=1)).strftime("%Y%m%d")
+
+    summary = f"{row['show']} - {row['society_name']}"
+    url = notify.link(url_for("public.show_detail", show_id=row["id"]))
+    lines = [
+        "BEGIN:VEVENT",
+        # The same UID in both, deliberately. A calendar that already holds
+        # this show from the feed updates it rather than duplicating it.
+        f"UID:show-{row['id']}@aims-show-tracker",
+        f"DTSTAMP:{stamp}",
+        f"DTSTART;VALUE=DATE:{opening}",
+        f"DTEND;VALUE=DATE:{end_exclusive}",
+        f"SUMMARY:{_ics_escape(summary)}",
+        f"URL:{url}",
+    ]
+    if row["venue"]:
+        lines.append(f"LOCATION:{_ics_escape(row['venue'])}")
+    lines.append("END:VEVENT")
+    return lines
+
+
+def _calendar(lines, calname):
+    body = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//DC Show Tracker//EN",
+        "CALSCALE:GREGORIAN",
+        f"X-WR-CALNAME:{calname}",
+    ] + lines + ["END:VCALENDAR"]
+    return Response("\r\n".join(body) + "\r\n", mimetype="text/calendar")
+
+
+@bp.route("/shows/<int:show_id>/calendar.ics")
+def show_calendar_ics(show_id):
+    """One show, downloaded rather than subscribed.
+
+    This is the half the site was missing. `/calendar.ics` is a *subscription*
+    to many shows that keeps updating; a committee member who just wants this
+    one production in their own calendar had only the Google link, which is no
+    use to them if they are on Apple Calendar or Outlook - and on an iPhone,
+    opening an .ics is the native path, so forcing Google was the worse
+    outcome for a large share of the audience.
+
+    Deliberately not restricted to upcoming shows: a past run is a legitimate
+    thing to file, and the feed has never restricted it either."""
+    db = get_db()
+    row = db.execute(
+        """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.id = ? AND shows.moderation_status = 'approved'
+          AND shows.show IS NOT NULL AND shows.opening_date IS NOT NULL
+          AND NOT societies.hidden
+        """,
+        (show_id,),
+    ).fetchone()
+    if row is None:
+        abort(404)
+
+    response = _calendar(_vevent(row, utcnow_compact()),
+                         f"{row['show']} - {row['society_name']}")
+    # A filename makes the difference between "downloads as calendar.ics" and
+    # something a person can find again in their downloads folder.
+    slug = re.sub(r"[^a-z0-9]+", "-", row["show"].lower()).strip("-") or "show"
+    response.headers["Content-Disposition"] = f'attachment; filename="{slug}.ics"'
+    return response
 
 
 @bp.route("/calendar.ics")
@@ -118,40 +199,12 @@ def calendar_ics():
     calname_bits = [b for b in (section, region, society_name, season) if b]
     calname = f"DC Show Tracker - {' - '.join(calname_bits)}" if calname_bits else "DC Show Tracker"
     stamp = utcnow_compact()
-    lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//DC Show Tracker//EN",
-        "CALSCALE:GREGORIAN",
-        f"X-WR-CALNAME:{calname}",
-    ]
 
+    lines = []
     for row in rows:
-        opening = row["opening_date"].replace("-", "")
-        # DTEND for an all-day event is exclusive (the day *after* it ends),
-        # per RFC 5545 - closing_date itself is the last day of the run.
-        closing = row["closing_date"] or row["opening_date"]
-        end_exclusive = (date.fromisoformat(closing) + timedelta(days=1)).strftime("%Y%m%d")
+        lines += _vevent(row, stamp)
 
-        summary = f"{row['show']} - {row['society_name']}"
-        url = notify.link(url_for("public.show_detail", show_id=row["id"]))
-
-        lines += [
-            "BEGIN:VEVENT",
-            f"UID:show-{row['id']}@aims-show-tracker",
-            f"DTSTAMP:{stamp}",
-            f"DTSTART;VALUE=DATE:{opening}",
-            f"DTEND;VALUE=DATE:{end_exclusive}",
-            f"SUMMARY:{_ics_escape(summary)}",
-            f"URL:{url}",
-        ]
-        if row["venue"]:
-            lines.append(f"LOCATION:{_ics_escape(row['venue'])}")
-        lines.append("END:VEVENT")
-
-    lines.append("END:VCALENDAR")
-
-    return Response("\r\n".join(lines) + "\r\n", mimetype="text/calendar")
+    return _calendar(lines, calname)
 
 
 @bp.route("/manifest.webmanifest")

@@ -4,13 +4,14 @@ import re
 import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 
-from .. import notify
+from .. import notify, social_card
 from ..auth import active_society_code, current_user
-from ..calendar_links import google_calendar_url
+from ..calendar_links import google_calendar_url, outlook_calendar_url
 from ..circuit_intelligence import (
     award_tally, best_overall_show_wins, production_ids_for_title,
     regional_distribution, revival_candidate, signature_categories,
@@ -1411,6 +1412,7 @@ def show_detail(show_id):
     # random visitor - it now lives on the society's own edit-show page,
     # see society.edit_show().)
     gcal_show_url = None
+    outlook_show_url = None
     # Just opening_date minus 6 weeks (AIMS's real application deadline) -
     # arithmetic on a date the page already displays, never AIMS's own internal
     # scheduling info, so it leaks nothing.
@@ -1423,13 +1425,15 @@ def show_detail(show_id):
     if is_upcoming:
         opening = date.fromisoformat(show["opening_date"])
         closing = date.fromisoformat(show["closing_date"]) if show["closing_date"] else opening
-        gcal_show_url = google_calendar_url(
+        _cal = dict(
             text=f"{show['show']} - {show['society_name']}",
             start=opening,
             end_exclusive=closing + timedelta(days=1),
             details=f"AIMS production - {notify.link(url_for('public.show_detail', show_id=show['id']))}",
             location=show["venue"] or "",
         )
+        gcal_show_url = google_calendar_url(**_cal)
+        outlook_show_url = outlook_calendar_url(**_cal)
         if show["review_status"] != "Not adjudicated" and _may_see_own_show_admin(show):
             adjudication_cutoff = (opening - timedelta(weeks=6)).isoformat()
 
@@ -1504,7 +1508,8 @@ def show_detail(show_id):
 
     return render_template(
         "show_detail.html", show=show, is_upcoming=is_upcoming,
-        gcal_show_url=gcal_show_url, adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
+        gcal_show_url=gcal_show_url, outlook_show_url=outlook_show_url,
+        adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
         historical_review=historical_review, award_history=award_history,
         season_ended=season_has_ended(db, show["season"]), circuit_summary=circuit_summary,
         related=related,
@@ -2240,6 +2245,55 @@ def watchlist():
 @bp.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(current_app.config["UPLOAD_DIR"], filename)
+
+
+@bp.route("/shows/<int:show_id>/card.png")
+def show_card(show_id):
+    """The shareable card for one show - see app/social_card.py.
+
+    Public and unauthenticated on purpose: the whole point is that a society
+    can hand the URL to a committee member, or drop it into a WhatsApp group,
+    without anyone logging in. It exposes nothing the show page does not
+    already show.
+
+    Cached for an hour rather than forever because the card carries a
+    days-to-opening countdown, so a permanently-cached copy would go stale and
+    then wrong. An hour is well inside a day."""
+    db = get_db()
+    show = db.execute(
+        """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.id = ? AND shows.moderation_status = 'approved'
+          AND shows.show IS NOT NULL AND NOT societies.hidden
+        """,
+        (show_id,),
+    ).fetchone()
+    if show is None:
+        abort(404)
+
+    size = request.args.get("size", social_card.DEFAULT_SIZE)
+    if size not in social_card.SIZES:
+        size = social_card.DEFAULT_SIZE
+
+    poster_path = None
+    if show["poster_filename"]:
+        candidate = Path(current_app.config["UPLOAD_DIR"]) / show["poster_filename"]
+        if candidate.is_file():
+            poster_path = candidate
+
+    png = social_card.render_card(
+        show,
+        size=size,
+        poster_path=poster_path,
+        url=notify.link(url_for("public.show_detail", show_id=show_id)),
+    )
+    response = current_app.response_class(png, mimetype="image/png")
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["Content-Disposition"] = (
+        f'inline; filename="{social_card.card_filename(show)}"'
+    )
+    return response
 
 
 # --- Costumes, Props & Sets Exchange ---

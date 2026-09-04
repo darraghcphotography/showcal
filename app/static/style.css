@@ -1252,6 +1252,55 @@ details table { margin-top: 0.5rem; }
 }
 .share-button:hover { border-color: var(--accent); }
 
+/* "Add to calendar" - a <details> so it works with JS off, sized to match
+   .share-button beside it. The four routes it holds are not interchangeable:
+   Google and Outlook are pre-filled web URLs, the .ics is the only route that
+   reaches Apple Calendar and any desktop client. */
+.cal-menu { position: relative; }
+.cal-menu > summary {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  list-style: none;
+  white-space: nowrap;
+}
+.cal-menu > summary::-webkit-details-marker { display: none; }
+.cal-menu > summary:hover, .cal-menu[open] > summary { border-color: var(--accent); }
+.cal-menu > ul {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+.cal-menu > ul a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+  color: var(--fg);
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+.cal-menu > ul li:last-child a { border-bottom: 0; }
+.cal-menu > ul a:hover { background: var(--row-alt); }
+.cal-menu > ul a span { margin-left: auto; color: var(--muted); font-size: 0.78rem; }
+/* On a phone the menu would otherwise run off the right edge. */
+@media (max-width: 480px) {
+  .cal-menu { position: static; }
+  .cal-menu > ul { left: 0; right: 0; min-width: 0; }
+}
+
 .detail-list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.4rem 1rem; }
 .detail-list dt { color: var(--muted); }
 .detail-list dd { margin: 0; overflow-wrap: break-word; }
@@ -3034,3 +3083,21 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
   }
 }
 
+
+/* The society's "share your show" card page. Cards are wide, so the grid is
+   one column until there is genuinely room for two - a 1200x630 image squeezed
+   into a half-width column on a tablet is unreadable as a preview. */
+.card-sizes { display: grid; gap: var(--space-5); grid-template-columns: minmax(0, 1fr); margin: var(--space-5) 0; }
+@media (min-width: 900px) { .card-sizes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.card-size { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.card-size h2 { margin: 0; font-size: var(--t-lg); }
+.card-size .meta { margin: 0; }
+.card-size img {
+  width: 100%; height: auto; display: block;
+  border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--row-alt);
+}
+.card-caption {
+  width: 100%; max-width: 62ch; font: inherit; font-size: var(--t-sm);
+  padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--row-alt); color: var(--fg); resize: vertical;
+}

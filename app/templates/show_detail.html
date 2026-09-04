@@ -27,6 +27,27 @@
               aria-label="Bookmark show" title="Save to My Watchlist">🔖 Save</button>
       <button type="button" class="share-button" id="share-button" data-url="{{ absolute_url(url_for('public.show_detail', show_id=show['id'])) }}"
               aria-label="Share this show">Share</button>
+      {#- Four routes, deliberately. Google and Outlook are web calendars and
+          take a pre-filled URL; Apple Calendar has no such URL, so the .ics
+          is the only route for it - and on an iPhone the .ics is the *native*
+          path, so a Google-only control excluded a large share of the
+          audience. A <details> rather than a JS menu, same pattern as the
+          nav dropdowns, so it works with JS off. -#}
+      {% if show['opening_date'] %}
+        <details class="cal-menu">
+          <summary aria-label="Add this show to your calendar">📅 Add to calendar</summary>
+          <ul>
+            {% if gcal_show_url %}
+              <li><a href="{{ gcal_show_url }}" rel="noopener" target="_blank">Google Calendar <span>opens in browser</span></a></li>
+            {% endif %}
+            <li><a href="{{ url_for('feeds.show_calendar_ics', show_id=show['id']) }}">Apple Calendar <span>.ics file</span></a></li>
+            {% if outlook_show_url %}
+              <li><a href="{{ outlook_show_url }}" rel="noopener" target="_blank">Outlook <span>opens in browser</span></a></li>
+            {% endif %}
+            <li><a href="{{ url_for('feeds.show_calendar_ics', show_id=show['id']) }}" download>Download .ics <span>any calendar app</span></a></li>
+          </ul>
+        </details>
+      {% endif %}
     </div>
   </div>
   <span class="visually-hidden" id="share-status" role="status" aria-live="polite"></span>
@@ -82,9 +103,6 @@
         <dt>Dates</dt>
         <dd>
           {% if show['opening_date'] %}{{ show['opening_date']|date_range(show['closing_date']) }}{% else %}{{ 'Not on record' if season_ended else 'TBA' }}{% endif %}
-          {% if gcal_show_url %}
-            <br><a href="{{ gcal_show_url }}" rel="noopener" target="_blank">📅 Add show to Google Calendar</a>
-          {% endif %}
         </dd>
 
         <dt>Venue</dt>

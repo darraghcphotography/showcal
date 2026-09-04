@@ -421,6 +421,44 @@ def new_show():
     )
 
 
+@bp.route("/shows/<int:show_id>/card")
+@society_required
+def show_card(show_id):
+    """The society's own page for getting a shareable card for one of its shows.
+
+    The card image itself is public (`public.show_card`) - it has to be, or a
+    society could not paste the URL into a committee WhatsApp group. This page
+    is behind the login only because it is *their* workspace: the three shapes,
+    the download links and the prompt to upload a poster if they have not.
+
+    The pitch, and the reason this exists at all: 175 of 194 societies have
+    never uploaded a poster, and every previous approach asked them for one.
+    This gives them something first."""
+    db = get_db()
+    society, _ = _current_society(db)
+    show = db.execute(
+        """
+        SELECT shows.*, societies.name AS society_name
+        FROM shows JOIN societies ON societies.id = shows.society_id
+        WHERE shows.id = ? AND shows.society_id = ?
+        """,
+        (show_id, society["id"]),
+    ).fetchone()
+    if show is None:
+        abort(404)
+
+    return render_template(
+        "society_show_card.html",
+        society=society,
+        show=show,
+        sizes=[
+            ("post", "Post", "1200 x 630", "Facebook, X, and link previews"),
+            ("square", "Square", "1080 x 1080", "An Instagram feed post"),
+            ("story", "Story", "1080 x 1920", "Instagram and Facebook stories"),
+        ],
+    )
+
+
 @bp.route("/shows/<int:show_id>/edit", methods=("GET", "POST"))
 @society_required
 def edit_show(show_id):
