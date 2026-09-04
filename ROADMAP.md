@@ -13,6 +13,35 @@ still open (not started, explicitly parked, or blocked on something). When a ses
 open item, move its entry to `ROADMAP_ARCHIVE.md` rather than letting resolved items accumulate here
 again.
 
+## START HERE - fresh site review, two fixes shipped and verified live (2026-09-04)
+
+> Darragh asked for a fresh full-site review (not a rehash of the backlog) and to fix whatever
+> turned up. Two real findings, both fixed, both deployed and confirmed live. **1075 tests green.**
+>
+> - **`sitemap.xml` / `robots.txt` / `calendar.ics` all advertised `http://`** (`6197908`). Same
+>   root cause as the `og:` tags fix (2026-09-02, see the block below): the Cloudflare Tunnel gives
+>   the origin no `X-Forwarded-Proto`, so `url_for(_external=True)` honestly reports http. This is
+>   the same bug in three more places `absolute_url()`/`notify.link()` hadn't reached yet - all 19
+>   call sites in `app/blueprints/feeds.py` swapped over. Two existing tests had themselves codified
+>   the bug as correct (one literally asserted the http fallback was right) - rewritten, not just
+>   the source. Verified live: `curl https://darraghc.ie/showcal/sitemap.xml` and `/robots.txt` both
+>   show `https://` now (the one remaining `http://` in the sitemap is the XML namespace URI, which
+>   is supposed to be that).
+> - **Venue detail pages scrolled sideways on a phone** (`b8d9d39`). 4 of 15 sampled venues
+>   overflowed 3-38px - `.detail-list`'s grid track was a bare `1fr` (really `minmax(auto, 1fr)`),
+>   so a long value (a website URL) could force the page wider than the screen. Fixed with
+>   `minmax(0, 1fr)` + `overflow-wrap: break-word`, same overflow class as the `.run` grid bug fixed
+>   2026-09-02. Verified against a full crawl of every venue detail page at 320px/390px, not just
+>   the 3 named venues. Confirmed live via the actual versioned CSS URL the site serves (an
+>   unversioned fetch showed Cloudflare's edge cache, which is expected and harmless - the versioned
+>   URL every page actually links to already serves the fix).
+>
+> **One more overflow found, not fixed:** a single venue with an unusually long name overflows at
+> 320px via its `<h1>`, not `.detail-list` - a different bug, out of scope for this pass. Worth
+> queuing.
+
+---
+
 ## START HERE - share previews, and a scheme bug worth knowing about (2026-09-03)
 
 > Darragh sent a photo of a WhatsApp preview showing a gold "M" on a **crimson** field. Three faults

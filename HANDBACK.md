@@ -535,3 +535,60 @@ stakes on fixing it.
 - Same caveat applies to whatever Carto tier the site's original build assumed was free forever —
   worth checking whether they've *actually* discontinued anonymous tiles or just added a soft nag,
   in case Esri's terms turn out worse and Carto-with-a-key becomes the better option.
+
+---
+
+## 2026-09-04 — Claude (Sonnet 5); fresh site review, two fixes
+
+**Who:** Claude Sonnet 5.
+
+**Branch:** `main` (direct push, per the deploy rule — both are bug fixes, no schema/route/auth
+change, nothing a visitor would notice as a *change* rather than a correction).
+
+**Tests:** 1073 -> 1075 passed.
+
+**What prompted this:** Darragh asked for a fresh full-site review, not a rehash of the open
+backlog, and to fix what turned up.
+
+**What was done:**
+
+1. **`sitemap.xml`/`robots.txt`/`calendar.ics` reported `http://` in production** (`6197908`). Same
+   Cloudflare Tunnel scheme bug fixed for `og:` tags on 2026-09-02 (no `X-Forwarded-Proto` reaches
+   the origin, so `url_for(_external=True)` honestly reports http) — this was the same fault in
+   three routes `absolute_url()` never touched. Swapped all 19 `url_for(..., _external=True)` call
+   sites in `app/blueprints/feeds.py` to `notify.link(url_for(...))`. Found and rewrote two existing
+   tests in `test_round1_foundation.py` that had themselves codified the bug as correct behavior —
+   one asserted a manual `X-Forwarded-Proto` test header (which production never sends) fixed the
+   scheme, the other asserted the plain-http fallback was the right thing to expect. Added new
+   coverage for `robots.txt`'s Sitemap: line and `calendar.ics`'s event URL, neither of which had
+   any scheme test before.
+2. **Venue detail pages overflowed sideways on a phone** (`b8d9d39`). `.detail-list`'s CSS grid
+   track was a bare `1fr` (`minmax(auto, 1fr)` in practice), so an unbroken long value — a website
+   URL, in every failing case — could force the column, and the page, wider than the viewport.
+   Fixed with `minmax(0, 1fr)` + `overflow-wrap: break-word` on the `dd`. Added
+   `tests/test_venue_detail_layout.py` asserting both CSS rules are present (pytest can't measure a
+   rendered layout, so it asserts the two properties that make the browser's layout engine actually
+   shrink the track — same style as `test_table_cards_mobile.py`'s docstring reasoning).
+
+**Verification, not just "tests pass":**
+- Started a local Flask dev server and drove it with Playwright: confirmed the 3 venues named in
+  the review (St. Michael's Theatre New Ross, UCD Astra Hall, The Dean Crowe Theatre) went from
+  overflowing to `overflow=0px` at both 320px and 390px, then crawled **all 137 local venue detail
+  pages** at both widths to check for regressions — none, aside from one unrelated pre-existing
+  overflow (see below).
+- Verified both fixes against the live site after the GitOps poll picked them up: `curl
+  https://darraghc.ie/showcal/sitemap.xml` and `/robots.txt` both show `https://` (the one
+  remaining `http://` in the sitemap is the XML namespace declaration, which is supposed to be
+  that, not a bug). For the CSS fix, an unversioned `curl` of `/static/style.css` initially showed a
+  stale hash — turned out to be Cloudflare's edge cache on a URL nothing actually links to
+  (`Cache-Control: max-age=31536000`); the real page links `style.css?v=<asset_version>`, and
+  fetching that exact versioned URL confirmed the fix is what real visitors get.
+
+**Production data written:** None — both fixes are code/CSS only.
+
+**Left unresolved / flag for next agent:**
+- **A single venue with an unusually long name overflows at 320px via its `<h1>`**, found while
+  crawling all 137 venue pages for regressions on the fix above. Different root cause (an unwrapped
+  heading, not `.detail-list`) — not fixed here, since it wasn't one of the two named findings and
+  deserved its own look rather than a rushed tack-on. Worth queuing; not urgent (320px-only, one
+  venue).

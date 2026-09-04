@@ -331,18 +331,37 @@ pre-Christmas shows.
      isolation and badly in place, because the card body repeats two of the three directly
      below it.
 
+7. **A single venue's `<h1>` overflows sideways at 320px.** Found 2026-09-04 while crawling all 137
+   local venue detail pages to verify the `.detail-list` grid fix. Different root cause (an
+   unwrapped long venue name in the heading, not the grid) — not fixed, since it wasn't one of that
+   session's two named findings. Low blast radius (one venue, 320px only) but a real, measured fault.
+
 Explicitly **not** worth a session, per the roadmap's own argument: re-matching the 52 unmatched
 ShowTimes reviews (only about 3 will clear), and splitting `public.py` (~1,930 lines — a
 judgement call, not a defect; do not let it jump the queue).
 
 ---
 
-## Current state, 2026-09-02
+## Current state, 2026-09-04
 
 Every figure here was counted against the **live** database on that date, not carried forward.
 
-- **HEAD `0a8c8ae`**, deployed and verified live by md5 against the Stack 8 checkout.
-  **1034 tests green.**
+- **HEAD `b8d9d39`**, deployed and verified live by md5 against the Stack 8 checkout (both the
+  running container's file and, for the CSS fix, the actual versioned URL the live page links to —
+  an unversioned fetch reads a stale Cloudflare edge cache and is not a real check).
+  **1075 tests green.**
+- **Since 2026-09-02 (below):** Gemini Flash implemented the nav/venues/titles restructure it was
+  handed (`ae1899c`) — 3-pillar nav, a unified `/venues` hub with the map merged in, "All Shows"
+  renamed to "Repertoire" per Darragh's call. Then the merged map turned out to render CartoDB's
+  tiles with an "API KEY REQUIRED" watermark (a Carto-side pricing change, not a regression from
+  either agent) — swapped to Esri Canvas basemaps (`bbfc505`), verified across both themes and two
+  breakpoints. Then a fresh full-site review (2026-09-04, not a rehash of the backlog) found and
+  fixed two more real faults: `sitemap.xml`/`robots.txt`/`calendar.ics` still said `http://` (same
+  Cloudflare Tunnel scheme bug as the `og:` tags fix below, just not yet reached — `6197908`), and
+  venue detail pages overflowed sideways on a phone when a value like a website URL was long
+  (`.detail-list`'s CSS grid track was a bare `1fr`, fixed to `minmax(0, 1fr)` — `b8d9d39`).
+- **194 societies (171 with no logo), 118 venues** — recounted live 2026-09-04. The "176 of 194 / 18
+  with a logo" figures in older entries below have drifted; trust this line over them.
 - **`main` had been red since 2026-09-02 before that session noticed** — a test hardcoded two
   September 2026 dates and the earlier one silently became the past. The previous handback entry
   claiming 985 green was 984. CI does not gate the deploy, so check it rather than trusting a
