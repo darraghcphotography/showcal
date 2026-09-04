@@ -1,9 +1,14 @@
 """Round 1 foundation fixes from the 2026-08-17 site audit:
-- url_for(_external=True) trusts X-Forwarded-Proto (app/__init__.py's ProxyFix)
 - a custom 500 page, matching the existing 404
 - a plain <meta name="description"> alongside the existing og:description
 - Referrer-Policy/Permissions-Policy headers
 - app/shows.py's is_upcoming() shared by public.py and society.py
+
+The original 2026-08-17 fourth bullet here - "url_for(_external=True) trusts
+X-Forwarded-Proto" - never actually worked in production: the Cloudflare
+Tunnel sends no X-Forwarded-Proto header at all, so ProxyFix had nothing to
+promote. Superseded 2026-09-04 by notify.link()/SITE_URL, same mechanism as
+app/__init__.py's absolute_url(). See the sitemap/robots tests below.
 """
 from datetime import date, timedelta
 
@@ -12,17 +17,48 @@ from conftest import seed_society
 from app.shows import is_upcoming
 
 
-def test_sitemap_uses_forwarded_https_scheme(client):
-    resp = client.get("/sitemap.xml", environ_overrides={"HTTP_X_FORWARDED_PROTO": "https"})
-    body = resp.get_data(as_text=True)
-    assert "<loc>https://" in body
+def test_sitemap_uses_site_url_when_configured(client, monkeypatch):
+    """Superseded 2026-09-04. This used to test that /sitemap.xml picked up
+    https:// via X-Forwarded-Proto - a mechanism that turned out to never
+    actually fire in production. The Cloudflare Tunnel terminates TLS and
+    hands the origin a plain HTTP request with no X-Forwarded-Proto header at
+    all, so ProxyFix(x_proto=1) never has anything to promote and
+    url_for(_external=True) honestly reported http:// on every single sitemap
+    URL, live, the whole time - this test was asserting a header override
+    that production never actually sends, so it passed while the real bug sat
+    undetected (found 2026-09-04, via `sitemap.xml` itself on the live site).
+
+    Fixed by dropping url_for(_external=True) for notify.link(), the same
+    SITE_URL-based helper already proven correct for og:url/og:image
+    (app/__init__.py's absolute_url(), 2026-09-03) - env config, not a
+    proxy header, decides the scheme now."""
+    monkeypatch.setattr("app.notify.SITE_URL", "https://darraghc.ie/showcal")
+    body = client.get("/sitemap.xml").get_data(as_text=True)
+    assert "<loc>https://darraghc.ie/showcal" in body
     assert "<loc>http://" not in body
 
 
-def test_sitemap_falls_back_to_plain_http_without_forwarded_header(client):
-    resp = client.get("/sitemap.xml")
-    body = resp.get_data(as_text=True)
-    assert "<loc>http://" in body
+def test_sitemap_has_no_scheme_at_all_without_site_url_configured(client):
+    """The other half of the same fix: local dev has no SITE_URL set, and the
+    old behaviour there was url_for(_external=True) falling back to
+    request.url_root - which produced a syntactically-valid but meaningless
+    http://localhost/... URL. notify.link() returns the bare relative path
+    instead when SITE_URL is unset, which is honest about not knowing the
+    real domain rather than fabricating a wrong one. It must never silently
+    reintroduce a bare http:// URL either way."""
+    body = client.get("/sitemap.xml").get_data(as_text=True)
+    assert "<loc>http://" not in body
+    assert "<loc>https://" not in body
+    # Still a real, working sitemap - just without a domain prepended.
+    assert "<loc>/" in body or "<loc>" in body
+
+
+def test_robots_txt_sitemap_directive_uses_site_url_when_configured(client, monkeypatch):
+    """robots.txt's Sitemap: line went through the identical url_for(_external=True)
+    bug - fixed in the same commit as the two tests above."""
+    monkeypatch.setattr("app.notify.SITE_URL", "https://darraghc.ie/showcal")
+    body = client.get("/robots.txt").get_data(as_text=True)
+    assert "Sitemap: https://darraghc.ie/showcal/sitemap.xml" in body
 
 
 def test_sitemap_includes_the_previously_missing_index_pages(client):

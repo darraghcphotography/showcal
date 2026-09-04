@@ -17,6 +17,20 @@ def _insert_show(db, society_id, show, section, region="Eastern", opening_date="
     db.commit()
 
 
+def test_event_url_uses_site_url_when_configured(client, db, monkeypatch):
+    """calendar.ics's per-event URL: line went through the same
+    url_for(_external=True) bug as sitemap.xml and robots.txt (fixed
+    2026-09-04) - it was reporting http:// on every one of 448 real events in
+    production, confirmed by fetching the live feed directly."""
+    monkeypatch.setattr("app.notify.SITE_URL", "https://darraghc.ie/showcal")
+    society_id = seed_society(db)
+    _insert_show(db, society_id, "Oliver!", "Gilbert")
+
+    body = client.get("/calendar.ics").get_data(as_text=True)
+    assert "URL:https://darraghc.ie/showcal/shows/" in body
+    assert "URL:http://" not in body
+
+
 def test_unfiltered_feed_includes_both_tiers(client, db):
     society_id = seed_society(db)
     _insert_show(db, society_id, "Oliver!", "Gilbert")

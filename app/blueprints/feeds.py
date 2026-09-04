@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, Response, current_app, request, send_from_directory, url_for
 
+from .. import notify
 from ..clock import utcnow_compact
 from ..constants import REGIONS
 from ..db import get_db
@@ -133,7 +134,7 @@ def calendar_ics():
         end_exclusive = (date.fromisoformat(closing) + timedelta(days=1)).strftime("%Y%m%d")
 
         summary = f"{row['show']} - {row['society_name']}"
-        url = url_for("public.show_detail", show_id=row["id"], _external=True)
+        url = notify.link(url_for("public.show_detail", show_id=row["id"]))
 
         lines += [
             "BEGIN:VEVENT",
@@ -185,7 +186,7 @@ def service_worker():
 
 @bp.route("/robots.txt")
 def robots_txt():
-    body = "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /submit/\n" f"Sitemap: {url_for('feeds.sitemap_xml', _external=True)}\n"
+    body = "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /submit/\n" f"Sitemap: {notify.link(url_for('feeds.sitemap_xml'))}\n"
     return Response(body, mimetype="text/plain")
 
 
@@ -194,29 +195,29 @@ def sitemap_xml():
     db = get_db()
     today = date.today().isoformat()
 
-    urls = [(url_for("public.index", _external=True), today)]
-    urls.append((url_for("public.societies_list", _external=True), today))
-    urls.append((url_for("info.season_summary", _external=True), today))
-    urls.append((url_for("info.season_calendar", _external=True), today))
-    urls.append((url_for("info.stats", _external=True), today))
-    urls.append((url_for("public.adjudicators_list", _external=True), today))
+    urls = [(notify.link(url_for("public.index")), today)]
+    urls.append((notify.link(url_for("public.societies_list")), today))
+    urls.append((notify.link(url_for("info.season_summary")), today))
+    urls.append((notify.link(url_for("info.season_calendar")), today))
+    urls.append((notify.link(url_for("info.stats")), today))
+    urls.append((notify.link(url_for("public.adjudicators_list")), today))
     # The rest of the public site - present in the app's own nav but missing
     # from here until now, which meant search engines could never find them.
-    urls.append((url_for("public.titles_list", _external=True), today))
-    urls.append((url_for("public.venues_index", _external=True), today))
-    urls.append((url_for("info.awards", _external=True), today))
-    urls.append((url_for("public.reviews_index", _external=True), today))
-    urls.append((url_for("info.stats_trends", _external=True), today))
-    urls.append((url_for("public.about", _external=True), today))
+    urls.append((notify.link(url_for("public.titles_list")), today))
+    urls.append((notify.link(url_for("public.venues_index")), today))
+    urls.append((notify.link(url_for("info.awards")), today))
+    urls.append((notify.link(url_for("public.reviews_index")), today))
+    urls.append((notify.link(url_for("info.stats_trends")), today))
+    urls.append((notify.link(url_for("public.about")), today))
 
     for row in db.execute("SELECT id FROM societies WHERE section != 'Inactive'").fetchall():
-        urls.append((url_for("public.society_detail", society_id=row["id"], _external=True), today))
+        urls.append((notify.link(url_for("public.society_detail", society_id=row["id"])), today))
 
     for row in db.execute(
         "SELECT id, updated_at FROM shows WHERE moderation_status = 'approved' AND show IS NOT NULL"
     ).fetchall():
         lastmod = (row["updated_at"] or today)[:10]
-        urls.append((url_for("public.show_detail", show_id=row["id"], _external=True), lastmod))
+        urls.append((notify.link(url_for("public.show_detail", show_id=row["id"])), lastmod))
 
     # One entry per distinct title, matching titles_list()'s own definition of
     # "a title on record" - these are some of the site's best, most-searched
@@ -231,16 +232,16 @@ def sitemap_xml():
         GROUP BY title_key
         """
     ).fetchall():
-        urls.append((url_for("public.title_detail", title=row["show"], _external=True), today))
+        urls.append((notify.link(url_for("public.title_detail", title=row["show"])), today))
 
     for row in db.execute("SELECT slug FROM venues").fetchall():
-        urls.append((url_for("public.venue_detail", venue=row["slug"], _external=True), today))
+        urls.append((notify.link(url_for("public.venue_detail", venue=row["slug"])), today))
 
     # Only an adjudicator with at least one real assignment has a live page -
     # one added in /admin/adjudicators but never assigned yet 404s, same
     # rule adjudicators_list() applies to its own roster.
     for row in db.execute("SELECT DISTINCT adjudicator_id FROM adjudicator_assignments").fetchall():
-        urls.append((url_for("public.adjudicator_detail", adjudicator_id=row["adjudicator_id"], _external=True), today))
+        urls.append((notify.link(url_for("public.adjudicator_detail", adjudicator_id=row["adjudicator_id"])), today))
 
     xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for loc, lastmod in urls:
