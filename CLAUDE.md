@@ -149,6 +149,19 @@ shell there:
 3. **Read `/docs` before asking.** `docs/user-guide.md`, `docs/moderator-guide.md`,
    `docs/deployment.md`, and `docs/data-model.md` already answer most "how does X work" or
    "why is Y built this way" questions - check there first.
+
+   Two of them earn a specific mention because they prevent specific, recurring mistakes:
+
+   - **`docs/glossary.md` - read this before writing a query.** A *show*, a *production* and a
+     *title* are three different things in three different places, and picking the wrong one is a
+     silent wrong answer, not an error. It also settles section vs lifecycle status vs region,
+     the two different things both called `season_start_year`, and which UI labels differ from
+     their database term. Use the canonical term it gives in code, comments and commit messages.
+   - **`docs/spikes.md` - things we assume work and have never checked.** Not a bug list; a list
+     of unproven beliefs (tile-provider terms, whether our emails actually reach an inbox, whether
+     the site works with a screen reader). **When you notice a new one, add it there** rather than
+     burying it in a `HANDBACK.md` entry that scrolls out of reach. Resolve one by *checking*, not
+     by reasoning about it - then delete it and record the finding where it belongs.
 4. **Check `ROADMAP.md` at the start of a session.** It tracks the current phase of work, a flat
    list of genuinely open items, and working agreements from prior retrospectives - update it when
    the phase changes rather than just saying the plan out loud in chat, since chat history doesn't

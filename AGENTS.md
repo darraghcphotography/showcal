@@ -29,6 +29,17 @@ lists the tests that will need updating.
    Update it when the phase changes; that is what makes a session survive a context reset.
 3. **`docs/`** — `user-guide.md`, `moderator-guide.md`, `deployment.md`, `data-model.md`.
    Most "how does X work" and "why is Y like this" questions are already answered there.
+
+   **`docs/glossary.md` is not optional reading if you are going to write a query.** A *show*, a
+   *production* and a *title* are three different records in three different places; using the
+   wrong one returns a plausible wrong answer rather than an error. It also settles `section` vs
+   `lifecycle_status` vs `region`, and the two different things both named `season_start_year`.
+   Use its canonical terms in your commits and comments so the vocabulary does not fork.
+
+   **`docs/spikes.md` lists what we assume works and have never verified** — tile-provider terms,
+   whether our emails actually land in an inbox, screen-reader support. If you notice a new such
+   assumption, add it there. If you *resolve* one, resolve it by checking rather than reasoning,
+   then delete it and record the finding where it belongs.
 4. **`HANDBACK.md`** — the log you write to. See §7.
 
 `ROADMAP_ARCHIVE.md` is history, not a to-do list. Read it only when you need the reasoning
