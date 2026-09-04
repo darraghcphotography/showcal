@@ -316,11 +316,13 @@ pre-Christmas shows.
 
    Still genuinely open in that same document: **off-box backup** — see item 3.
 
-5. **Costumes / props / sets listings, per show.** The only backlog item with a written,
-   attributable request from a real member (`feature_suggestions` row 4, triaged *Planned* by
-   Darragh). Scope is settled as per-show. It is also the biggest lift on the board — new data
-   model, new admin UI, a matching concept — so it wants its own scoping pass and a written
-   proposal before any code.
+5. ~~**Costumes / props / sets listings, per show.**~~ **SHIPPED** — it is the Costumes & Props
+   Exchange (`/exchange`, `wardrobe_items` / `wardrobe_photos`), and it was already live when this
+   item still described it as "the biggest lift on the board". Verified in code 2026-09-04. One
+   real listing so far. Contact details on a listing are restricted to signed-in societies — that
+   was a live privacy exposure once, so do not widen it back. **Two genuinely-unbuilt items took
+   its place on the board: the social card generator and the society edit audit log** — both
+   confirmed absent, both in `ROADMAP.md`'s open list.
 
 6. ~~**The two design items**~~ — **both shipped 2026-09-02**, along with a full design pass.
    Society pages now lead with stat tiles; the missing-poster placeholder is a typeset playbill
@@ -346,6 +348,14 @@ pre-Christmas shows.
    local venue detail pages to verify the `.detail-list` grid fix. Different root cause (an
    unwrapped long venue name in the heading, not the grid) — not fixed, since it wasn't one of that
    session's two named findings. Low blast radius (one venue, 320px only) but a real, measured fault.
+
+8. **Four `url_for(..., _external=True)` call sites still emit `http://`.** Found 2026-09-04 during
+   a backlog audit. Same Cloudflare Tunnel bug fixed in `feeds.py` that day — the tunnel sends no
+   `X-Forwarded-Proto`, so `_external=True` honestly reports http. These four were simply never
+   reached: `admin/access_requests.py:117` and `:199` (**the magic-link URL emailed to a society**),
+   `public.py:1430` (Add-to-Google-Calendar event details) and `show_detail.html:28` (the share
+   button). Fix with `notify.link(url_for(...))` or the `absolute_url()` Jinja global. **Do not
+   "fix" it by widening `ProxyFix`** — there is no header to trust.
 
 Explicitly **not** worth a session, per the roadmap's own argument: re-matching the 52 unmatched
 ShowTimes reviews (only about 3 will clear), and splitting `public.py` (~1,930 lines — a
