@@ -896,3 +896,73 @@ trap that nearly had 69 live society websites recorded as dead in August; the ru
 **Files:** `scripts/backfills/clear_dead_rights_urls.py` and its list
 `scripts/backfills/clear_dead_rights_urls.json` (committed as the audit record of a destructive
 change — it names every URL removed and why).
+
+---
+
+## 2026-09-05 (last) — Claude (Opus 5); backups now default to the right place
+
+**Who:** Claude Opus 5. **Tests:** 1108 -> 1111. **Production data written:** None.
+
+`backup_db.py --backup-dir` defaulted to the *script's* directory. In the container that is
+`/app`, part of the image's writable layer that GitOps replaces on every deploy — so a by-hand
+backup went to `/app/backups`, reported success, and was destroyed by the next push.
+
+**I hit this myself**, taking a backup immediately before clearing 102 rows of production data
+earlier today. Caught it from the directory listing and retook the backup with the flag before
+writing anything, so nothing was ever actually at risk — but the safety net I thought I had was
+already gone.
+
+**The scheduled `aims-backup` sidecar has always passed `--backup-dir /data/backups` explicitly, so
+nightly backups were never affected.** Verified: the sidecar is up and `/data/backups` holds 28
+backups spanning 20 August to today. That is also exactly why this survived unnoticed for months —
+the automated path was fine and only an interactive run was wrong.
+
+**The fix keys the default to the database, not the script:** `/data/aims.db` -> `/data/backups`,
+`./aims.db` -> `./backups`. A hardcoded `/data/backups` would have fixed the container and broken
+local dev. `verify_backup.py` gets the identical rule, because the two resolving differently is its
+own silent failure — verify would report "no backup found" about a database being backed up
+perfectly well. Three tests cover it, including an end-to-end run with no flags.
+
+**Still open, and unchanged by this:** backups live on the same volume as the database. That is the
+off-box backup item, and it is the only open item whose downside is losing everything.
+
+---
+
+## 2026-09-05 (final) — Claude (Opus 5); a foreign key violation I caused on 2026-09-03
+
+**Who:** Claude Opus 5. **Production data written: YES** — one row: `historical_reviews.show_id`
+595 repointed from deleted show 1596 to show 1147.
+
+**Found by accident, which is the part worth noting.** Running `verify_backup.py` to test the
+backup-path fix above reported `foreign key violations: 1`. Nothing else on the site was watching
+for this — no test, no admin counter, no page. It had been live since 2026-09-03.
+
+**I caused it.** `merge_song_dundalk.py` deleted the duplicate society's shows because the keeper
+already held the same productions. Its `REFERENCING` guard checked every table pointing at a
+*society* and refused to delete while any still did — but it never checked what referenced the
+**shows it deleted itself**. `historical_reviews.show_id` did.
+
+Bisected against the nightly backups rather than reasoned about:
+
+```
+aims-20260902-233744   fk_violations=0   show 1596 present
+aims-20260903-154853   fk_violations=1   show 1596 gone
+```
+
+The casualty was a real adjudicator review of SONG Dundalk's 13/14 *Little Women* (ShowTimes Issue
+93), left pointing at nothing.
+
+**Fixed by repointing, not deleting.** Show 1147 is society 108's 13/14 *Little Women* — the same
+production under the society the merge kept. `fix_orphaned_song_review.py` moves it there, refuses
+if the season does not match, and prints `PRAGMA foreign_key_check` before committing. Verified:
+0 violations, and the review now renders on `/shows/1147` on the live site.
+
+**A comment block has been added to `merge_song_dundalk.py`** naming this hole, because that script
+is the only society-merge example in the repo and will be the template for the next one. The
+lesson generalises: **a backfill that deletes rows should run `PRAGMA foreign_key_check` inside its
+own dry-run.** It would have caught this before anything was written.
+
+**Not fixed, recorded instead:** that review's `society_raw` reads "Shannon Musical Society" and its
+`society_id` is 98 (Shannon), while the review text plainly says "SONG in Dundalk gave us a
+compelling tale". That mis-attribution predates the merge and is a judgement call about a printed
+source none of us can see.

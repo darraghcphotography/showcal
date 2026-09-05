@@ -507,6 +507,13 @@ listing something as open, every time.
 
 ### Data work
 
+- **A backfill that deletes rows should run `PRAGMA foreign_key_check` in its own dry-run.**
+  Learned 2026-09-05: `merge_song_dundalk.py` guarded every table referencing the *society* it
+  deleted and none referencing the **shows it deleted itself**, so a real adjudicator review sat
+  pointing at a deleted show for two days. Nothing on the site was watching - it surfaced from
+  `verify_backup.py` while testing something unrelated. Fixed
+  (`scripts/backfills/fix_orphaned_song_review.py`), and the hole is now commented in the merge
+  script, which is the template the next merge will copy.
 - **55 orphaned `historical_reviews` rows.** Recounted live 2026-09-04. This file carried "~112"
   for weeks and 54 more recently; the count drifts, so **recount before acting**. Still not
   deleted, because "it looks unmatched" is not a test - see `docs/spikes.md`.

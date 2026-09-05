@@ -58,6 +58,19 @@ CARRY_OVER = ("website_url", "about")
 # Every table that points at a society (grepped from schema.sql). The script
 # refuses to delete while any of them still references the duplicate, so a
 # table added later cannot be silently orphaned.
+#
+# ⚠ THIS GUARD HAS A HOLE, AND IT COST A REAL ROW. It covers what references
+# the *society*, and says nothing about what references the **shows this script
+# deletes itself** further down. `historical_reviews.show_id` did:
+# review 595, a genuine adjudicator review of the 13/14 Little Women, was left
+# pointing at deleted show 1596 and sat as a foreign key violation from
+# 2026-09-03 until `fix_orphaned_song_review.py` repointed it on 2026-09-05. It
+# surfaced from `verify_backup.py`, not from anything watching the database.
+#
+# If this is ever used as a template for another merge: before deleting a show,
+# check every column that references `shows(id)`, not just `societies(id)` -
+# and run `PRAGMA foreign_key_check` before committing, which would have caught
+# it in the dry-run.
 REFERENCING = (
     ("shows", "society_id"),
     ("productions", "society_id"),
