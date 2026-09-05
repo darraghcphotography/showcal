@@ -5,6 +5,19 @@ a live database file can capture a torn, inconsistent snapshot if something
 is mid-write at that exact moment; sqlite3's backup() always produces a
 consistent copy regardless.
 
+Backups are written **beside the database being backed up**, not beside this
+script: `--db /data/aims.db` writes to `/data/backups`, and a local
+`py backup_db.py` still writes to `./backups` as before.
+
+That is not a cosmetic default. `--backup-dir` used to default to the script's
+own directory, which inside the container is `/app` - part of the image's
+writable layer, which GitOps replaces on every deploy. A backup taken by hand
+without the flag went to `/app/backups` and was destroyed by the next push,
+having reported success. Claude did exactly that on 2026-09-05 before a
+destructive data fix and only noticed because the directory listing looked
+wrong. The scheduled `aims-backup` sidecar always passed the flag explicitly,
+so nightly backups were never affected - this only ever bit an interactive run.
+
 Usage:
     py backup_db.py [--db aims.db] [--backup-dir backups] [--keep 14]
 
@@ -24,10 +37,22 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 
 
+def default_backup_dir(db_path):
+    """A 'backups' directory beside the database itself.
+
+    Keyed to the database rather than to this file so the same command is
+    correct in both places: `/data/aims.db` -> `/data/backups` (the mounted
+    volume), `./aims.db` -> `./backups` (unchanged for local dev)."""
+    return Path(db_path).resolve().parent / "backups"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", default=str(ROOT / "aims.db"))
-    parser.add_argument("--backup-dir", default=str(ROOT / "backups"))
+    parser.add_argument("--backup-dir", default=None,
+                        help="Default: a 'backups' directory beside the database itself, "
+                             "so a container run lands on the mounted volume rather than in "
+                             "the image's writable layer")
     parser.add_argument("--keep", type=int, default=14,
                         help="Always retain at least this many of the most recent backups, "
                              "whatever day they fall on (default 14)")
@@ -36,7 +61,7 @@ def main():
                              "(default 30)")
     args = parser.parse_args()
 
-    backup_dir = Path(args.backup_dir)
+    backup_dir = Path(args.backup_dir) if args.backup_dir else default_backup_dir(args.db)
     backup_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")

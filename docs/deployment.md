@@ -135,6 +135,15 @@ Two layers, both required - one alone isn't enough:
    ```bash
    docker exec aims-web python backup_db.py --db /data/aims.db --backup-dir /data/backups
    ```
+   `--backup-dir` is now optional - the default is a `backups` directory
+   beside the database itself, so `--db /data/aims.db` lands on the mounted
+   volume either way. It is left explicit above because the sidecar has always
+   passed it and there is no reason to change a working scheduled command.
+   **Before 2026-09-05 the default was the script's own directory**, which in
+   the container is `/app` - part of the image layer that GitOps replaces on
+   every deploy. A by-hand backup without the flag reported success and was
+   gone at the next push. The sidecar was never affected, which is why nothing
+   caught it for months.
    Either way, this uses SQLite's own online backup API (safe against a
    mid-write torn copy), writes timestamped files under `/data/backups`,
    and keeps the last 14 by default. This only actually survives a reboot

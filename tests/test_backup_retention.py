@@ -112,3 +112,61 @@ def test_a_file_we_cannot_date_is_never_deleted(tmp_path):
     prune(backup_dir, db, keep=1, keep_days=1)
 
     assert (backup_dir / "aims-before-the-big-import.db").exists()
+
+
+# --- where the backup actually lands -----------------------------------------
+#
+# Added 2026-09-05. `--backup-dir` defaulted to the *script's* directory, which
+# in the container is `/app` - part of the image's writable layer, replaced by
+# GitOps on every deploy. A backup taken by hand without the flag went to
+# `/app/backups`, printed success, and was destroyed by the next push. Claude
+# did exactly that immediately before a destructive data fix on 2026-09-05.
+#
+# The scheduled `aims-backup` sidecar always passed the flag, so nightly
+# backups were never affected - which is precisely why nothing caught it.
+
+def test_the_backup_lands_beside_the_database_not_beside_the_script(tmp_path):
+    """The fix: keyed to the database, so the same command is right in both
+    places. Guessing a hardcoded /data would break local dev instead."""
+    sys.path.insert(0, str(ROOT))
+    import backup_db
+
+    assert backup_db.default_backup_dir("/data/aims.db") == Path("/data/backups").resolve()
+
+    db = tmp_path / "somewhere" / "aims.db"
+    db.parent.mkdir()
+    db.touch()
+    assert backup_db.default_backup_dir(str(db)) == tmp_path / "somewhere" / "backups"
+
+
+def test_verify_backup_looks_where_backup_db_writes(tmp_path):
+    """These two resolving differently is its own silent failure: verify would
+    report "no backup found" about a database being backed up perfectly well."""
+    sys.path.insert(0, str(ROOT))
+    import backup_db
+    import verify_backup
+
+    db = tmp_path / "aims.db"
+    db.touch()
+    assert backup_db.default_backup_dir(str(db)) == verify_backup.default_backup_dir(str(db))
+
+
+def test_a_real_run_with_no_flags_writes_beside_the_database(tmp_path):
+    """End to end, because the default is only worth anything if argparse
+    actually reaches it."""
+    import sqlite3
+    db = tmp_path / "aims.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE t (a INTEGER)")
+    conn.commit()
+    conn.close()
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "backup_db.py"), "--db", str(db)],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    written = list((tmp_path / "backups").glob("aims-*.db"))
+    assert len(written) == 1, f"expected one backup beside the db, found {written}"
+    assert not (ROOT / "backups").joinpath(written[0].name).exists(), \
+        "the backup landed next to the script instead of next to the database"

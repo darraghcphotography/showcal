@@ -37,6 +37,11 @@ from app import productions_build, venues_build  # noqa: E402
 ROOT = Path(__file__).parent
 
 
+def default_backup_dir(db_path):
+    """Same rule as backup_db.py: beside the database, not beside this file."""
+    return Path(db_path).resolve().parent / "backups"
+
+
 def newest_backup(backup_dir):
     backups = sorted(Path(backup_dir).glob("aims-*.db"))
     return backups[-1] if backups else None
@@ -44,15 +49,22 @@ def newest_backup(backup_dir):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--backup-dir", default=str(ROOT / "backups"))
+    parser.add_argument("--backup-dir", default=None,
+                        help="Default: a 'backups' directory beside the database, matching "
+                             "backup_db.py - see its docstring for why that is not the "
+                             "script's own directory")
     parser.add_argument("--backup", help="A specific backup file (default: the newest)")
     parser.add_argument("--db", default=str(ROOT / "aims.db"),
                         help="The live database, for a row-count comparison")
     args = parser.parse_args()
 
-    backup = Path(args.backup) if args.backup else newest_backup(args.backup_dir)
+    # Must resolve the same way backup_db.py does, or verify looks in a
+    # directory nothing was ever written to and reports "no backup found"
+    # about a database that is being backed up perfectly well.
+    backup_dir = Path(args.backup_dir) if args.backup_dir else default_backup_dir(args.db)
+    backup = Path(args.backup) if args.backup else newest_backup(backup_dir)
     if backup is None or not backup.exists():
-        print(f"FAIL: no backup found in {args.backup_dir}")
+        print(f"FAIL: no backup found in {backup_dir}")
         return 1
     print(f"Verifying {backup} ({backup.stat().st_size / 1_048_576:.1f} MB)")
 
