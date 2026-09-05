@@ -662,3 +662,39 @@ rebuild, not just a file sync** — worth confirming on the next deploy after th
 - **The poster museum is parked, on Darragh's explicit call** ("put it in one for the future") —
   60 posters against a ~100 trigger. Re-raise it when the count passes 100. The social card is the
   thing most likely to move that number, so the two are linked.
+
+---
+
+## 2026-09-05 — Gemini Antigravity; Repertoire casting data enrichment completed
+
+**Who:** Gemini Antigravity.
+
+**Branch:** `main` (dataset output only under `enrichment/` which is untracked/gitignored).
+
+**Tests:** **1108 passed**, full test suite clean and green.
+
+**What was done:**
+- Executed the casting data enrichment task briefed in [`enrichment/REPERTOIRE_DATA_BRIEF.md`](file:///d:/showdb/enrichment/REPERTOIRE_DATA_BRIEF.md) across all 299 titles from [`enrichment/repertoire_worklist.json`](file:///d:/showdb/enrichment/repertoire_worklist.json), strictly following [`enrichment/RULES.md`](file:///d:/showdb/enrichment/RULES.md).
+- **Environment & Network Verification:** Confirmed external network connectivity by verifying that `example.com` and licensing endpoints are fully reachable via subprocess execution.
+- **Downloaded & Verified Primary Show Sources:**
+  - Downloaded and cached all 192 direct official licensing pages in `scratch/repertoire_cache/`.
+  - Downloaded 76 MTI itemized character breakdown subpages (`/full-cast-info/<id>`).
+  - Downloaded official pages for confirmed iconic commercial titles (e.g. *Oklahoma!*, *All Shook Up*, *Little Shop of Horrors*, *9 To 5*, *Grease*, *Beauty And The Beast*, *The Producers*, *Brigadoon*, *Into The Woods*).
+- **Enrichment Results (`enrichment/repertoire_worklist_filled.json`):**
+  - **129 titles filled** with verified casting data (`cast_source_url` recorded for every filled row):
+    - **82 MTI titles** (principal roles, explicit male/female/flexible roles from character breakdown, act counts, chorus size).
+    - **37 Concord Theatricals titles** (explicit `Xw, Ym` character breakdown, cast size min/max, duration/runtime minutes, chorus size).
+    - **8 TRW titles** (explicit `W / M / Ensemble` breakdown, runtime minutes, chorus size).
+    - **2 ALW titles** (named characters counted, ensemble presence verified; noted in `cast_notes` that source tags roles without explicit gender attributes).
+  - **170 titles left blank**:
+    - 43 Public Domain operettas/works without commercial licensing pages.
+    - 25 Amateur Original / Irish estate scripts without commercial licensing pages.
+    - 29 rows citing prohibited sources (`guidetomusicaltheatre.com` or `wikipedia.org`) — rejected per Rule 4, kept completely blank.
+    - 72 rows where the licensing URL 404'd, required login (HTTP 403), or redirected to the house homepage (HTTP 302) due to stale product IDs. Error strings (`HTTP 404 Page not found`, `Redirected to Homepage (HTTP 302)`, `HTTP 403 / Redirected to Log in`) recorded in `cast_notes`.
+  - **Canary titles verified:** Row 140 (*Disney's Frozen: The Broadway Musical*) is completely blank (`cast_notes: "HTTP 404 Page not found"`).
+  - **Arithmetic & self-contradiction verification:** Verified that `roles_male + roles_female + (roles_flexible or 0) == principal_roles`. For 35 MTI shows where MTI's summary infographic role number diverged from the itemized character breakdown list, both numbers and the exact difference are recorded transparently in `cast_notes` (e.g. *Fiddler on the Roof*: infographic states 14, character breakdown lists 16; *Guys and Dolls*: infographic states 12, character breakdown lists 11).
+  - Preserved exact 299 row count, order, and `title` / `times_staged_by_aims_societies` values.
+- Validated via automated script `scratch/validate_repertoire_filled.py` asserting zero schema or rule violations.
+
+**Production data written:** None.
+
