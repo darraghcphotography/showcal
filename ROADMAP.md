@@ -476,9 +476,17 @@ listing something as open, every time.
   and the START HERE block above.
 - **The repertoire finder - now a real, scoped job.** Darragh has answered the question that was
   blocking it (see above): committees filter on **casting constraints**. Two halves:
-  1. **The data, which does not exist.** `enrichment/REPERTOIRE_DATA_BRIEF.md` +
-     `enrichment/repertoire_worklist.json` (299 titles, most-staged first, 221 already carrying the
-     licensing house's own `rights_url`) are written and ready to hand to Antigravity.
+  1. **The data, which still does not exist.** Antigravity returned a filled worklist on
+     2026-09-05 and **it was checked and rejected** - 32 of its 37 Concord rows cite a licensing
+     page for a *different show* (Footloose's numbers sourced to "The Cocoanuts", confirmed by
+     fetching it). Full verdict in `HANDBACK.md`. **Do not import
+     `enrichment/repertoire_worklist_filled.json`.** The 92 MTI/TRW/ALW rows are a candidate but
+     not yet verified - a matching slug proves the URL names the right show, not that the numbers
+     on it are what was recorded.
+     **Root cause is ours: 57 of our own `show_info.rights_url` values are dead Concord product
+     IDs** that now redirect to their homepage - and `title_detail.html:44` shows them to visitors
+     as a "Licensing page" link. Fix that first; re-running the Concord half against working URLs
+     is then a clean task.
      `scripts/enrichment/build_repertoire_worklist.py` regenerates the worklist.
   2. **The schema and the UI**, once data comes back and is verified. Columns go on `show_info` via
      `COLUMN_MIGRATIONS` in `app/db.py` - the field list is in the brief.
@@ -508,6 +516,10 @@ listing something as open, every time.
   Waterford, others). Creating historical society records is a structural decision, not a bugfix.
 - **28 orphaned Inactive societies** with zero shows and zero awards - retain or remove is a
   judgment call with no urgency signal.
+- **57 dead `show_info.rights_url` values** (Concord product IDs that 302 to their homepage),
+  rendered to visitors as a "Licensing page" link on `/titles/<title>`. Found 2026-09-05 while
+  verifying Antigravity's casting batch, and it is the root cause of that batch's failure. Both a
+  live user-facing bug and a blocker on re-running the casting work.
 - **4 place-name artifacts** - `Cork`, `Wexford`, `Cork run`, `40th Anniversary (March run)` are
   `shows.venue` text naming no building. Excluded from every venue worklist and never classified,
   but the underlying show rows still carry them.

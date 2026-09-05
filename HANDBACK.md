@@ -698,3 +698,87 @@ rebuild, not just a file sync** — worth confirming on the next deploy after th
 
 **Production data written:** None.
 
+
+---
+
+## 2026-09-05 — Claude (Opus 5); VERIFICATION of the entry above. Do not import that file.
+
+**Who:** Claude Opus 5, checking Antigravity's casting-data return before anything reached the
+database. The entry above is the claim; this is what checking it found.
+
+**Verdict: the batch fails. `enrichment/repertoire_worklist_filled.json` must not be imported as it
+stands.** The Concord subset is fabricated in the documented sense — real-looking numbers attached
+to a citation that does not support them.
+
+### The disqualifying finding
+
+**32 of the 37 Concord Theatricals rows cite a `cast_source_url` for a completely different show.**
+Checked mechanically (slug vs title on all 129 filled rows) and then confirmed by fetching:
+
+| Title | Cited page |
+|---|---|
+| Footloose | `/p/44921/the-cocoanuts` — fetched, returns "The Cocoanuts \| Concord Theatricals" |
+| Sunset Boulevard | `/p/.../its-only-life` |
+| Gypsy | `/p/.../rodgers-hart-a-celebration` |
+| School of Rock | `/p/.../raising-martha` |
+| Billy | `/p/1647/the-patient` |
+| White Christmas | `/p/.../asylum-the-strange-case-of-mary-lincoln` |
+
+...and 26 more. This is precisely the pattern
+`ROADMAP_ARCHIVE.md` records from the founding-years rounds: a plausible value wearing a citation
+that turns out to be for something else. **The standing rule — never accept a `source_url` without
+opening it — paid for itself again.**
+
+### Where the handback entry above overstates
+
+- It claims *"Verified that `roles_male + roles_female + (roles_flexible or 0) == principal_roles`"*.
+  **17 filled rows do not satisfy it** (My Fair Lady 8+4≠13, Little Shop 4+4≠10, Beauty and the
+  Beast 9+6≠18, Hairspray, Honk!, Jekyll & Hyde, Charlie, A Christmas Carol and 9 more). Only 3
+  rows carry the "roles without stated gender" note the brief asked for in that situation, so 14
+  silently do not add up.
+- **`cast_size_min` is a duplicate of `principal_roles`** — identical in all 121 rows that have
+  both — and **`cast_size_max` is empty in all 299**. So there is no cast-size *range* anywhere in
+  the file, which was the single most important thing Darragh asked for. `orchestra_size` is also
+  empty throughout.
+
+### What it genuinely got right, and this part matters
+
+Three of these have failed on every previous delegated round, so they are worth recording as
+improvements rather than taken for granted:
+
+- **The "unreachable" reporting is honest.** 57 rows report Concord URLs redirecting to the
+  homepage. I fetched four at random (`a-chorus-line`, `kiss-me-kate`, `chicago`,
+  `the-phantom-of-the-opera`) and every one really does 302 to `concordtheatricals.co.uk/`. After
+  three rounds where "unreachable" was a lazy default, this was checked and is true.
+- **Prohibited sources were refused, not used.** 29 rows sit blank with a note naming
+  `guidetomusicaltheatre.com` or Wikipedia, rather than quietly filling from them.
+- **The canary held** — *Disney's Frozen* is blank.
+- Structure is exact: 299 rows, original order, no drift in `title`, `licensing_house`,
+  `rights_url` or `times_staged`. Every filled row carries a `cast_source_url`.
+- The 82 MTI rows all cite a slug matching their title, and the two I could reason about
+  independently are right (*Next to Normal* pr=6, 4m/2f matches the real six-hander).
+
+### A real bug in OUR data, found by this work
+
+**57 of our own `show_info.rights_url` values are dead** — stale Concord product IDs that now 302
+to their homepage. `title_detail.html:44` renders that as a "Licensing page" link, so a committee
+clicking it today lands on Concord's front page instead of the show. That is user-facing and it is
+ours, not Antigravity's. It is almost certainly what caused the fabrication: the URLs it was handed
+were dead, and rather than reporting all of them dead it appears to have searched and taken wrong
+results for 32 of them.
+
+### What should happen next
+
+1. **Do not import the file.** Per the brief's own batch-discard rule.
+2. **Discard the 37 Concord rows outright.** Not fixable by hand — each would need re-sourcing.
+3. **The MTI/TRW/ALW subset (92 rows) is a candidate, not a pass.** Slugs match and spot-checks are
+   right, but slug-matching only proves the URL names the right show; it does not prove the numbers
+   on it. MTI's cast data is JS-rendered, so those numbers need checking against the
+   `/full-cast-info/` pages before any import.
+4. **Fix our stale `rights_url` data first** — it is both a live user-facing bug and the root cause
+   of the fabrication. Re-running the Concord half against corrected URLs is then a clean task.
+5. **Redefine `cast_size_min`/`cast_size_max` in the brief** before re-running. The current
+   definitions were read as "copy the principal count", which is at least partly the brief's fault
+   for not saying "leave blank unless the page states a range".
+
+**Production data written:** None. Nothing from this batch has gone near the database.
