@@ -1,0 +1,512 @@
+[
+  {
+    "show": "42nd Street",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/2117/42nd-street",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "A Chorus Line",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44917/a-chorus-line",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "A Slice of Saturday Night",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1802/a-slice-of-saturday-night",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "A Tale of Two Cities",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/8908/a-tale-of-two-cities",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Andy Capp",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1628/andy-capp",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Billy",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1647/billy",
+    "reason": "serves a different show: The Patient"
+  },
+  {
+    "show": "Bitter Sweet",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1649/bitter-sweet",
+    "reason": "serves a different show: A Piece of Monologue"
+  },
+  {
+    "show": "Bless The Bride",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1651/bless-the-bride",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Blossom Time",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1654/blossom-time",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Bugsy Malone",
+    "rights_url": "https://www.theatricalrights.co.uk/show/bugsy-malone/",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Calendar Girls",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/65910/calendar-girls-the-musical",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Camelot",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44910/camelot",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Carrie",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1586/carrie-the-musical",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Cats",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44914/cats",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Chicago",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44916/chicago",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Copacabana",
+    "rights_url": "https://www.mtishows.co.uk/barry-manilows-copacabana",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Dames At Sea",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1691/dames-at-sea",
+    "reason": "serves a different show: Rockaby"
+  },
+  {
+    "show": "Disney’s Frozen: The Broadway Musical",
+    "rights_url": "https://www.mtishows.co.uk/disneys-frozen-the-broadway-musical",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Everybody's Talking About Jamie",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/65911/everybodys-talking-about-jamie",
+    "reason": "serves a different show: Bright Shadow"
+  },
+  {
+    "show": "Everybody's Talking About Jamie (Teen Edition)",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/92429/everybodys-talking-about-jamie-teen-edition",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Finian's Rainbow",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44919/finians-rainbow",
+    "reason": "serves a different show: A Catered Affair"
+  },
+  {
+    "show": "Flower Drum Song",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44920/rodgers-hammersteins-flower-drum-song",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Footloose",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44921/footloose",
+    "reason": "serves a different show: The Cocoanuts"
+  },
+  {
+    "show": "Funny Girl",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44922/funny-girl",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "George M",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44923/george-m",
+    "reason": "serves a different show: Floyd Collins"
+  },
+  {
+    "show": "Gigi",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44924/gigi",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Goodnight Mr. Tom",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1722/goodnight-mister-tom",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Gypsy",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44925/gypsy",
+    "reason": "serves a different show: Rodgers & Hart - A Celebration"
+  },
+  {
+    "show": "Hadestown: Teen Edition",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/92523/hadestown-teen-edition",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Hair",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44926/hair",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Happy Days",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1730/happy-days-a-new-musical",
+    "reason": "serves a different show: Smile (Ashman)"
+  },
+  {
+    "show": "Hard Times",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1732/hard-times-the-musical",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "High Society",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44927/high-society",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Hollywood Pinafore",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1739/hollywood-pinafore",
+    "reason": "serves a different show: A Sting in the Tale"
+  },
+  {
+    "show": "I Love You, You're Perfect, Now Change",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44928/i-love-you-youre-perfect-now-change",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "In The Heights",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44929/in-the-heights",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Iolanthe",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44930/iolanthe",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Irene",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44931/irene",
+    "reason": "serves a different show: Smokey Joe's Café - The Songs of Leiber and Stoller"
+  },
+  {
+    "show": "Kiss Me Kate",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44933/kiss-me-kate",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Kiss of the Spider Woman",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44934/kiss-of-the-spider-woman",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "La Cage Aux Folles",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44935/la-cage-aux-folles",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Li'l Abner",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44936/lil-abner",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Little Mary Sunshine",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44937/little-mary-sunshine",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Mack & Mabel",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44938/mack-mabel",
+    "reason": "serves a different show: Dr. Selavy's Magic Theatre"
+  },
+  {
+    "show": "Meet Me In St. Louis",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44939/meet-me-in-st-louis",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Naughty Marietta",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44940/naughty-marietta",
+    "reason": "serves a different show: Queen Of The Mist"
+  },
+  {
+    "show": "Newsies",
+    "rights_url": "https://www.mtishows.co.uk/disneys-newsies",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Nunsense",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44941/nunsense",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Oh Susanna!",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1780/oh-susanna",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "On The Twentieth Century",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44942/on-the-twentieth-century",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "On Your Toes",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44943/on-your-toes",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Once Upon A Mattress",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44944/once-upon-a-mattress",
+    "reason": "serves a different show: Now. Here. This."
+  },
+  {
+    "show": "Paint Your Wagon",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44945/paint-your-wagon",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Patience",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44946/patience",
+    "reason": "serves a different show: Eleanor - An American Love Story"
+  },
+  {
+    "show": "Peg O' My Heart",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1785/peg-o-my-heart",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Peter Pan",
+    "rights_url": "https://www.mtishows.co.uk/peter-pan-a-musical-adventure",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Pirates! The Penzance Musical",
+    "rights_url": "https://www.mtishows.co.uk/pirates-the-penzance-musical",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Priscilla Queen of the Desert",
+    "rights_url": "https://www.theatricalrights.co.uk/show/priscilla-queen-of-the-desert-the-musical/",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Promises, Promises",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44947/promises-promises",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Ragtime The Musical",
+    "rights_url": "https://www.mtishows.co.uk/ragtime-the-musical",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Rio Rita",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44948/rio-rita",
+    "reason": "serves a different show: Myths & Hymns"
+  },
+  {
+    "show": "Rock Nativity",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1792/rock-nativity",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Rock of Ages",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44949/rock-of-ages",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Rodgers & Hammerstein's Cinderella",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44950/rodgers-hammersteins-cinderella-broadway-version",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Rose Marie",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44951/rose-marie",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Salad Days",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1798/salad-days",
+    "reason": "serves a different show: Top Girls"
+  },
+  {
+    "show": "School of Rock",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/62112/school-of-rock",
+    "reason": "serves a different show: Raising Martha"
+  },
+  {
+    "show": "Scrooge",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1800/scrooge-the-musical",
+    "reason": "serves a different show: Towards Zero"
+  },
+  {
+    "show": "Shakespeare in Love",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/57995/shakespeare-in-love",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Six - The Musical (Teen Edition)",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/92430/six-teen-edition",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Snoopy The Musical",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44952/snoopy-the-musical",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Some Like It Hot",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44953/sugar-some-like-it-hot",
+    "reason": "serves a different show: First Date"
+  },
+  {
+    "show": "SpongeBob SquarePants: The Broadway Musical",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/65912/the-spongebob-musical",
+    "reason": "serves a different show: Sunday Afternoon"
+  },
+  {
+    "show": "Starlight Express",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44954/starlight-express",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Sugar",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44953/sugar-some-like-it-hot",
+    "reason": "serves a different show: First Date"
+  },
+  {
+    "show": "Sunset Boulevard",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44955/sunset-boulevard",
+    "reason": "serves a different show: It's Only Life"
+  },
+  {
+    "show": "The Beautiful Game",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44956/the-beautiful-game",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Bells Are Ringing",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44957/bells-are-ringing",
+    "reason": "serves a different show: Giant (LaChiusa)"
+  },
+  {
+    "show": "The Best Little Whorehouse In Texas",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44958/the-best-little-whorehouse-in-texas",
+    "reason": "serves a different show: Bright Lights, Big City"
+  },
+  {
+    "show": "The Boys In The Photograph",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44956/the-beautiful-game",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Clockmaker's Daughter",
+    "rights_url": "https://www.mtishows.co.uk/the-clockmakers-daughter",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "The Desert Song",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44959/the-desert-song",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "The Gondoliers",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44960/the-gondoliers",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Likes Of Us",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44961/the-likes-of-us",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The New Moon",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44962/the-new-moon",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Phantom of the Opera",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44963/the-phantom-of-the-opera",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Pirate Queen",
+    "rights_url": "https://www.mtishows.co.uk/the-pirate-queen",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "The Rocky Horror Show",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44964/the-rocky-horror-show",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Scarlet Pimpernel",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44965/the-scarlet-pimpernel",
+    "reason": "serves a different show: Mid-Life! The Crisis Musical"
+  },
+  {
+    "show": "The Student Prince",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44966/the-student-prince",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The White Horse Inn",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44967/the-white-horse-inn",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Wiz",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44968/the-wiz",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "The Yeomen Of The Guard",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44969/the-yeomen-of-the-guard",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Top Hat",
+    "rights_url": "https://www.mtishows.co.uk/top-hat",
+    "reason": "HTTP 404"
+  },
+  {
+    "show": "Two By Two",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44970/two-by-two",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  },
+  {
+    "show": "Viva Mexico",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/1825/viva-mexico",
+    "reason": "serves a different show: Trevor"
+  },
+  {
+    "show": "We Will Rock You",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/65913/we-will-rock-you",
+    "reason": "serves a different show: Bed-Time"
+  },
+  {
+    "show": "Whistle Down The Wind",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44971/whistle-down-the-wind",
+    "reason": "serves a different show: Beguiled Again"
+  },
+  {
+    "show": "White Christmas",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44972/irving-berlins-white-christmas",
+    "reason": "serves a different show: Asylum: The Strange Case of Mary Lincoln"
+  },
+  {
+    "show": "Wonderful Town",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44973/wonderful-town",
+    "reason": "serves a different show: Carrie: The Musical"
+  },
+  {
+    "show": "Zorba",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44974/zorba",
+    "reason": "serves a different show: Irving Berlin's White Christmas"
+  },
+  {
+    "show": "[Title of Show]",
+    "rights_url": "https://www.concordtheatricals.co.uk/p/44975/title-of-show",
+    "reason": "redirects to the licensing house's homepage - the product ID is retired"
+  }
+]

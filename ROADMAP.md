@@ -477,16 +477,16 @@ listing something as open, every time.
 - **The repertoire finder - now a real, scoped job.** Darragh has answered the question that was
   blocking it (see above): committees filter on **casting constraints**. Two halves:
   1. **The data, which still does not exist.** Antigravity returned a filled worklist on
-     2026-09-05 and **it was checked and rejected** - 32 of its 37 Concord rows cite a licensing
-     page for a *different show* (Footloose's numbers sourced to "The Cocoanuts", confirmed by
-     fetching it). Full verdict in `HANDBACK.md`. **Do not import
-     `enrichment/repertoire_worklist_filled.json`.** The 92 MTI/TRW/ALW rows are a candidate but
-     not yet verified - a matching slug proves the URL names the right show, not that the numbers
-     on it are what was recorded.
-     **Root cause is ours: 57 of our own `show_info.rights_url` values are dead Concord product
-     IDs** that now redirect to their homepage - and `title_detail.html:44` shows them to visitors
-     as a "Licensing page" link. Fix that first; re-running the Concord half against working URLs
-     is then a clean task.
+     2026-09-05. **Do not import `enrichment/repertoire_worklist_filled.json`** - 32 of its Concord
+     rows describe the wrong shows. **The cause was ours, not its:** our stored Concord URLs
+     carried wrong product IDs, and Concord's `/p/<id>/<slug>` treats the ID as authoritative, so
+     it was sent to the wrong pages and faithfully recorded where it landed. Claude first read that
+     as fabricated citations and **was wrong**; the correction is in `HANDBACK.md` and is worth
+     reading, because the mistake was reaching for a known failure mode instead of testing it.
+     The 92 MTI/TRW/ALW rows are a candidate but unverified - a matching slug proves the URL names
+     the right show, not that the numbers on it are what was recorded.
+     **The bad URLs are now fixed** (`b2b7885`+, 102 cleared), so re-running the Concord half is a
+     clean task - but it needs fresh, working URLs first, which we do not have.
      `scripts/enrichment/build_repertoire_worklist.py` regenerates the worklist.
   2. **The schema and the UI**, once data comes back and is verified. Columns go on `show_info` via
      `COLUMN_MIGRATIONS` in `app/db.py` - the field list is in the brief.
@@ -516,10 +516,18 @@ listing something as open, every time.
   Waterford, others). Creating historical society records is a structural decision, not a bugfix.
 - **28 orphaned Inactive societies** with zero shows and zero awards - retain or remove is a
   judgment call with no urgency signal.
-- **57 dead `show_info.rights_url` values** (Concord product IDs that 302 to their homepage),
-  rendered to visitors as a "Licensing page" link on `/titles/<title>`. Found 2026-09-05 while
-  verifying Antigravity's casting batch, and it is the root cause of that batch's failure. Both a
-  live user-facing bug and a blocker on re-running the casting work.
+- ~~**Dead `show_info.rights_url` values**~~ **FIXED 2026-09-05** - 102 cleared, not the 57 first
+  reported: 57 redirected to the licensing house's homepage, **32 served a different show
+  entirely**, 13 were hard 404s. Cleared rather than replaced, because a link to the wrong show is
+  worse than no link - a committee could research or license the wrong title off it.
+  `licensing_house` is untouched, so the page still says who licenses it.
+  **119 URLs remain and 28 of those are unverified** - 24 on `guidetomusicaltheatre.com` and 4 MTI
+  pages could not be reached from Claude's environment, *which also could not reach
+  `example.com`*, so those failures say nothing about the sites and nothing was cleared on that
+  basis. Re-check them from a normal network before touching them.
+- **29 `rights_url` values are not licensing pages at all** - 24 point at `guidetomusicaltheatre.com`
+  and 5 at Wikipedia, while the page labels all of them "Licensing page". Separate from the dead-link
+  problem and still open.
 - **4 place-name artifacts** - `Cork`, `Wexford`, `Cork run`, `40th Anniversary (March run)` are
   `shows.venue` text naming no building. Excluded from every venue worklist and never classified,
   but the underlying show rows still carry them.

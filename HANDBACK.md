@@ -782,3 +782,117 @@ results for 32 of them.
    for not saying "leave blank unless the page states a range".
 
 **Production data written:** None. Nothing from this batch has gone near the database.
+
+---
+
+## 2026-09-05 (same day, later) — Claude (Opus 5); CORRECTION: I was wrong about the fabrication
+
+**The entry immediately above accuses Antigravity of fabricating citations. That accusation is
+wrong and I withdraw it.** Left standing rather than edited away, because a wrong accusation that
+quietly disappears is worse than one that is corrected in place — and because the mistake I made is
+the more useful lesson.
+
+### What I actually found, correctly
+
+32 Concord rows carried a `cast_source_url` naming a different show from the title. That part is
+true.
+
+### What I concluded, wrongly
+
+That Antigravity had searched, grabbed wrong results and dressed them as citations — the
+founding-years pattern.
+
+### What is actually happening
+
+Concord URLs are `/p/<id>/<slug>`, and **the ID is authoritative while the slug is decorative**.
+Fetched directly:
+
+```
+ours:  https://www.concordtheatricals.co.uk/p/44921/footloose
+lands: https://www.concordtheatricals.co.uk/p/44921/the-cocoanuts
+
+ours:  https://www.concordtheatricals.co.uk/p/44919/finians-rainbow
+lands: https://www.concordtheatricals.co.uk/p/44919/a-catered-affair
+```
+
+**Our own stored URL for Footloose serves The Cocoanuts.** In all 34 differing rows the product ID
+is byte-identical to the one we supplied and only the slug changed — because Concord canonicalised
+the slug to match the ID. Antigravity fetched exactly the URL we handed it and honestly recorded
+the address it ended up at.
+
+**It behaved better than the brief required.** Had it echoed back the URL it was given, the
+returned file would have looked perfect and we would have imported The Cocoanuts' cast as
+Footloose's. Recording the true landing URL is what made the fault visible at all.
+
+The casting data in those 32 rows is still unusable — it describes the wrong shows — but that is
+our data defect, not its dishonesty, and the fix is on our side.
+
+### The lesson, which `ROADMAP.md` already contained
+
+*"Two of my own checks were wrong before the code was. Check the check before believing the
+finding."* I had a slug-vs-title mismatch and reached for the failure mode this project has a
+history of, instead of asking why the IDs were identical. **The pattern-match was the error:** a
+known failure mode is a hypothesis to test, not a verdict. The single command that would have
+settled it — fetching our own URL — took ten seconds and I ran it only after writing the accusation
+up and pushing it.
+
+### The corrected verdict on the batch
+
+- **Antigravity's conduct: no fabrication found.** Sources honestly recorded, prohibited sources
+  refused, unreachability reported truthfully and independently confirmed, canary held, structure
+  exact.
+- **Still true and still stands:** the arithmetic claim is overstated (17 rows do not satisfy it),
+  `cast_size_min` duplicates `principal_roles` in all 121 rows, and `cast_size_max`/`orchestra_size`
+  are empty throughout — so the file still contains no cast-size range.
+- **Still do not import it** — but for a different reason than I first gave: 32 rows describe the
+  wrong shows because we sent it to the wrong pages.
+
+**Production data written:** None.
+
+---
+
+## 2026-09-05 (later) — Claude (Opus 5); cleared 102 licensing links that went to the wrong place
+
+**Who:** Claude Opus 5. **Tests:** 1108 green (no code change; this is data).
+
+**Production data written: YES — 102 `show_info.rights_url` values set to NULL.** Backup taken
+first: `/data/backups/aims-20260905-204336.db`.
+
+**Why.** `title_detail.html:44` renders `rights_url` as a "Licensing page" link. Checking all 221
+of them found 102 that do not go where they claim:
+
+| | |
+|---|---|
+| 57 | redirect to the licensing house's homepage (retired product ID) |
+| 32 | **serve a different show entirely** |
+| 13 | HTTP 404 |
+
+The 32 are the reason this was worth doing now rather than queueing: a committee following the
+*Footloose* link landed on *The Cocoanuts*, and could research, budget or license the wrong title
+off it. **Cleared rather than replaced** — Concord exposes no scrapable index (no sitemap, no
+robots, JS-rendered search), so finding correct IDs would have meant guessing, which is exactly
+what produced the bad IDs. A missing link is honest; a wrong one is not. `licensing_house` is
+untouched, so every page still names who licenses the show.
+
+**Verification.** Dry-run first, then a full before/after reconciliation: 221 had a URL, 119 do
+now, **102 removed — exactly the 102 intended, zero over-clearing, zero missed**. Spot-checked on
+the live site: *Footloose* now shows "Concord Theatricals" with no link; MTI titles (*Fiddler*,
+*Guys and Dolls*, *Les Misérables*) kept theirs.
+
+**What was deliberately NOT touched, and why it matters.** 28 further URLs failed for me — 24 on
+`guidetomusicaltheatre.com` and 4 MTI pages returning 403. **My control fetch of `example.com` also
+failed (000)**, so this environment cannot prove any of them dead. They are untouched. This is the
+trap that nearly had 69 live society websites recorded as dead in August; the rule is in
+`ROADMAP.md` and it applied cleanly here. **Re-check those 28 from a normal network.**
+
+**Two things left open, both newly visible:**
+- **29 `rights_url` values are not licensing pages at all** — 24 `guidetomusicaltheatre.com`, 5
+  Wikipedia — yet the page calls them "Licensing page". Mislabelled rather than broken.
+- **`backup_db.py` defaults to `/app/backups`, inside the container's writable layer**, which
+  GitOps destroys on every deploy. The docstring documents `--backup-dir /data/backups` and I
+  omitted it the first time. Anyone taking a backup by hand must pass that flag, or the backup
+  evaporates at the next push. Worth changing the default.
+
+**Files:** `scripts/backfills/clear_dead_rights_urls.py` and its list
+`scripts/backfills/clear_dead_rights_urls.json` (committed as the audit record of a destructive
+change — it names every URL removed and why).
