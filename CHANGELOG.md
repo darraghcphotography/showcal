@@ -1,3 +1,7 @@
+Changes a society makes to its own listings are now recorded, along with what the value used to be. Societies edit their own history without a moderation queue, which is how it should stay - but until now there was no way to see that a date or a name had been changed, or what it said before. Nothing about what a society can edit has changed; the record is visible to moderators only
+
+---
+
 The FAQ has been taken out of the menus until there is something on it. The page was finished and linked from the homepage, and had no answers on it at all - so one of the links on offer led nowhere. The page itself still works, and the link comes back on its own the moment the first answer is added. The Costumes & Props Exchange now works the same way, though it has a listing and so stays where it is
 
 ---

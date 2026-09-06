@@ -114,9 +114,38 @@ when it had shipped, and claiming a security finding was unfixed when it had bee
 >   against the public site over HTTPS instead. Nothing needed a container command; the ticket
 >   worklist does, and that is why it is not generated.
 >
+> ### 4. Then, from the open list: the society edit audit log
+>
+> Darragh said "you pick from what's open". Most of that list is his judgement calls, not code.
+> The audit log was the strongest actual build item and had been **mocked up on 2026-09-04 and not
+> selected** - I re-picked it on merit, which is worth flagging since he had passed on it once.
+>
+> The argument: societies edit their own history live, with no moderation queue, and a committee
+> shares one login code. So a wrong edit to a decades-old production was **silent, unattributable
+> and unrecoverable**, on a site whose whole value is being a record of what really happened. That
+> is the same class of failure as the FK violation and the `rights_url` incident - a wrong change
+> nobody notices.
+>
+> Built at the cut scope already agreed (append-only, no revert UI) and wired into **all ten**
+> write paths rather than a subset, because a log that misses one reads as "nothing happened"
+> there. Creations log one line; deletions log every field - a created row is recoverable from
+> itself minus later updates, a deleted one is not. Contact fields record that they changed
+> without quoting the value.
+>
+> **I broke `record()` on purpose to check the tests were watching**: 8 of 13 failed. Worth doing
+> whenever a new test file passes first time.
+>
 > ### Still open from this
 >
-> - **Generate and send the ticket worklist** - needs the container, so needs the NAS reachable.
+> - ~~**Generate and send the ticket worklist**~~ **DONE 2026-09-06** - 61 rows generated in the
+>   container and handed to Darragh with the brief. Not yet sent to Antigravity.
+> - **An importer for the returned ticket file** - still not built, still deliberately. Build it as
+>   a validator (page-evidence title/society/dates against our own rows) once the data comes back.
+> - **11 FAQ drafts are in the live database, unpublished.** Written 2026-09-06 at Darragh's
+>   request. The public page and its nav link stay hidden until he publishes at least one. Two
+>   need his eye in particular: "Is this an official AIMS website?" (it speaks for his Council
+>   role) and "How do I get our upcoming show listed?" (it says "ask us" without naming a channel,
+>   because none could be verified).
 > - **The FAQ is the cheaper of the two empty pages to fill.** Six real entries sit in
 >   `feature_suggestions`, and Darragh answers the same committee questions repeatedly. That is the
 >   FAQ, already written, just not typed in.
@@ -644,10 +673,13 @@ listing something as open, every time.
      `COLUMN_MIGRATIONS` in `app/db.py` - the field list is in the brief.
   **Do not build the filters before the data lands.** A cast-size filter over mostly-blank rows is
   worse than no filter, because it silently hides titles rather than admitting it does not know.
-- **Society edit audit log.** Confirmed absent. Societies share one login code, so there is
-  currently no way to tell who made an edit or to undo it. Scope was already cut to the cheap 80%:
-  build the append-only log, drop the revert UI. Mocked up on 2026-09-04 and **not selected** -
-  still wanted, just not next.
+- ~~**Society edit audit log.**~~ **SHIPPED 2026-09-06** (`7245986`), at the cut scope agreed on
+  2026-09-04: append-only log, no revert UI. `app/society_audit.py` + `society_edit_log`, wired
+  into **all ten** society write paths rather than a subset, and readable at
+  `/admin/society-edits`. Three limits are stated on the page itself: it identifies a **login, not
+  a person** (a committee shares one code), it does **not** cover moderator edits made in
+  `/admin`, and there is no revert. It starts empty and cannot be backfilled. A society still
+  cannot delete a show, so the show archive can only grow or be corrected.
 
 ### Parked for the future, with a trigger
 
@@ -711,7 +743,10 @@ listing something as open, every time.
 2. **FTS indexes rebuild on every startup.** Known, deliberate, documented in `db.py` - the obvious
    `COUNT(*)` guard doesn't work on an external-content FTS5 table. Left alone on purpose.
 3. **`page_views` is keyed on path only**, so no query-string question can ever be answered from it.
-   Fine as a popularity counter, useless as analytics. Only worth changing if a real question needs it.
+   Still true, and still fine - it is a popularity counter. **The two questions that actually
+   mattered are now answered elsewhere**: `page_views_daily` (2026-09-06) adds the date and a
+   people-vs-bot split, so "is it growing" and "how much is a crawler" no longer need this table
+   to change. Query strings remain unanswerable and nobody has asked.
 
 ## Housekeeping, low priority, no urgency signal
 

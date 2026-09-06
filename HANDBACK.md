@@ -1118,12 +1118,23 @@ prepared as an Antigravity task. **1142 tests green** (was 1117). `main` clean a
 | `499e5ee` | `page_views_daily` — per-day pageviews split people vs bots, plus the Traffic page chart |
 | `04cea3b` | Empty pages dropped from the nav (five links) — in practice this hides the FAQ only; see the correction below |
 | `fbe32c3` | `build_ticket_worklist.py` + tests; brief written to untracked `enrichment/` |
+| `997609e` | Three-file wrap-up, and the correction below |
+| `7245986` | `society_edit_log` — append-only record of every society-login change |
 
 ### Written to the live database
 
-**Nothing.** No management script was run against production this session. The only schema change
-(`page_views_daily`) is created by `schema.sql` on startup, which the app already re-applies on
-every boot — no migration entry needed, and it adds no column to an existing table.
+**11 FAQ entries, all `status='draft'`.** Backed up first (`aims-20260906-180734.db`). Verified
+after: 11 rows, all draft, the public `/faq` still shows only its heading, and the nav link is
+still hidden. **Nothing goes public until Darragh presses Publish on at least one.** The seeder is
+idempotent (skips a question that already exists) and lives in the session scratchpad, not the
+repo — it is a one-off, not a management script.
+
+Nothing else was written. The two schema additions (`page_views_daily`, `society_edit_log`) are
+created by `schema.sql` on startup, which the app re-applies on every boot — no migration entry
+needed, since neither adds a column to an existing table.
+
+**Also run against production (reads only):** `build_ticket_worklist.py`, which wrote
+`/data/ticket_worklist.json` in the container and was pulled down to `enrichment/`.
 
 ### Verified
 
@@ -1141,18 +1152,28 @@ every boot — no migration entry needed, and it adds no column to an existing t
 
 ### Needs Darragh
 
-- **The ticket worklist is not generated.** It has to run in the container
-  (`docker compose exec aims-web python build_ticket_worklist.py --db /data/aims.db --out
-  /data/ticket_worklist.json`), and **SSH to `dc-qnap-2` timed out for this entire session** —
-  port 22, connection timeout rather than refused. Everything else was verified over HTTPS instead.
-  If that is a firewall change rather than a blip, it is worth knowing, because it also removes the
-  `md5sum` check against Portainer Stack 8 that normally proves a push actually deployed.
-- **The FAQ is the cheap win.** Six real items sit in `feature_suggestions` and Darragh answers the
-  same committee questions repeatedly. Typing in half a dozen answers puts that page — and its nav
-  link — back on its own.
-- **The exchange has exactly one listing, from one society.** The gate shows the link at one item.
-  Whether one listing across 194 societies is enough to earn a nav slot is Darragh's call, not a
-  number I should invent — say so and it becomes a one-line change.
+- **11 FAQ drafts are waiting in `/admin/faq`.** Adapt and publish whichever you want. Two want
+  your eye specifically: **"Is this an official AIMS website?"** — it speaks for your Council role
+  and I would rather you set that wording — and **"How do I get our upcoming show listed?"**, which
+  says "ask us" without naming a channel, because I could not verify how someone is meant to reach
+  you for a login. Publishing any one of them brings the FAQ link back into the nav on its own.
+- **The ticket worklist is generated and handed over, not sent.** 61 rows, `enrichment/`.
+- **Whether one listing earns the Exchange its nav slot** — your call 2026-09-06 was yes, keep it
+  at one. Noted here so it is not re-litigated.
+
+### Superseded earlier in the same session
+
+- ~~**The ticket worklist is not generated.**~~ Generated later the same session, once SSH came
+  back. 61 rows, handed over.
+- ~~**The FAQ is the cheap win.**~~ 11 drafts written into the live database; see above.
+- ~~**The exchange stays hidden until a society lists something.**~~ Wrong premise - it has a
+  listing and stays visible. See the correction above.
+
+**One thing from that stretch is worth keeping: SSH to `dc-qnap-2` timed out for the first hour of
+this session** - port 22, connection timeout rather than refused - and then started working again
+with no intervention. Worth knowing it does that, because while it is down there is no `md5sum`
+check against the Portainer Stack 8 checkout, which is the only thing that definitively proves a
+push deployed. Verifying over HTTPS against the public site is the fallback, and it worked.
 
 ### For the next agent
 

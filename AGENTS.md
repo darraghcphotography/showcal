@@ -81,7 +81,7 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1142 tests pass as of `fbe32c3`**
+Before any push to `main`: `py -m pytest` must be green. **1157 tests pass as of `7245986`**
 (2026-09-06).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
@@ -293,9 +293,9 @@ pre-Christmas shows.
    it is built to prevent is a link that resolves but sells a *different* show, which already
    happened here with `rights_url` (32 of 102 wrong, every one HTTP 200).
 
-3. **The FAQ has 0 entries and is currently hidden from the nav** because of it. Six real items sit
-   in `feature_suggestions` and Darragh answers the same committee questions repeatedly. Drafting
-   answers is useful; **publishing them is Darragh's call** — they speak for the project.
+3. ~~**The FAQ has 0 entries**~~ — **11 drafts written 2026-09-06, 0 published.** They are in
+   `/admin/faq` waiting for Darragh. **Do not publish them yourself**: they speak for the project,
+   and one speaks for his AIMS Council role. The nav link returns on its own when he publishes one.
 
 4. **Data and outreach support** — high value, small blast radius:
    - ~~`/admin/historical-society-links` — 64 printed names releasing 529 award rows~~
@@ -392,7 +392,8 @@ judgement call, not a defect; do not let it jump the queue).
 
 Every figure here was counted against the **live** database on that date, not carried forward.
 
-- **HEAD `fbe32c3`**, pushed 2026-09-06. **1142 tests green**, `main` clean.
+- **HEAD `7245986`**, pushed 2026-09-06. **1157 tests green**, `main` clean. **0 foreign key
+  violations**, checked live.
 - **Counted live 2026-09-06 (later session):** **67 upcoming shows**, of which **61 have no ticket
   link** and 50 have no poster. **1 exchange listing** (Castlebar M&DS, added 2026-08-30),
   **0 FAQ entries**, **24,829 pageviews over 2,628 paths**, 17 never-expiring invite codes.
@@ -411,10 +412,22 @@ Every figure here was counted against the **live** database on that date, not ca
   once its page has content. If you hide another one: **grep for every link, not just
   `base.html`** — three were there, but two more were on `/more` (the entire menu on a phone) and
   one was a banner that appears *precisely when there is nothing to find*.
-- **The ticket-link research task is prepared and unsent.** `build_ticket_worklist.py` (root,
-  tested) plus `enrichment/TICKET_LINKS_BRIEF.md` (untracked, like every brief). The worklist is
-  deliberately not generated — it must run in the container. The brief is designed around **a link
-  that resolves but sells a different show**, which is what went wrong with `rights_url`.
+- **The ticket-link research task is generated and handed to Darragh, not yet sent out.**
+  `build_ticket_worklist.py` (root, tested) plus `enrichment/TICKET_LINKS_BRIEF.md` and
+  `enrichment/ticket_worklist.json` — **61 rows**, both untracked per `.gitignore`. The brief is
+  designed around **a link that resolves but sells a different show**, which is what went wrong
+  with `rights_url`. **Regenerate the worklist before using it if any time has passed** — the
+  upcoming set turns over weekly.
+- **11 FAQ entries exist as drafts in the live database, 0 published** (written 2026-09-06 at
+  Darragh's request). The public `/faq` and its nav link stay hidden until he publishes one.
+  **Do not publish them for him** — they speak for the project, and one of them speaks for his
+  AIMS Council role.
+- **Society edits are now logged** (`society_edit_log`, `app/society_audit.py`, `7245986`),
+  append-only, across all ten `/society/` write paths, readable at `/admin/society-edits`. It
+  starts empty at deploy and cannot be backfilled. It identifies **a login, not a person** — a
+  committee shares one code — and does **not** cover moderator edits made in `/admin`. There is no
+  revert; putting a value back is a normal edit. If you add a society write path, wire it in, or
+  the log's silence there will read as "nothing happened".
 
 ## Superseded: current state, 2026-09-04
 
