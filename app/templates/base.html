@@ -51,6 +51,14 @@
 </head>
 {% set mobile_chrome = request.blueprint not in ('admin', 'society') %}
 <body class="{{ 'has-bottom-nav public-chrome' if mobile_chrome }}">
+  {#- First focusable thing on every page. The nav is a row of dropdowns, so
+      without this a keyboard or screen-reader user tabs through the whole of
+      it before reaching the content, on every single page. axe passes the
+      "bypass blocks" rule on the strength of the <main> landmark alone, which
+      is why this was never flagged - landmarks help a screen reader and do
+      nothing for someone tabbing. Found by driving the site with a keyboard,
+      2026-09-06. -#}
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="site-header-inner">
       <a class="brand" href="{{ url_for('public.index') }}">
@@ -130,7 +138,7 @@
 
   {#- A page whose content is genuinely narrow (prose, or a two-column
      table) opts out of the wide container - see .container.narrow. -#}
-  <main class="container{% block container_class %}{% endblock %}">
+  <main id="main" tabindex="-1" class="container{% block container_class %}{% endblock %}">
     {% if mobile_chrome %}
       <div class="pwa-install-banner" id="pwaInstallBanner" hidden>
         <div class="pwa-install-icon">
@@ -683,6 +691,25 @@
 
       document.addEventListener('DOMContentLoaded', syncButtons);
       syncButtons();
+    })();
+  </script>
+  <script nonce="{{ csp_nonce }}">
+    // A <details> disclosure does not close on Escape by itself, and every
+    // other menu pattern on the web does - so someone who opens "Add to
+    // calendar" by keyboard and changes their mind has no way out but Tab.
+    // Found by driving the show page with a keyboard, 2026-09-06. Applies to
+    // any .cal-menu anywhere rather than just the one on show pages.
+    (function () {
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        var open = document.querySelector('.cal-menu[open]');
+        if (!open) return;
+        open.removeAttribute('open');
+        // Focus goes back to the control that opened it, or it is lost to the
+        // top of the document.
+        var summary = open.querySelector('summary');
+        if (summary) summary.focus();
+      });
     })();
   </script>
   {% block scripts %}{% endblock %}

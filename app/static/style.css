@@ -3101,3 +3101,27 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
   padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md);
   background: var(--row-alt); color: var(--fg); resize: vertical;
 }
+
+/* Skip link. Off-screen until focused, then a real, visible control - not
+   `display:none`, which removes it from the tab order and defeats the point.
+   `#main` carries tabindex="-1" so the jump actually moves focus rather than
+   only scrolling, which is the half most skip links get wrong. */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -4rem;
+  z-index: 100;
+  padding: var(--space-2) var(--space-4);
+  background: var(--gold);
+  color: #201400;
+  font-weight: 700;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  text-decoration: none;
+  transition: top 0.12s ease-out;
+}
+.skip-link:focus { top: 0; }
+@media (prefers-reduced-motion: reduce) { .skip-link { transition: none; } }
+/* The landmark is only a focus target; it must never draw a ring of its own
+   when clicked, only when reached via the skip link. */
+main:focus { outline: none; }
+main:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }

@@ -25,7 +25,12 @@ def test_review_none_hidden_for_upcoming_show(client, db):
     # Scoped to the page content, not the whole document - the site nav now
     # always has a "Reviews" link (added for the /reviews index), which
     # contains "Review" as a substring regardless of this show's own status.
-    content = body.split('<main class="container">')[1]
+    #
+    # Split on the tag name only. This used to match the full
+    # `<main class="container">` and broke on 2026-09-06 when <main> gained
+    # `id` and `tabindex` for the new skip link - a test that fails because a
+    # landmark grew an attribute is testing the markup, not the behaviour.
+    content = body.split("<main", 1)[1]
     assert "Review" not in content
 
 
