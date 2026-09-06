@@ -379,7 +379,15 @@ judgement call, not a defect; do not let it jump the queue).
 
 Every figure here was counted against the **live** database on that date, not carried forward.
 
-- **HEAD `c81870e`**, pushed 2026-09-06. **1117 tests green.**
+- **HEAD `332f72e`**, pushed 2026-09-06. **1117 tests green**, `main` clean.
+- **Counted against the live database at wrap-up on 2026-09-06**, not carried forward:
+  **194 societies** (23 with a logo), **118 venues**, **316 distinct titles**, **2,940 productions**,
+  **60 posters across 19 societies**, **119 `rights_url` values** (down from 221 - see below),
+  **54 orphaned `historical_reviews`**, **17 invite codes that never expire** (of 35 total),
+  **0 foreign key violations**, 1 exchange listing, 0 FAQ entries, 0 pending submissions.
+- **13 shows are chaseable for a poster** - opening inside 93 days with none. 50 upcoming shows have
+  no poster, but only those 13 are worth asking about; **do not quote the 50** (see the poster
+  lead-time block in `ROADMAP.md`).
 - **Two production data writes happened on 2026-09-05, both by Claude, both backed up first:**
   102 `show_info.rights_url` values cleared (they led visitors to the wrong show - 32 of them
   served a *different* production), and one `historical_reviews.show_id` repointed after a

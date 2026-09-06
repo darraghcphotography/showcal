@@ -1032,3 +1032,74 @@ fixed and verified on production (`33a860f`):
 **A real screen reader.** Everything above is automated or keyboard-driven; nothing here has been
 driven with NVDA or VoiceOver, and I cannot do that from this environment. That remains the honest
 gap and it is in `docs/spikes.md`.
+
+---
+
+## 2026-09-06 — SESSION CLOSE (Claude, Opus 5). Read this one first.
+
+Wrap-up for a `/clear`. Everything below was counted or checked today, not carried forward.
+
+**State:** `main` clean, all pushed, **1117 tests green**, HEAD `332f72e`. **0 foreign key
+violations.** Live figures: 194 societies (23 with a logo), 118 venues, 316 titles, 2,940
+productions, 60 posters across 19 societies, 119 `rights_url`, 54 orphaned reviews, 17
+never-expiring invite codes.
+
+### What shipped over this session
+
+| | |
+|---|---|
+| `feeds.py` scheme fix | sitemap/robots/calendar.ics served `http://` in production |
+| `.detail-list` overflow | venue pages scrolled sideways on a phone |
+| `docs/glossary.md`, `docs/spikes.md` | two files taken from a template Darragh found; the other ten were skipped on purpose |
+| ROADMAP fourth prune | 1367 -> ~500 lines, and **7 of 13 "open" items turned out already built** |
+| Four remaining `_external=True` sites | incl. the magic-link URL emailed to societies |
+| Add-to-calendar | Google / Apple / Outlook / .ics behind one control |
+| `app/social_card.py` | the postable show card, three shapes |
+| 102 `rights_url` cleared | 32 of them served a *different show* |
+| FK violation fixed | caused by my own `merge_song_dundalk.py` |
+| Backup default fixed | it wrote into the container's writable layer |
+| Skip link + Escape-closes-menu | found by keyboard, after axe found nothing |
+
+### The three things most worth knowing
+
+1. **I published a wrong accusation and had to withdraw it.** I said Antigravity fabricated
+   citations in the casting batch. It had not - our own Concord URLs carry wrong product IDs, and
+   Concord treats the ID as authoritative, so it was sent to the wrong pages and honestly recorded
+   where it landed. The correction is in this file under 2026-09-05. **The error was reaching for a
+   known failure mode instead of testing it**; one ten-second fetch settled it, and I ran it after
+   writing the accusation up and pushing.
+2. **A backfill that deletes rows must run `PRAGMA foreign_key_check` in its own dry-run.** My
+   merge script guarded every table referencing the *society* it deleted and none referencing the
+   **shows it deleted itself**. A real adjudicator review pointed at nothing for two days and
+   nothing on the site noticed.
+3. **The homepage is 47.8% of all traffic**, and `/shows/<id>` is largely a sitemap sweep - 1,803
+   paths at a median of 2 views, 955 at exactly two. Society pages look human-shaped. Weigh this
+   before more work on show-detail pages.
+
+### Waiting on Darragh
+
+- **13 poster chases.** Codes exist, messages not sent. Nothing blocked on code.
+- **`enrichment/REPERTOIRE_DATA_BRIEF.md` is written and unsent** for a re-run - but **fix the
+  Concord URLs first**, or it fails the same way. We have no source of correct product IDs.
+- 17 never-expiring invite codes; 13 lifecycle judgement calls; 8 duplicate venue clusters (tooling
+  built, queue untouched); 3 venue coordinates to confirm; empty FAQ; the pantomime scope call; the
+  `/titles` genre taxonomy.
+- **Whether ~100 posters is still the right gate for the poster museum** - his number to set.
+
+### Do not do these
+
+- **Do not import `enrichment/repertoire_worklist_filled.json`.** 32 rows describe the wrong shows.
+- **Do not clear the 28 unverified `rights_url` values** (24 `guidetomusicaltheatre.com`, 4 MTI
+  403s). Claude's environment could not reach `example.com` either, so it can prove nothing about
+  them. Re-check from a normal network.
+- **Do not build the repertoire filters before the data lands.** A cast-size filter over blank rows
+  hides titles rather than admitting it does not know.
+- **Do not replace the subscribable `/calendar.ics`** with per-show links; it answers a different
+  question, and it is genuinely used (175 fetches).
+
+### Still unproven
+
+A real screen reader. axe is clean across the 10 busiest pages and the keyboard faults are fixed,
+but nothing has been driven with NVDA or VoiceOver and Claude cannot do it from here.
+`docs/spikes.md` has this narrowed rather than closed, along with the Esri tile terms and whether
+our outbound email actually reaches an inbox.

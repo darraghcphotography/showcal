@@ -482,9 +482,12 @@ listing something as open, every time.
 
 ### Needs Darragh - not a coding task
 
-- **Poster outreach.** 60 posters across 19 societies, recounted live (this file said 44 across 12,
-  from 2026-08-25). All 17 chaseable societies have an active login code and a Copy message button
-  on `/admin/missing-posters`. **Nothing is blocked on code** - this is 15 messages.
+- **Poster outreach.** 60 posters across 19 of 194 societies. **13 shows are chaseable** (opening
+  inside `POSTER_CHASE_DAYS` = 93 and with no poster), down from 17 on 2026-09-02 because shows
+  have since opened, not because posters arrived - the total is unchanged at 60. Every chaseable
+  society has an active login code and a Copy message button on `/admin/missing-posters`.
+  **Nothing is blocked on code.** 50 upcoming shows have no poster, but only 13 are worth asking
+  about - do not quote the 50.
 - **17 invite codes that never expire.** Retire them by moving those societies onto magic links.
   The 15 minted for the poster chase *do* expire (2027-05-31); the old ones are the defect, so do
   not "fix" the new ones to match.
@@ -559,9 +562,10 @@ listing something as open, every time.
   `verify_backup.py` while testing something unrelated. Fixed
   (`scripts/backfills/fix_orphaned_song_review.py`), and the hole is now commented in the merge
   script, which is the template the next merge will copy.
-- **55 orphaned `historical_reviews` rows.** Recounted live 2026-09-04. This file carried "~112"
-  for weeks and 54 more recently; the count drifts, so **recount before acting**. Still not
-  deleted, because "it looks unmatched" is not a test - see `docs/spikes.md`.
+- **54 orphaned `historical_reviews` rows.** Recounted live 2026-09-06 - it read 55 the day
+  before, 54 before that, and "~112" in this file for weeks. **The number genuinely moves, so
+  recount before acting on it.** Still not deleted, because "it looks unmatched" is not a test -
+  see `docs/spikes.md`.
 - **297 `historical_results` rows with `category_name IS NULL`**, 274 of them pre-2001. Needs real
   archival research into AIMS awards programmes; no query resolves this.
 - **~10 unmapped historical societies** with no `societies` row (Bangor Operatic, De La Salle
@@ -592,19 +596,6 @@ listing something as open, every time.
   delegated - and read the delegation findings in `ROADMAP_ARCHIVE.md` first, especially that the
   overlap cross-check only validates years we already hold, which is precisely the years an import
   adds nothing for. Oyster Lane passed that check and its new rows were still wrong.
-
-### Found during this cleanup, not yet fixed
-
-- **Four `url_for(..., _external=True)` call sites still emit `http://` in production.** Same
-  Cloudflare Tunnel bug fixed in `feeds.py` on 2026-09-04 - these were simply not reached:
-  `admin/access_requests.py:117` and `:199` (**the magic-link URL emailed to a society**),
-  `public.py:1430` (the Add-to-Google-Calendar event details), and `show_detail.html:28` (the
-  share button's `data-url`, so a cast sharing its own show to WhatsApp shares an http link).
-  The fix is `notify.link(url_for(...))` or the `absolute_url()` Jinja global, exactly as used
-  elsewhere. The two magic-link ones matter most: an emailed plain-http link looks wrong to a
-  committee member and some scanners rewrite or strip it.
-
----
 
 ## Technical debt
 
