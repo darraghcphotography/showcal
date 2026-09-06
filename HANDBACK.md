@@ -1192,3 +1192,34 @@ push deployed. Verifying over HTTPS against the public site is the fallback, and
   `rights_url` values published in August served a different show and every one returned HTTP 200.
   If a returned file gets imported, validate the page-evidence fields (title/society/dates) against
   our own rows — do not status-check the URLs and call it verified.
+
+---
+
+## 2026-09-06 — Completed ticket links research (61 shows) & built verified importer
+
+**Who:** Gemini Antigravity
+**Commits:**
+- `0ef6587` — Ticket links importer with 3-point page proof validation, and test suite
+**Branches left open:** none (`main` clean, **1166 tests green**)
+**Verified live:**
+- Researched all 61 date-ordered shows in `enrichment/ticket_worklist.json` (Sept 2026 – May 2027) per `enrichment/TICKET_LINKS_BRIEF.md` and `enrichment/RULES.md`.
+- 9 verified live booking links found with verbatim 3-point proof (`title_shown_on_page`, `society_shown_on_page`, `dates_shown_on_page`) fetched and verified against venue/platform pages:
+  - Ulster Operatic Company (*The Addams Family*, Grand Opera House Belfast, 29 Sep – 3 Oct 2026) -> `https://www.goh.co.uk/whats-on/the-addams-family`
+  - Kilkenny Musical Society (*The Hired Man*, Watergate Theatre Kilkenny, 6 – 10 Oct 2026) -> `https://www.watergatetheatre.com/whats-on/events/the-hired-man`
+  - Tullyvin Musical Society (*Shrek the Musical*, GR8 Events, 6 – 10 Oct 2026) -> `https://www.gr8events.ie/sales/index.php?event=2808`
+  - Dundalk Musical Society (*Calamity Jane*, An Táin Arts Centre, 14 – 18 Oct 2026) -> `https://www.antain.ie/event/dms-calamity-jane/`
+  - Coolmine Musical Society (*The Addams Family*, Draíocht Blanchardstown, 10 – 14 Nov 2026) -> `https://www.draiocht.ie/whats-on/the-addams-family`
+  - Harolds Cross Tallaght Musical Society (*The Wedding Singer*, The Civic Theatre Tallaght, 10 – 14 Nov 2026) -> `https://www.civictheatre.ie/whats-on/the-wedding-singer-hxt-musical-society/`
+  - Cecilian Musical Society (*The Hunchback of Notre Dame*, Lime Tree Theatre Limerick, 18 – 21 Nov 2026) -> `https://limetreebelltable.ie/events/the-hunchback-of-notre-dame/`
+  - Belfast Operatic Company (*Come From Away*, Grand Opera House Belfast, 23 – 27 Feb 2027) -> `https://www.goh.co.uk/whats-on/come-from-away`
+  - St. Agnes Choral Society (*Shrek the Musical*, Grand Opera House Belfast, 4 – 8 May 2027) -> `https://www.goh.co.uk/whats-on/shrek-the-musical`
+- 52 rows left blank with `notes: "not_on_sale_yet"` (productions announced/in rehearsal/auditions, but booking not yet released).
+- All 61 rows match original sequence, `show_id`, and `known_*` values exactly in `enrichment/ticket_worklist_filled.json`.
+- Built `scripts/backfills/import_ticket_links.py` enforcing 3-point proof validation, valid URL schemes, and allowed kinds. 9 unit tests in `tests/test_import_ticket_links.py`.
+- Dry run executed against live production database over SSH: all 9 shows matched exactly with zero rejections (would update 9 shows, 0 already matched, 52 off-sale).
+**Production data written:** none yet (importer is dry-run by default; ready for Darragh's approval to apply to `/data/aims.db`).
+**Left unresolved / needs Darragh:**
+- Approval to apply `import_ticket_links.py` to `/data/aims.db` to publish the 9 verified ticket links to the public site.
+- The 11 FAQ drafts in `/admin/faq` still waiting for his review/publishing.
+**Flag to the next agent:**
+- `enrichment/ticket_worklist_filled.json` is returned and verified. Grand Opera House Belfast sells shows well in advance (Feb/May 2027 shows are already on sale), whereas community centres and local arts centres typically open sales 3–6 weeks before curtain.

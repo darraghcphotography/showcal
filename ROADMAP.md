@@ -137,10 +137,13 @@ when it had shipped, and claiming a security finding was unfixed when it had bee
 >
 > ### Still open from this
 >
-> - ~~**Generate and send the ticket worklist**~~ **DONE 2026-09-06** - 61 rows generated in the
->   container and handed to Darragh with the brief. Not yet sent to Antigravity.
-> - **An importer for the returned ticket file** - still not built, still deliberately. Build it as
->   a validator (page-evidence title/society/dates against our own rows) once the data comes back.
+> - ~~**Generate and send the ticket worklist**~~ **DONE 2026-09-06** - 61 rows researched by
+>   Antigravity (`enrichment/ticket_worklist_filled.json`). 9 verified live booking links, 52 off-sale.
+> - ~~**An importer for the returned ticket file**~~ **DONE 2026-09-06** -
+>   `scripts/backfills/import_ticket_links.py` built and tested (9 unit tests in
+>   `tests/test_import_ticket_links.py`, **1166 tests green**). Validates 3-point page proof (title,
+>   society, dates) against the database before updating `ticket_url`. Dry-run verified against
+>   production: ready for Darragh's approval to apply.
 > - **11 FAQ drafts are in the live database, unpublished.** Written 2026-09-06 at Darragh's
 >   request. The public page and its nav link stay hidden until he publishes at least one. Two
 >   need his eye in particular: "Is this an official AIMS website?" (it speaks for his Council
@@ -149,9 +152,6 @@ when it had shipped, and claiming a security finding was unfixed when it had bee
 > - **The FAQ is the cheaper of the two empty pages to fill.** Six real entries sit in
 >   `feature_suggestions`, and Darragh answers the same committee questions repeatedly. That is the
 >   FAQ, already written, just not typed in.
-> - **An importer for the returned ticket file has not been built.** Deliberate: build it as a
->   validator (title/society/dates against our own rows) once the data shape survives review, not
->   speculatively.
 
 ## START HERE - what the traffic says, and an accessibility pass (2026-09-06, earlier)
 
