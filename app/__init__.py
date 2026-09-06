@@ -1,5 +1,6 @@
 import mimetypes
 import os
+import sqlite3
 import secrets
 from pathlib import Path
 
@@ -272,14 +273,52 @@ def create_app(test_config=None):
 
     app.jinja_env.globals["absolute_url"] = absolute_url
 
+    def _populated_page_flags():
+        """Which optional pages currently have anything on them.
+
+        Both the Costumes & Props exchange and the FAQ shipped as empty pages
+        linked from the header and the footer, so on a site whose whole value is
+        "this is a real record", a visitor could click twice from the homepage
+        and land on nothing (found 2026-09-06). The links are hidden until there
+        is content rather than deleted, so the page reappears on its own the
+        moment a moderator adds the first entry and nobody has to remember.
+
+        Each condition mirrors what its page actually lists, not merely whether
+        the table has rows - a nav link that reappears for a delisted item or an
+        unpublished draft answer would put the empty page straight back.
+
+        One query for both flags, not one each: this runs on every render, and
+        /venues has a test asserting a constant query budget. EXISTS rather than
+        COUNT so it stops at the first row instead of walking the table."""
+        try:
+            row = db_module.get_db().execute(
+                """
+                SELECT EXISTS (
+                           SELECT 1 FROM wardrobe_items wi
+                           JOIN societies s ON s.id = wi.society_id
+                           WHERE wi.status != 'delisted' AND s.hidden = 0
+                       ),
+                       EXISTS (
+                           SELECT 1 FROM faq_entries WHERE status = 'published'
+                       )
+                """
+            ).fetchone()
+            return bool(row[0]), bool(row[1])
+        except sqlite3.Error:
+            # A missing table must not take the whole site down over a nav link.
+            return False, False
+
     @app.context_processor
     def inject_globals():
+        has_exchange_items, has_faq_entries = _populated_page_flags()
         return {
             "current_user": auth.current_user(),
             "society_session": auth.active_society_code(),
             "asset_version": asset_version,
             "deployed_at": deployed_at,
             "csp_nonce": csp_nonce(),
+            "has_exchange_items": has_exchange_items,
+            "has_faq_entries": has_faq_entries,
         }
 
     from urllib.parse import urlparse
@@ -314,7 +353,9 @@ def create_app(test_config=None):
     @app.after_request
     def track_pageview(response):
         if response.status_code == 200 and analytics.should_track(request):
-            analytics.record_pageview(db_module.get_db(), request.path)
+            analytics.record_pageview(
+                db_module.get_db(), request.path, request.headers.get("User-Agent")
+            )
         return response
 
     is_production = bool(os.environ.get("AIMS_DB_PATH"))

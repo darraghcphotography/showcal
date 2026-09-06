@@ -429,6 +429,43 @@ def delete_duplicate_historical_row(row_id):
     return redirect(url_for("admin.data_quality"))
 
 
+TRAFFIC_WINDOW_DAYS = 30
+
+
+def _daily_traffic(db, days=TRAFFIC_WINDOW_DAYS):
+    """People-vs-bot view counts for each of the last `days` days, oldest first.
+
+    Days with no rows are returned as explicit zeros rather than skipped: a
+    gap in a date axis that silently closes up turns a quiet Tuesday into a
+    busy one, which is the whole failure this table exists to stop."""
+    rows = db.execute(
+        """
+        SELECT day,
+               SUM(CASE WHEN is_bot = 0 THEN views ELSE 0 END) AS people,
+               SUM(CASE WHEN is_bot = 1 THEN views ELSE 0 END) AS bots
+        FROM page_views_daily
+        WHERE day >= date('now', ?)
+        GROUP BY day
+        """,
+        (f"-{days - 1} days",),
+    ).fetchall()
+    by_day = {r["day"]: (r["people"], r["bots"]) for r in rows}
+    today = date.today()
+    out = []
+    for offset in range(days - 1, -1, -1):
+        d = today - timedelta(days=offset)
+        key = d.isoformat()
+        people, bots = by_day.get(key, (0, 0))
+        out.append({
+            "day": key,
+            # "%-d" is not portable to Windows, where this runs in dev.
+            "label": d.strftime("%d %b").lstrip("0"),
+            "people": people,
+            "bots": bots,
+        })
+    return out
+
+
 @bp.route("/traffic")
 @login_required
 def traffic():
@@ -437,4 +474,45 @@ def traffic():
     pages = db.execute(
         "SELECT path, views, last_viewed FROM page_views ORDER BY views DESC LIMIT 30"
     ).fetchall()
-    return render_template("admin/traffic.html", total_views=total_views, pages=pages)
+
+    daily = _daily_traffic(db)
+    # The daily table only starts filling on the deploy that added it, so the
+    # page has to say which date it can actually speak for - otherwise the
+    # first fortnight reads as a collapse in traffic rather than a new counter.
+    tracking_since = db.execute(
+        "SELECT MIN(day) FROM page_views_daily"
+    ).fetchone()[0]
+
+    recent_pages = db.execute(
+        """
+        SELECT path,
+               SUM(CASE WHEN is_bot = 0 THEN views ELSE 0 END) AS people,
+               SUM(CASE WHEN is_bot = 1 THEN views ELSE 0 END) AS bots
+        FROM page_views_daily
+        WHERE day >= date('now', ?)
+        GROUP BY path
+        HAVING people > 0
+        ORDER BY people DESC
+        LIMIT 30
+        """,
+        (f"-{TRAFFIC_WINDOW_DAYS - 1} days",),
+    ).fetchall()
+
+    window_people = sum(d["people"] for d in daily)
+    window_bots = sum(d["bots"] for d in daily)
+    # Bars are scaled against the busiest day in the window, so an all-zero
+    # window doesn't divide by zero on its way to drawing nothing.
+    busiest_day = max((d["people"] + d["bots"] for d in daily), default=0)
+
+    return render_template(
+        "admin/traffic.html",
+        total_views=total_views,
+        pages=pages,
+        daily=daily,
+        recent_pages=recent_pages,
+        window_days=TRAFFIC_WINDOW_DAYS,
+        window_people=window_people,
+        window_bots=window_bots,
+        busiest_day=busiest_day,
+        tracking_since=tracking_since,
+    )

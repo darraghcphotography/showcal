@@ -2,8 +2,111 @@
 {% block title %}Traffic - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Traffic</h1>
-  <p>{{ total_views }} page view{{ '' if total_views == 1 else 's' }} recorded in total. Simple counts only - no
-     cookies, no visitor tracking, just how many times each page has been loaded.</p>
+
+  {# ---------------------------------------------------------------------
+     The daily split. page_views below is a single running counter per path
+     going back to the day tracking started, which cannot say whether the
+     site is growing or how much of the total is a crawler. This section
+     answers both, for as far back as page_views_daily has been recording.
+     --------------------------------------------------------------------- #}
+  <section class="traffic-window">
+    <h2>Last {{ window_days }} days</h2>
+
+    {% if not tracking_since %}
+      <p class="muted">Nothing recorded yet. The daily breakdown starts filling from the
+         first page view after this was deployed - it can't be backfilled, because
+         nothing recorded a date or a browser before now.</p>
+    {% else %}
+      <div class="traffic-stats">
+        <div class="traffic-stat">
+          <span class="traffic-stat-value">{{ window_people }}</span>
+          <span class="traffic-stat-label">
+            <span class="swatch swatch-people" aria-hidden="true"></span>views by people
+          </span>
+        </div>
+        <div class="traffic-stat">
+          <span class="traffic-stat-value muted">{{ window_bots }}</span>
+          <span class="traffic-stat-label">
+            <span class="swatch swatch-bots" aria-hidden="true"></span>views by bots
+          </span>
+        </div>
+      </div>
+
+      <p class="muted traffic-caveat">
+        Daily figures start {{ tracking_since }} - any day before that is blank because the
+        counter did not exist yet, not because nobody visited. "Bots" is a guess from the browser name the request sent: it catches
+        every crawler that identifies itself, and nothing that deliberately poses as a browser.
+        Read "people" as the total with the obvious rubbish removed, not a verified human count.
+      </p>
+
+      <figure class="traffic-figure">
+        <figcaption class="traffic-legend">
+          <span class="legend-item"><span class="swatch swatch-people" aria-hidden="true"></span>People</span>
+          <span class="legend-item"><span class="swatch swatch-bots" aria-hidden="true"></span>Bots</span>
+          {# Without this the bars only say "bigger than that one". One number at
+             the top of the scale is enough to read every other bar against. #}
+          <span class="legend-scale">full height = {{ busiest_day }} views</span>
+        </figcaption>
+        <div class="traffic-chart" role="img"
+             aria-label="Daily page views for the last {{ window_days }} days, split into views by people and views by bots. The same figures are listed in the table below.">
+          {% for d in daily %}
+            {% set total = d.people + d.bots %}
+            <div class="traffic-day" title="{{ d.label }} - {{ d.people }} by people, {{ d.bots }} by bots">
+              <div class="traffic-bar">
+                {% if d.bots %}
+                  <div class="traffic-seg traffic-seg-bots"
+                       style="height: {{ (d.bots / busiest_day * 100) if busiest_day else 0 }}%"></div>
+                {% endif %}
+                {% if d.people %}
+                  <div class="traffic-seg traffic-seg-people"
+                       style="height: {{ (d.people / busiest_day * 100) if busiest_day else 0 }}%"></div>
+                {% endif %}
+              </div>
+              <span class="traffic-daylabel">{{ d.label.split(' ')[0] }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </figure>
+
+      <details class="traffic-table-toggle">
+        <summary>Show these figures as a table</summary>
+        <table class="data-table">
+          <thead><tr><th>Day</th><th>People</th><th>Bots</th></tr></thead>
+          <tbody>
+            {% for d in daily %}
+              <tr><td>{{ d.label }}</td><td>{{ d.people }}</td><td>{{ d.bots }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </details>
+
+      <h3>Most-read pages, people only</h3>
+      <p class="muted">The same list as the all-time table below, but for the last
+         {{ window_days }} days and with identified crawlers taken out - so a page that
+         only ever gets swept by a sitemap crawl drops off it.</p>
+      <table class="data-table">
+        <thead><tr><th>Page</th><th>People</th><th>Bots</th></tr></thead>
+        <tbody>
+          {% for row in recent_pages %}
+            <tr>
+              <td><a href="{{ request.script_root }}{{ row['path'] }}">{{ row['path'] }}</a></td>
+              <td>{{ row['people'] }}</td>
+              <td class="muted">{{ row['bots'] }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3">No views by people recorded in this window yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+
+  <h2>All time</h2>
+  <p>{{ total_views }} page view{{ '' if total_views == 1 else 's' }} recorded in total, people and
+     bots together. Simple counts only - no cookies, no visitor tracking, just how many times each
+     page has been loaded. These totals go back further than the daily breakdown above and are
+     deliberately left unfiltered, so they stay comparable with figures quoted before the split
+     existed.</p>
 
   <table class="data-table">
     <thead><tr><th>Page</th><th>Views</th><th>Last viewed</th></tr></thead>

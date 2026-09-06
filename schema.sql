@@ -231,6 +231,28 @@ CREATE TABLE IF NOT EXISTS page_views (
     last_viewed     TEXT
 );
 
+-- The same pageviews as above, but kept per day and split by whether the
+-- request looked like a bot. page_views alone is a single running counter per
+-- path since the day tracking started, which cannot answer either of the two
+-- questions actually asked of it: "is the site growing?" and "how much of this
+-- is a crawler?". Deciding what to build next off an un-dated, un-filtered
+-- lump is how /shows/<id> looked busy when 955 of those paths had been hit
+-- exactly twice by a sitemap sweep (see app/analytics.py, 2026-09-06).
+--
+-- Both tables are written on every request; page_views is left exactly as it
+-- was so the all-time totals stay comparable across the change. This one
+-- starts empty on the deploy that adds it - the split cannot be backfilled,
+-- because nothing recorded a date or a user agent before now.
+CREATE TABLE IF NOT EXISTS page_views_daily (
+    path            TEXT NOT NULL,
+    day             TEXT NOT NULL,          -- YYYY-MM-DD, UTC, as datetime('now')
+    is_bot          INTEGER NOT NULL DEFAULT 0 CHECK (is_bot IN (0, 1)),
+    views           INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (path, day, is_bot)
+);
+
+CREATE INDEX IF NOT EXISTS idx_page_views_daily_day ON page_views_daily(day);
+
 -- Freeform "here's an idea" box - no invite code needed (lower risk than a
 -- show submission: nothing here appears publicly until a moderator has
 -- triaged it - see triage_status below), just a honeypot against basic bots.

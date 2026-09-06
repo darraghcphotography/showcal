@@ -3125,3 +3125,106 @@ a.queue-item:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); 
    when clicked, only when reached via the skip link. */
 main:focus { outline: none; }
 main:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+
+/* ---------------------------------------------------------------------------
+   Admin > Traffic: the daily people-vs-bots chart.
+
+   Deliberately plain CSS rather than a charting library - it is two series over
+   thirty days on one internal page, and the site has no build step. Colours come
+   from the existing theme tokens so the chart follows light/dark with everything
+   else: --accent for people (the series you are actually reading) and --gold for
+   bots. That pair was checked for colour-vision separation rather than picked by
+   eye (worst-case CVD delta-E 27 dark / 34 light, well clear of the floor of 8);
+   accent against --muted, the obvious first choice, failed badly at delta-E 10
+   and would have been unreadable for a lot of people.
+   --------------------------------------------------------------------------- */
+.traffic-window { margin-bottom: var(--space-6); }
+
+.traffic-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-bottom: var(--space-3);
+}
+.traffic-stat { display: flex; flex-direction: column; gap: var(--space-1); }
+.traffic-stat-value { font-size: var(--t-2xl); font-weight: 600; line-height: 1; }
+.traffic-stat-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--t-sm);
+  color: var(--muted);
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-xs);
+  flex: 0 0 auto;
+}
+.swatch-people { background: var(--accent); }
+.swatch-bots { background: var(--gold); }
+
+.traffic-caveat { font-size: var(--t-sm); max-width: 62ch; }
+
+.traffic-figure { margin: var(--space-5) 0; }
+.traffic-legend {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--t-sm);
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+.legend-item { display: flex; align-items: center; gap: var(--space-2); }
+
+.traffic-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 160px;
+  /* The baseline the bars sit on - the only axis rule the chart needs. */
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-1);
+  overflow-x: auto;
+}
+.traffic-day {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: var(--space-1);
+}
+.traffic-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* 2px keeps the two segments from reading as one solid bar. */
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+.traffic-seg { width: 100%; border-radius: var(--radius-xs) var(--radius-xs) 0 0; min-height: 2px; }
+/* People sit on the baseline so their height is read against a fixed edge;
+   bots stack above, where being harder to compare matters less. */
+.traffic-seg-people { background: var(--accent); border-radius: 0 0 var(--radius-xs) var(--radius-xs); }
+.traffic-seg-bots { background: var(--gold); }
+.traffic-day:only-child .traffic-seg-people { border-radius: var(--radius-xs); }
+
+.traffic-daylabel { font-size: 0.65rem; color: var(--muted); line-height: 1; }
+
+.traffic-table-toggle { margin-bottom: var(--space-5); }
+.traffic-table-toggle summary { cursor: pointer; color: var(--muted); font-size: var(--t-sm); }
+
+@media (max-width: 640px) {
+  /* Thirty day-numbers will not fit across a phone; the table view below the
+     chart is the readable form there, and the chart keeps the shape. */
+  .traffic-daylabel { display: none; }
+  .traffic-chart { height: 120px; }
+}
+/* The one number that turns relative bar heights into readable quantities -
+   deliberately the only value printed on the chart itself, with the rest in
+   the hover title and the table below it. */
+.legend-scale { color: var(--muted); font-variant-numeric: tabular-nums; }
