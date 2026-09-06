@@ -466,6 +466,60 @@ def _daily_traffic(db, days=TRAFFIC_WINDOW_DAYS):
     return out
 
 
+SOCIETY_EDITS_PER_PAGE = 200
+
+
+@bp.route("/society-edits")
+@login_required
+def society_edits():
+    """What society logins have changed, newest first.
+
+    Read-only on purpose: `society_edit_log` is append-only, and there is no
+    revert here. Seeing that a value changed - and what it used to be - is the
+    thing that was missing; putting it back is a normal edit."""
+    db = get_db()
+    society_id = request.args.get("society", type=int)
+
+    where, params = "", []
+    if society_id:
+        where = "WHERE l.society_id = ?"
+        params.append(society_id)
+
+    edits = db.execute(
+        f"""
+        SELECT l.*, s.name AS society_name, c.code AS code_used,
+               sh.show AS show_title, w.title AS item_title
+        FROM society_edit_log l
+        JOIN societies s ON s.id = l.society_id
+        LEFT JOIN invite_codes c ON c.id = l.invite_code_id
+        LEFT JOIN shows sh ON l.table_name = 'shows' AND sh.id = l.row_id
+        LEFT JOIN wardrobe_items w ON l.table_name = 'wardrobe_items' AND w.id = l.row_id
+        {where}
+        ORDER BY l.id DESC
+        LIMIT ?
+        """,
+        (*params, SOCIETY_EDITS_PER_PAGE),
+    ).fetchall()
+
+    societies = db.execute(
+        """
+        SELECT s.id, s.name, COUNT(l.id) AS edits
+        FROM societies s
+        JOIN society_edit_log l ON l.society_id = s.id
+        GROUP BY s.id
+        ORDER BY edits DESC, s.name
+        """
+    ).fetchall()
+
+    total = db.execute("SELECT COUNT(*) FROM society_edit_log").fetchone()[0]
+
+    return render_template(
+        "admin/society_edits.html",
+        edits=edits, societies=societies, total=total,
+        selected_society=society_id, limit=SOCIETY_EDITS_PER_PAGE,
+    )
+
+
 @bp.route("/traffic")
 @login_required
 def traffic():

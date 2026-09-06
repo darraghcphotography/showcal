@@ -11,6 +11,7 @@ from ..db import get_db
 from .. import notify
 from ..rate_limit import limiter
 from ..season import season_range
+from .. import society_audit
 from ..shows import is_upcoming
 from ..similarity import find_award_record_match, find_close_title
 from ..redirects import came_from, return_to
@@ -263,7 +264,7 @@ def _adjudication_reminder_url(show):
 @society_required
 def set_logo():
     db = get_db()
-    society, _ = _current_society(db)
+    society, code = _current_society(db)
 
     logo_file = request.files.get("logo")
     if logo_file and logo_file.filename:
@@ -272,7 +273,10 @@ def set_logo():
         except ValueError as e:
             flash(str(e), "error")
             return redirect(url_for("society.dashboard"))
+        before = society_audit.snapshot(db, "societies", society["id"])
         db.execute("UPDATE societies SET logo_filename = ? WHERE id = ?", (filename, society["id"]))
+        society_audit.record(db, society["id"], code, "societies", society["id"],
+                             before, society_audit.snapshot(db, "societies", society["id"]))
         db.commit()
         flash("Logo updated.", "success")
     return redirect(url_for("society.dashboard"))
@@ -282,7 +286,7 @@ def set_logo():
 @society_required
 def edit_profile():
     db = get_db()
-    society, _ = _current_society(db)
+    society, code = _current_society(db)
 
     if request.method == "POST":
         fields = {
@@ -309,6 +313,7 @@ def edit_profile():
                 flash(e, "error")
             return render_template("society_profile_form.html", society=society, form=request.form)
 
+        before = society_audit.snapshot(db, "societies", society["id"])
         db.execute(
             """
             UPDATE societies SET
@@ -319,6 +324,8 @@ def edit_profile():
             """,
             {**fields, "id": society["id"]},
         )
+        society_audit.record(db, society["id"], code, "societies", society["id"],
+                             before, society_audit.snapshot(db, "societies", society["id"]))
         db.commit()
         flash("Profile updated.", "success")
         return redirect(url_for("society.dashboard"))
@@ -382,7 +389,7 @@ def new_show():
                 form=request.form, similar_title=similar_title, award_match=award_match, mode="new",
             )
 
-        db.execute(
+        cur = db.execute(
             """
             INSERT INTO shows (
                 society_id, season, region, section, show,
@@ -411,6 +418,7 @@ def new_show():
                 "invite_code_id": code["id"],
             },
         )
+        society_audit.record_create(db, society["id"], code, "shows", cur.lastrowid)
         db.commit()
         flash("Show added - it's live now.", "success")
         return redirect(url_for("society.dashboard"))
@@ -463,7 +471,7 @@ def show_card(show_id):
 @society_required
 def edit_show(show_id):
     db = get_db()
-    society, _ = _current_society(db)
+    society, code = _current_society(db)
     show = db.execute(
         "SELECT * FROM shows WHERE id = ? AND society_id = ?", (show_id, society["id"])
     ).fetchone()
@@ -497,6 +505,7 @@ def edit_show(show_id):
 
         # Deliberately no review_status/review_url here - a society login can
         # never touch those, regardless of what a tampered POST body sends.
+        before = society_audit.snapshot(db, "shows", show_id)
         db.execute(
             """
             UPDATE shows SET
@@ -513,6 +522,8 @@ def edit_show(show_id):
                 utcnow_iso(), show_id,
             ),
         )
+        society_audit.record(db, society["id"], code, "shows", show_id,
+                             before, society_audit.snapshot(db, "shows", show_id))
         db.commit()
         flash("Show updated.", "success")
         return redirect(return_to(url_for("society.dashboard")))
@@ -576,7 +587,7 @@ def bulk_add():
         for row in rows:
             if row is None:
                 continue
-            db.execute(
+            cur = db.execute(
                 """
                 INSERT INTO shows (
                     society_id, season, region, show, opening_date, closing_date, venue,
@@ -602,6 +613,7 @@ def bulk_add():
                     "invite_code_id": code["id"],
                 },
             )
+            society_audit.record_create(db, society["id"], code, "shows", cur.lastrowid)
             inserted += 1
         db.commit()
         flash(
@@ -668,6 +680,7 @@ def bulk_credits():
                     current["opening_date"] != u["opening_date"] or
                     current["closing_date"] != u["closing_date"]
                 ):
+                    before = society_audit.snapshot(db, "shows", u["id"])
                     db.execute(
                         """
                         UPDATE shows SET
@@ -677,6 +690,8 @@ def bulk_credits():
                         """,
                         (u["director"], u["musical_director"], u["choreographer"], u["venue"], u["opening_date"], u["closing_date"], utcnow_iso(), u["id"], society["id"]),
                     )
+                    society_audit.record(db, society["id"], code, "shows", u["id"],
+                                         before, society_audit.snapshot(db, "shows", u["id"]))
                     updated += 1
             db.commit()
             if updated:
@@ -804,6 +819,7 @@ def vault_new():
             ),
         )
         item_id = cur.lastrowid
+        society_audit.record_create(db, society["id"], code, "wardrobe_items", item_id)
 
         for idx, fn in enumerate(saved_filenames):
             db.execute(
@@ -886,6 +902,7 @@ def vault_edit(item_id):
                         (item_id, fn),
                     )
 
+        before = society_audit.snapshot(db, "wardrobe_items", item_id)
         db.execute(
             """
             UPDATE wardrobe_items SET
@@ -903,6 +920,8 @@ def vault_edit(item_id):
                 item_id, society["id"],
             ),
         )
+        society_audit.record(db, society["id"], code, "wardrobe_items", item_id,
+                             before, society_audit.snapshot(db, "wardrobe_items", item_id))
         db.commit()
         flash(f"Updated '{title}'.", "success")
         return redirect(url_for("society.vault"))
@@ -928,10 +947,13 @@ def vault_toggle_status(item_id):
     if new_status not in WARDROBE_STATUSES:
         new_status = "available"
 
+    before = society_audit.snapshot(db, "wardrobe_items", item_id)
     db.execute(
         "UPDATE wardrobe_items SET status = ?, updated_at = datetime('now') WHERE id = ? AND society_id = ?",
         (new_status, item_id, society["id"]),
     )
+    society_audit.record(db, society["id"], code, "wardrobe_items", item_id,
+                         before, society_audit.snapshot(db, "wardrobe_items", item_id))
     db.commit()
     flash(f"Status updated to '{WARDROBE_STATUSES[new_status]}'.", "success")
     return redirect(url_for("society.vault"))
@@ -942,7 +964,10 @@ def vault_toggle_status(item_id):
 def vault_delete(item_id):
     db = get_db()
     society, code = _current_society(db)
+    before = society_audit.snapshot(db, "wardrobe_items", item_id)
     db.execute("DELETE FROM wardrobe_items WHERE id = ? AND society_id = ?", (item_id, society["id"]))
+    society_audit.record(db, society["id"], code, "wardrobe_items", item_id,
+                         before, None, action="delete")
     db.commit()
     flash("Item removed from your vault.", "success")
     return redirect(url_for("society.vault"))

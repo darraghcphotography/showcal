@@ -253,6 +253,41 @@ CREATE TABLE IF NOT EXISTS page_views_daily (
 
 CREATE INDEX IF NOT EXISTS idx_page_views_daily_day ON page_views_daily(day);
 
+-- Append-only record of every change a society login makes to its own data.
+--
+-- Societies edit their own history through /society/ and it goes live
+-- immediately, with no moderation queue - which is the right trade for people
+-- maintaining their own record, but it left the site unable to answer the one
+-- question that matters for an archive: what did this used to say? A committee
+-- shares a single login code, so there was also no way to tell one editor from
+-- another, or to notice a change at all.
+--
+-- One row per changed field, not per request: the point is the old value, and a
+-- field-per-row shape means the admin view is a plain query rather than JSON
+-- unpacking. Volume is not a concern - societies edit rarely.
+--
+-- `invite_code_id` is as close to "who" as this can get and the admin page says
+-- so. A committee shares one code, so it identifies the society's login, not a
+-- person. It is nullable and ON DELETE SET NULL so retiring a code never
+-- destroys the history of what that code did.
+--
+-- Nothing here is ever updated or deleted by the app.
+CREATE TABLE IF NOT EXISTS society_edit_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    society_id      INTEGER NOT NULL REFERENCES societies(id) ON DELETE CASCADE,
+    invite_code_id  INTEGER REFERENCES invite_codes(id) ON DELETE SET NULL,
+    table_name      TEXT NOT NULL,
+    row_id          INTEGER,
+    action          TEXT NOT NULL CHECK (action IN ('create', 'update', 'delete')),
+    field           TEXT NOT NULL,
+    old_value       TEXT,
+    new_value       TEXT,
+    changed_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_society_edit_log_society ON society_edit_log(society_id, id);
+CREATE INDEX IF NOT EXISTS idx_society_edit_log_row ON society_edit_log(table_name, row_id);
+
 -- Freeform "here's an idea" box - no invite code needed (lower risk than a
 -- show submission: nothing here appears publicly until a moderator has
 -- triaged it - see triage_status below), just a honeypot against basic bots.
