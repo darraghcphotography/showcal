@@ -22,6 +22,7 @@ import json
 import re
 import sqlite3
 import sys
+import unicodedata
 from pathlib import Path
 
 _here = Path(__file__).resolve()
@@ -37,42 +38,123 @@ COMMON_NOISE_WORDS = {
 }
 
 
+MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+
 def normalize_string(s):
-    """Lowercase and strip punctuation/extra whitespace."""
+    """Lowercase, fold accents, strip punctuation and extra whitespace.
+
+    Accent folding matters: without it "Miserábles" normalises to "miser bles"
+    and a correct Les Misérables page fails to match its own title."""
     if not s:
         return ""
+    s = unicodedata.normalize("NFKD", str(s))
+    s = "".join(c for c in s if not unicodedata.combining(c))
     s = s.lower()
     s = re.sub(r"[^a-z0-9\s]", " ", s)
     return " ".join(s.split())
 
 
-def check_evidence_match(page_val, db_val):
-    """Check if normalized strings match directly, by shared content words, or by acronym."""
-    norm_page = normalize_string(page_val)
-    norm_db = normalize_string(db_val)
-    if not norm_page or not norm_db:
+def _is_token_run(needle, haystack):
+    """Is `needle` a run of whole consecutive tokens inside `haystack`?
+
+    Whole tokens, not raw substring: "the wiz" is a substring of "the wizard of
+    oz", so a plain `in` test matches The Wiz against The Wizard of Oz."""
+    if not needle or len(needle) > len(haystack):
         return False
-    if norm_db in norm_page or norm_page in norm_db:
+    return any(haystack[i:i + len(needle)] == needle
+               for i in range(len(haystack) - len(needle) + 1))
+
+
+def check_evidence_match(page_val, db_val):
+    """Does the name printed on the page refer to the same thing as our record?
+
+    Three ways to agree, in order of how much they prove:
+
+    1. One is a run of whole words inside the other - "Cecilian Musical Society"
+       against "Cecilian Musical Society, Limerick".
+    2. An acronym - venues routinely bill "HXT Musical Society" for Harolds
+       Cross Tallaght Musical Society.
+    3. At least *two* content words in common. Two, not one: a single shared
+       word matches "Sligo Musical Society" against "Sligo Pantomime Society"
+       and "Cork School of Music" against "Cork Musical Society". Two societies
+       in one town is the normal case in this data, not an edge case.
+    """
+    page_tokens = normalize_string(page_val).split()
+    db_tokens = normalize_string(db_val).split()
+    if not page_tokens or not db_tokens:
+        return False
+
+    if _is_token_run(db_tokens, page_tokens) or _is_token_run(page_tokens, db_tokens):
         return True
 
-    # Check content tokens (excluding common words like society/musical/etc)
-    page_words = [w for w in norm_page.split() if w not in COMMON_NOISE_WORDS]
-    db_words = [w for w in norm_db.split() if w not in COMMON_NOISE_WORDS]
+    page_words = [w for w in page_tokens if w not in COMMON_NOISE_WORDS]
+    db_words = [w for w in db_tokens if w not in COMMON_NOISE_WORDS]
 
-    common = set(page_words) & set(db_words)
-    if common:
-        return True
-
-    # Check common acronyms (e.g. HXT for Harolds Cross Tallaght, DMS for Dundalk Musical Society)
-    all_db_words = norm_db.split()
-    acr = "".join("x" if w == "cross" else w[0] for w in all_db_words)
+    # Acronyms, e.g. HXT for Harolds Cross Tallaght ("cross" bills as X).
+    acr = "".join("x" if w == "cross" else w[0] for w in db_tokens)
     sig_acr = "".join("x" if w == "cross" else w[0] for w in db_words)
     if len(acr) >= 2 and acr in page_words:
         return True
     if len(sig_acr) >= 2 and sig_acr in page_words:
         return True
 
-    return False
+    return len(set(page_words) & set(db_words)) >= 2
+
+
+def page_date_parts(text):
+    """Day numbers, month numbers and 4-digit years mentioned in free text.
+
+    `dates_shown_on_page` is copied verbatim off a venue page, so it arrives in
+    whatever shape that page used - "Tue 29 Sep - Sat 3 Oct 2026", "Nightly, 6th
+    to 10th October", "18 November 2026 - 21 November 2026". Rather than parse
+    that into a range, pull out the parts and check ours are among them."""
+    if not text:
+        return set(), set(), set()
+    lowered = str(text).lower()
+    # Drop clock times first, or "7:30pm" contributes a spurious day 30.
+    lowered = re.sub(r"\d{1,2}[:.]\d{2}\s*(?:am|pm)?", " ", lowered)
+    lowered = re.sub(r"\d{1,2}\s*(?:am|pm)\b", " ", lowered)
+
+    years = {int(y) for y in re.findall(r"\b(19\d{2}|20\d{2})\b", lowered)}
+    without_years = re.sub(r"\b(?:19\d{2}|20\d{2})\b", " ", lowered)
+    days = {int(d) for d in re.findall(r"\b(\d{1,2})(?:st|nd|rd|th)?\b", without_years)
+            if 1 <= int(d) <= 31}
+    months = {num for name, num in MONTHS.items()
+              if re.search(r"\b%s" % name, lowered)}
+    return days, months, years
+
+
+def check_dates_match(page_dates, opening_date, closing_date=None):
+    """Do the dates printed on the page agree with the ones we hold?
+
+    This is the leg that matters most and the one that was missing. Title and
+    society can both look right for last year's revival of the same show by the
+    same society; the dates are what pin the production. Returns (ok, reason)."""
+    if not opening_date:
+        # Nothing to check against - say so rather than pass by default.
+        return False, "no opening_date on record to check the page dates against"
+
+    try:
+        year, month, day = (int(p) for p in str(opening_date)[:10].split("-"))
+    except (ValueError, TypeError):
+        return False, f"unparseable opening_date on record: {opening_date!r}"
+
+    days, months, years = page_date_parts(page_dates)
+    if not days and not months:
+        return False, f"no recognisable date in page proof: {page_dates!r}"
+    if month not in months:
+        return False, (f"month mismatch: page {sorted(months)} vs record {opening_date}")
+    if day not in days:
+        return False, (f"day mismatch: page {sorted(days)} vs record {opening_date}")
+    # A page that omits the year is common and is not a mismatch; a page that
+    # states a different one is.
+    if years and year not in years:
+        return False, (f"year mismatch: page {sorted(years)} vs record {opening_date}")
+    return True, "ok"
 
 
 def validate_row(item, db_show):
@@ -110,9 +192,20 @@ def validate_row(item, db_show):
     if not check_evidence_match(title_shown, db_show["show"]):
         return False, f"Title mismatch: page '{title_shown}' vs DB '{db_show['show']}'", None
 
-    # Verify society match
+    # Verify society match. Deliberately the loosest of the three legs: a venue
+    # page may abbreviate ("HXT Musical Society") or drop a town suffix, so this
+    # tolerates more than the others and the date check below carries the weight.
     if not check_evidence_match(society_shown, db_show["society_name"]):
         return False, f"Society mismatch: page '{society_shown}' vs DB '{db_show['society_name']}'", None
+
+    # Verify the dates actually agree. Without this the "3-point proof" is a
+    # 2-point proof with a presence check bolted on: a page dated 1998 validated
+    # against a 2026 show until 2026-09-07.
+    dates_ok, dates_reason = check_dates_match(
+        dates_shown, db_show.get("opening_date"), db_show.get("closing_date")
+    )
+    if not dates_ok:
+        return False, f"Date mismatch: {dates_reason}", None
 
     return True, "valid", ticket_url
 
