@@ -50,7 +50,8 @@ while `scripts/` sat empty. The root now keeps only the things you actually run 
 database, which are exactly the commands documented above and below - `import_csv.py`,
 `export_csv.py`, `import_awards.py`, `export_awards.py`, `seed_admin.py`, `backup_db.py`,
 `verify_backup.py`, `build_productions.py`, `add_changelog.py`, `load_historical_reviews.py`,
-`extract_historical_reviews.py`, plus `wsgi.py`. Everything else moved:
+`extract_historical_reviews.py`, `build_ticket_worklist.py`, plus `wsgi.py`. Everything else
+moved:
 
 - `scripts/backfills/` - one-off society/data backfills already run once (Carnew, Naas,
   Tullamore/Castlerea, the Gilbert 26/27 dates, the Oyster Lane rollback...).
