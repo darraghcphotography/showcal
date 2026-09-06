@@ -1103,3 +1103,71 @@ A real screen reader. axe is clean across the 10 busiest pages and the keyboard 
 but nothing has been driven with NVDA or VoiceOver and Claude cannot do it from here.
 `docs/spikes.md` has this narrowed rather than closed, along with the Esri tile terms and whether
 our outbound email actually reaches an inbox.
+
+---
+
+## 2026-09-06 (later) — Claude, Opus 5. Recommendations session.
+
+Darragh asked for recommendations on any topic, took the top two, and asked for the third to be
+prepared as an Antigravity task. **1142 tests green** (was 1117). `main` clean and pushed.
+
+### Commits
+
+| | |
+|---|---|
+| `499e5ee` | `page_views_daily` — per-day pageviews split people vs bots, plus the Traffic page chart |
+| `04cea3b` | Empty pages dropped from the nav (five links) — in practice this hides the FAQ only; see the correction below |
+| `fbe32c3` | `build_ticket_worklist.py` + tests; brief written to untracked `enrichment/` |
+
+### Written to the live database
+
+**Nothing.** No management script was run against production this session. The only schema change
+(`page_views_daily`) is created by `schema.sql` on startup, which the app already re-applies on
+every boot — no migration entry needed, and it adds no column to an existing table.
+
+### Verified
+
+- `/faq` is **empty in production** (0 entries). **`/exchange` is not, and I said it was** — it
+  carries Castlebar Musical & Dramatic Society's *We Will Rock You* whole-cast costumes, listed
+  2026-08-30. I fetched the page, grepped its HTML for `empty`, hit something in the CSS, and read
+  that as an empty state; the stale local `aims.db` said 0 and I let it agree. Stripping the tags
+  showed the listing at once. The gate is unaffected — the FAQ link goes, the exchange link stays,
+  which is what it is meant to do — but the changelog entry had to be corrected before it published.
+- **The upcoming-show figures I quoted were from the stale local copy.** Production has **67**
+  upcoming shows and **61** with no ticket link, not 48 and 43. Counted live.
+- The traffic chart rendered and screenshotted in dark, light and at 390px before shipping.
+- Chart colours run through a contrast/colour-vision validator. `--accent` vs `--muted` — the
+  obvious pick — fails at normal-vision ΔE 10.8. `--accent` vs `--gold` passes at 31/38.
+
+### Needs Darragh
+
+- **The ticket worklist is not generated.** It has to run in the container
+  (`docker compose exec aims-web python build_ticket_worklist.py --db /data/aims.db --out
+  /data/ticket_worklist.json`), and **SSH to `dc-qnap-2` timed out for this entire session** —
+  port 22, connection timeout rather than refused. Everything else was verified over HTTPS instead.
+  If that is a firewall change rather than a blip, it is worth knowing, because it also removes the
+  `md5sum` check against Portainer Stack 8 that normally proves a push actually deployed.
+- **The FAQ is the cheap win.** Six real items sit in `feature_suggestions` and Darragh answers the
+  same committee questions repeatedly. Typing in half a dozen answers puts that page — and its nav
+  link — back on its own.
+- **The exchange has exactly one listing, from one society.** The gate shows the link at one item.
+  Whether one listing across 194 societies is enough to earn a nav slot is Darragh's call, not a
+  number I should invent — say so and it becomes a one-line change.
+
+### For the next agent
+
+- **Do not "fix" `page_views` to exclude bots.** It is deliberately left counting everything so
+  every figure quoted before today stays comparable. The filtered view is `page_views_daily`.
+- **The daily table starts empty and cannot be backfilled.** For the first fortnight the chart will
+  look sparse; the page says which date it can speak for. That is not a traffic collapse.
+- **"People" is not a verified human count.** It is a user-agent heuristic that catches crawlers
+  which identify themselves and nothing that poses as a browser.
+- **When hiding a page from the nav, grep for every link, not the nav template.** I found three in
+  `base.html` and thought I was done. Two more were on `/more` — which *is* the whole menu on a
+  phone, so I would have hidden it from desktop and left it for the visitors most likely to tap it
+  — and one was a "Staging X? Check the Exchange" banner that appears **precisely when there is
+  nothing to find**.
+- **The ticket brief's whole design is the wrong-show failure**, not link-rot. 32 of the 102
+  `rights_url` values published in August served a different show and every one returned HTTP 200.
+  If a returned file gets imported, validate the page-evidence fields (title/society/dates) against
+  our own rows — do not status-check the URLs and call it verified.

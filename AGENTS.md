@@ -81,8 +81,8 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1034 tests pass as of `0a8c8ae`**
-(2026-09-02).
+Before any push to `main`: `py -m pytest` must be green. **1142 tests pass as of `fbe32c3`**
+(2026-09-06).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
 replacing it: anything a visitor or committee member can *see* gets **described to him before
@@ -284,7 +284,20 @@ pre-Christmas shows.
 1. **Keep `main` green, and fix what Darragh reports.** CI does not gate the deploy, so a red
    `main` is a live-site risk, not just an untidy badge. This outranks everything below.
 
-2. **Data and outreach support** — high value, small blast radius:
+2. **Ticket links on upcoming shows** — added 2026-09-06, and on merit this is the biggest open
+   product gap. **61 of 67 upcoming shows have no ticket link**, on a homepage taking ~48% of all
+   traffic: someone lands, finds a show, and cannot book. The research task is prepared
+   (`build_ticket_worklist.py` + `enrichment/TICKET_LINKS_BRIEF.md`) but **the worklist is not
+   generated** — it has to run in the container against the live database, because the upcoming
+   set turns over weekly. **Read the brief before doing any of this work yourself**: the failure
+   it is built to prevent is a link that resolves but sells a *different* show, which already
+   happened here with `rights_url` (32 of 102 wrong, every one HTTP 200).
+
+3. **The FAQ has 0 entries and is currently hidden from the nav** because of it. Six real items sit
+   in `feature_suggestions` and Darragh answers the same committee questions repeatedly. Drafting
+   answers is useful; **publishing them is Darragh's call** — they speak for the project.
+
+4. **Data and outreach support** — high value, small blast radius:
    - ~~`/admin/historical-society-links` — 64 printed names releasing 529 award rows~~
      **Both wrong, and both cleared.** The queue is at **0 undecided** (checked against the live
      database 2026-09-02); it emptied largely via `no_match` decisions, which is the correct
@@ -299,13 +312,13 @@ pre-Christmas shows.
      youth theatres) are arguably *Out of scope* by nature instead. **That is Darragh's call,
      not yours** — propose, don't apply.
 
-3. **Off-box backup.** Backups currently sit in the same directory, on the same volume, as the
+5. **Off-box backup.** Backups currently sit in the same directory, on the same volume, as the
    database. It is the only open item whose downside is losing everything. `CACHEDEV1` has
    ~339GB free but is a 96%-full ageing array; a genuinely off-box destination is a decision
    about Darragh's hardware and accounts. **Investigate and propose options with trade-offs;
    do not pick one.** `backup_db.py` and `verify_backup.py` already exist — read them first.
 
-4. ~~**The rate-limiting finding** — still unfixed.~~ **This was wrong when it was written and
+6. ~~**The rate-limiting finding** — still unfixed.~~ **This was wrong when it was written and
    it is still wrong. It was already fixed.** `app/rate_limit.py` keys on Cloudflare's own
    `CF-Connecting-IP` header, which their edge sets and a client cannot forge, precisely so that
    `ProxyFix(x_proto=1)` never has to be widened to trust forged `X-Forwarded-For` hops. Claude
@@ -328,7 +341,7 @@ pre-Christmas shows.
    **Do not build the filters before the data lands** — a cast-size filter over mostly-blank rows
    hides titles rather than admitting it does not know.
 
-5. ~~**Costumes / props / sets listings, per show.**~~ **SHIPPED** — it is the Costumes & Props
+7. ~~**Costumes / props / sets listings, per show.**~~ **SHIPPED** — it is the Costumes & Props
    Exchange (`/exchange`, `wardrobe_items` / `wardrobe_photos`), and it was already live when this
    item still described it as "the biggest lift on the board". Verified in code 2026-09-04. One
    real listing so far. Contact details on a listing are restricted to signed-in societies — that
@@ -336,7 +349,7 @@ pre-Christmas shows.
    on the board, **the social card generator shipped 2026-09-04** (`app/social_card.py`); the
    **society edit audit log** is still genuinely unbuilt and is in `ROADMAP.md`'s open list.
 
-6. ~~**The two design items**~~ — **both shipped 2026-09-02**, along with a full design pass.
+8. ~~**The two design items**~~ — **both shipped 2026-09-02**, along with a full design pass.
    Society pages now lead with stat tiles; the missing-poster placeholder is a typeset playbill
    rather than an initials box; the societies index, the homepage cards and `/stats` were all
    rebuilt. See `ROADMAP.md`.
@@ -356,12 +369,12 @@ pre-Christmas shows.
      isolation and badly in place, because the card body repeats two of the three directly
      below it.
 
-7. **A single venue's `<h1>` overflows sideways at 320px.** Found 2026-09-04 while crawling all 137
+9. **A single venue's `<h1>` overflows sideways at 320px.** Found 2026-09-04 while crawling all 137
    local venue detail pages to verify the `.detail-list` grid fix. Different root cause (an
    unwrapped long venue name in the heading, not the grid) — not fixed, since it wasn't one of that
    session's two named findings. Low blast radius (one venue, 320px only) but a real, measured fault.
 
-8. **Four `url_for(..., _external=True)` call sites still emit `http://`.** Found 2026-09-04 during
+10. **Four `url_for(..., _external=True)` call sites still emit `http://`.** Found 2026-09-04 during
    a backlog audit. Same Cloudflare Tunnel bug fixed in `feeds.py` that day — the tunnel sends no
    `X-Forwarded-Proto`, so `_external=True` honestly reports http. These four were simply never
    reached: `admin/access_requests.py:117` and `:199` (**the magic-link URL emailed to a society**),
@@ -375,9 +388,35 @@ judgement call, not a defect; do not let it jump the queue).
 
 ---
 
-## Current state, 2026-09-04
+## Current state, 2026-09-06
 
 Every figure here was counted against the **live** database on that date, not carried forward.
+
+- **HEAD `fbe32c3`**, pushed 2026-09-06. **1142 tests green**, `main` clean.
+- **Counted live 2026-09-06 (later session):** **67 upcoming shows**, of which **61 have no ticket
+  link** and 50 have no poster. **1 exchange listing** (Castlebar M&DS, added 2026-08-30),
+  **0 FAQ entries**, **24,829 pageviews over 2,628 paths**, 17 never-expiring invite codes.
+- **~~Costumes & Props and the FAQ are both empty~~ — only the FAQ is.** Claude asserted both were
+  empty on 2026-09-06, recommended hiding both, and was wrong about the exchange. **The figure
+  needed to catch it was already in this block** ("1 exchange listing", counted the same day) and
+  was not read. Two habits, both cheap: **the local `aims.db` diverges from production** on exactly
+  these fields, and **grepping a page's HTML for a word like `empty` is not a check** — it matched
+  CSS. Strip the tags and read what rendered, or query production.
+- **Pageviews are now recorded per day and split people-vs-bot** (`page_views_daily`, `499e5ee`).
+  `page_views` is deliberately unchanged and still counts everything, so older figures stay
+  comparable — **do not "fix" it to filter bots.** The daily table starts empty at deploy and
+  cannot be backfilled; the bot test is a user-agent heuristic, so "people" is not a verified human
+  count. `/admin/traffic` states both caveats on the page.
+- **Empty pages are now kept out of the nav automatically** (`04cea3b`). A link returns on its own
+  once its page has content. If you hide another one: **grep for every link, not just
+  `base.html`** — three were there, but two more were on `/more` (the entire menu on a phone) and
+  one was a banner that appears *precisely when there is nothing to find*.
+- **The ticket-link research task is prepared and unsent.** `build_ticket_worklist.py` (root,
+  tested) plus `enrichment/TICKET_LINKS_BRIEF.md` (untracked, like every brief). The worklist is
+  deliberately not generated — it must run in the container. The brief is designed around **a link
+  that resolves but sells a different show**, which is what went wrong with `rights_url`.
+
+## Superseded: current state, 2026-09-04
 
 - **HEAD `332f72e`**, pushed 2026-09-06. **1117 tests green**, `main` clean.
 - **Counted against the live database at wrap-up on 2026-09-06**, not carried forward:

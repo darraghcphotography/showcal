@@ -1,4 +1,4 @@
-The Costumes & Props Exchange and the FAQ have been taken out of the menus until there is something on them. Both pages were finished and linked from the homepage, and both were completely empty - so two of the links on offer led nowhere. The pages themselves still work, and each link comes back on its own the moment the first item or the first answer is added
+The FAQ has been taken out of the menus until there is something on it. The page was finished and linked from the homepage, and had no answers on it at all - so one of the links on offer led nowhere. The page itself still works, and the link comes back on its own the moment the first answer is added. The Costumes & Props Exchange now works the same way, though it has a listing and so stays where it is
 
 ---
 

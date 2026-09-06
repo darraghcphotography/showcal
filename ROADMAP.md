@@ -20,7 +20,111 @@ cause is entering an item here and never re-checking it against the code. **Befo
 open, grep for it.** The file has now been wrong in both directions - claiming work was outstanding
 when it had shipped, and claiming a security finding was unfixed when it had been fixed.
 
-## START HERE - what the traffic says, and an accessibility pass (2026-09-06)
+## START HERE - the traffic data is now trustworthy, and two empty pages left the nav (2026-09-06, later)
+
+> Darragh asked for recommendations on any topic. I gave four, ranked, each checked against the
+> live site or the database rather than the tracking docs. He took the top two. **1142 tests green**
+> (was 1117).
+>
+> ### 1. The traffic data could not support the decisions being made from it
+>
+> The session earlier today read `page_views` and changed a product call off it ("the homepage is
+> 47.8% of traffic, show pages are a sitemap sweep"). Good call - but `page_views` has three
+> columns: `path`, `views`, `last_viewed`. One running counter per path since 2026-08-03. It cannot
+> say whether traffic is **growing**, what happened **this week**, or how much of the total is
+> **Googlebot**. The headline 24,363 is inflated by an unknown amount, and it is the number
+> decisions are now being made from.
+>
+> `page_views_daily (path, day, is_bot, views)` now records alongside it. `page_views` is
+> deliberately unchanged and still counts everything, so figures quoted before today stay
+> comparable - **do not "fix" it to exclude bots.**
+>
+> **The bot test is a user-agent heuristic and the page says so.** It catches every crawler that
+> identifies itself (which the 955-paths-at-exactly-two-views signature says is most of ours) and
+> nothing that poses as a browser. A missing UA counts as a bot. Read "people" as the total with
+> the obvious rubbish removed, not a verified human count.
+>
+> **It starts empty.** The split cannot be backfilled - nothing recorded a date or a user agent
+> before now. `/admin/traffic` says which date it can speak for, so the first fortnight does not
+> read as a collapse.
+>
+> Two things worth not re-deriving:
+> - **The chart colours were validated, not chosen.** `--accent` against `--muted` was the obvious
+>   pairing and sits at normal-vision delta-E 10.8 - genuinely hard to tell apart with full colour
+>   vision. `--accent` against `--gold` is 31 (dark) / 38 (light). Screenshotted in both themes and
+>   at 390px before shipping.
+> - **A real bug fell out of writing the tests:** `purge_excluded_pageviews` read paths from
+>   `page_views` only, so a daily row whose twin had been pruned was never cleaned.
+>
+> ### 2. An empty page was linked from the homepage - one, not the two I claimed
+>
+> **Correction, and it is the useful part of this section.** I told Darragh that `/exchange` and
+> `/faq` were both empty and recommended hiding both. **`/faq` is genuinely empty (0 entries).
+> `/exchange` is not** - it has a real listing, Castlebar Musical & Dramatic Society's *We Will Rock
+> You* whole-cast costumes, added 2026-08-30.
+>
+> I got there by fetching the page and grepping its HTML for `empty`, matching something in the CSS,
+> and reading that as an empty state without ever looking at what the page rendered. The local
+> `aims.db` said 0 items and I let it agree with me. One `sed`-strip of the tags showed the listing
+> immediately. **Local `aims.db` diverges from production on exactly this kind of field, and a grep
+> for a word is not a check** - render the page or query production.
+>
+> The gate itself is unaffected and behaves correctly: the FAQ link is hidden, and the exchange link
+> stays because there is something behind it. But the reasoning I gave was half wrong, and the
+> changelog entry was corrected before it published.
+>
+> **Five links, not the two I first found.** The header dropdown and two footer columns were
+> obvious. The other three were not: **both entries on `/more`**, which is the entire menu on a
+> phone - gating `base.html` alone would have left them reachable for exactly the visitors who see
+> them most - and the **"Staging X? Check the Exchange" banner** on a title page, which appears
+> precisely when that title has nothing listed. (The society- and title-page cross-links were
+> already inside `{% if wardrobe_items %}` and needed nothing.)
+>
+> Links hidden, routes kept: each page returns on its own the moment there is content. Each
+> condition mirrors what its page actually lists (published FAQ entries; non-delisted items from
+> non-hidden societies), so a draft answer or a delisted costume cannot put the empty page back.
+> `/venues`' constant-query-budget test went 8 -> 9; the bound being constant is what it protects.
+>
+> ### 3. The ticket-link research task is prepared, not sent
+>
+> **61 of 67 upcoming shows have no ticket link** (counted against production; the 43-of-48 figure
+> quoted earlier in the session came from the stale local copy). The site's core job is telling
+> someone what's on so they can go, and right now they land on the homepage and hit a dead end.
+> This is the biggest product gap open, and it is data, not code.
+>
+> `build_ticket_worklist.py` (repo root, tested) generates the worklist; the brief is
+> `enrichment/TICKET_LINKS_BRIEF.md` (untracked, like every other brief). **The worklist itself is
+> deliberately not generated yet** - it must be built in the container, because the upcoming set
+> turns over weekly and a local `aims.db` has none of the society website/Facebook values the
+> researcher starts from.
+>
+> The brief is built around one failure: **a link that resolves but sells a different show.** That
+> is not hypothetical here - 32 of the 102 `rights_url` values published in August served a
+> different show, every one returning HTTP 200, because "the URL resolves" was all that was
+> checked. So every filled row must carry the title, society and dates **as printed on the page**,
+> which we then check mechanically against what we hold.
+>
+> ### Checked and deliberately NOT done
+>
+> - **`/titles` renders 316 cards, ~500KB of HTML.** It gzips to 38KB, so this is DOM/render cost
+>   on a mid-range phone, not bandwidth. `/titles` gets 187 views against the homepage's 1,370.
+>   Filed, not fixed - and note the page-weight backlog item was already resolved once by adding
+>   compression, so don't re-open it as a bandwidth problem.
+> - **SSH to the NAS timed out all session** (`dc-qnap-2` port 22). Everything above was verified
+>   against the public site over HTTPS instead. Nothing needed a container command; the ticket
+>   worklist does, and that is why it is not generated.
+>
+> ### Still open from this
+>
+> - **Generate and send the ticket worklist** - needs the container, so needs the NAS reachable.
+> - **The FAQ is the cheaper of the two empty pages to fill.** Six real entries sit in
+>   `feature_suggestions`, and Darragh answers the same committee questions repeatedly. That is the
+>   FAQ, already written, just not typed in.
+> - **An importer for the returned ticket file has not been built.** Deliberate: build it as a
+>   validator (title/society/dates against our own rows) once the data shape survives review, not
+>   speculatively.
+
+## START HERE - what the traffic says, and an accessibility pass (2026-09-06, earlier)
 
 > Darragh asked for a stance on the UX. I had one and it was inference, so I looked at `page_views`
 > first - nobody ever had. **1117 tests green.**
