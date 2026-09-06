@@ -966,3 +966,69 @@ own dry-run.** It would have caught this before anything was written.
 `society_id` is 98 (Shannon), while the review text plainly says "SONG in Dundalk gave us a
 compelling tale". That mis-attribution predates the merge and is a judgement call about a printed
 source none of us can see.
+
+---
+
+## 2026-09-06 — Claude (Opus 5); what the traffic says, and an accessibility pass
+
+**Who:** Claude Opus 5. **Tests:** 1111 -> 1117. **Production data written:** None.
+
+Darragh asked for my stance on the UX/UI. I said it was inference and offered to look at
+`page_views` first, which nobody ever had.
+
+### The traffic, with its caveats stated first
+
+24,363 views over 2,625 paths since 2026-08-03. **`app/analytics.py` does no bot filtering**, so
+crawlers are counted; it is a cumulative counter with no sessions, uniques or referrers, and
+`last_viewed` is the only date. Read it as requests, not people.
+
+- **The homepage is 47.8% of everything** (11,648). Next real pages: `/season` 604, `/stats` 566,
+  `/societies` 538, `/awards` 380, `/titles` 251.
+- **The long tail separates crawl from humans**, and this is the finding worth keeping:
+
+  | | paths | median views | 1 view | 3+ views |
+  |---|---|---|---|---|
+  | `/shows/<id>` | 1,803 | 2 | 540 | 308 |
+  | `/societies/<id>` | 167 | 5 | 2 | 129 |
+
+  955 show pages have *exactly two* views - a sitemap sweep. Society pages look human-shaped.
+  **People land on the homepage and mostly do not click into a show.** Worth weighing before
+  putting more effort into show-detail pages.
+- `/society/` (212) + `/society/login` (190) shows the committee side gets real use.
+- **`/calendar.ics` has been fetched 175 times** - the subscription feed argued for on principle
+  on 2026-09-04 is genuinely used.
+
+### Accessibility: better than I had been saying, with two real gaps
+
+**axe-core, WCAG 2.0/2.1 A and AA, against 10 live pages: zero violations.** Verified axe actually
+ran (27 rules passing, 34 inapplicable, 1 incomplete) rather than trusting an empty result. My
+earlier "accessibility is only markup-deep" line was too harsh about the machine-checkable layer.
+
+axe covers roughly a third of WCAG, so I drove the site with a keyboard. Two genuine faults, both
+fixed and verified on production (`33a860f`):
+
+- **No skip link.** axe *passes* bypass-blocks on the `<main>` landmark alone - which helps a
+  screen reader jump and does nothing for someone tabbing, so every keyboard user crossed the whole
+  dropdown nav on every page. `<main>` now has `id` and `tabindex="-1"`, so the jump moves **focus**
+  rather than only scrolling. Verified live: first Tab lands on it, Enter puts focus on `<main>`.
+- **Escape did not close "Add to calendar."** `<details>` has no Escape behaviour of its own.
+  Handler is in `base.html` so any `.cal-menu` gets it; focus returns to the summary. Verified live.
+
+### Checked and deliberately NOT changed - so nobody re-derives these
+
+- **The focus ring is fine in dark mode.** Computed `outline-color` reads `rgb(16,16,16)`, which
+  looked like a serious contrast fault; `outline: auto` makes Chromium paint its own high-contrast
+  ring regardless. Screenshotted rather than trusted.
+- **`alt=""` on card posters is correct**, not a miss: the poster is a second link to the same
+  destination as the title link beside it, carrying `aria-hidden="true"` and `tabindex="-1"`. Alt
+  text there would announce every card twice. Pinned with a test.
+- **320px reflow (WCAG 1.4.10) is clean** on `/`, `/season`, `/stats`, `/societies` and a show page.
+- **The site stays readable with images blocked** - 2,953 characters of text on the homepage.
+- The skip link measures `top:0`, 40px, fully in the viewport - a screenshot made it look clipped
+  and it is not.
+
+### Still genuinely untested
+
+**A real screen reader.** Everything above is automated or keyboard-driven; nothing here has been
+driven with NVDA or VoiceOver, and I cannot do that from this environment. That remains the honest
+gap and it is in `docs/spikes.md`.

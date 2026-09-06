@@ -20,6 +20,51 @@ cause is entering an item here and never re-checking it against the code. **Befo
 open, grep for it.** The file has now been wrong in both directions - claiming work was outstanding
 when it had shipped, and claiming a security finding was unfixed when it had been fixed.
 
+## START HERE - what the traffic says, and an accessibility pass (2026-09-06)
+
+> Darragh asked for a stance on the UX. I had one and it was inference, so I looked at `page_views`
+> first - nobody ever had. **1117 tests green.**
+>
+> ### Read the traffic with its caveats attached
+>
+> 24,363 views over 2,625 paths since 2026-08-03. **`app/analytics.py` does no bot filtering**, and
+> it is a cumulative counter - no sessions, uniques or referrers. These are requests, not people.
+>
+> - **The homepage is 47.8% of all views.** Next real destinations: `/season` 604, `/stats` 566,
+>   `/societies` 538, `/awards` 380, `/titles` 251.
+> - **The long tail tells you which is crawl and which is human**, and this is the part worth
+>   keeping: `/shows/<id>` has 1,803 paths at a **median of 2 views** (955 of them at exactly two -
+>   a sitemap sweep), while `/societies/<id>` has 167 paths at a median of 5, with only 2 pages on
+>   a single view.
+>
+>   **People land on the homepage and mostly do not click through to a show.** The homepage is the
+>   product. Weigh that before putting more work into show-detail pages - a good deal of recent
+>   effort went there.
+> - `/society/` + `/society/login` at 402 combined: the committee-facing side gets real use.
+> - `/calendar.ics` fetched 175 times - the subscription feed defended on principle on 2026-09-04
+>   is genuinely used.
+>
+> ### Accessibility is better than this file has been claiming
+>
+> **axe-core over the 10 highest-traffic pages: zero WCAG A/AA violations.** Confirmed axe actually
+> ran rather than trusting an empty result. The "accessibility is only markup-deep" line that has
+> sat in this file since 2026-08-29 was too harsh about the automated layer, and is withdrawn.
+>
+> Keyboard driving found two things axe structurally cannot (`33a860f`, both verified live): **no
+> skip link** - axe passes bypass-blocks on the `<main>` landmark alone, which does nothing for
+> someone tabbing - and **Escape not closing the calendar menu**.
+>
+> **Checked and deliberately not changed, so nobody re-derives them:** the dark-mode focus ring is
+> genuinely visible (`outline: auto` paints Chromium's own ring, whatever the computed colour says -
+> screenshotted, not assumed); `alt=""` on card posters is correct because the poster is a second
+> link to the same place as the title beside it; 320px reflow is clean; the site stays readable with
+> images blocked.
+>
+> **Still unproven: a real screen reader.** Nothing has been driven with NVDA or VoiceOver and
+> Claude cannot do it from here. Narrowed rather than closed in `docs/spikes.md`.
+
+---
+
 ## START HERE - calendar + social card shipped, repertoire finder unblocked (2026-09-04, later)
 
 > Darragh reviewed a proposals mockup

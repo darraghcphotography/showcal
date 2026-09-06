@@ -94,19 +94,24 @@ defect, and was left alone on purpose.
 run one, fix this first rather than afterwards.
 
 ### The site is usable with a screen reader
-**Status:** never tested · **Affects:** all public pages
+**Status:** still untested · **Narrowed 2026-09-06** · **Affects:** all public pages
 
-Accessibility here is markup-deep: `aria-label` on pagination, `role="status"` on flashes,
-`aria-pressed` on the theme toggle. It has never been driven with an actual screen reader, nor with
-images disabled — and the site leans far harder on imagery (posters, logos, playbills) than it did
-when that markup was added.
+**The automated half is now checked and clean.** axe-core (WCAG 2.0/2.1 A + AA) reports **zero
+violations** across the 10 highest-traffic pages, and that result was itself verified - 27 rules
+passing, not an empty run. Keyboard driving found and fixed two things axe cannot see: no skip
+link, and Escape not closing the calendar menu. 320px reflow is clean, the site is readable with
+images blocked, and the focus ring is genuinely visible in dark mode.
 
-Mobile *layout* is genuinely measured (`document.scrollWidth` against the viewport at 320/390px
-across every route, most recently 2026-09-04) — do not let that create the impression accessibility
-is measured too. They are different claims.
+**What is still unproven is the thing the heading actually claims.** Nothing here has been driven
+with NVDA or VoiceOver. axe checks that a name exists, not that it makes sense when read aloud in
+sequence; it cannot tell you whether the poster-card pattern, the playbill placeholder or the
+stats charts are comprehensible to someone who cannot see them. The site leans much harder on
+imagery than when the original aria attributes were added.
 
-**How to resolve:** one pass with NVDA or VoiceOver over the homepage, a show page and the society
-login flow.
+**How to resolve:** one pass with NVDA (Windows) or VoiceOver (Mac) over the homepage, a show page
+and the society login flow. Claude cannot do this from its environment - it needs a person.
+**What would make it urgent:** any committee member mentioning difficulty, or the site being put
+in front of an audience where it matters.
 
 ### `season_start_year()`'s pivot holds
 **Status:** true until 2050 · **Affects:** anything decoding a `'yy/yy'` string
