@@ -73,12 +73,15 @@
           <span class="byline">a project by Darragh C</span>
         </span>
       </a>
+      {# Costumes & Props and the FAQ are only listed once they have something
+         on them - see _populated_page_flags in app/__init__.py for why. The routes stay
+         live either way, so an existing link or bookmark still works. #}
+      {% set whats_on = [
+        ('info.season_calendar',    'Season Calendar',     'Interactive week-by-week production dates'),
+        ('public.venues_index',     'Theatres & Venues',   'Stages across Ireland and what’s playing near you'),
+      ] + ([('public.exchange_index', 'Costumes & Props', 'Hire and borrow wardrobes, sets, and props')] if has_exchange_items else []) %}
       {% set nav_menus = [
-        ("What's On", [
-          ('info.season_calendar',    'Season Calendar',     'Interactive week-by-week production dates'),
-          ('public.venues_index',     'Theatres & Venues',   'Stages across Ireland and what’s playing near you'),
-          ('public.exchange_index',   'Costumes & Props',    'Hire and borrow wardrobes, sets, and props'),
-        ]),
+        ("What's On", whats_on),
         ('Societies', [
           ('public.societies_list',   'Directory by Region', 'All member societies across Ireland'),
           ('info.season_summary',     'Season Summaries',    'Every show announced, by season'),
@@ -212,7 +215,7 @@
         <h4 class="footer-heading">Societies &amp; Venues</h4>
         <ul class="footer-links">
           <li><a href="{{ url_for('public.societies_list') }}">All Societies</a></li>
-          <li><a href="{{ url_for('public.exchange_index') }}">Costumes &amp; Props Exchange</a></li>
+          {% if has_exchange_items %}<li><a href="{{ url_for('public.exchange_index') }}">Costumes &amp; Props Exchange</a></li>{% endif %}
           <li><a href="{{ url_for('public.venues_index') }}">Venues Directory</a></li>
           <li><a href="{{ url_for('submit.unlock') }}">Submit a show</a></li>
           <li><a href="{{ url_for('submit.photo') }}">Submit society history</a></li>
@@ -222,7 +225,7 @@
       <div class="footer-col">
         <h4 class="footer-heading">Project</h4>
         <ul class="footer-links">
-          <li><a href="{{ url_for('public.faq') }}">FAQ</a></li>
+          {% if has_faq_entries %}<li><a href="{{ url_for('public.faq') }}">FAQ</a></li>{% endif %}
           <li><a href="{{ url_for('public.suggest') }}">Suggest a feature</a></li>
           <li><a href="{{ url_for('public.suggestions_board') }}">Roadmap</a></li>
           <li><a href="https://ko-fi.com/darraghcphotography" target="_blank" rel="noopener noreferrer" style="color: var(--gold); font-weight: 600;">☕ Buy Darragh a Coffee</a></li>

@@ -1,3 +1,7 @@
+The Costumes & Props Exchange and the FAQ have been taken out of the menus until there is something on them. Both pages were finished and linked from the homepage, and both were completely empty - so two of the links on offer led nowhere. The pages themselves still work, and each link comes back on its own the moment the first item or the first answer is added
+
+---
+
 The main navigation has been restructured into three clean pillars: What's On, Societies, and Archive. The repertoire catalog is now clearly titled "Musicals Repertoire", and the Venues directory is unified with an interactive theatre map and "Next Show on Stage" badges for stages across Ireland
 
 ---

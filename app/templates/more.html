@@ -6,10 +6,12 @@
 
   <h2 class="more-group-label">Explore</h2>
 
-  <a class="queue-item" href="{{ url_for('public.exchange_index') }}">
-    <span class="primary">🎭 Costumes, Props &amp; Sets Exchange</span>
-    <p class="meta">Nationwide directory to hire, borrow, or buy wardrobes, sets, and props</p>
-  </a>
+  {% if has_exchange_items %}
+    <a class="queue-item" href="{{ url_for('public.exchange_index') }}">
+      <span class="primary">🎭 Costumes, Props &amp; Sets Exchange</span>
+      <p class="meta">Nationwide directory to hire, borrow, or buy wardrobes, sets, and props</p>
+    </a>
+  {% endif %}
 
   <a class="queue-item" href="{{ url_for('public.societies_list') }}">
     <span class="primary">🏛️ All Member Societies</span>
@@ -108,10 +110,12 @@
     <p class="meta">What this site is, and why it exists</p>
   </a>
 
-  <a class="queue-item" href="{{ url_for('public.faq') }}">
-    <span class="primary">FAQ</span>
-    <p class="meta">Common questions about ShowCal and the AIMS circuit</p>
-  </a>
+  {% if has_faq_entries %}
+    <a class="queue-item" href="{{ url_for('public.faq') }}">
+      <span class="primary">FAQ</span>
+      <p class="meta">Common questions about ShowCal and the AIMS circuit</p>
+    </a>
+  {% endif %}
 
   <a class="queue-item" href="{{ url_for('public.suggest') }}">
     <span class="primary">Suggest a Feature</span>

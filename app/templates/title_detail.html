@@ -122,7 +122,7 @@
         </a>
       {% endfor %}
     </div>
-  {% else %}
+  {% elif has_exchange_items %}
     <div class="exchange-inline-banner">
       <span>🎭 <strong>Staging {{ title }}?</strong> Check the Costumes &amp; Props Exchange for available wardrobe or set pieces.</span>
       <a href="{{ url_for('public.exchange_index', q=title) }}">Search Exchange &rarr;</a>

@@ -92,6 +92,12 @@ def test_venues_index_query_count_is_bounded(client, db):
 
     assert resp.status_code == 200
 
-    # Number of SELECT queries executed must be small and constant (bounded by <= 8 queries)
+    # Number of SELECT queries executed must be small and constant. Raised from
+    # 8 to 9 on 2026-09-06: the base template now asks, once per render, whether
+    # the optional Costumes & Props and FAQ pages have any content, so their nav
+    # links can stay hidden while they are empty (see _populated_page_flags in
+    # app/__init__.py). That is one extra query no matter how many venues are
+    # listed, which is exactly what this test is here to protect - the bound
+    # being constant, not its particular value.
     select_queries = [q for q in queries if "SELECT" in q.upper()]
-    assert len(select_queries) <= 8, f"Too many queries executed: {len(select_queries)}"
+    assert len(select_queries) <= 9, f"Too many queries executed: {len(select_queries)}"

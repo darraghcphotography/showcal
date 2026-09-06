@@ -221,8 +221,10 @@ def test_nav_matches_new_arrangement(client):
     for label in ["What's On", "Societies", "Archive"]:
         assert '{}<span class="nav-chevron"'.format(label) in header
 
-    # Key destinations in header
-    for label in ["Season Calendar", "Theatres &amp; Venues", "Costumes &amp; Props", "Directory by Region", "Musicals Repertoire"]:
+    # Key destinations in header. "Costumes &amp; Props" is deliberately not in
+    # this list any more - it is conditional on the exchange having any items,
+    # and is covered by its own test below.
+    for label in ["Season Calendar", "Theatres &amp; Venues", "Directory by Region", "Musicals Repertoire"]:
         assert label in header
     for label in ["AIMS Awards Archive", "Decades &amp; Trends", "Circuit Statistics", "Adjudications &amp; Reviews"]:
         assert label in header
