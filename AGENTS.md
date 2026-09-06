@@ -379,7 +379,23 @@ judgement call, not a defect; do not let it jump the queue).
 
 Every figure here was counted against the **live** database on that date, not carried forward.
 
-- **HEAD `41582d0`**, pushed 2026-09-04. **1108 tests green.**
+- **HEAD `c81870e`**, pushed 2026-09-06. **1117 tests green.**
+- **Two production data writes happened on 2026-09-05, both by Claude, both backed up first:**
+  102 `show_info.rights_url` values cleared (they led visitors to the wrong show - 32 of them
+  served a *different* production), and one `historical_reviews.show_id` repointed after a
+  foreign key violation that `merge_song_dundalk.py` had caused. Full detail in `HANDBACK.md`.
+- **A backfill that deletes rows should run `PRAGMA foreign_key_check` inside its own dry-run.**
+  That is the lesson from the violation above: the merge script guarded every table referencing
+  the *society* it deleted and none referencing the **shows it deleted itself**, so a real
+  adjudicator review pointed at nothing for two days and nothing on the site noticed.
+- **Accessibility, measured 2026-09-06:** axe-core reports **zero WCAG A/AA violations** across the
+  10 highest-traffic pages. A skip link and Escape-closes-the-calendar-menu were added after
+  keyboard testing found what axe structurally cannot. **A real screen reader is still untested** -
+  see `docs/spikes.md`.
+- **Traffic, from `page_views` (no bot filtering, cumulative, requests not people):** the homepage
+  is **47.8%** of all views. `/shows/<id>` has 1,803 paths at a median of 2 views - largely a
+  sitemap sweep - while `/societies/<id>` looks human-shaped. **Do not assume show-detail pages are
+  well trafficked.**
 - **A new runtime dependency landed with that commit: `segno` (the QR on the social card).** The
   Dockerfile runs `pip install -r requirements.txt` at build time, so this needs a genuine image
   rebuild, not just a file sync. If the card renders without its QR, that is the symptom — the code
