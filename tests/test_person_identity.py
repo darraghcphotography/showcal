@@ -262,3 +262,171 @@ def test_the_dashboard_counts_open_pairs_and_can_reach_zero(client, db):
     from app.blueprints.admin.people import open_candidates
 
     assert open_candidates(db) == []
+
+
+# --- one card per person, not per pair --------------------------------------
+#
+# Three spellings of one name produce three candidate pairs - A/B, A/C, B/C -
+# and shown as three rows they read as three unrelated questions about three
+# different people, each asking for a canonical spelling on its own with
+# nothing stopping the answers disagreeing. Darragh hit this on 2026-09-07
+# looking at Mairead McKenna / Mairead Mckenna / Mairéad McKenna. Against the
+# live data the grouping turns 76 pairs into 60 people.
+
+def seed_three_spellings(db):
+    seed_nominee(db, "Mairéad McKenna", year=2019)
+    seed_nominee(db, "Mairead Mckenna", year=2020)
+    seed_credit(db, "Mairead McKenna")
+
+
+def test_three_spellings_are_grouped_into_one_cluster():
+    from app.people import cluster_candidates, find_candidates
+    names = {"Mairead McKenna", "Mairead Mckenna", "Mairéad McKenna"}
+    clusters = cluster_candidates(find_candidates(names))
+    assert len(clusters) == 1
+    assert set(clusters[0]["names"]) == names
+    # The three pairs are kept, for the "not all one person" fallback.
+    assert len(clusters[0]["pairs"]) == 3
+
+
+def test_unrelated_people_stay_in_separate_clusters():
+    from app.people import cluster_candidates, find_candidates
+    names = {"Mairead McKenna", "Mairéad McKenna", "Roisin Currid", "Róisín Currid"}
+    clusters = cluster_candidates(find_candidates(names))
+    assert len(clusters) == 2
+    assert {len(c["names"]) for c in clusters} == {2}
+
+
+def test_a_cluster_is_only_as_confident_as_its_weakest_link():
+    """Quoting the strongest pair would overstate a chain of A-B certain plus
+    B-C borderline."""
+    from app.people import cluster_candidates
+    clusters = cluster_candidates([
+        ("A Smith", "A Smyth", 1.0, "same name, written differently"),
+        ("A Smyth", "Ab Smyth", 0.86, "near-identical first name, same surname"),
+    ])
+    assert len(clusters) == 1
+    assert clusters[0]["score"] == 0.86
+
+
+def test_the_queue_shows_one_card_for_three_spellings(client, db):
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_three_spellings(db)
+    login_as(client, admin_id)
+
+    body = client.get("/admin/people").get_data(as_text=True)
+    # All three names on the page...
+    for name in ("Mairead McKenna", "Mairead Mckenna", "Mairéad McKenna"):
+        assert name in body
+    # ...but as one decision, offering each spelling as the canonical one.
+    assert body.count("queue-item") == 1
+    assert '3 spellings' in body
+    assert 'All 3 are "Mairead McKenna"' in body
+
+
+def test_merging_a_cluster_puts_every_spelling_on_one_person(client, db):
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_three_spellings(db)
+    login_as(client, admin_id)
+
+    resp = client.post("/admin/people/merge-cluster", data={
+        "canonical": "Mairéad McKenna",
+        "variant": ["Mairéad McKenna", "Mairead Mckenna", "Mairead McKenna"],
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+
+    people = db.execute("SELECT id, canonical_name FROM people").fetchall()
+    assert len(people) == 1, "one human, one record"
+    assert people[0]["canonical_name"] == "Mairéad McKenna"
+    aliases = {r["alias"] for r in db.execute("SELECT alias FROM person_aliases")}
+    assert aliases == {"Mairéad McKenna", "Mairead Mckenna", "Mairead McKenna"}
+
+
+def test_a_merged_cluster_leaves_the_queue_entirely(client, db):
+    """All three pairs are closed by the one decision, not just the two that
+    named the canonical spelling."""
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_three_spellings(db)
+    login_as(client, admin_id)
+
+    client.post("/admin/people/merge-cluster", data={
+        "canonical": "Mairéad McKenna",
+        "variant": ["Mairéad McKenna", "Mairead Mckenna", "Mairead McKenna"],
+    }, follow_redirects=True)
+
+    body = client.get("/admin/people").get_data(as_text=True)
+    assert "Nothing left to review" in body
+
+
+def test_the_archive_still_says_what_it_said_after_a_cluster_merge(client, db):
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_three_spellings(db)
+    login_as(client, admin_id)
+
+    client.post("/admin/people/merge-cluster", data={
+        "canonical": "Mairéad McKenna",
+        "variant": ["Mairéad McKenna", "Mairead Mckenna", "Mairead McKenna"],
+    }, follow_redirects=True)
+
+    spellings = {r[0] for r in db.execute(
+        "SELECT nominee_name FROM historical_results WHERE nominee_name IS NOT NULL")}
+    assert "Mairead Mckenna" in spellings, "a merge is a join, never an edit"
+    assert db.execute(
+        "SELECT director FROM shows WHERE director IS NOT NULL").fetchone()[0] == "Mairead McKenna"
+
+
+def test_a_cluster_of_three_still_offers_the_pairwise_fallback(client, db):
+    """A cluster can over-reach - two spellings one person, the third somebody
+    else - and "Different people" has no single meaning across three names."""
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_three_spellings(db)
+    login_as(client, admin_id)
+
+    body = client.get("/admin/people").get_data(as_text=True)
+    assert "Not all the same person" in body
+    assert "/admin/people/dismiss" in body
+
+
+def test_a_pair_still_reads_as_a_pair(client, db):
+    """The two-spelling case is the common one and must not gain jargon."""
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_nominee(db, "Áine Gilmore")
+    seed_credit(db, "Aine Gilmore")
+    login_as(client, admin_id)
+
+    body = client.get("/admin/people").get_data(as_text=True)
+    assert 'Same person, "Aine Gilmore" is the right spelling' in body
+    assert "Different people" in body
+    assert "spellings &middot;" not in body
+
+
+def test_merge_cluster_refuses_a_canonical_that_is_not_a_name(client, db):
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_three_spellings(db)
+    login_as(client, admin_id)
+
+    client.post("/admin/people/merge-cluster", data={
+        "canonical": "Aaron Stone, Alan Maleady and Art McGuaran",
+        "variant": ["Mairead McKenna"],
+    }, follow_redirects=True)
+    assert db.execute("SELECT COUNT(*) FROM people").fetchone()[0] == 0
+
+
+def test_the_dashboard_counter_counts_people_not_pairs(client, db):
+    """Otherwise the dashboard says 76 and the page it links to shows 60."""
+    admin_id = seed_user(db)
+    seed_society(db)
+    seed_three_spellings(db)
+    login_as(client, admin_id)
+
+    body = client.get("/admin/").get_data(as_text=True)
+    import re
+    row = re.search(r"Names that may be the same person.*?<td>(\d+)</td>", body, re.S)
+    assert row and row.group(1) == "1", "three spellings of one name is one decision"

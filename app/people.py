@@ -171,3 +171,63 @@ def find_candidates(names, dismissed=()):
 
     candidates.sort(key=lambda c: (-c[2], c[0], c[1]))
     return candidates
+
+
+def cluster_candidates(candidates):
+    """Group candidate pairs into one entry per person.
+
+    Three spellings of one name produce three pairs - A/B, A/C, B/C - and shown
+    as three rows they read as three separate questions about three different
+    people, each asking a moderator to pick a canonical spelling independently.
+    Answering them one at a time also lets the answers disagree with each other.
+
+    Returns clusters of names connected by any candidate pair, most-confident
+    first, each as a dict:
+
+        {"names": [...],   # every spelling in the cluster, most-used first is
+                           # the caller's business - sorted here
+         "pairs": [...],   # the original candidate tuples inside this cluster
+         "score": float,   # the *lowest* score of any pair in it
+         "why":   str}     # the reason shared by every pair, else a summary
+
+    `score` is the minimum rather than the maximum on purpose: a cluster is only
+    as certain as its weakest link, and quoting the strongest would overstate a
+    chain like A-B (certain) plus B-C (borderline).
+    """
+    parent = {}
+
+    def find(x):
+        parent.setdefault(x, x)
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        while parent[x] != root:          # path compression
+            parent[x], x = root, parent[x]
+        return root
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    for name_a, name_b, _score, _why in candidates:
+        union(name_a, name_b)
+
+    grouped = {}
+    for cand in candidates:
+        grouped.setdefault(find(cand[0]), []).append(cand)
+
+    clusters = []
+    for pairs in grouped.values():
+        names = sorted({n for p in pairs for n in p[:2]})
+        reasons = {p[3] for p in pairs}
+        clusters.append({
+            "names": names,
+            "pairs": pairs,
+            "score": min(p[2] for p in pairs),
+            "why": reasons.pop() if len(reasons) == 1
+                   else "%d spellings of the same surname" % len(names),
+        })
+
+    clusters.sort(key=lambda c: (-c["score"], c["names"][0]))
+    return clusters

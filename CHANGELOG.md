@@ -1,3 +1,7 @@
+The site now answers the questions people actually ask - how to get a show listed, how to fix something that is wrong, what a society login can do, and whether this is an official AIMS site. Look for Frequently asked questions in the menu
+
+---
+
 Changes a society makes to its own listings are now recorded, along with what the value used to be. Societies edit their own history without a moderation queue, which is how it should stay - but until now there was no way to see that a date or a name had been changed, or what it said before. Nothing about what a society can edit has changed; the record is visible to moderators only
 
 ---

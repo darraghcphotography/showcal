@@ -19,7 +19,7 @@ from ._shared import (
 from .duplicates import TITLE_KEYED_TABLES, move_title_keyed_rows
 from .historical_reviews import find_mismatched_skeleton_shows
 from .historical_society_links import undecided_name_count
-from .people import open_candidates
+from .people import open_clusters
 
 
 def _duplicate_historical_rows(db):
@@ -202,7 +202,10 @@ def dashboard():
     # Suggested same-person pairs still open. Dismissals ("different people")
     # and completed merges both close a pair, so this reaches zero - the
     # matcher blocks on surname, so it proposes few enough to actually finish.
-    person_pairs_count = len(open_candidates(db))
+    # Counted in people, not pairs, to match the queue itself: a name written
+    # three ways is one decision there, so a counter saying 76 against a page
+    # showing 60 cards is just two different questions wearing one label.
+    person_pairs_count = len(open_clusters(db))
 
     # The most recent season where every show has safely concluded (closed
     # at least 60 days ago, giving adjudication time to happen) - if there's

@@ -8,53 +8,105 @@
      public site, and nothing rewrites the archive.</strong> Every award row and every credit keeps
      the exact text it always had, so a decision made here can be undone below.</p>
 
-  {% if candidates %}
-    <h2>Suggested pairs</h2>
+  {% if clusters %}
+    <h2>Suggested people</h2>
     <p class="meta">
+{# Counted in people, not pairs: three spellings of one name are one
+         decision here, not three. #}
       {% if total_candidates > display_limit %}
-        Showing the top {{ display_limit }} of {{ total_candidates }} suggestions, most-confident first -
+        Showing the top {{ display_limit }} of {{ total_candidates }} people, most-confident first -
         resolve some and reload to see the next batch.
       {% else %}
         Showing all {{ total_candidates }} suggestion{{ '' if total_candidates == 1 else 's' }}.
       {% endif %}
+      Every spelling of one person is grouped into a single card, so a name written three ways is
+      one decision rather than three.
       Only names that already share a surname are ever compared, so a pair here differs in the first
       name or in punctuation, never in who it is.
     </p>
 
-    {% for a, b, score, why in candidates %}
+    {% for c in clusters %}
+      {# One card per person, not per pair. Three spellings make three pairs,
+         and as three rows they read as three unrelated questions about three
+         different people - each asking for a canonical spelling on its own,
+         with nothing stopping the answers disagreeing. #}
       <article class="queue-item">
         <p>
-          <strong>{{ a }}</strong> <span class="meta">({{ counts[a] }} on record)</span>
-          &nbsp;and&nbsp;
-          <strong>{{ b }}</strong> <span class="meta">({{ counts[b] }} on record)</span>
+          {% for name in c.names %}
+            {%- if not loop.first %} &nbsp;and&nbsp; {% endif -%}
+            <strong>{{ name }}</strong> <span class="meta">({{ counts[name] }} on record)</span>
+          {%- endfor %}
         </p>
-        <p class="meta">{{ why }} &middot; {{ (score * 100)|round|int }}% confident</p>
+        <p class="meta">
+          {% if c.names|length > 2 %}{{ c.names|length }} spellings &middot; {% endif %}
+          {{ c.why }} &middot; {{ (c.score * 100)|round|int }}% confident
+        </p>
         <div class="actions">
-          <form method="post" action="{{ url_for('admin.merge_people') }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="canonical" value="{{ a }}">
-            <input type="hidden" name="other" value="{{ b }}">
-            <button type="submit">Same person, "{{ a }}" is the right spelling</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.merge_people') }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="canonical" value="{{ b }}">
-            <input type="hidden" name="other" value="{{ a }}">
-            <button type="submit">Same person, "{{ b }}" is the right spelling</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.dismiss_person_pair') }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="name_a" value="{{ a }}">
-            <input type="hidden" name="name_b" value="{{ b }}">
-            <button type="submit">Different people</button>
-          </form>
+          {% for name in c.names %}
+            <form method="post" action="{{ url_for('admin.merge_person_cluster') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="canonical" value="{{ name }}">
+              {% for variant in c.names %}
+                <input type="hidden" name="variant" value="{{ variant }}">
+              {% endfor %}
+              <button type="submit">
+                {%- if c.names|length > 2 -%}
+                  All {{ c.names|length }} are "{{ name }}"
+                {%- else -%}
+                  Same person, "{{ name }}" is the right spelling
+                {%- endif -%}
+              </button>
+            </form>
+          {% endfor %}
+
+          {% if c.names|length == 2 %}
+            <form method="post" action="{{ url_for('admin.dismiss_person_pair') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="name_a" value="{{ c.names[0] }}">
+              <input type="hidden" name="name_b" value="{{ c.names[1] }}">
+              <button type="submit">Different people</button>
+            </form>
+          {% endif %}
         </div>
+
+        {% if c.names|length > 2 %}
+          {# A cluster can over-reach: two of three spellings may be one person
+             and the third somebody else. "Different people" has no single
+             meaning for three names, so the pairwise controls stay available
+             rather than forcing an all-or-nothing answer. #}
+          <details class="cluster-pairs">
+            <summary class="meta">Not all the same person - decide these one pair at a time</summary>
+            {% for a, b, score, why in c.pairs %}
+              <div class="actions">
+                <span class="meta">{{ a }} &amp; {{ b }} &middot; {{ (score * 100)|round|int }}%</span>
+                <form method="post" action="{{ url_for('admin.merge_people') }}" class="inline-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="canonical" value="{{ a }}">
+                  <input type="hidden" name="other" value="{{ b }}">
+                  <button type="submit">Both are "{{ a }}"</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.merge_people') }}" class="inline-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="canonical" value="{{ b }}">
+                  <input type="hidden" name="other" value="{{ a }}">
+                  <button type="submit">Both are "{{ b }}"</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.dismiss_person_pair') }}" class="inline-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="name_a" value="{{ a }}">
+                  <input type="hidden" name="name_b" value="{{ b }}">
+                  <button type="submit">Different people</button>
+                </form>
+              </div>
+            {% endfor %}
+          </details>
+        {% endif %}
       </article>
     {% endfor %}
   {% else %}
-    <h2>Suggested pairs</h2>
-    <p class="meta">Nothing left to review - every suggested pair has been either recorded as one
-       person or marked as two. New ones appear here when fresh names arrive from an import or from
+    <h2>Suggested people</h2>
+    <p class="meta">Nothing left to review - every suggestion has been either recorded as one
+       person or marked as different people. New ones appear here when fresh names arrive from an import or from
        the credit backfill.</p>
   {% endif %}
 

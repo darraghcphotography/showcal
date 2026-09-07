@@ -24,12 +24,13 @@ from flask import flash, redirect, render_template, request, url_for
 from ...auth import current_user, login_required
 from ...clock import utcnow_iso
 from ...db import get_db
-from ...people import find_candidates, name_parts
+from ...people import cluster_candidates, find_candidates, name_parts
 from . import bp
 
 # The queue shows a screenful at a time; the count above it is always the true
 # total. find_candidates deliberately returns everything - see its docstring on
 # why truncating inside the finder makes a counter look permanently stuck.
+# Counted in *people* rather than pairs since 2026-09-07 - see open_clusters.
 PEOPLE_DISPLAY_LIMIT = 40
 
 # Every column that holds a person's name as free text. One place, because
@@ -90,16 +91,27 @@ def open_candidates(db):
     ]
 
 
+def open_clusters(db):
+    """Open candidates grouped into one entry per person.
+
+    Three spellings of a name produce three pairs, and as three rows they read
+    as three unrelated questions - which is what Darragh hit on 2026-09-07.
+    Against the live data this turns 76 pairs into 60 people: 51 with two
+    spellings and 9 with three.
+    """
+    return cluster_candidates(open_candidates(db))
+
+
 @bp.route("/people")
 @login_required
 def people_queue():
     db = get_db()
-    candidates = open_candidates(db)
+    clusters = open_clusters(db)
 
     # One appearance count per name shown, not per pair - a name in three
     # pairs was otherwise counted three times, and this runs per request.
-    shown = candidates[:PEOPLE_DISPLAY_LIMIT]
-    counts = {name: name_appearances(db, name) for pair in shown for name in pair[:2]}
+    shown = clusters[:PEOPLE_DISPLAY_LIMIT]
+    counts = {name: name_appearances(db, name) for c in shown for name in c["names"]}
 
     people = db.execute(
         """
@@ -117,8 +129,8 @@ def people_queue():
 
     return render_template(
         "admin/people.html",
-        candidates=shown,
-        total_candidates=len(candidates),
+        clusters=shown,
+        total_candidates=len(clusters),
         display_limit=PEOPLE_DISPLAY_LIMIT,
         counts=counts,
         people=people,
@@ -182,6 +194,42 @@ def merge_people():
     _link(db, canonical, other, current_user()["username"])
     db.commit()
     flash(f"{other} and {canonical} are now recorded as one person.", "success")
+    return redirect(url_for("admin.people_queue"))
+
+
+@bp.route("/people/merge-cluster", methods=("POST",))
+@login_required
+def merge_person_cluster():
+    """Put every spelling of one person onto one record, in a single decision.
+
+    The pairwise route still exists and still works - it is what the "not all
+    one person" fallback uses when a cluster has genuinely caught two different
+    people. This is the common case: N spellings, one human, one click.
+    """
+    db = get_db()
+    canonical = request.form.get("canonical", "").strip()
+    others = [n.strip() for n in request.form.getlist("variant") if n.strip()]
+    others = [n for n in others if n != canonical]
+
+    if not canonical or not others:
+        flash("Pick which spelling is the correct one.", "error")
+        return redirect(url_for("admin.people_queue"))
+    if name_parts(canonical) is None:
+        flash(f"{canonical!r} doesn't look like one person's name.", "error")
+        return redirect(url_for("admin.people_queue"))
+
+    username = current_user()["username"]
+    for other in others:
+        _link(db, canonical, other, username)
+    db.commit()
+
+    if len(others) == 1:
+        flash(f"{others[0]} and {canonical} are now recorded as one person.", "success")
+    else:
+        flash(
+            f"{len(others) + 1} spellings are now recorded as one person, under {canonical}.",
+            "success",
+        )
     return redirect(url_for("admin.people_queue"))
 
 
