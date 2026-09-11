@@ -1,3 +1,7 @@
+Fixed: a show disappeared from the homepage the morning after its opening night, even though it was still running. Come From Away in Thurles opened on a Thursday and was gone by Friday with two performances left. A show now stays listed until its final night - and its Buy tickets button and Add to calendar link stay put for the whole run, which is when people actually book
+
+---
+
 The site now answers the questions people actually ask - how to get a show listed, how to fix something that is wrong, what a society login can do, and whether this is an official AIMS site. Look for Frequently asked questions in the menu
 
 ---

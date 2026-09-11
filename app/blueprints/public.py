@@ -27,7 +27,7 @@ from ..productions import ON_RECORD_PRODUCTION
 from ..rate_limit import limiter
 from ..search import build_phrase_query, escape_like, fts_match_ids
 from ..season import current_season, season_has_ended, season_label, season_range, season_start_year
-from ..shows import is_upcoming as _is_upcoming
+from ..shows import is_still_on as _is_still_on, is_upcoming as _is_upcoming, still_on_sql
 from ..similarity import normalize_title
 from ..venues import normalize_venue
 
@@ -97,9 +97,12 @@ def index():
         LEFT JOIN venues ON venues.id = shows.venue_id
         WHERE shows.moderation_status = 'approved'
           AND shows.show IS NOT NULL
-          AND shows.opening_date >= ?
+          AND """ + still_on_sql("shows") + """
           AND NOT societies.hidden
     """
+    # Still on, not merely not-yet-opened: a show mid-run is exactly what
+    # someone landing here tonight wants to find. Filtering on opening_date
+    # dropped Come From Away the morning after its first night (2026-09-11).
     upcoming_params = [date.today().isoformat()]
     if upcoming_region in REGIONS and not near_active:
         upcoming_query += " AND shows.region = ?"
@@ -1401,9 +1404,14 @@ def show_detail(show_id):
 
     related = _related_to_show(db, show)
 
-    # Same "upcoming" definition as the homepage's Upcoming shows list -
-    # only nudge for details on shows that haven't happened yet.
+    # Two flags, deliberately, because they answer different questions - see
+    # the note at the top of app/shows.py. is_upcoming (not opened yet) drives
+    # lead-time things: the adjudication cut-off and the society nudges.
+    # is_still_on (not closed yet) drives anything offering the show to a
+    # visitor - the ticket link and "add to calendar" - which must keep working
+    # through the run, since that is exactly when someone wants to book.
     is_upcoming = _is_upcoming(show)
+    is_still_on = _is_still_on(show)
 
     # The show-dates calendar link is redundant once a show has already
     # happened - gated on the same is_upcoming used for the ticket/poster
@@ -1422,7 +1430,7 @@ def show_detail(show_id):
     # the show page is the one most likely to be shared publicly - the site
     # audit's finding 07. Not a secret, just the wrong audience.
     adjudication_cutoff = None
-    if is_upcoming:
+    if is_still_on and show["opening_date"]:
         opening = date.fromisoformat(show["opening_date"])
         closing = date.fromisoformat(show["closing_date"]) if show["closing_date"] else opening
         _cal = dict(
@@ -1434,7 +1442,10 @@ def show_detail(show_id):
         )
         gcal_show_url = google_calendar_url(**_cal)
         outlook_show_url = outlook_calendar_url(**_cal)
-        if show["review_status"] != "Not adjudicated" and _may_see_own_show_admin(show):
+        # The cut-off is six weeks *before opening*, so it stays keyed on
+        # is_upcoming - once a show has opened the deadline is long past.
+        if (is_upcoming and show["review_status"] != "Not adjudicated"
+                and _may_see_own_show_admin(show)):
             adjudication_cutoff = (opening - timedelta(weeks=6)).isoformat()
 
     # AIMS assigns one adjudicator per tier per season, not per show - so a
@@ -1507,7 +1518,7 @@ def show_detail(show_id):
         ).fetchall()
 
     return render_template(
-        "show_detail.html", show=show, is_upcoming=is_upcoming,
+        "show_detail.html", show=show, is_upcoming=is_upcoming, is_still_on=is_still_on,
         gcal_show_url=gcal_show_url, outlook_show_url=outlook_show_url,
         adjudication_cutoff=adjudication_cutoff, reviewed_by=reviewed_by,
         historical_review=historical_review, award_history=award_history,
@@ -1593,13 +1604,14 @@ def titles_list():
     upcoming = defaultdict(list)
     for r in db.execute("""
         SELECT productions.title_key AS title_key, shows.season AS season,
-               shows.opening_date AS opening_date, societies.name AS society_name
+               shows.opening_date AS opening_date, shows.closing_date AS closing_date,
+               societies.name AS society_name
         FROM shows
         JOIN societies ON societies.id = shows.society_id
         JOIN productions ON productions.id = shows.production_id
         WHERE shows.moderation_status = 'approved' AND shows.show IS NOT NULL AND NOT societies.hidden
     """):
-        if _is_upcoming(r):
+        if _is_still_on(r):
             upcoming[r["title_key"]].append({
                 "season": r["season"],
                 "society_name": r["society_name"],
@@ -2091,7 +2103,7 @@ def venue_detail(venue):
 
     upcoming, past = [], []
     for s in shows:
-        (upcoming if _is_upcoming(s) else past).append(s)
+        (upcoming if _is_still_on(s) else past).append(s)
 
     residents = {}
     for s in shows:

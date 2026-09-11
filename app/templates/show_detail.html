@@ -158,7 +158,9 @@
       {# Buying a ticket is the whole point of visiting an upcoming show's
          page. It was a plain "Buy tickets" link sitting in the middle of the
          definition list, between the venue and the director. #}
-      {% if show['ticket_url'] and is_upcoming %}
+      {# is_still_on, not is_upcoming: the ticket link has to survive opening night -
+         the run is when people book. #}
+      {% if show['ticket_url'] and is_still_on %}
         <p><a class="ticket-cta" href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">{{ icons.ticket() }}Buy tickets</a></p>
       {% elif show['ticket_url'] %}
         <p class="meta"><a href="{{ show['ticket_url'] }}" rel="noopener" target="_blank">Ticket link</a></p>
