@@ -71,10 +71,45 @@ Four nomination PDFs survive:
 
 | Year | URL (prefix with `http://web.archive.org/web/<timestamp>id_/`) | Capture | State |
 |---|---|---|---|
-| 2003 | `http://www.aims.ie/seminar/nominations.pdf` | `20030524153916` | Page images - needs OCR |
+| 2001/02 | `http://www.aims.ie/seminar/nominations.pdf` | `20030524153916` | Truncated - outer panels only |
 | 2004 | `http://aims.ie/awards/2004/noms2004.pdf` | `20040623091916` | Text extracts cleanly |
 | 2005 | `http://aims.ie/awards/2005/Nominations2005.pdf` | `20051217093710` | Text extracts cleanly |
 | 2007 | `http://www.aims.ie/awards/2007/noms2007.pdf` | `20071120132435` | Text extracts cleanly |
+
+**Correction on that first row, and it saves someone a wasted afternoon.** It
+was previously listed as a 2003 list needing OCR. It is neither.
+
+- It is the **2001/2002** leaflet - the banquet it names is 15 June 2002 - kept
+  at a `/seminar/` path and merely *captured* in 2003.
+- It is **not a scan**. The file holds 33 FlateDecode streams and no image
+  filter of any kind, so there is nothing for OCR to read.
+- The archived copy is **truncated**: 57,344 bytes with no xref table, no
+  trailer and no page tree, which is why PyMuPDF opens it to zero pages. Only
+  three content streams still decompress - the outer panels of a folded leaflet.
+  The inner panels, which carried the nominations, are in the missing bytes, and
+  there is only one capture, so there is no better copy to try.
+
+What survives is in `archive_harvest/noms2003/noms2003.salvaged.txt`: the
+Programme category (Athlone - *42nd Street*, Galway - *The Scarlet Pimpernel*,
+St Mel's Longford - *Fiddler on the Roof*) and the two section adjudicators.
+That corroborates our own 2002 Best Programme row for Athlone and nothing more.
+
+## The harvest
+
+`scripts/harvest_aims_archive.py` pulls the captured pages wholesale. The CDX
+index returns **21,427 captures** for the domain across 2001-2010, of which
+**13,724** are documents rather than images, stylesheets or redirects - far more
+than the 1,500-2,500 first estimated, because the old site carried a show
+database, a review section and a busy discussion forum on top of the awards
+pages. Use `--match` to take the useful part first.
+
+Two HTML pages found this way are worth more than any of the PDFs, because they
+are the **official lists, in full, for the earliest disputed year**:
+
+| Page | Capture | What it gives |
+|---|---|---|
+| `/.%5cseminarnominations.htm` | `20010720034012` | Every AIMS 2000/2001 nomination, by category and section |
+| `/.%5cseminarsocieties.htm` | `20010720034927` | The member societies of 2001, split Gilbert / Sullivan |
 
 ## What is proven, and what is not
 
@@ -85,8 +120,18 @@ we currently hold under Athlone, all on the Sullivan side:
 - 2005, Best Male Singer, Pat Naughton as Emile de Becque, *South Pacific*
 - 2005, Best House Management, *South Pacific*
 - 2004, Best Stage Manager, Brian Brady, *My Fair Lady*
+- **2001, Best Director (Sullivan, Tommy Ebbs Trophy), Paula Short, *Anything
+  Goes*** - the official 2000/2001 list prints it against *Athenry Musical
+  Society*; we hold it as row `10950` under Athlone. Same person, same show,
+  same section, different society.
 
-That settles 2004, 2005 and 2007. **2001, 2003 and 2006 are not yet sourced**,
+**Athenry was a member society in its own right**, and on the side the
+structural test predicted: the 2001 society list opens its **Sullivan** column
+with "Athenry Musical Society", immediately above "Avonmore Musical Society".
+That is worth stating plainly, because until now Athenry existed in this
+investigation only as an absence.
+
+That settles 2001, 2004, 2005 and 2007. **2003 and 2006 are not yet sourced**,
 though they follow the same pattern.
 
 **Avonmore / Pioneer - a strong lead.** One 2015 row is labelled *"Pioneer

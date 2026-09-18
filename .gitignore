@@ -68,3 +68,9 @@ DATA_ENRICHMENT_AND_SCRAPING_OPPORTUNITIES.md
 # something against production and are never repo content.
 scratch_*
 /scratch/
+
+# Raw captures pulled out of the Internet Archive by
+# scripts/harvest_aims_archive.py - thousands of pre-2010 aims.ie pages plus the
+# text extracted from them. Source material, same as /enrichment/: what it
+# proves gets written into docs/ and into the commits that act on it.
+/archive_harvest/

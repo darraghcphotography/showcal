@@ -12,6 +12,9 @@ sys.path.insert(0, str(_ROOT))
 # importable by module name rather than every such test hand-rolling a path.
 for _group in ("backfills", "enrichment", "maintenance"):
     sys.path.insert(0, str(_ROOT / "scripts" / _group))
+# scripts/ itself holds the Wayback harvester, whose parsing and resume logic is
+# tested directly (harvest_aims_archive).
+sys.path.insert(0, str(_ROOT / "scripts"))
 
 from app import create_app
 from app.db import get_db
