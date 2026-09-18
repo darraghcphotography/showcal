@@ -131,8 +131,26 @@ with "Athenry Musical Society", immediately above "Avonmore Musical Society".
 That is worth stating plainly, because until now Athenry existed in this
 investigation only as an absence.
 
-That settles 2001, 2004, 2005 and 2007. **2003 and 2006 are not yet sourced**,
-though they follow the same pattern.
+**2003 and 2006 are now sourced too**, from the official section pages:
+
+- 2003, Sullivan results: *Best Stage Manager - Athenry Musical Society, Brian
+  Brady, Sugar* and *Best Comedian - Athenry Musical Society, Peter Kennedy,
+  Jerry, Sugar*. We hold both under Athlone against *Some Like It Hot*, which is
+  the same musical under its other title - the people, roles, section and year
+  all match.
+- 2006, Sullivan nominations: *Cathriona O'Connell as Lady Jaqueline, Me & My
+  Girl, Athenry Musical Society*. We hold it as row `11463`, under Athlone.
+
+**And a year the structural test never flagged: 2008.** The official 2008
+Sullivan page lists exactly two Athenry entries - Best Chorus and Best Visual,
+both *Pirates of Penzance* - and we hold exactly those two rows under Athlone.
+The word "Athlone" does not appear on that page at all.
+
+That matters beyond this one society. **The two-tier test under-counts**, and
+not only before 2001 as already noted: it cannot see a year in which just one of
+the two collapsed societies was nominated, because there is no conflict to spot.
+2008 is such a year. Any count of affected rows taken from that test alone - the
+100 above included - is a floor, not a total.
 
 **Avonmore / Pioneer - a strong lead.** One 2015 row is labelled *"Pioneer
 Musical Society"* while carrying **Avonmore's** society id: Best Comedian,
@@ -147,7 +165,27 @@ AIMS, not an assumption to make here.
 *Children of Eden* in four places; our Sullivan-side *The King & I* is
 uncorroborated. Not enough to act on.
 
-**Clara - open.** The worst affected and the least evidenced.
+**Clara / Clane - confirmed, and it is the whole of the Clara problem.** The
+worst-affected society turns out to be collapsed with **Clane Musical &
+Dramatic Society**, which is one letter away and already exists in `societies`
+(id 25) - so this is a reassignment, not a society that has to be created.
+
+The split is clean and it runs one way in every sourced year: the **Gilbert**
+side is Clane's, the **Sullivan** side is Clara's. Read directly off the
+official pages:
+
+- 2003 Gilbert: *Shane McGrath as Jesus* and *Willie Bermingham as Pontius
+  Pilate*, *Jesus Christ Superstar* - both printed against **Clane**. We hold
+  both under Clara.
+- 2004 Gilbert: *Marie Cusack, Best Stage Manager* and *Brendan Farrell as
+  Ko-Ko, Best Comedian*, *Hot Mikado* - both **Clane**. We hold both under Clara.
+- 2004 roster: the season's own society list gives *Clane - Hot Mikado - g* and
+  *Clara - Guys & Dolls - s*, on separate lines of the same table.
+
+`scripts/match_awards_to_archive.py --society "Clara Musical Society"
+--summary` returns Clane for the Gilbert side of 2001, 2002, 2004, 2005, 2006,
+2007 and 2008, and Clara's own name for the Sullivan side. Nothing points the
+other way in any year.
 
 ## Two related findings
 
@@ -158,12 +196,37 @@ uncorroborated. Not enough to act on.
   (Pioneer Musical Society Trophy)". A society name appearing in a category
   heading is evidence the society existed, not evidence it staged the show.
 
+## Reading the harvest back
+
+`scripts/match_awards_to_archive.py` takes a society's award rows, looks each
+nominee up in the harvested text, and reports the society the official page
+prints beside them. `--summary` gives one line per season and section, which is
+the shape the question is actually asked in - it is the section, not the
+individual row, that belongs to one body or the other.
+
+**It offers both neighbours rather than choosing.** The pages are table rows
+flattened to text and they disagree on column order: the 2001 nominations read
+nominee, show, society, while the 2003 results print the society first. So the
+nearest name in one direction is the row's own and in the other it is the
+neighbouring row's, and nothing local says which. Picking by distance produced
+confident wrong answers in testing - the 2001 Athenry row came back as Galway.
+What settles it is repetition across rows, seasons and pages, so the tool tallies
+and shows its working, with the capture date and URL on every line.
+
+A vote only counts when the row's **show title** also appears beside the
+nominee. A bare name match is a common name somewhere else on the site.
+
 ## Next step
 
-Harvest the captured aims.ie pages systematically rather than one PDF at a time:
-every nominations page, results page, society list and show calendar from
-2001-2010. That is likely to settle the remaining years for all seven, and would
-also backfill pre-2009 production history more generally.
+Two of the seven are now answered. For the rest:
+
+- **Tralee, Avonmore, Kilcock** come back as themselves on the section that is
+  theirs, with nothing consistent on the other side. Their partner societies are
+  not in the harvest yet, or are not named on the pages held so far.
+- **UCC and Twin Productions** have no nominee-bearing rows in range at all.
+- The harvest so far is the awards and roster pages. **Around 13,000 documents
+  remain**, including the old show database and the review section, which is the
+  obvious next place to look for the missing partners.
 
 **Nothing here has been written to the live database.** Reassigning award rows
 on anything less than a source would be exactly the kind of confident wrong
