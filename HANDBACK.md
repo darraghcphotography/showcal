@@ -1379,3 +1379,40 @@ has to be created.
 - **Do not let a matcher pick between two candidates on distance alone.** These pages disagree on
   column order, and picking the nearer name returned Galway for a row the official list plainly
   gives to Athenry. `match_awards_to_archive.py` reports both and tallies instead.
+
+### Later the same day: the admin queue, and 39 proposals loaded
+
+`cb737ea` — `/admin/collapsed-societies`, the propose-don't-apply queue for the findings above.
+**1274 tests green.** Pushed, and verified deployed by `md5sum` against Portainer stack 8's checkout
+before anything was run against production.
+
+**Written to the live database:** 39 rows in `collapsed_society_suggestions`, after a backup
+(`aims-20260918-133122.db`) and a dry run. **No award record was moved** — `historical_results` is
+still 5,019 rows, 0 foreign-key violations. The suggestions table is inert; it is what the queue
+reads to show the evidence.
+
+**What is waiting for you on that page:**
+
+- **Clara → Clane, 8 seasons, ready.** Clane is already society id 25, so the button works.
+- **Athlone → Athenry, 5 seasons, blocked.** Athenry has no `societies` row, so the page says "not
+  on our list" rather than offering a dead button. **You said you would create Athenry yourself** —
+  region and lifecycle are your call, and nothing can be applied on that side until it exists.
+- Everything else is a single hit on a single season and is flagged **"one season only"**. Shown,
+  not hidden: the queue reports, it does not decide.
+
+Every move is undoable from the same page, and the decision row keeps the name the records carried
+before, so an undo needs no database shell.
+
+**`docs/collapsed_suggestions.json` is committed deliberately.** The harvest is gitignored and
+exists only on this machine, so without that file nobody — not you, not Antigravity, not a later
+session — could populate the queue or re-check the findings without re-running a multi-hour
+harvest. (It sits directly in `docs/` because `data/` in `.gitignore` matches `docs/data/` too.)
+
+**Two bugs the tests caught, both worth knowing about:**
+
+- A moved season vanished from the page, taking its Undo button with it, because it no longer had
+  rows under the old society. An accidentally irreversible move is the exact failure this queue
+  exists to prevent.
+- The page rendered at 616KB with seven societies on it — one form per button, repeated per
+  suggestion and per season. Now one form per group and the quiet seasons hidden by default: 266KB,
+  20KB gzipped. `?all=1` still shows them, and must, because that is where 2008 was.

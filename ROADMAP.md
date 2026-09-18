@@ -22,7 +22,7 @@ when it had shipped, and claiming a security finding was unfixed when it had bee
 
 ## START HERE - two of the seven collapsed societies are now answered (2026-09-18)
 
-> **1250 tests green** (was 1201). `main` clean at `88e4323`. 0 foreign key violations, counted
+> **1274 tests green** (was 1201). `main` clean at `cb737ea`. 0 foreign key violations, counted
 > against the live database.
 >
 > ### The harvester got built, and it answered the question
@@ -76,8 +76,43 @@ when it had shipped, and claiming a security finding was unfixed when it had bee
 > society; the 2003 results print the society first. Picking by distance produced confident wrong
 > answers while it was being built. Repetition across rows, seasons and pages is what settles it.
 >
+> ### The queue is built and loaded (later the same day)
+>
+> `/admin/collapsed-societies`, at `cb737ea`. **1274 tests green.** The unit is a season and a
+> section, not a row. Propose-don't-apply: `scripts/import_collapsed_suggestions.py` writes
+> proposals carrying the capture date and URL they were read off, the page links back to the source,
+> and moving anything is a human decision that is undoable from the same page.
+>
+> **39 suggestions are loaded in production** (2026-09-18, after a backup - `aims-20260918-133122.db`).
+> **No award record was moved**, and none should be until Darragh works the queue:
+>
+> - **Clara -> Clane, 8 seasons, ready to apply.** Clane is society id 25, so the button works.
+> - **Athlone -> Athenry, 5 seasons, blocked.** Athenry has no `societies` row, so the page shows
+>   "not on our list" rather than a dead button. **Darragh is creating Athenry himself** (his call,
+>   asked and answered 2026-09-18) - the region and lifecycle are his to set.
+> - The rest are one-off hits and are flagged **"one season only"** on the page. They are shown, not
+>   hidden: the queue reports, it does not decide.
+>
+> Three things worth not re-deriving:
+>
+> - **The dashboard counter is counted from suggestions, not conflicts**, so it can reach zero. A
+>   conflicted season with no evidence behind it is not work anybody can do.
+> - **A moved season used to vanish from the page**, taking its Undo with it, because it no longer
+>   had rows under the old society. `groups_for` now unions in decided groups and reads their rows
+>   from wherever they went. A test caught it.
+> - **The page was 616KB** with seven societies on it - one form per button, per suggestion, per
+>   season. One form per group with `formaction` buttons, and hiding the seasons with neither a
+>   conflict nor a source, took it to 266KB / 20KB gzipped. `?all=1` brings the quiet ones back, and
+>   it has to: that is where 2008 was.
+>
+> **`docs/collapsed_suggestions.json` is committed on purpose.** The harvest is gitignored and local
+> to one machine, so without that file nobody could populate the queue or check the findings without
+> re-running a multi-hour harvest. Note `data/` in `.gitignore` matches `docs/data/` too, which is
+> why it sits directly in `docs/`.
+>
 > ### Open, in the order I would take them
 >
+> 0. **Work the queue** - Clara/Clane is ready; Athenry needs its society row creating first.
 > 1. **Finish the harvest.** About 13,000 documents are still unfetched - the old ASP show database
 >    and the review section especially, which is where the partners for Tralee, Avonmore and
 >    Kilcock would be. Same command; it resumes.

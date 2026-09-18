@@ -81,7 +81,7 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1250 tests pass as of `88e4323`**
+Before any push to `main`: `py -m pytest` must be green. **1274 tests pass as of `cb737ea`**
 (2026-09-18).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
@@ -299,9 +299,11 @@ pre-Christmas shows.
    py scripts/harvest_aims_archive.py --match "awards|nomination|show_database|societies"        --exclude "matrixstats"
    ```
 
-   **Do not reassign any award row yet.** Two societies are identified; nothing has been written,
-   and the agreed shape for doing it is an admin queue in the propose-don't-apply pattern, not a
-   bulk update script.
+   **The queue exists now: `/admin/collapsed-societies`.** 39 proposals are loaded in production,
+   each carrying the capture date and URL it was read off. **Do not reassign an award row from a
+   script.** Clara -> Clane (8 seasons) is ready to apply from the page; Athlone -> Athenry (5
+   seasons) is blocked until Athenry exists as a society, **which Darragh is creating himself**.
+   Everything else is a one-off hit and is flagged as such on the page.
 
 3. ~~**Ticket links on upcoming shows**~~ — **partly done.** 9 verified links added 2026-09-17;
    **16 of 68** upcoming shows now have one. The rest are mostly not on sale yet, which the brief
@@ -408,11 +410,11 @@ judgement call, not a defect; do not let it jump the queue).
 
 Every figure counted against the **live** database on that date, never carried forward.
 
-- **HEAD `88e4323`**, `main` clean. **1250 tests green. 0 foreign key violations.**
+- **HEAD `cb737ea`**, `main` clean. **1274 tests green. 0 foreign key violations.**
 - **195 societies** (27 with a logo), **121 venues**, **2,943 productions**, **5,019 award rows**,
   **876 reviews**, **68 upcoming shows** (16 with a ticket link), **10 of 11 FAQ entries
   published**, **30 merged people**, **20 never-expiring invite codes**, **43,328 pageviews**,
-  **14 society edit-log rows**.
+  **14 society edit-log rows**, **39 collapsed-society suggestions and 0 decisions**.
 - Counted against the live database on 2026-09-18 by `scp`-ing it down read-only. **The one figure
   not recounted** is the 36 open person clusters — that needs the app's own clustering, not a
   query; it is from 2026-09-17.
