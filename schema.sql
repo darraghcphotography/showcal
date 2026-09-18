@@ -1041,3 +1041,65 @@ CREATE TRIGGER IF NOT EXISTS wardrobe_items_fts_au AFTER UPDATE ON wardrobe_item
     VALUES (new.id, new.title, new.show_title, new.description, new.sizing_quantity);
 END;
 
+
+-- ---------------------------------------------------------------------------
+-- Collapsed societies: award rows filed under a society that did not stage the
+-- show, because two societies were merged into one name before the data
+-- reached us. See docs/collapsed-societies.md for the evidence and
+-- scripts/harvest_aims_archive.py for where it comes from.
+--
+-- The unit of both tables is a *season and section* of one society -
+-- (society_id, year, tier) - not an individual award row. That is what the
+-- underlying fact is shaped like: a society competes in one section per
+-- season, so when its rows show up in both, it is the whole of one side that
+-- belongs to somebody else.
+-- ---------------------------------------------------------------------------
+
+-- What the archive proposes. Loaded by scripts/import_collapsed_suggestions.py
+-- from the harvested official AIMS lists; never written by the app, and never
+-- applied by anything on its own. Every row carries the capture it came from
+-- so a moderator can read the source before deciding.
+CREATE TABLE IF NOT EXISTS collapsed_society_suggestions (
+    society_id      INTEGER NOT NULL REFERENCES societies(id),
+    year            INTEGER NOT NULL,
+    tier            TEXT NOT NULL,      -- 'Gilbert' or 'Sullivan'
+    -- The society the official list prints, as it prints it. Kept as text
+    -- because the right answer is routinely a society we do not hold: Athenry
+    -- has no societies row at all, which is half the reason nobody noticed.
+    suggested_name  TEXT NOT NULL,
+    -- Resolved at import time when that name matches a society we do hold
+    -- (Clane, id 25). NULL means "this society is not on our list yet", which
+    -- the queue shows as a blocker rather than hiding.
+    suggested_id    INTEGER REFERENCES societies(id),
+    confidence      INTEGER NOT NULL DEFAULT 0,  -- rows in the group that voted for this name
+    row_count       INTEGER NOT NULL DEFAULT 0,  -- rows in the group
+    evidence_url    TEXT,               -- the original aims.ie URL
+    evidence_capture TEXT,              -- the Wayback capture timestamp
+    note            TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (society_id, year, tier, suggested_name)
+);
+
+-- What a moderator decided. Keyed on the group rather than written only onto
+-- the award rows, for the same reason historical_society_links is: import_awards.py
+-- wipes and reloads every row this touches, so a decision recorded only in
+-- historical_results would be silently undone by the next refresh.
+--
+-- moved_to_id NULL with no_change = 1 means "these rows are correctly filed" -
+-- a real answer that takes the group out of the queue, so the dashboard
+-- counter can reach zero.
+CREATE TABLE IF NOT EXISTS collapsed_society_decisions (
+    society_id      INTEGER NOT NULL REFERENCES societies(id),
+    year            INTEGER NOT NULL,
+    tier            TEXT NOT NULL,
+    moved_to_id     INTEGER REFERENCES societies(id),
+    no_change       INTEGER NOT NULL DEFAULT 0,
+    -- What the rows said before, so the decision is reversible without a
+    -- database shell. Reassigning decades-old award records is exactly the
+    -- kind of change that has to be undoable.
+    previous_name   TEXT,
+    note            TEXT,
+    decided_by      TEXT,
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (society_id, year, tier)
+);

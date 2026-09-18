@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Collapsed societies - DC Show Tracker{% endblock %}
+
+{% macro group_actions(society, g) %}
+  {# One form per group, not one per button. Every action needs the same three
+     hidden fields, and repeating them per suggestion plus a manual picker took
+     this page past 600KB with only seven societies on it - the same trap the
+     society-links queue hit with a per-row <select>. The submit buttons carry
+     their own name/value and formaction instead. #}
+  <form method="post" action="{{ url_for('admin.move_collapsed_group') }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="society_id" value="{{ society['id'] }}">
+    <input type="hidden" name="year" value="{{ g['year'] }}">
+    <input type="hidden" name="tier" value="{{ g['tier'] }}">
+    {% set what = society['name'] ~ ' ' ~ g['year'] ~ ' ' ~ g['tier'] %}
+
+    {% for s in g['suggestions'] %}
+      {% if s['suggested_id'] %}
+        <button type="submit" name="moved_to_id" value="{{ s['suggested_id'] }}" class="button-primary"
+                data-confirm="Move all {{ g['row_count'] }} award record(s) - {{ what }} - to &quot;{{ s['suggested_name'] }}&quot;? They leave this society's public page and appear on that one's.">
+          Move to {{ s['suggested_name'] }}
+        </button>
+      {% else %}
+        {# The archive names a society we don't hold. Athenry is the case this
+           was written for: the suggestion is right and still not applicable. #}
+        <span class="tag tag-warning">not on our list: {{ s['suggested_name'] }}</span>
+      {% endif %}
+    {% endfor %}
+
+    <button type="submit" formaction="{{ url_for('admin.keep_collapsed_group') }}">Correctly filed</button>
+
+    <details class="manual-pick">
+      <summary class="meta">Move somewhere else</summary>
+      <input type="text" name="moved_to" list="society-options" autocomplete="off"
+             placeholder="Type a society&hellip;">
+      <button type="submit" data-confirm="Move all {{ g['row_count'] }} award record(s) - {{ what }} - to the chosen society?">Move</button>
+    </details>
+  </form>
+{% endmacro %}
+
+{% macro undo_button(society, g) %}
+  <form method="post" action="{{ url_for('admin.undo_collapsed_decision') }}" class="inline-form" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="society_id" value="{{ society['id'] }}">
+    <input type="hidden" name="year" value="{{ g['year'] }}">
+    <input type="hidden" name="tier" value="{{ g['tier'] }}">
+    <button type="submit" data-confirm="Put those award records back where they were?">Undo</button>
+  </form>
+{% endmacro %}
+
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to admin</a></p>
+  <h1>Collapsed societies</h1>
+  <p class="meta">{{ societies|length }} society{{ '' if societies|length == 1 else ' groups' }} whose
+     award records appear in both sections in the same season &mdash; which cannot happen, because a
+     society competes in one section per season. {{ undecided }} season{{ '' if undecided == 1 else 's' }}
+     {{ 'has' if undecided == 1 else 'have' }} evidence from the archive and no decision yet.</p>
+
+  <div class="site-notice">
+    <p><strong>This is not our bug, but it is ours to repair.</strong> Two societies were merged into
+       one name before the data reached us &mdash; every affected row carries the same society id in
+       the source spreadsheet, which is why aims.ie shows it the same way. Separating them again needs
+       outside evidence, so each suggestion below links to the official AIMS list it was read off.</p>
+    <p class="meta"><strong>The detector under-counts.</strong> It can only see a season where
+       <em>both</em> societies were nominated. Where only one was, the rows are just as misfiled and
+       nothing flags them &mdash; so a quiet season is not a settled one.
+       {% if not show_all %}<a href="{{ url_for('admin.collapsed_societies_queue', all=1) }}">Show every
+       season</a>, including the ones with neither a conflict nor a source.{% endif %}</p>
+    <p class="meta">Full background, with the sources:
+       <code>docs/collapsed-societies.md</code>.</p>
+  </div>
+
+  <datalist id="society-options">
+    {% for s in all_societies %}<option value="{{ s['name'] }}">{% endfor %}
+  </datalist>
+
+  {% for item in societies %}
+    {% set society = item['society'] %}
+    <h2>{{ society['name'] }}</h2>
+    <p class="meta">{{ society['award_rows'] }} award record{{ '' if society['award_rows'] == 1 else 's' }}
+       across {{ society['conflict_years'] }} conflicting season{{ '' if society['conflict_years'] == 1 else 's' }}.
+       {% if not item['actionable'] %}<span class="tag">no evidence loaded yet</span>{% endif %}</p>
+
+    {% if item['hidden'] %}
+      <p class="meta">{{ item['hidden'] }} other season{{ '' if item['hidden'] == 1 else 's' }} with
+         no conflict and nothing in the archive {{ 'is' if item['hidden'] == 1 else 'are' }} hidden.
+         <a href="{{ url_for('admin.collapsed_societies_queue', all=1) }}">Show every season</a> &mdash;
+         a season with neither flag can still be misfiled, which is where 2008 was hiding.</p>
+    {% endif %}
+
+    {% if item['recurring'] %}
+      {# The pattern is the evidence. One page naming another society beside one
+         nominee is weak; the same society against several seasons of the same
+         record is not a coincidence. #}
+      <p class="meta"><strong>The archive keeps naming:</strong>
+        {% for r in item['recurring'] %}
+          {{ r['suggested_name'] }} ({{ r['seasons'] }} seasons){% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </p>
+    {% endif %}
+
+    <table class="data-table table-wide">
+      <thead>
+        <tr>
+          <th>Season</th>
+          <th>Section</th>
+          <th>Show</th>
+          <th>Records</th>
+          <th>The archive says</th>
+          <th>Decision</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in item['groups'] %}
+          <tr>
+            <td>{{ g['year'] }}</td>
+            <td>
+              {{ g['tier'] }}
+              {% if not g['in_conflict'] %}<span class="tag">no conflict</span>{% endif %}
+            </td>
+            <td>{{ g['shows'] or '&mdash;'|safe }}</td>
+            <td>
+              <details>
+                <summary>{{ g['row_count'] }}</summary>
+                <ul class="meta">
+                  {% for r in g['rows'] %}
+                    <li>{{ r['category_name'] }}{% if r['nominee_name'] %} &mdash; {{ r['nominee_name'] }}{% endif %}
+                        {% if r['role'] %} as {{ r['role'] }}{% endif %}
+                        {% if r['result'] %} ({{ r['result'] }}){% endif %}</li>
+                  {% endfor %}
+                </ul>
+              </details>
+            </td>
+            <td>
+              {% for s in g['suggestions'] %}
+                <div>
+                  <strong>{{ s['suggested_name'] }}</strong>
+                  <span class="meta">{{ s['confidence'] }} of {{ s['row_count'] }} record(s)</span>
+                  {% if s['one_off'] %}<span class="tag tag-warning">one season only</span>{% endif %}
+                  {% if s['evidence_url'] %}
+                    <br>
+                    <a class="meta" rel="noreferrer nofollow"
+                       href="http://web.archive.org/web/{{ s['evidence_capture'] }}/{{ s['evidence_url'] }}">
+                      source, captured {{ s['evidence_capture'][:4] }}-{{ s['evidence_capture'][4:6] }}-{{ s['evidence_capture'][6:8] }}
+                    </a>
+                  {% endif %}
+                  {% if s['note'] %}<br><span class="meta">{{ s['note'] }}</span>{% endif %}
+                </div>
+              {% else %}
+                <span class="meta">Nothing in the archive for this season.</span>
+              {% endfor %}
+            </td>
+            <td>
+              {% if g['decision'] %}
+                {% if g['decision']['no_change'] %}
+                  <span class="tag tag-past">correctly filed</span>
+                {% else %}
+                  <span class="tag tag-past">moved</span>
+                {% endif %}
+                <span class="meta">by {{ g['decision']['decided_by'] }}</span>
+                {{ undo_button(society, g) }}
+              {% else %}
+                {{ group_actions(society, g) }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="table-cards">
+      {% for g in item['groups'] %}
+        <div class="queue-item">
+          <div class="primary">
+            {{ g['year'] }} {{ g['tier'] }}
+            {% if not g['in_conflict'] %}<span class="tag">no conflict</span>{% endif %}
+          </div>
+          <div class="meta-chips">
+            <span>{{ g['shows'] or '&mdash;'|safe }}</span>
+            <span>&middot; {{ g['row_count'] }} record{{ '' if g['row_count'] == 1 else 's' }}</span>
+          </div>
+          {% for s in g['suggestions'] %}
+            <p class="meta">Archive: <strong>{{ s['suggested_name'] }}</strong>
+              {% if s['evidence_url'] %}
+                &mdash; <a rel="noreferrer nofollow"
+                   href="http://web.archive.org/web/{{ s['evidence_capture'] }}/{{ s['evidence_url'] }}">source</a>
+              {% endif %}
+            </p>
+          {% endfor %}
+          <div class="actions">
+            {% if g['decision'] %}
+              <span class="tag tag-past">{{ 'correctly filed' if g['decision']['no_change'] else 'moved' }}</span>
+              {{ undo_button(society, g) }}
+            {% else %}
+              {{ group_actions(society, g) }}
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No society has award records in both sections in the same season. Nothing to separate.</p>
+  {% endfor %}
+{% endblock %}

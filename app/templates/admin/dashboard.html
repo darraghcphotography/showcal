@@ -78,6 +78,16 @@
       <tr>
         <td>
           <span class="admin-row-label">
+            <span class="admin-dot {{ 'admin-dot-on' if collapsed_societies_count else 'admin-dot-off' }}"></span>
+            Award seasons filed under the wrong society (with a source)
+          </span>
+        </td>
+        <td>{{ collapsed_societies_count }}</td>
+        <td><a href="{{ url_for('admin.collapsed_societies_queue') }}">Collapsed societies</a></td>
+      </tr>
+      <tr>
+        <td>
+          <span class="admin-row-label">
             <span class="admin-dot {{ 'admin-dot-on' if person_pairs_count else 'admin-dot-off' }}"></span>
             Names that may be the same person
           </span>
@@ -278,6 +288,7 @@
         <li><a href="{{ url_for('admin.bulk_historical_productions') }}">Bulk add historical productions</a></li>
         <li><a href="{{ url_for('admin.historical_societies') }}">Historical society regions</a></li>
         <li><a href="{{ url_for('admin.historical_society_links_queue') }}">Award-archive society links</a></li>
+        <li><a href="{{ url_for('admin.collapsed_societies_queue') }}">Collapsed societies</a></li>
         <li><a href="{{ url_for('admin.society_corrections') }}">Society name corrections</a></li>
         <li><a href="{{ url_for('admin.data_quality') }}">Data quality</a></li>
       </ul>

@@ -18,6 +18,7 @@ from ._shared import (
 )
 from .duplicates import TITLE_KEYED_TABLES, move_title_keyed_rows
 from .historical_reviews import find_mismatched_skeleton_shows
+from ... import collapsed_societies as collapsed_societies_data
 from .historical_society_links import undecided_name_count
 from .people import open_clusters
 
@@ -198,6 +199,7 @@ def dashboard():
     # "no current society" is a real answer that clears a name. Two counters
     # saying two different true things.
     unlinked_society_names_count = undecided_name_count(db)
+    collapsed_societies_count = collapsed_societies_data.undecided_count(db)
 
     # Suggested same-person pairs still open. Dismissals ("different people")
     # and completed merges both close a pair, so this reaches zero - the
@@ -271,6 +273,11 @@ def dashboard():
             "url": url_for("admin.historical_society_links_queue"),
         },
         {
+            "label": "Award seasons filed under the wrong society, with a source",
+            "count": collapsed_societies_count,
+            "url": url_for("admin.collapsed_societies_queue"),
+        },
+        {
             "label": "Shows missing a date",
             "count": missing_dates_count,
             "url": url_for("admin.fix_dates", missing=1),
@@ -329,6 +336,7 @@ def dashboard():
         photo_submissions_pending_count=photo_submissions_pending_count,
         logo_candidates_pending_count=logo_candidates_pending_count,
         unlinked_society_names_count=unlinked_society_names_count,
+        collapsed_societies_count=collapsed_societies_count,
         person_pairs_count=person_pairs_count,
         quick_win=quick_win,
     )

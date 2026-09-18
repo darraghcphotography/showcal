@@ -216,6 +216,54 @@ and shows its working, with the capture date and URL on every line.
 A vote only counts when the row's **show title** also appears beside the
 nominee. A bare name match is a common name somewhere else on the site.
 
+## The queue: /admin/collapsed-societies
+
+Deciding what to do about all this happens in the app, not in a script.
+
+The unit is a **season and a section** - `(society, year, tier)` - because that
+is what the underlying fact is shaped like. A society competes in one section
+per season, so when its rows show up in both, it is the whole of one side that
+belongs to somebody else, not one stray row.
+
+Three things about it are deliberate:
+
+- **Nothing is applied by import.** `scripts/import_collapsed_suggestions.py`
+  writes *proposals* into `collapsed_society_suggestions`, each carrying the
+  capture date and URL it was read off, and the page links back to that page.
+  Moving an award record is a human decision made on the evidence, never a
+  consequence of loading it.
+- **Every move is reversible from the page.** The decision row keeps the name
+  the records carried before, so Undo needs no database shell. A group that has
+  already been moved stays on the page for exactly this reason.
+- **A suggestion can be right and still not applicable.** Athenry has no
+  `societies` row, so the queue shows it as *"not on our list"* rather than
+  offering a button that cannot work. Creating Athenry as a defunct society is
+  the prerequisite for applying its side, and that is a separate decision.
+
+The dashboard counter is deliberately counted from *suggestions*, not from
+conflicts: a conflicted season with no evidence behind it is not work anybody
+can do, and a counter that can never reach zero is worse than no counter.
+
+By default the page lists the seasons in conflict, the seasons with evidence,
+and the seasons already decided. `?all=1` adds the quiet ones - **a season with
+neither flag can still be misfiled, which is exactly where 2008 was hiding.**
+
+### Getting the evidence into a database
+
+The harvest is gitignored and lives only on the machine that ran it, so the
+findings travel as a file:
+
+```
+py scripts/import_collapsed_suggestions.py --export docs/collapsed_suggestions.json
+docker compose exec aims-web python scripts/import_collapsed_suggestions.py     --db /data/aims.db --suggestions /data/collapsed_suggestions.json
+```
+
+`docs/collapsed_suggestions.json` is committed for that reason, and
+because without it nobody could reproduce or check the findings without
+re-running a multi-hour harvest. The loader re-resolves societies **by name**,
+not by id, because a suggestions file is built against one database and loaded
+into another.
+
 ## Next step
 
 Two of the seven are now answered. For the rest:
