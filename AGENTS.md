@@ -81,7 +81,7 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1201 tests pass as of `b411876`**
+Before any push to `main`: `py -m pytest` must be green. **1250 tests pass as of `88e4323`**
 (2026-09-18).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
@@ -284,11 +284,24 @@ pre-Christmas shows.
 1. **Keep `main` green, and fix what Darragh reports.** CI does not gate the deploy, so a red
    `main` is a live-site risk, not just an untidy badge. This outranks everything below.
 
-2. **The Wayback harvester for pre-Wix aims.ie** — added 2026-09-18 and now the top build item.
-   It is the thing that unlocks `docs/collapsed-societies.md`: award rows filed under the wrong
-   society, seven societies, ~2% of the archive. Spec is in `ROADMAP.md`'s START HERE block.
-   Polite, retrying, resumable; output gitignored like `enrichment/`. **Build it as a script, not
-   as research** — the artefact is the primary source, so there is nothing to cite afterwards.
+2. ~~**The Wayback harvester for pre-Wix aims.ie**~~ — **BUILT 2026-09-18**,
+   `scripts/harvest_aims_archive.py` (+ `scripts/match_awards_to_archive.py` to read it back).
+   It answered two of the seven: **Athlone is collapsed with Athenry** (every disputed year now
+   sourced, plus 2008, which the detector could never see) and **Clara is collapsed with Clane**,
+   which already exists as society id 25. See `docs/collapsed-societies.md`.
+
+   **What is left of it.** The harvest so far is the awards and roster pages — around **13,000
+   documents remain**, including the old ASP show database and the review section, which is where
+   the partners for Tralee, Avonmore and Kilcock would be. Resume with the same command; it skips
+   what the manifest already holds:
+
+   ```
+   py scripts/harvest_aims_archive.py --match "awards|nomination|show_database|societies"        --exclude "matrixstats"
+   ```
+
+   **Do not reassign any award row yet.** Two societies are identified; nothing has been written,
+   and the agreed shape for doing it is an admin queue in the propose-don't-apply pattern, not a
+   bulk update script.
 
 3. ~~**Ticket links on upcoming shows**~~ — **partly done.** 9 verified links added 2026-09-17;
    **16 of 68** upcoming shows now have one. The rest are mostly not on sale yet, which the brief
@@ -395,19 +408,27 @@ judgement call, not a defect; do not let it jump the queue).
 
 Every figure counted against the **live** database on that date, never carried forward.
 
-- **HEAD `b411876`**, `main` clean. **1201 tests green. 0 foreign key violations.**
+- **HEAD `88e4323`**, `main` clean. **1250 tests green. 0 foreign key violations.**
 - **195 societies** (27 with a logo), **121 venues**, **2,943 productions**, **5,019 award rows**,
   **876 reviews**, **68 upcoming shows** (16 with a ticket link), **10 of 11 FAQ entries
-  published**, **30 merged people** across 66 spellings with **36 person clusters still open**,
-  **20 never-expiring invite codes**, **43,257 pageviews**.
-- **The society edit log is working and being used** — 14 real rows. Societies are editing.
+  published**, **30 merged people**, **20 never-expiring invite codes**, **43,328 pageviews**,
+  **14 society edit-log rows**.
+- Counted against the live database on 2026-09-18 by `scp`-ing it down read-only. **The one figure
+  not recounted** is the 36 open person clusters — that needs the app's own clustering, not a
+  query; it is from 2026-09-17.
 
 ### The one thing to read first
 
 **`docs/collapsed-societies.md`.** Award rows filed under a society that did not stage the show —
-seven societies, 100 rows, ~2% of the archive, reported by a member on 2026-09-17. **It is not our
-bug** (the source CSV already merged them, which is why aims.ie shows it too), but it is ours to
-repair. Athenry is confirmed from primary sources; the rest is not.
+seven societies, reported by a member on 2026-09-17. **It is not our bug** (the source CSV already
+merged them, which is why aims.ie shows it too), but it is ours to repair.
+
+**Two are now answered from primary sources**: Athlone/Athenry and Clara/Clane. Five are not.
+
+**The "100 rows, ~2% of the archive" figure is a floor, not a total.** The detector looks for a
+society with rows in both sections in one season, and 2008 turned out to be a year where only one
+of Athlone/Athenry was nominated — no conflict to spot, two misfiled rows all the same. Quote it
+as a minimum.
 
 **Nothing has been written to the archive over this, and nothing should be without a source.**
 Reassigning decades-old award rows on a recollection is precisely the failure this project exists
@@ -415,17 +436,18 @@ to avoid.
 
 ### The agreed next action
 
-**A Wayback harvester for the pre-Wix aims.ie** (~7,220 URLs captured from January 2001), pulling
-every nominations page, results page, society list and show calendar from 2001-2010. Specified in
-`ROADMAP.md`'s START HERE block. Must be polite, retrying and resumable — the Internet Archive
-went offline mid-session on 2026-09-17.
+~~A Wayback harvester~~ — **built and run, 2026-09-18.** What is left is in §10.2: finish the
+harvest (about 13,000 documents still unfetched), and decide with Darragh how a reassignment gets
+applied. The archive is bigger than the spec assumed — **21,427 captures, 13,724 of them
+documents**, not the ~7,220 URLs first estimated, because the old site also carried a show
+database, a review section and a discussion forum.
 
-**This one is deliberately not delegated.** It is enumerate-fetch-store-parse with no judgement in
-it, and every output carries its own provenance. If you are picking this up as Antigravity and it
-is still unbuilt, build it as a script rather than as research: the artefact *is* the source, so
-there is nothing to cite and nothing to verify afterwards.
+### Three habits this stretch earned
 
-### Two habits this stretch earned
+- **When a source says something is a scan, check before reaching for OCR.** The 2003 nominations
+  PDF was listed here as page images needing OCR. It is not a scan, it is not 2003, and the
+  archived copy is truncated to its outer panels — an afternoon of OCR work that would have found
+  nothing. Open the file.
 
 - **"Not opened yet" and "not closed yet" are different questions.** `app/shows.py` now has
   `is_upcoming` (lead-time only) and `is_still_on` (anything shown to a visitor), plus

@@ -20,76 +20,81 @@ cause is entering an item here and never re-checking it against the code. **Befo
 open, grep for it.** The file has now been wrong in both directions - claiming work was outstanding
 when it had shipped, and claiming a security finding was unfixed when it had been fixed.
 
-## START HERE - a real data error, and the source that can fix it (2026-09-18)
+## START HERE - two of the seven collapsed societies are now answered (2026-09-18)
 
-> **1201 tests green.** `main` clean at `b411876`. 0 foreign key violations.
+> **1250 tests green** (was 1201). `main` clean at `88e4323`. 0 foreign key violations, counted
+> against the live database.
 >
-> ### The headline: award records filed under the wrong society
+> ### The harvester got built, and it answered the question
 >
-> Jack Rawlings reported on 2026-09-17 that Athenry Musical Society is missing from the site and
-> its awards show under **Athlone**. He is right, and it is bigger than one society.
+> `scripts/harvest_aims_archive.py` pulls the pre-Wix aims.ie out of the Internet Archive;
+> `scripts/match_awards_to_archive.py` reads it back against our award rows.
+> **Read `docs/collapsed-societies.md`** - it holds the evidence, the sources and what is proven
+> versus suspected. The short version:
 >
-> **Read `docs/collapsed-societies.md` before touching any of this.** It holds the detector, the
-> evidence, the sources, and what is proven versus merely suspected. Short version:
+> - **Athlone is collapsed with Athenry.** Every Gilbert row is Athlone's, every Sullivan row is
+>   Athenry's. All six disputed years are now sourced from the official AIMS lists - 2001 and 2003
+>   were the ones outstanding - **plus 2008, which the detector could never have found**.
+> - **Clara is collapsed with Clane Musical & Dramatic Society** - one letter apart, which is
+>   presumably how it happened. Clane already exists as society id 25, so this is a reassignment,
+>   not a society that has to be created. Gilbert side is Clane's, Sullivan side is Clara's, in
+>   every sourced year.
+> - **Tralee, Avonmore and Kilcock** come back as themselves on their own section with nothing
+>   consistent opposite. **UCC and Twin Productions** have no nominee-bearing rows in range.
+> - **Nothing has been written to the database.** Two societies being identified does not make a
+>   bulk update the right next move; the agreed shape is an admin queue.
 >
-> - A society competes in one section per season, so **two tiers in one year is impossible**. That
->   test finds **seven societies, 100 award rows, ~2% of the archive**. Clara is worse than Athlone.
-> - **It is not our bug** - every affected row carries the same society id in the source CSV, so
->   the two societies were already merged before the data reached us. It shows on aims.ie too.
-> - **Athenry is confirmed** from the official AIMS nominations lists for 2004, 2005 and 2007,
->   matching rows we hold under Athlone, all on the Sullivan side.
-> - **Nothing has been written to the database.** Do not reassign award rows without a source.
+> ### The finding that changes how the problem is counted
 >
-> ### The unlock: old aims.ie is on the Wayback Machine
+> **"100 award rows, ~2% of the archive" is a floor, not a total.** The two-tier test only sees a
+> year where *both* collapsed societies were nominated. In 2008 only Athenry was, so there was no
+> conflict to detect - and two rows sit under Athlone anyway, confirmed against the official page,
+> on which the word "Athlone" does not appear at all. Quote the figure as a minimum.
 >
-> The ShowTimes archive only runs from 09/10, so it cannot reach the disputed years. The pre-Wix
-> aims.ie published the official nominations, and the Internet Archive holds it from **January
-> 2001** - about **7,220 distinct URLs** captured before 2010, including four nomination PDFs
-> (three extract cleanly; 2003 is page images needing OCR).
+> ### Two corrections to what this file used to say
 >
-> **The agreed next action is a harvester**: a resumable script in `scripts/` that pulls every
-> captured nominations page, results page, society list and show calendar from 2001-2010, stores
-> the raw capture plus extracted text with its URL and capture date, and is gitignored like
-> `enrichment/`. Roughly 1,500-2,500 non-image pages. It must be polite (~1 req/sec), retry with
-> backoff and resume from a manifest - **the Internet Archive went offline mid-session on
-> 2026-09-17**, so it will happen again.
+> - **The 2003 nominations PDF is not a 2003 list, and not a scan.** It is the 2001/2002 leaflet at
+>   a `/seminar/` path; it holds text streams and no image filter at all; and the archived copy is
+>   truncated to its outer panels, with no page tree, which is why PyMuPDF opens it to zero pages.
+>   Only one capture exists. **OCR was never the way in** - the salvageable text is in
+>   `archive_harvest/noms2003/noms2003.salvaged.txt`.
+> - **The archive is far bigger than "~7,220 URLs".** The CDX index returns **21,427 captures**,
+>   **13,724** of them documents, because the old site carried a show database, a review section and
+>   a busy discussion forum on top of the awards pages.
 >
-> **Deliberately not delegated.** This is enumerate-fetch-store-parse: no judgement, no research,
-> and every output carries its own provenance. The repertoire batch went wrong because claims had
-> to be verified afterwards; here the artefact *is* the primary source.
+> ### What the harvester is, so nobody rebuilds it
 >
-> ### Also shipped this stretch
+> Resumable and polite by design: an append-only manifest, a re-run that skips what is already
+> there, a 404 treated as a real answer about one URL, and a run of consecutive failures stopping
+> the whole thing rather than hammering an Archive that is having a bad day. `--match`/`--exclude`
+> run the useful part first, and **a pattern miss is deliberately not recorded as done**, so a
+> later, wider run still sees those pages. Output lands in `archive_harvest/`, gitignored like
+> `enrichment/`; every extracted file carries its source URL and capture date in its own header.
 >
-> | | |
-> |---|---|
-> | `b411876` | A show stayed listed until its final night, not just until it opened |
-> | `79fda7e` | Person suggestions grouped one card per person, not per pair |
-> | `cba6ad3` | The ticket-link proof now checks all three points, and checks them properly |
-> | `8eb122e` | The ticket-links importer itself (built by Gemini Antigravity) |
->
-> **The still-on fix is worth remembering as a pattern.** "Has it not opened yet?" and "can someone
-> still go and see it?" are different questions, and the code had one helper for both. A show
-> mid-run vanished from the homepage, lost its Buy tickets button, was filed under a venue's past
-> productions and was missing from a title's "on stage" list. `app/shows.py` now has `is_upcoming`
-> (lead-time only) and `is_still_on` (anything shown to a visitor), plus `still_on_sql()` so a query
-> and the Python check cannot drift apart.
->
-> ### Checked and deliberately NOT done
->
-> - **The `productions` table cannot corroborate the society collapse** - it is derived from the
->   award rows, so it inherits the same error. Do not "verify" one against the other.
-> - **No society has submitted pre-2009 history** for any of the seven affected societies, so the
->   self-service channel does not answer this either.
+> `match_awards_to_archive.py` **offers both neighbouring societies rather than choosing between
+> them**, because the pages disagree on column order - the 2001 nominations read nominee, show,
+> society; the 2003 results print the society first. Picking by distance produced confident wrong
+> answers while it was being built. Repetition across rows, seasons and pages is what settles it.
 >
 > ### Open, in the order I would take them
 >
-> 1. **Build the harvester** (above), then re-run the analysis in `docs/collapsed-societies.md`.
-> 2. **OCR the 2003 nominations PDF** - PyMuPDF is already in the toolchain from the ShowTimes work.
+> 1. **Finish the harvest.** About 13,000 documents are still unfetched - the old ASP show database
+>    and the review section especially, which is where the partners for Tralee, Avonmore and
+>    Kilcock would be. Same command; it resumes.
+> 2. **Decide with Darragh how a reassignment gets applied**, then build it - the propose-don't-
+>    apply admin queue, in the pattern the venue and people queues use. Athlone/Athenry and
+>    Clara/Clane are ready to be its first two cases.
 > 3. **Go back to Jack with confirmation rather than a question**, and raise it with AIMS so it is
 >    fixed at source - that fixes aims.ie and every future import too.
-> 4. **An admin queue for collapsed societies**, in the propose-don't-apply pattern the venue and
->    people queues use, so the remaining six get resolved as knowledge arrives.
-> 5. **Create Athenry Musical Society** as a defunct society once its years are settled.
+> 4. **Create Athenry Musical Society** as a defunct society once its years are settled. Clane
+>    needs no creation; it is already id 25.
+>
+> ### Still open from before this stretch
+>
+> 13 poster chases, 20 never-expiring invite codes, 8 duplicate venue clusters, 13 lifecycle calls,
+> 36 person clusters, the pantomime scope call, the `/titles` genre taxonomy, and the `/titles`
+> page-weight note (316 cards, ~500KB of HTML; it gzips to 38KB, so this is render cost on a phone,
+> **not** a bandwidth problem - compression already resolved that once).
 
 ## START HERE - the traffic data is now trustworthy, and two empty pages left the nav (2026-09-06)
 

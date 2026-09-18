@@ -1302,3 +1302,80 @@ this project must not do.
   working tree and the full history for secrets and personal data and found none — but that also
   means anything written into these tracking files is world-readable. Keep AIMS internal matters,
   named individuals and third-party URLs out of them.
+
+---
+
+## 2026-09-18 — Claude (Opus 5): the harvester, and two of the seven answered
+
+### Commits
+
+- `2cd7d39` — `scripts/harvest_aims_archive.py`, the Wayback harvester, with tests. Corrects the
+  2003-PDF row in `docs/collapsed-societies.md`.
+- `88e4323` — `scripts/match_awards_to_archive.py`, which reads the harvest back against our award
+  rows, with tests. Writes up Clara/Clane and the newly sourced Athenry years.
+
+**1250 tests green** (was 1201). Both pushed to `main`, so both are live within the GitOps poll —
+neither touches the app, only `scripts/`, `tests/`, `docs/` and `.gitignore`.
+
+### Written to the live database
+
+**Nothing.** The live `aims.db` was copied down read-only once, to count the figures in
+`AGENTS.md`. Nothing was written back and no management script was run in the container.
+
+### Verified against production
+
+- SSH to the NAS works again (it timed out all through the 2026-09-06 session). The live database
+  was `scp`-ed down read-only — mtime checked first, per the lesson in `CLAUDE.md`.
+- Every figure in `AGENTS.md`'s current-state block recounted against it, except the 36 open person
+  clusters, which needs the app's own clustering rather than a query. That one is marked in the
+  file as carried from 2026-09-17 rather than quietly restated as current.
+
+### What was found
+
+**Athlone is collapsed with Athenry, and Clara is collapsed with Clane.** Both from the official
+AIMS lists published on the pre-Wix aims.ie, which the Internet Archive holds from January 2001.
+All six disputed Athenry years are now sourced — 2001 and 2003 were the ones outstanding — plus
+**2008**, a year the structural detector could never have found, because only one of the two
+societies was nominated so there was no two-section conflict to spot. **That makes the "100 rows,
+~2% of the archive" figure a floor rather than a total**, and it is worth correcting wherever it
+gets quoted.
+
+Clane already exists as society id 25, so that half is a reassignment rather than a society that
+has to be created.
+
+### Two things that were wrong and are now right
+
+- **The 2003 nominations PDF was never an OCR job.** It is the 2001/2002 leaflet at a `/seminar/`
+  path, it contains text streams and no image filter at all, and the archived copy is truncated to
+  its outer panels with no page tree. Only one capture exists. Recorded in
+  `docs/collapsed-societies.md` so the afternoon nobody has to spend on it stays unspent.
+- **The archive is much bigger than the spec assumed** — 21,427 captures, 13,724 of them documents,
+  not ~7,220 URLs, because the old site also carried a show database, a review section and a busy
+  discussion forum.
+
+### Needs Darragh
+
+- **How a reassignment should be applied.** Two societies are identified and sourced, and I have
+  deliberately not touched a row. The shape I would build is the propose-don't-apply admin queue
+  the venue and people queues already use, with these two as its first cases — but that is a
+  product call, not mine.
+- **Go back to Jack with confirmation rather than a question.** His report was right, and it turned
+  out to be bigger than the one society he named.
+- **Raise it with AIMS.** Fixing it at source fixes aims.ie and every future import.
+- Still open from before: 13 poster chases, 20 never-expiring invite codes, 8 duplicate venue
+  clusters, 13 lifecycle calls, 36 person clusters, the pantomime scope call, the `/titles` genre
+  taxonomy.
+
+### For the next agent
+
+- **`docs/collapsed-societies.md` is still the source of truth.** It now carries the evidence for
+  both confirmed pairs, with capture dates and URLs.
+- **Finish the harvest before hunting the remaining five.** Around 13,000 documents are unfetched,
+  and the old ASP show database and review section are where Tralee's, Avonmore's and Kilcock's
+  partners would be named. Re-running the same command resumes; it costs nothing to restart.
+- **`archive_harvest/` is gitignored and local to this machine.** Whoever picks up next will have
+  to re-run the harvest to have the pages. That is by design — it is source material, not repo
+  content — but it does mean the finding is reproducible only by re-fetching.
+- **Do not let a matcher pick between two candidates on distance alone.** These pages disagree on
+  column order, and picking the nearer name returned Galway for a row the official list plainly
+  gives to Athenry. `match_awards_to_archive.py` reports both and tallies instead.
