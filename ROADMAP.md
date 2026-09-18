@@ -71,6 +71,18 @@ when it had shipped, and claiming a security finding was unfixed when it had bee
 > later, wider run still sees those pages. Output lands in `archive_harvest/`, gitignored like
 > `enrichment/`; every extracted file carries its source URL and capture date in its own header.
 >
+> **Accented URLs need cp1252, not UTF-8** (found 2026-09-18, `b2cbdb8`). The old awards pages carry
+> one URL per person and Irish names are full of fadas. Wayback keys on the bytes the original site
+> served, and a 2004 ASP site served cp1252, so `director=%C1ine+Gilmore` returns the page and
+> `%C3%81ine` returns 404. Measured against the Archive, not reasoned about. Two related traps:
+> `urllib` refuses a non-ASCII URL with an ascii codec error that reads exactly like a network
+> fault, and printing one to a cp1252 console killed a run of 1,885 fetched pages outright.
+>
+> **`--retry-failed` exists because of that.** Failures are recorded so a missing page stays
+> visible, but a plain re-run skips anything the manifest holds - so a bug on our side would have
+> buried 152 real pages permanently. If you change anything about how URLs are fetched, re-run with
+> that flag.
+>
 > `match_awards_to_archive.py` **offers both neighbouring societies rather than choosing between
 > them**, because the pages disagree on column order - the 2001 nominations read nominee, show,
 > society; the 2003 results print the society first. Picking by distance produced confident wrong

@@ -81,7 +81,7 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1274 tests pass as of `cb737ea`**
+Before any push to `main`: `py -m pytest` must be green. **1281 tests pass as of `b2cbdb8`**
 (2026-09-18).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
@@ -299,6 +299,12 @@ pre-Christmas shows.
    py scripts/harvest_aims_archive.py --match "awards|nomination|show_database|societies"        --exclude "matrixstats"
    ```
 
+   **Accented URLs are percent-encoded as cp1252, not UTF-8** — Wayback keys on the bytes the
+   original site served. Checked against the Archive: `%C1ine+Gilmore` returns the page,
+   `%C3%81ine` returns 404. If you change anything about fetching, re-run with `--retry-failed`,
+   because a plain re-run skips manifest failures and a bug on our side would otherwise bury real
+   pages for good.
+
    **The queue exists now: `/admin/collapsed-societies`.** 39 proposals are loaded in production,
    each carrying the capture date and URL it was read off. **Do not reassign an award row from a
    script.** Clara -> Clane (8 seasons) is ready to apply from the page; Athlone -> Athenry (5
@@ -410,7 +416,7 @@ judgement call, not a defect; do not let it jump the queue).
 
 Every figure counted against the **live** database on that date, never carried forward.
 
-- **HEAD `cb737ea`**, `main` clean. **1274 tests green. 0 foreign key violations.**
+- **HEAD `b2cbdb8`**, `main` clean. **1281 tests green. 0 foreign key violations.**
 - **195 societies** (27 with a logo), **121 venues**, **2,943 productions**, **5,019 award rows**,
   **876 reviews**, **68 upcoming shows** (16 with a ticket link), **10 of 11 FAQ entries
   published**, **30 merged people**, **20 never-expiring invite codes**, **43,328 pageviews**,

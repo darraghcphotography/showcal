@@ -1416,3 +1416,27 @@ harvest. (It sits directly in `docs/` because `data/` in `.gitignore` matches `d
 - The page rendered at 616KB with seven societies on it — one form per button, repeated per
   suggestion and per season. Now one form per group and the quiet seasons hidden by default: 266KB,
   20KB gzipped. `?all=1` still shows them, and must, because that is where 2008 was.
+
+### A crash, and the two bugs behind it (same day, `9bbc027` + `b2cbdb8`)
+
+The background harvest died after 1,885 pages on a single URL —
+`societiesdirector.asp?director=Áine+Gilmore`. Worth writing down because the first fix was wrong
+and only checking caught it.
+
+- **`urllib` will not send a non-ASCII URL.** It raises an ascii codec error that is
+  indistinguishable from a network fault, so all four retries were burned and it was reported as an
+  Archive outage. Then printing that failure to a cp1252 console raised `UnicodeEncodeError` and
+  took the process with it.
+- **My first fix percent-encoded as UTF-8, which is wrong here.** Wayback keys on the bytes the
+  original site served, and a 2004 ASP site served cp1252. Against the live Archive:
+  `%C1ine+Gilmore` → 200, `%C3%81ine+Gilmore` → 404. A wrongly encoded URL does not fail loudly, it
+  404s — so shipping that would have looked fine.
+- **Which exposed the worse one.** A re-run skips anything the manifest holds, failures included,
+  so our own bug would have hidden 152 real pages for good. `--retry-failed` now re-attempts them.
+  The page that started it lists a director's credits by society and show, which is exactly the
+  shape the collapsed-society work needs.
+
+Also renamed `test_a_failed_capture_is_retried_on_the_next_run`, which asserted the opposite of
+what its name claimed.
+
+**1281 tests green.** Nothing was written to the live database by any of this.
