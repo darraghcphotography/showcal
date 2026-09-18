@@ -350,3 +350,53 @@ def test_a_pattern_miss_is_not_recorded_as_done(tmp_path):
 def test_the_filter_is_case_insensitive():
     keep = url_filter(match="awards")
     assert keep("http://aims.ie/AWARDS/2004/")[0]
+
+
+# --------------------------------------------------------------------------
+# Characters the console and urllib cannot take
+# --------------------------------------------------------------------------
+
+def test_an_accented_url_is_percent_encoded_before_it_is_sent():
+    # urllib refuses a URL with non-ASCII in it, and the ascii codec error
+    # looks exactly like a network fault - so it burned all four retries and
+    # was reported as an outage. The awards pages carry one URL per person and
+    # Irish names are full of fadas, so this is common, not exotic.
+    from harvest_aims_archive import encode_url
+
+    encoded = encode_url("http://aims.ie/awards/societiesdirector.asp?director=Áine+Gilmore")
+    assert encoded == "http://aims.ie/awards/societiesdirector.asp?director=%C3%81ine+Gilmore"
+    assert encoded.isascii()
+
+
+def test_an_already_encoded_url_is_left_alone():
+    # Re-encoding the % would change the URL into a different one.
+    from harvest_aims_archive import encode_url
+
+    url = "http://www.aims.ie/awards/societieschoreographer.asp?choreographer=Yvonne%20Prendergast"
+    assert encode_url(url) == url
+
+
+def test_progress_output_cannot_kill_a_long_run(tmp_path, monkeypatch, capsys):
+    # A cp1252 console raised UnicodeEncodeError while *reporting* a failed
+    # URL, and ended a run that had already fetched 1,885 pages. Reporting a
+    # problem must never be a worse problem.
+    import io as _io
+    import harvest_aims_archive
+
+    cp1252 = _io.TextIOWrapper(_io.BytesIO(), encoding="cp1252", errors="strict")
+    monkeypatch.setattr(harvest_aims_archive.sys, "stdout", cp1252)
+    harvest_aims_archive.log_line("unavailable: Łá 中文")
+
+    cp1252.seek(0)
+    assert "unavailable" in cp1252.buffer.getvalue().decode("cp1252")
+
+
+def test_a_capture_with_an_accented_url_does_not_stop_the_harvest(tmp_path):
+    accented = cap(original="http://aims.ie/awards/societiesdirector.asp?director=Áine",
+                   digest="A")
+    after = cap(original="http://aims.ie/awards/2004/", digest="B")
+
+    archive = FakeArchive()
+    counts, _ = run([accented, after], tmp_path, archive)
+
+    assert counts["fetched"] == 2

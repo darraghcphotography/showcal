@@ -77,6 +77,24 @@ class ArchiveUnavailable(Exception):
     """The Internet Archive is not answering. Stop; the manifest is safe."""
 
 
+def log_line(text):
+    """Print a line that may contain characters the console cannot encode.
+
+    A Windows console is cp1252, and printing an accented URL to it raises
+    UnicodeEncodeError - which killed a run of 1,885 fetched pages at the point
+    where it was *reporting* a failure, turning a skippable URL into a crash.
+    Progress output must never be able to end a long job.
+    """
+    text = str(text)
+    stream = sys.stdout
+    encoding = getattr(stream, "encoding", None) or "utf-8"
+    try:
+        stream.write(text + "\n")
+    except UnicodeEncodeError:
+        stream.write(text.encode(encoding, "replace").decode(encoding) + "\n")
+    stream.flush()
+
+
 # --------------------------------------------------------------------------
 # The CDX index
 # --------------------------------------------------------------------------
@@ -215,8 +233,25 @@ def wayback_url(capture):
 # Fetching, politely
 # --------------------------------------------------------------------------
 
+def encode_url(url):
+    """Percent-encode the non-ASCII characters in a URL.
+
+    `urllib` will not send a URL containing them and fails with an ascii codec
+    error, which looks exactly like a network fault and burns all four retries
+    before being reported as an outage. The old site has plenty: the awards
+    pages carry one URL per person, and Irish names are full of accents -
+    `societiesdirector.asp?director=Aine+Gilmore` with a fada on the A is what
+    found this.
+
+    Only the non-ASCII characters are touched. Anything already percent-encoded
+    is left exactly as it is, since re-encoding the % would change the URL.
+    """
+    return "".join(c if ord(c) < 128 else urllib.parse.quote(c, safe="") for c in url)
+
+
 def http_get(url, timeout=60, retries=4, backoff=2.0, sleeper=time.sleep):
     """GET with backoff. Raises ArchiveUnavailable once the retries are spent."""
+    url = encode_url(url)
     last_error = None
     for attempt in range(retries):
         try:
@@ -381,7 +416,7 @@ def load_index(path):
 
 def harvest(captures, out_dir, manifest, delay=1.0, limit=None,
             getter=http_get, sleeper=time.sleep, max_consecutive_failures=8,
-            keep=None, log=print):
+            keep=None, log=log_line):
     """Fetch and store each capture. Returns a counts dict.
 
     Digest dedupe happens here rather than in the CDX query because `collapse`
