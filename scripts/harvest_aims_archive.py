@@ -245,8 +245,29 @@ def encode_url(url):
 
     Only the non-ASCII characters are touched. Anything already percent-encoded
     is left exactly as it is, since re-encoding the % would change the URL.
+
+    **cp1252 first, not UTF-8**, which is the opposite of the modern default.
+    The Wayback index keys on the bytes the original site served, and a 2004 ASP
+    site served cp1252. Checked against the Archive rather than assumed:
+
+        director=%C1ine+Gilmore    (cp1252) -> 200, 10,376 bytes
+        director=%C3%81ine+Gilmore (UTF-8)  -> 404
+
+    UTF-8 is the fallback for characters cp1252 cannot represent at all. A URL
+    encoded the wrong way does not fail loudly - it 404s, and the manifest
+    records it as a missing page rather than a bug.
     """
-    return "".join(c if ord(c) < 128 else urllib.parse.quote(c, safe="") for c in url)
+    encoded = []
+    for character in url:
+        if ord(character) < 128:
+            encoded.append(character)
+            continue
+        try:
+            raw = character.encode("cp1252")
+        except UnicodeEncodeError:
+            raw = character.encode("utf-8")
+        encoded.append("".join("%{:02X}".format(byte) for byte in raw))
+    return "".join(encoded)
 
 
 def http_get(url, timeout=60, retries=4, backoff=2.0, sleeper=time.sleep):
@@ -386,8 +407,20 @@ class Manifest:
                     if "key" in record:
                         self.done[record["key"]] = record
 
-    def has(self, key):
-        return key in self.done
+    def has(self, key, retry_failed=False):
+        """Have we finished with this capture?
+
+        With `retry_failed`, a capture that failed is treated as unfinished and
+        is attempted again. Failures are recorded rather than dropped so that a
+        missing page is visible later - but that also means a bug on our side
+        gets written into the manifest as though it were the Archive's answer,
+        and would be skipped forever. Encoding accented URLs the wrong way put
+        152 real pages in exactly that position.
+        """
+        record = self.done.get(key)
+        if record is None:
+            return False
+        return not (retry_failed and record.get("state") == "failed")
 
     def digests(self):
         return {r["digest"] for r in self.done.values()
@@ -416,7 +449,7 @@ def load_index(path):
 
 def harvest(captures, out_dir, manifest, delay=1.0, limit=None,
             getter=http_get, sleeper=time.sleep, max_consecutive_failures=8,
-            keep=None, log=log_line):
+            keep=None, retry_failed=False, log=log_line):
     """Fetch and store each capture. Returns a counts dict.
 
     Digest dedupe happens here rather than in the CDX query because `collapse`
@@ -439,7 +472,7 @@ def harvest(captures, out_dir, manifest, delay=1.0, limit=None,
             break
 
         key = capture_key(capture)
-        if manifest.has(key):
+        if manifest.has(key, retry_failed):
             counts["already"] += 1
             continue
 
@@ -547,6 +580,9 @@ def main(argv=None):
                              "(e.g. --match \"awards|nomination\")")
     parser.add_argument("--exclude", default=None,
                         help="skip captures whose original URL matches this regex")
+    parser.add_argument("--retry-failed", action="store_true",
+                        help="attempt captures the manifest records as failed, for when "
+                             "the failure was ours rather than the Archive's")
     parser.add_argument("--page-limit", type=int, default=2000,
                         help="CDX rows per request")
     args = parser.parse_args(argv)
@@ -583,7 +619,7 @@ def main(argv=None):
 
     keep = url_filter(args.match, args.exclude) if (args.match or args.exclude) else None
     counts = harvest(captures, out_dir, manifest, delay=args.delay, limit=args.limit,
-                     keep=keep)
+                     keep=keep, retry_failed=args.retry_failed)
     print("\n" + ", ".join("{} {}".format(value, name) for name, value in counts.items()))
     print("Raw captures in {}, extracted text in {}.".format(out_dir / "raw", out_dir / "text"))
     return 0

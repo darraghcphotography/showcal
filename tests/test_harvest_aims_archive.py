@@ -266,14 +266,39 @@ def test_one_missing_page_does_not_stop_the_run(tmp_path):
     assert all(r["state"] == "failed" for r in manifest.done.values())
 
 
-def test_a_failed_capture_is_retried_on_the_next_run(tmp_path):
+def test_a_failed_capture_is_not_silently_refetched(tmp_path):
     captures = [cap()]
     run(captures, tmp_path, FakeArchive(http_error=404))
 
     counts, _ = run(captures, tmp_path, FakeArchive())
-    # It was recorded as failed, so the re-run does not silently re-fetch it -
-    # the manifest is the record of what was tried, not only of what worked.
+    # The manifest is the record of what was tried, not only of what worked, so
+    # a page the Archive does not have is not asked for again every run.
     assert counts["already"] == 1
+
+
+def test_retry_failed_attempts_them_again(tmp_path):
+    # Because the failure is not always the Archive's. Encoding accented URLs
+    # the wrong way wrote 152 real pages into the manifest as 404s, and without
+    # this they would have been skipped forever.
+    captures = [cap()]
+    run(captures, tmp_path, FakeArchive(http_error=404))
+
+    archive = FakeArchive()
+    counts, _ = run(captures, tmp_path, archive, retry_failed=True)
+
+    assert counts["fetched"] == 1
+    assert len(archive.calls) == 1
+
+
+def test_retry_failed_still_leaves_finished_work_alone(tmp_path):
+    captures = [cap()]
+    run(captures, tmp_path, FakeArchive())
+
+    archive = FakeArchive()
+    counts, _ = run(captures, tmp_path, archive, retry_failed=True)
+
+    assert counts["already"] == 1
+    assert archive.calls == []
 
 
 def test_skipped_captures_record_why(tmp_path):
@@ -364,8 +389,17 @@ def test_an_accented_url_is_percent_encoded_before_it_is_sent():
     from harvest_aims_archive import encode_url
 
     encoded = encode_url("http://aims.ie/awards/societiesdirector.asp?director=Áine+Gilmore")
-    assert encoded == "http://aims.ie/awards/societiesdirector.asp?director=%C3%81ine+Gilmore"
+    # cp1252, not UTF-8: the Wayback index keys on the bytes the original site
+    # served, and a 2004 ASP site served cp1252. Checked against the live
+    # Archive - %C1 returns the page, %C3%81 returns 404.
+    assert encoded == "http://aims.ie/awards/societiesdirector.asp?director=%C1ine+Gilmore"
     assert encoded.isascii()
+
+
+def test_a_character_cp1252_cannot_hold_falls_back_to_utf8():
+    from harvest_aims_archive import encode_url
+
+    assert encode_url("http://aims.ie/Ł") == "http://aims.ie/%C5%81"
 
 
 def test_an_already_encoded_url_is_left_alone():
