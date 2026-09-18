@@ -1223,3 +1223,82 @@ push deployed. Verifying over HTTPS against the public site is the fallback, and
 - The 11 FAQ drafts in `/admin/faq` still waiting for his review/publishing.
 **Flag to the next agent:**
 - `enrichment/ticket_worklist_filled.json` is returned and verified. Grand Opera House Belfast sells shows well in advance (Feb/May 2027 shows are already on sale), whereas community centres and local arts centres typically open sales 3–6 weeks before curtain.
+
+---
+
+## 2026-09-18 — Claude, Opus 5. A reported data error, and the source that can settle it.
+
+Covers everything since the 2026-09-06 wrap-up. **1201 tests green**, `main` clean at `b411876`,
+**0 foreign key violations**.
+
+### Commits
+
+| | |
+|---|---|
+| `8eb122e` | Ticket-links importer with 3-point page-proof validation — **built by Gemini Antigravity** |
+| `cba6ad3` | Made that proof actually check all three points (see below) |
+| `79fda7e` | Person suggestions grouped one card per person, not one per pair |
+| `b411876` | A show stays listed until its final night, not just until it opens |
+
+### Written to the live database
+
+- **9 ticket links** on upcoming shows, after a backup (`aims-20260906-222254.db`), a dry run, and
+  fetching all nine pages to confirm each named the right show, society and dates.
+- **Nothing else by me.** Darragh published 10 of the 11 FAQ drafts himself, and has worked the
+  person queue down from 60 clusters to 36 (30 people merged, 66 spellings).
+
+### The main event: award rows filed under the wrong society
+
+Jack Rawlings reported (2026-09-17) that Athenry Musical Society is missing and its awards sit
+under Athlone. Confirmed, and it is seven societies rather than one — **100 award rows, ~2% of the
+archive**. It is **not our bug**: the two societies share one id in the source CSV, so they were
+merged before the data reached us, which is why it shows on aims.ie too.
+
+**Everything is written up in `docs/collapsed-societies.md`** — the detector, the evidence, the
+sources, and what is proven versus suspected. Read that rather than reconstructing it.
+
+**Athenry is confirmed from primary sources.** The pre-Wix aims.ie published the official
+nominations lists, and the Internet Archive holds the site from January 2001. Three surviving PDFs
+name Athenry against rows we currently hold under Athlone — 2004, 2005 and 2007, all on the
+Sullivan side, exactly where the structural test pointed.
+
+**I have written nothing to the archive on the strength of this**, and neither should the next
+session without a source. Reassigning decades-old award rows on a recollection is the one thing
+this project must not do.
+
+### Two corrections I had to make in-session, both worth keeping
+
+- **I said "Pioneer Musical Society isn't a society, it's a trophy."** Wrong — Darragh corrected
+  me. Trophies are *named after the societies that donated them*, so the trophy name is evidence
+  the society existed. Better still, the correction led somewhere: a 2015 row labelled "Pioneer
+  Musical Society" carries **Avonmore's** id, and Avonmore's 2015 conflict has *Kiss Me Kate* on
+  the Sullivan side. That is a second society identified.
+- **I quoted "€5–10/month" for a VPS without checking.** Blacknight's entry Cloud VPS is
+  €29.95/month ex-VAT. Only quote hosting prices actually fetched.
+
+### Needs Darragh
+
+- **The harvester is specified and not built** — see `ROADMAP.md`'s START HERE. It is the agreed
+  next action and it is mine to write, not Antigravity's.
+- **Go back to Jack with confirmation rather than a question.** He has given the most useful report
+  the site has had.
+- **Raise it with AIMS** — fixing it at source fixes aims.ie and every future import.
+- Still open from before: 13 poster chases, 20 never-expiring invite codes, 8 duplicate venue
+  clusters, 13 lifecycle calls, 36 person clusters, the pantomime scope call, the `/titles` genre
+  taxonomy.
+
+### For the next agent
+
+- **`docs/collapsed-societies.md` is the source of truth** for the society-collapse work. Do not
+  re-derive it from the roadmap summary.
+- **Do not use the `productions` table to corroborate it** — it is derived from the award rows and
+  inherits the same error.
+- **`is_upcoming` vs `is_still_on`** (`app/shows.py`): the first means "has not opened", and is for
+  lead-time things only — the adjudication cut-off, poster chasing. The second means "has not
+  closed", and is for anything offered to a visitor. Mixing them made a show vanish mid-run.
+- **The Internet Archive goes offline sometimes.** It did on 2026-09-17. Anything built against it
+  needs retries and a resume manifest.
+- **This repo is public and has no licence file.** Nothing sensitive is in it — I checked the
+  working tree and the full history for secrets and personal data and found none — but that also
+  means anything written into these tracking files is world-readable. Keep AIMS internal matters,
+  named individuals and third-party URLs out of them.

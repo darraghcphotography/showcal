@@ -81,8 +81,8 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1157 tests pass as of `7245986`**
-(2026-09-06).
+Before any push to `main`: `py -m pytest` must be green. **1201 tests pass as of `b411876`**
+(2026-09-18).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
 replacing it: anything a visitor or committee member can *see* gets **described to him before
@@ -284,20 +284,23 @@ pre-Christmas shows.
 1. **Keep `main` green, and fix what Darragh reports.** CI does not gate the deploy, so a red
    `main` is a live-site risk, not just an untidy badge. This outranks everything below.
 
-2. **Ticket links on upcoming shows** — added 2026-09-06, and on merit this is the biggest open
-   product gap. **61 of 67 upcoming shows have no ticket link**, on a homepage taking ~48% of all
-   traffic: someone lands, finds a show, and cannot book. The research task is prepared
-   (`build_ticket_worklist.py` + `enrichment/TICKET_LINKS_BRIEF.md`) but **the worklist is not
-   generated** — it has to run in the container against the live database, because the upcoming
-   set turns over weekly. **Read the brief before doing any of this work yourself**: the failure
-   it is built to prevent is a link that resolves but sells a *different* show, which already
-   happened here with `rights_url` (32 of 102 wrong, every one HTTP 200).
+2. **The Wayback harvester for pre-Wix aims.ie** — added 2026-09-18 and now the top build item.
+   It is the thing that unlocks `docs/collapsed-societies.md`: award rows filed under the wrong
+   society, seven societies, ~2% of the archive. Spec is in `ROADMAP.md`'s START HERE block.
+   Polite, retrying, resumable; output gitignored like `enrichment/`. **Build it as a script, not
+   as research** — the artefact is the primary source, so there is nothing to cite afterwards.
 
-3. ~~**The FAQ has 0 entries**~~ — **11 drafts written 2026-09-06, 0 published.** They are in
-   `/admin/faq` waiting for Darragh. **Do not publish them yourself**: they speak for the project,
-   and one speaks for his AIMS Council role. The nav link returns on its own when he publishes one.
+3. ~~**Ticket links on upcoming shows**~~ — **partly done.** 9 verified links added 2026-09-17;
+   **16 of 68** upcoming shows now have one. The rest are mostly not on sale yet, which the brief
+   treats as a correct finding rather than a gap. `build_ticket_worklist.py` regenerates the
+   worklist — **run it in the container**, the upcoming set turns over weekly. Read
+   `enrichment/TICKET_LINKS_BRIEF.md` first: the failure it prevents is a link that resolves but
+   sells a *different* show.
 
-4. **Data and outreach support** — high value, small blast radius:
+4. ~~**The FAQ has 0 entries**~~ — **DONE.** Darragh published 10 of the 11 drafts himself; the
+   nav link is back. Nothing outstanding.
+
+5. **Data and outreach support** — high value, small blast radius:
    - ~~`/admin/historical-society-links` — 64 printed names releasing 529 award rows~~
      **Both wrong, and both cleared.** The queue is at **0 undecided** (checked against the live
      database 2026-09-02); it emptied largely via `no_match` decisions, which is the correct
@@ -312,13 +315,13 @@ pre-Christmas shows.
      youth theatres) are arguably *Out of scope* by nature instead. **That is Darragh's call,
      not yours** — propose, don't apply.
 
-5. **Off-box backup.** Backups currently sit in the same directory, on the same volume, as the
+6. **Off-box backup.** Backups currently sit in the same directory, on the same volume, as the
    database. It is the only open item whose downside is losing everything. `CACHEDEV1` has
    ~339GB free but is a 96%-full ageing array; a genuinely off-box destination is a decision
    about Darragh's hardware and accounts. **Investigate and propose options with trade-offs;
    do not pick one.** `backup_db.py` and `verify_backup.py` already exist — read them first.
 
-6. ~~**The rate-limiting finding** — still unfixed.~~ **This was wrong when it was written and
+7. ~~**The rate-limiting finding** — still unfixed.~~ **This was wrong when it was written and
    it is still wrong. It was already fixed.** `app/rate_limit.py` keys on Cloudflare's own
    `CF-Connecting-IP` header, which their edge sets and a client cannot forge, precisely so that
    `ProxyFix(x_proto=1)` never has to be widened to trust forged `X-Forwarded-For` hops. Claude
@@ -341,7 +344,7 @@ pre-Christmas shows.
    **Do not build the filters before the data lands** — a cast-size filter over mostly-blank rows
    hides titles rather than admitting it does not know.
 
-7. ~~**Costumes / props / sets listings, per show.**~~ **SHIPPED** — it is the Costumes & Props
+8. ~~**Costumes / props / sets listings, per show.**~~ **SHIPPED** — it is the Costumes & Props
    Exchange (`/exchange`, `wardrobe_items` / `wardrobe_photos`), and it was already live when this
    item still described it as "the biggest lift on the board". Verified in code 2026-09-04. One
    real listing so far. Contact details on a listing are restricted to signed-in societies — that
@@ -349,7 +352,7 @@ pre-Christmas shows.
    on the board, **the social card generator shipped 2026-09-04** (`app/social_card.py`); the
    **society edit audit log** is still genuinely unbuilt and is in `ROADMAP.md`'s open list.
 
-8. ~~**The two design items**~~ — **both shipped 2026-09-02**, along with a full design pass.
+9. ~~**The two design items**~~ — **both shipped 2026-09-02**, along with a full design pass.
    Society pages now lead with stat tiles; the missing-poster placeholder is a typeset playbill
    rather than an initials box; the societies index, the homepage cards and `/stats` were all
    rebuilt. See `ROADMAP.md`.
@@ -369,12 +372,12 @@ pre-Christmas shows.
      isolation and badly in place, because the card body repeats two of the three directly
      below it.
 
-9. **A single venue's `<h1>` overflows sideways at 320px.** Found 2026-09-04 while crawling all 137
+10. **A single venue's `<h1>` overflows sideways at 320px.** Found 2026-09-04 while crawling all 137
    local venue detail pages to verify the `.detail-list` grid fix. Different root cause (an
    unwrapped long venue name in the heading, not the grid) — not fixed, since it wasn't one of that
    session's two named findings. Low blast radius (one venue, 320px only) but a real, measured fault.
 
-10. **Four `url_for(..., _external=True)` call sites still emit `http://`.** Found 2026-09-04 during
+11. **Four `url_for(..., _external=True)` call sites still emit `http://`.** Found 2026-09-04 during
    a backlog audit. Same Cloudflare Tunnel bug fixed in `feeds.py` that day — the tunnel sends no
    `X-Forwarded-Proto`, so `_external=True` honestly reports http. These four were simply never
    reached: `admin/access_requests.py:117` and `:199` (**the magic-link URL emailed to a society**),
@@ -388,7 +391,50 @@ judgement call, not a defect; do not let it jump the queue).
 
 ---
 
-## Current state, 2026-09-06
+## Current state, 2026-09-18
+
+Every figure counted against the **live** database on that date, never carried forward.
+
+- **HEAD `b411876`**, `main` clean. **1201 tests green. 0 foreign key violations.**
+- **195 societies** (27 with a logo), **121 venues**, **2,943 productions**, **5,019 award rows**,
+  **876 reviews**, **68 upcoming shows** (16 with a ticket link), **10 of 11 FAQ entries
+  published**, **30 merged people** across 66 spellings with **36 person clusters still open**,
+  **20 never-expiring invite codes**, **43,257 pageviews**.
+- **The society edit log is working and being used** — 14 real rows. Societies are editing.
+
+### The one thing to read first
+
+**`docs/collapsed-societies.md`.** Award rows filed under a society that did not stage the show —
+seven societies, 100 rows, ~2% of the archive, reported by a member on 2026-09-17. **It is not our
+bug** (the source CSV already merged them, which is why aims.ie shows it too), but it is ours to
+repair. Athenry is confirmed from primary sources; the rest is not.
+
+**Nothing has been written to the archive over this, and nothing should be without a source.**
+Reassigning decades-old award rows on a recollection is precisely the failure this project exists
+to avoid.
+
+### The agreed next action
+
+**A Wayback harvester for the pre-Wix aims.ie** (~7,220 URLs captured from January 2001), pulling
+every nominations page, results page, society list and show calendar from 2001-2010. Specified in
+`ROADMAP.md`'s START HERE block. Must be polite, retrying and resumable — the Internet Archive
+went offline mid-session on 2026-09-17.
+
+**This one is deliberately not delegated.** It is enumerate-fetch-store-parse with no judgement in
+it, and every output carries its own provenance. If you are picking this up as Antigravity and it
+is still unbuilt, build it as a script rather than as research: the artefact *is* the source, so
+there is nothing to cite and nothing to verify afterwards.
+
+### Two habits this stretch earned
+
+- **"Not opened yet" and "not closed yet" are different questions.** `app/shows.py` now has
+  `is_upcoming` (lead-time only) and `is_still_on` (anything shown to a visitor), plus
+  `still_on_sql()`. Conflating them made a show vanish from the homepage mid-run and lose its Buy
+  tickets button.
+- **Do not quote a price you have not fetched.** "€5-10/month" for a VPS was wrong; Blacknight's
+  entry Cloud VPS is €29.95/month ex-VAT.
+
+### Superseded: current state, 2026-09-06
 
 Every figure here was counted against the **live** database on that date, not carried forward.
 
