@@ -70,7 +70,7 @@ def collapsed_societies_queue():
     show_all = request.args.get("all") == "1"
     db = get_db()
     societies = []
-    for row in collapsed_societies.conflicted_societies(db):
+    for row in collapsed_societies.societies_in_scope(db):
         suggestions = collapsed_societies.suggestions_for(row["id"], db)
         decisions = collapsed_societies.decisions_for(row["id"], db)
         groups = []

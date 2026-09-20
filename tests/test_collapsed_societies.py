@@ -336,3 +336,34 @@ def test_a_single_hit_is_flagged_as_such(client, db, collapsed):
     assert "one season only" in body
     # Flagged, not hidden - the queue reports, it does not decide.
     assert "Move to Clane Musical Society" in body
+
+
+# --------------------------------------------------------------------------
+# A correction must not hide itself
+# --------------------------------------------------------------------------
+
+def test_a_fully_separated_society_stays_on_the_page(client, db, collapsed):
+    # Moving the Sullivan side is what makes the conflict go away, so the
+    # society drops out of the detector - and with it would go its decisions,
+    # its evidence and its Undo. Found on a rehearsal against a copy of the
+    # live database, with the real Athenry data, before it reached production.
+    client.post("/admin/collapsed-societies/move", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan",
+        "moved_to_id": collapsed["other"]})
+
+    assert collapsed_societies.conflicted_societies(db) == []
+
+    body = client.get("/admin/collapsed-societies").get_data(as_text=True)
+    assert "Athlone Musical Society" in body
+    assert ">Undo<" in body
+
+
+def test_the_undo_still_works_once_the_conflict_is_gone(client, db, collapsed):
+    client.post("/admin/collapsed-societies/move", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan",
+        "moved_to_id": collapsed["other"]})
+    client.post("/admin/collapsed-societies/undo", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan"})
+
+    assert rows_under(db, collapsed["athlone"], 2004, "Sullivan") == 2
+    assert decision_count(db) == 0

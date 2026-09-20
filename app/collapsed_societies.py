@@ -53,6 +53,45 @@ def conflicted_societies(db=None):
     ).fetchall()
 
 
+def societies_in_scope(db=None):
+    """Every society the queue should list: still collapsed, or dealt with.
+
+    Not just the conflicted ones. Separating a collapsed society is what makes
+    the conflict go away, so a society that has been fixed drops straight out of
+    `conflicted_societies` - and with it would go its decisions, its evidence
+    and its Undo buttons. The correction would hide itself, which is the same
+    failure as a moved season vanishing, one level up.
+
+    So a society stays listed while it has a decision or a suggestion against
+    it, however tidy its award rows now look.
+    """
+    db = db or get_db()
+    return db.execute(
+        """
+        SELECT s.id, s.name,
+               COUNT(DISTINCT CASE WHEN hr.id IS NOT NULL THEN hr.year END) AS conflict_years,
+               COUNT(hr.id)                                                 AS award_rows
+          FROM societies s
+          LEFT JOIN historical_results hr
+                 ON hr.society_id = s.id
+                AND hr.tier IN (?, ?)
+                AND EXISTS (
+                      SELECT 1 FROM historical_results other
+                       WHERE other.society_id = hr.society_id
+                         AND other.year = hr.year
+                         AND other.tier IN (?, ?)
+                         AND other.tier <> hr.tier
+                )
+         WHERE hr.id IS NOT NULL
+            OR EXISTS (SELECT 1 FROM collapsed_society_decisions d WHERE d.society_id = s.id)
+            OR EXISTS (SELECT 1 FROM collapsed_society_suggestions g WHERE g.society_id = s.id)
+      GROUP BY s.id, s.name
+      ORDER BY award_rows DESC, s.name
+        """,
+        SECTIONS + SECTIONS,
+    ).fetchall()
+
+
 def groups_for(society_id, db=None):
     """Every season-and-section group of one society's award rows.
 
