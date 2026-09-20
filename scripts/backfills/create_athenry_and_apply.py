@@ -47,8 +47,9 @@ SOCIETY = {
         "Competed in the AIMS Sullivan section in 2001 and in Gilbert by 2010 "
         "(AIMS adjudication rosters, via the Internet Archive). Not a current AIMS "
         "member: absent from the Western region list on aims.ie, checked 2026-09-20. "
-        "Its award records were filed under Athlone Musical Society in the source data - "
-        "see docs/collapsed-societies.md."
+        "Its AIMS award records had been filed under Athlone Musical Society in the "
+        "source data, and were restored to Athenry in September 2026 from the official "
+        "AIMS nominations lists of the time."
     ),
 }
 

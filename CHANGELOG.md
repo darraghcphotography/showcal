@@ -1,3 +1,7 @@
+Athenry Musical Society is on the site. Its AIMS awards had been recorded under Athlone Musical Society since the source data was first compiled, so the society itself was missing entirely and another society carried its wins. Seven seasons of nominations and productions from 2001 to 2008 have been moved back, each one checked against the official AIMS nominations list published at the time. Thanks to Jack Rawlings, who spotted it and told us
+
+---
+
 Fixed: a show disappeared from the homepage the morning after its opening night, even though it was still running. Come From Away in Thurles opened on a Thursday and was gone by Friday with two performances left. A show now stays listed until its final night - and its Buy tickets button and Add to calendar link stay put for the whole run, which is when people actually book
 
 ---
