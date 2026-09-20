@@ -226,12 +226,36 @@ def capture_key(capture):
 
 def wayback_url(capture):
     """The `id_` form: the original bytes, without the Archive's own banner."""
-    return "{}/{}id_/{}".format(WAYBACK_ENDPOINT, capture["timestamp"], capture["original"])
+    return "{}/{}id_/{}".format(WAYBACK_ENDPOINT, capture["timestamp"],
+                                repair_cdx_text(capture["original"]))
 
 
 # --------------------------------------------------------------------------
 # Fetching, politely
 # --------------------------------------------------------------------------
+
+def repair_cdx_text(text):
+    """Undo the CDX index's double-encoding of a non-ASCII URL.
+
+    Some rows come back with the UTF-8 bytes of a character presented as though
+    they were latin-1: `Aine` with a fada arrives as U+00C3 U+0081, the two
+    UTF-8 bytes of U+00C1 read one byte at a time. Percent-encoding that gives
+    `%C3%C2%81`, which is not a URL the Archive has ever heard of, and it 404s.
+
+    A string that is *not* double-encoded cannot survive the round trip - a lone
+    U+00E9 encodes to one latin-1 byte that is not valid UTF-8 - so this is safe
+    to run over every URL and leaves clean ones untouched.
+
+    Not every row is affected, which is what made this hard to see: the index
+    holds both forms. Checking one URL and generalising is what got it wrong the
+    first time, and a cp1252 console mangling the characters being inspected is
+    what made the wrong answer look right. Compare codepoints, not glyphs.
+    """
+    try:
+        return text.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
 
 def encode_url(url):
     """Percent-encode the non-ASCII characters in a URL.

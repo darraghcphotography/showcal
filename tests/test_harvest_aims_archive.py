@@ -434,3 +434,40 @@ def test_a_capture_with_an_accented_url_does_not_stop_the_harvest(tmp_path):
     counts, _ = run([accented, after], tmp_path, archive)
 
     assert counts["fetched"] == 2
+
+
+# --------------------------------------------------------------------------
+# The CDX index's own double-encoding
+# --------------------------------------------------------------------------
+
+def test_a_double_encoded_url_from_the_index_is_repaired():
+    # The index returns the UTF-8 bytes of a character as though they were
+    # latin-1: U+00C1 arrives as U+00C3 U+0081. Percent-encoding that gives
+    # %C3%C2%81, which the Archive 404s. Asserted by codepoint on purpose -
+    # reading these off a cp1252 console is how the bug survived two fixes.
+    from harvest_aims_archive import repair_cdx_text
+
+    assert repair_cdx_text("Ãine") == "Áine"
+    assert repair_cdx_text("SinÃ©ad") == "Sinéad"
+
+
+def test_a_clean_accented_url_survives_the_repair_untouched():
+    # It cannot round-trip: one latin-1 byte is not valid UTF-8, so the repair
+    # declines rather than corrupting a URL that was already right. Both forms
+    # are in the index, which is why this has to be safe on every row.
+    from harvest_aims_archive import repair_cdx_text
+
+    assert repair_cdx_text("Sinéad") == "Sinéad"
+    assert repair_cdx_text("plain-ascii") == "plain-ascii"
+
+
+def test_the_fetch_url_is_repaired_then_encoded_as_cp1252():
+    from harvest_aims_archive import encode_url, wayback_url
+
+    capture = cap(original="http://aims.ie:80/awards/societiesdirector.asp"
+                           "?director=Ãine+Gilmore")
+    built = encode_url(wayback_url(capture))
+
+    # %C1 is what the Archive holds. The unrepaired string gave %C3%C2%81 and
+    # plain UTF-8 encoding gave %C3%81; both 404.
+    assert built.endswith("?director=%C1ine+Gilmore")
