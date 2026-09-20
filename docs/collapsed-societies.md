@@ -264,9 +264,43 @@ re-running a multi-hour harvest. The loader re-resolves societies **by name**,
 not by id, because a suggestions file is built against one database and loaded
 into another.
 
+## Athenry: done, 2026-09-20
+
+Athenry Musical Society exists (id 10018, Western, inactive, founded 1999), and
+seven seasons of Sullivan-side records - 2001, 2003, 2004, 2005, 2006, 2007 and
+2008 - are back with it: **10 award records and 7 productions**. Each season's
+decision row carries the official list it was read off, so each is undoable from
+`/admin/collapsed-societies`. `scripts/backfills/create_athenry_and_apply.py` is
+the script that did it.
+
+**The collapse was not only in `historical_results`.** `shows` carries a
+`source='historical'` row per awarded production, derived from the same data, so
+Athlone held two productions in exactly the disputed seasons - one of them
+Athenry's. Moving the award records alone leaves the other society's shows on
+the wrong public page, which is the half-fix a visitor notices first. **Expect
+the same for Clara/Clane and for any pair settled later.**
+
+A second trap, found in rehearsal: separating a collapsed society is what makes
+its conflict disappear, so it drops straight out of the detector - taking its
+decisions, their evidence and their Undo buttons with it. The queue now keeps a
+society listed while it has any decision or suggestion against it.
+
+## The harvest is finished, and it does not answer the rest
+
+**4,778 pages** across the awards, roster, show-database, review and per-person
+credit families; 3 genuine failures, all captures the Archive does not hold. Run
+again and it returns almost nothing new for these families.
+
+Re-running `match_awards_to_archive.py` over the full set changes nothing for
+**Tralee, Avonmore and Kilcock**: each still comes back as itself on its own
+section, with nothing consistent opposite. That is a real negative result rather
+than a gap - twenty times the evidence produced the same answer. Their partners
+are not named on the pre-2010 aims.ie at all, so the next source is AIMS itself
+or the societies, not the Internet Archive.
+
 ## Next step
 
-Two of the seven are now answered. For the rest:
+Two of the seven are now answered, one of them applied. For the rest:
 
 - **Tralee, Avonmore, Kilcock** come back as themselves on the section that is
   theirs, with nothing consistent on the other side. Their partner societies are
