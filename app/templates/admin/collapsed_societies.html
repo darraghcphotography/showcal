@@ -14,18 +14,43 @@
     <input type="hidden" name="tier" value="{{ g['tier'] }}">
     {% set what = society['name'] ~ ' ' ~ g['year'] ~ ' ' ~ g['tier'] %}
 
-    {% for s in g['suggestions'] %}
+    {# Only a recurring name gets a button of its own. One season that
+       produced seven competing guesses rendered five equally-green "Move to"
+       buttons side by side - noise presented as a row of confident choices.
+       The weak ones are still here, one click further in, because the queue
+       reports rather than decides. #}
+    {% set strong = g['suggestions'] | rejectattr('one_off') | list %}
+    {% set weak = g['suggestions'] | selectattr('one_off') | list %}
+
+    {% for s in strong %}
       {% if s['suggested_id'] %}
         <button type="submit" name="moved_to_id" value="{{ s['suggested_id'] }}" class="button-primary"
                 data-confirm="Move all {{ g['row_count'] }} award record(s) - {{ what }} - to &quot;{{ s['suggested_name'] }}&quot;? They leave this society's public page and appear on that one's.">
           Move to {{ s['suggested_name'] }}
         </button>
       {% else %}
-        {# The archive names a society we don't hold. Athenry is the case this
+        {# The archive names a society we don't hold. Athenry was the case this
            was written for: the suggestion is right and still not applicable. #}
         <span class="tag tag-warning">not on our list: {{ s['suggested_name'] }}</span>
       {% endif %}
     {% endfor %}
+
+    {% if weak %}
+      <details class="manual-pick">
+        <summary class="meta">{{ weak|length }} weaker suggestion{{ '' if weak|length == 1 else 's' }}
+          &mdash; named in one season only</summary>
+        {% for s in weak %}
+          {% if s['suggested_id'] %}
+            <button type="submit" name="moved_to_id" value="{{ s['suggested_id'] }}"
+                    data-confirm="Move all {{ g['row_count'] }} award record(s) - {{ what }} - to &quot;{{ s['suggested_name'] }}&quot;? This name appears against one season only, so it is weak evidence.">
+              {{ s['suggested_name'] }}
+            </button>
+          {% else %}
+            <span class="tag tag-warning">not on our list: {{ s['suggested_name'] }}</span>
+          {% endif %}
+        {% endfor %}
+      </details>
+    {% endif %}
 
     <button type="submit" formaction="{{ url_for('admin.keep_collapsed_group') }}">Correctly filed</button>
 

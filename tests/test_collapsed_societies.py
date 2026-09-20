@@ -252,13 +252,31 @@ def test_the_queue_shows_the_evidence_and_links_to_the_capture(client, db, colla
     assert "not on our list" in body
 
 
-def test_a_resolved_suggestion_offers_the_move(client, db, collapsed):
+def test_a_recurring_suggestion_gets_the_prominent_move_button(client, db, collapsed):
+    award(db, collapsed["athlone"], 2005, "Sullivan", "South Pacific", "Someone")
+    db.commit()
     suggest(db, collapsed["athlone"], 2004, "Sullivan", "Clane Musical Society",
+            collapsed["other"])
+    suggest(db, collapsed["athlone"], 2005, "Sullivan", "Clane Musical Society",
             collapsed["other"])
     db.commit()
 
     body = client.get("/admin/collapsed-societies").get_data(as_text=True)
     assert "Move to Clane Musical Society" in body
+
+
+def test_a_one_season_suggestion_is_demoted_behind_a_disclosure(client, db, collapsed):
+    # One season produced seven competing guesses and rendered five equally
+    # green "Move to" buttons in a row - noise dressed as confident choices.
+    suggest(db, collapsed["athlone"], 2004, "Sullivan", "Clane Musical Society",
+            collapsed["other"])
+    db.commit()
+
+    body = client.get("/admin/collapsed-societies").get_data(as_text=True)
+    assert "Move to Clane Musical Society" not in body
+    assert "weaker suggestion" in body
+    # Still reachable - the queue reports, it does not decide for anyone.
+    assert "Clane Musical Society" in body
 
 
 def test_a_decided_season_offers_undo_rather_than_another_move(client, collapsed):
@@ -334,8 +352,9 @@ def test_a_single_hit_is_flagged_as_such(client, db, collapsed):
 
     body = client.get("/admin/collapsed-societies").get_data(as_text=True)
     assert "one season only" in body
-    # Flagged, not hidden - the queue reports, it does not decide.
-    assert "Move to Clane Musical Society" in body
+    # Flagged and demoted, not hidden - the queue reports, it does not decide.
+    assert "weaker suggestion" in body
+    assert "Clane Musical Society" in body
 
 
 # --------------------------------------------------------------------------

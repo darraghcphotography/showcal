@@ -82,32 +82,39 @@ def historical_shows_for(db, society_id, year, tier):
     ).fetchall()
 
 
-def seasons_attributed_to(db, society_id, suggested_name):
-    """Undecided seasons whose evidence names this society, if it recurs.
+def seasons_attributed_to(db, society_id, suggested_id):
+    """Undecided seasons whose evidence points at this society, if it recurs.
 
-    The recurrence test is the whole point: one page naming a society beside
-    one nominee is what a common surname produces, while the same society
-    turning up across several seasons of one collapsed record is not chance.
-    A one-off is left for a human to look at rather than swept up in bulk.
+    Matched on the resolved society **id**, never on the name. The archive
+    prints the name the AIMS list of the day used, and that is routinely not
+    the name we hold: "Clane Musical Society" on the 2004 list is "Clane
+    Musical & Dramatic Society" in `societies`. Matching on the name found
+    nothing and the bulk button reported "nothing to accept" while the page
+    was plainly full of Clane seasons.
+
+    The recurrence test is the point of the whole thing: one page naming a
+    society beside one nominee is what a common surname produces, while the
+    same society turning up across several seasons of one collapsed record is
+    not chance. A one-off is left for a human rather than swept up in bulk.
     """
     recurring = db.execute(
         "SELECT COUNT(DISTINCT year || '/' || tier) FROM collapsed_society_suggestions "
-        "WHERE society_id = ? AND suggested_name = ?",
-        (society_id, suggested_name)).fetchone()[0]
+        "WHERE society_id = ? AND suggested_id = ?",
+        (society_id, suggested_id)).fetchone()[0]
     if recurring < 2:
         return []
     return [(row["year"], row["tier"]) for row in db.execute(
         """
         SELECT DISTINCT s.year, s.tier
           FROM collapsed_society_suggestions s
-         WHERE s.society_id = ? AND s.suggested_name = ?
+         WHERE s.society_id = ? AND s.suggested_id = ?
            AND NOT EXISTS (
                  SELECT 1 FROM collapsed_society_decisions d
                   WHERE d.society_id = s.society_id AND d.year = s.year AND d.tier = s.tier
            )
       ORDER BY s.year
         """,
-        (society_id, suggested_name))]
+        (society_id, suggested_id))]
 
 
 def societies_in_scope(db=None):

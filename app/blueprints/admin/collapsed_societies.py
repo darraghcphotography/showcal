@@ -126,7 +126,7 @@ def collapsed_societies_queue():
             "bulk": next(
                 ({"name": r["suggested_name"], "id": r["suggested_id"],
                   "seasons": len(collapsed_societies.seasons_attributed_to(
-                      db, row["id"], r["suggested_name"]))}
+                      db, row["id"], r["suggested_id"]))}
                  for r in recurring if r["seasons"] > 1 and r["suggested_id"]), None),
             # A society with no evidence against any of its groups is still
             # listed - the conflict is real and worth seeing - but it sorts
@@ -281,7 +281,7 @@ def accept_all_for_society():
     if target["id"] == from_society["id"]:
         abort(400)
 
-    seasons = collapsed_societies.seasons_attributed_to(db, society_id, target["name"])
+    seasons = collapsed_societies.seasons_attributed_to(db, society_id, target["id"])
     moved_groups = moved_rows = moved_shows = 0
     for year, tier in seasons:
         rows, shows = _move_group(
