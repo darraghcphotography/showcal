@@ -144,3 +144,39 @@ def test_a_three_point_hit_beats_a_bare_name_hit_for_the_same_society():
 
     _name, show_too, _capture, _source = found[normalise("Clane Musical Society")]
     assert show_too
+
+
+# --------------------------------------------------------------------------
+# The town AIMS adds when it publishes
+# --------------------------------------------------------------------------
+
+def test_the_published_town_suffix_does_not_make_a_second_society():
+    # Confirmed by Darragh: the awards pages add the town so readers know where
+    # a society is from. Our names are the canonical ones. Treating them as two
+    # societies made the archive appear to attribute Avonmore's own records to
+    # somebody else, and split Coolmine in half.
+    from match_awards_to_archive import same_society
+
+    assert same_society("Avonmore Musical Society", "Avonmore Musical Society, Arklow")
+    assert same_society("Coolmine Musical Society", "Coolmine Musical Society, Dublin")
+
+
+def test_two_societies_of_the_same_name_in_different_towns_stay_apart():
+    # St. Mary's of Clonmel and St. Marys of Navan are two separate societies,
+    # a county apart, and identical once the town is dropped.
+    from match_awards_to_archive import same_society
+
+    assert not same_society("St. Mary's Choral Society, Clonmel",
+                            "St. Marys Musical Society, Navan")
+
+
+def test_an_apostrophe_does_not_hide_a_society():
+    # We hold "St. Marys Musical Society, Navan"; the awards pages print
+    # "St. Mary's Musical Society, Navan". That one character stopped every
+    # Navan entry in the archive resolving to the society it names.
+    from match_awards_to_archive import same_society
+
+    assert same_society("St. Marys Musical Society, Navan",
+                        "St. Mary’s Musical Society, Navan")
+    assert same_society("St. Marys Musical Society, Navan",
+                        "St. Mary's Musical Society, Navan")

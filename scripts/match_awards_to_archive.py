@@ -61,6 +61,9 @@ DESCRIPTOR_WORD = re.compile(
     r"(?:Musical|Mus|Choral|Operatic|Drama|Dramatic|Variety|Theatre|Stage|Music|"
     r"The|And|&|Society|Group|Company|Productions|Players)", re.I)
 
+# Words that belong to the front of a society's name rather than before it.
+NAME_PREFIX = re.compile(r"(?:St\.?|Saint|Ss\.?)", re.I)
+
 NOISE_WORDS = re.compile(
     r"\b(musical|dramatic|drama|and|the|society|group|company|productions|"
     r"choral|operatic|mus|theatre|variety|players|ltd|limited)\b"
@@ -111,7 +114,12 @@ def normalise(name):
     """
     head, _town = split_town(name)
     head = re.sub(r"\s+", " ", head).strip().lower()
+    # Apostrophes go too, straight and curly. We hold "St. Marys Musical
+    # Society, Navan" while the awards pages print "St. Mary’s Musical
+    # Society, Navan", and that one character stopped every Navan entry in the
+    # archive resolving to the society it names.
     head = head.replace("&", "and").replace(".", "")
+    head = head.replace("'", "").replace("’", "")
     return re.sub(r"\s+", " ", NOISE_WORDS.sub(" ", head)).strip()
 
 
@@ -152,8 +160,15 @@ def shortest_name(candidate):
         if DESCRIPTOR_WORD.fullmatch(words[start]):
             continue
         tail = " ".join(words[start:])
-        if SOCIETY_RE.fullmatch(tail):
-            return tail
+        if not SOCIETY_RE.fullmatch(tail):
+            continue
+        # "St." is part of the name, not a word in front of it. Trimming to the
+        # shortest thing that parses turned "St. Mel's Musical Society,
+        # Longford" into "Mel's Musical Society, Longford", which matches no
+        # society we hold - and Ireland has a great many St. somebodies.
+        while start and NAME_PREFIX.fullmatch(words[start - 1]):
+            start -= 1
+        return " ".join(words[start:])
     return candidate
 
 
