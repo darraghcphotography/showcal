@@ -52,7 +52,17 @@
       </details>
     {% endif %}
 
-    <button type="submit" formaction="{{ url_for('admin.keep_collapsed_group') }}">Correctly filed</button>
+    <button type="submit" formaction="{{ url_for('admin.keep_collapsed_group') }}"
+            {% if g['in_conflict'] %}data-confirm="Record {{ what }} as correctly filed? This season has records in both sections, which cannot happen - so one side is misfiled even if we cannot say which. If that is what you mean, use &quot;Can't tell&quot; instead."{% endif %}>
+      Correctly filed
+    </button>
+    {% if g['in_conflict'] %}
+      {# The honest answer for a conflicted season with no usable evidence.
+         "Correctly filed" there records a claim the data itself contradicts. #}
+      <button type="submit" formaction="{{ url_for('admin.cannot_tell_collapsed_group') }}">
+        Can't tell
+      </button>
+    {% endif %}
 
     <details class="manual-pick">
       <summary class="meta">Move somewhere else</summary>
@@ -193,7 +203,9 @@
             </td>
             <td>
               {% if g['decision'] %}
-                {% if g['decision']['no_change'] %}
+                {% if g['decision']['unresolved'] %}
+                  <span class="tag tag-warning">can't be told apart</span>
+                {% elif g['decision']['no_change'] %}
                   <span class="tag tag-past">correctly filed</span>
                 {% else %}
                   <span class="tag tag-past">moved</span>
@@ -230,7 +242,7 @@
           {% endfor %}
           <div class="actions">
             {% if g['decision'] %}
-              <span class="tag tag-past">{{ 'correctly filed' if g['decision']['no_change'] else 'moved' }}</span>
+              <span class="tag tag-past">{{ "can't be told apart" if g['decision']['unresolved'] else ('correctly filed' if g['decision']['no_change'] else 'moved') }}</span>
               {{ undo_button(society, g) }}
             {% else %}
               {{ group_actions(society, g) }}

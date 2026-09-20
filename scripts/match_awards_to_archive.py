@@ -87,15 +87,48 @@ def load_pages(harvest_dir):
     return pages
 
 
+def split_town(name):
+    """(name, town) - the trailing ", Town" AIMS adds when publishing awards.
+
+    Confirmed by Darragh, 2026-09-20: the suffix is a publishing convention on
+    the awards pages, to tell readers which town a society is from. The names
+    in `societies` are the canonical ones. So "Avonmore Musical Society,
+    Arklow" on a nominations list is our "Avonmore Musical Society" - and
+    treating them as two societies made the archive appear to attribute
+    Avonmore's own records to somebody else.
+    """
+    head, sep, tail = (name or "").rpartition(",")
+    if not sep:
+        return name or "", ""
+    return head.strip(), tail.strip()
+
+
 def normalise(name):
-    """A society name reduced to the part that identifies it.
+    """A society name reduced to the part that identifies it, town dropped.
 
     "Clara Mus Society" and "Clara Musical Society" are the same society; the
     old site spelled it both ways in the same season.
     """
-    name = re.sub(r"\s+", " ", (name or "")).strip().lower()
-    name = name.replace("&", "and").replace(".", "")
-    return re.sub(r"\s+", " ", NOISE_WORDS.sub(" ", name)).strip()
+    head, _town = split_town(name)
+    head = re.sub(r"\s+", " ", head).strip().lower()
+    head = head.replace("&", "and").replace(".", "")
+    return re.sub(r"\s+", " ", NOISE_WORDS.sub(" ", head)).strip()
+
+
+def same_society(a, b):
+    """Are these two printed names the same society?
+
+    The town is dropped for comparison but not ignored: where *both* names
+    carry one and they disagree, they are different societies. We hold
+    "St. Mary's Choral Society, Clonmel" and "St. Marys Musical Society,
+    Navan", which reduce to the same thing without their towns and are two
+    different societies a county apart.
+    """
+    if normalise(a) != normalise(b):
+        return False
+    town_a = split_town(a)[1].lower()
+    town_b = split_town(b)[1].lower()
+    return not (town_a and town_b) or town_a == town_b
 
 
 def title_words(title):

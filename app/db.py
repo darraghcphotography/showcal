@@ -134,6 +134,11 @@ COLUMN_MIGRATIONS = [
         "collapsed_society_decisions", "moved_show_ids",
         "ALTER TABLE collapsed_society_decisions ADD COLUMN moved_show_ids TEXT",
     ),
+    (
+        "collapsed_society_decisions", "unresolved",
+        "ALTER TABLE collapsed_society_decisions ADD COLUMN unresolved "
+        "INTEGER NOT NULL DEFAULT 0",
+    ),
 ]
 
 

@@ -35,7 +35,17 @@ from match_awards_to_archive import (  # noqa: E402
     attributions_for,
     load_pages,
     normalise,
+    same_society,
 )
+
+# How far a cited capture may sit from the season it is offered as evidence
+# about. A 2005 page cannot tell you who won in 2009 - but it will happily
+# mention a nominee who was also active in 2005, and that is exactly what
+# happened: Justin Parkes played Tevye for Coolmine in 2004/05 and again for
+# Avonmore in 2008/09, and the matcher offered the 2005 page as evidence that
+# the 2009 record was misfiled. It was not. One year of slack, because the
+# results page for one season is routinely captured early the next.
+MAX_CAPTURE_GAP_YEARS = 1
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT / "aims.db"
@@ -107,8 +117,16 @@ def build_suggestions(db, pages, society_ids, first_year=2001, last_year=2010,
             group["rows"] += 1
             for key, (name, show_too, capture, source) in attributions_for(
                     pages, award["nominee_name"], award["show"]).items():
-                if show_too and key != ours:
-                    group["votes"][key].append((name, capture, source))
+                if not show_too or key == ours:
+                    continue
+                # A name that reduces to nothing is a bare "Musical Society"
+                # read off the page - it identifies no one and cannot be acted
+                # on, so it is noise in a queue rather than a proposal.
+                if not key:
+                    continue
+                if abs(int(capture[:4]) - award["year"]) > MAX_CAPTURE_GAP_YEARS:
+                    continue
+                group["votes"][key].append((name, capture, source))
 
         for (year, tier), group in sorted(groups.items()):
             for _key, hits in group["votes"].items():
@@ -143,11 +161,15 @@ def resolve_society(db, name):
     row = db.execute("SELECT id FROM societies WHERE name = ?", (name,)).fetchone()
     if row:
         return row[0]
-    wanted = normalise(name)
-    if not wanted:
+    if not normalise(name):
         return None
+    # same_society, not bare equality: the awards pages add a town that our own
+    # names do not carry. It stays strict where both names have a town and the
+    # towns differ, which is a real distinction - St. Mary's of Clonmel and of
+    # Navan are two societies. An ambiguous match resolves to nothing rather
+    # than to a guess.
     matches = [r[0] for r in db.execute("SELECT id, name FROM societies")
-               if normalise(r[1]) == wanted]
+               if same_society(r[1], name)]
     return matches[0] if len(matches) == 1 else None
 
 

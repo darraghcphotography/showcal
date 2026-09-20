@@ -196,6 +196,42 @@ other way in any year.
   (Pioneer Musical Society Trophy)". A society name appearing in a category
   heading is evidence the society existed, not evidence it staged the show.
 
+## Two things that make a suggestion worthless
+
+Both found by Darragh using the queue on real data, 2026-09-20.
+
+**The town suffix is AIMS's own publishing style.** The awards pages print
+"Avonmore Musical Society, Arklow" where our record says "Avonmore Musical
+Society"; the town is added to tell readers where a society is from, and **our
+names are the canonical ones**. Comparing the printed names literally made the
+archive appear to attribute Avonmore's own records to a different society, and
+split Coolmine into two. `same_society()` drops the town to compare - but only
+where at most one name carries one, because we hold *St. Mary's Choral Society,
+Clonmel* and *St. Marys Musical Society, Navan*, which are two societies a
+county apart with the same name underneath.
+
+**A citation has to be from about the right season.** A 2005 page cannot tell
+you who won in 2009, but it will happily mention a nominee who was also active
+in 2005. Justin Parkes played Tevye for Coolmine in 2004/05 **and again for
+Avonmore in 2008/09** - both real, both award-winning - and the matcher offered
+the 2005 page as evidence that the 2009 record was misfiled. It was not.
+Suggestions are now bounded to a capture within a year of the season.
+
+That one is worth remembering as a shape: **two societies can share a person, a
+role and a show without sharing an error.** What settled it was checking what
+each society actually staged that season - Coolmine did *Sweeney Todd* in
+08/09, Avonmore did *Fiddler*.
+
+## A different error the queue cannot fix: a season with two winners
+
+The 2001 Sullivan **Best Overall Show** is recorded against both Dundalk and
+Banbridge, both with *Fiddler on the Roof*. The official 2000/2001 list shows
+both as **nominees** in that category. So one of them is a nominee mislabelled
+as a winner, and no winners page for 2001 survives in the harvest to say which.
+
+This is not a collapsed society - it is a wrong `result` value - so no button on
+the queue addresses it. Worth raising with AIMS along with the rest.
+
 ## Reading the harvest back
 
 `scripts/match_awards_to_archive.py` takes a society's award rows, looks each

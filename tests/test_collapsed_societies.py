@@ -549,3 +549,52 @@ def test_the_seasons_you_can_act_on_come_first(client, db, collapsed):
 
     body = client.get("/admin/collapsed-societies").get_data(as_text=True)
     assert body.index("2004") < body.index("2016")
+
+
+# --------------------------------------------------------------------------
+# "We know it is wrong and cannot say how"
+# --------------------------------------------------------------------------
+
+def test_cannot_tell_parks_a_season_without_claiming_it_is_right(client, db, collapsed):
+    # A society cannot compete in both sections in one season, so on a
+    # conflicted season "correctly filed" asserts something the data itself
+    # contradicts. This is the honest answer, and it moves nothing.
+    client.post("/admin/collapsed-societies/cannot-tell", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan"})
+
+    assert rows_under(db, collapsed["athlone"], 2004, "Sullivan") == 2
+    decision = db.execute("SELECT * FROM collapsed_society_decisions").fetchone()
+    assert decision["unresolved"] == 1
+    assert decision["no_change"] == 0
+    assert decision["moved_to_id"] is None
+
+
+def test_a_parked_season_clears_the_counter_and_is_undoable(client, db, collapsed):
+    suggest(db, collapsed["athlone"], 2004, "Sullivan", "Clane Musical Society",
+            collapsed["other"])
+    db.commit()
+
+    client.post("/admin/collapsed-societies/cannot-tell", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan"})
+    assert collapsed_societies.undecided_count(db) == 0
+
+    body = client.get("/admin/collapsed-societies").get_data(as_text=True)
+    assert "can&#39;t be told apart" in body or "can't be told apart" in body
+
+    client.post("/admin/collapsed-societies/undo", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan"})
+    assert collapsed_societies.undecided_count(db) == 1
+
+
+def test_cannot_tell_is_offered_only_where_there_is_a_conflict(client, db, collapsed):
+    # On a season with only one section there is nothing self-contradictory to
+    # park - "correctly filed" is a perfectly honest answer there.
+    award(db, collapsed["athlone"], 2008, "Sullivan", "Pirates of Penzance", "Someone")
+    db.commit()
+
+    body = client.get("/admin/collapsed-societies?all=1").get_data(as_text=True)
+    rows = body.split("<tr>")
+    quiet = next(r for r in rows if "2008" in r and "Pirates" in r)
+    conflicted = next(r for r in rows if "2004" in r and "My Fair Lady" in r)
+    assert "Can&#39;t tell" not in quiet and "Can't tell" not in quiet
+    assert "Can&#39;t tell" in conflicted or "Can't tell" in conflicted

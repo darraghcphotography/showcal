@@ -1094,6 +1094,13 @@ CREATE TABLE IF NOT EXISTS collapsed_society_decisions (
     tier            TEXT NOT NULL,
     moved_to_id     INTEGER REFERENCES societies(id),
     no_change       INTEGER NOT NULL DEFAULT 0,
+    -- "We know one side of this season is misfiled and the evidence cannot say
+    -- which." That is the true state of most of Tralee, Avonmore and Kilcock,
+    -- and it is not the same as no_change: marking a conflicted season
+    -- correctly filed records a claim we positively disbelieve, since a
+    -- society cannot compete in both sections in one season. Without this the
+    -- only way to clear the queue was to assert something false.
+    unresolved      INTEGER NOT NULL DEFAULT 0,
     -- What the rows said before, so the decision is reversible without a
     -- database shell. Reassigning decades-old award records is exactly the
     -- kind of change that has to be undoable.

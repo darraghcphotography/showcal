@@ -4,6 +4,17 @@
     "society_name": "Athlone Musical Society",
     "year": 2001,
     "tier": "Gilbert",
+    "suggested_name": "Tullamore Musical Society",
+    "confidence": 1,
+    "row_count": 3,
+    "evidence_capture": "20010701002219",
+    "evidence_url": "http://www.aims.ie:80/press_awardsannounced.htm"
+  },
+  {
+    "society_id": 4,
+    "society_name": "Athlone Musical Society",
+    "year": 2001,
+    "tier": "Gilbert",
     "suggested_name": "Galway Musical Society",
     "confidence": 1,
     "row_count": 3,
@@ -62,8 +73,8 @@
     "suggested_name": "Athenry Musical Society",
     "confidence": 1,
     "row_count": 1,
-    "evidence_capture": "20040623091916",
-    "evidence_url": "http://aims.ie:80/awards/2004/noms2004.pdf"
+    "evidence_capture": "20040622201644",
+    "evidence_url": "http://aims.ie:80/awards/winners_sullivan.asp"
   },
   {
     "society_id": 4,
@@ -114,44 +125,11 @@
     "society_name": "Avonmore Musical Society",
     "year": 2004,
     "tier": "Sullivan",
-    "suggested_name": "Avonmore Musical Society, Arklow",
-    "confidence": 2,
-    "row_count": 3,
-    "evidence_capture": "20040623091916",
-    "evidence_url": "http://aims.ie:80/awards/2004/noms2004.pdf"
-  },
-  {
-    "society_id": 5,
-    "society_name": "Avonmore Musical Society",
-    "year": 2004,
-    "tier": "Sullivan",
     "suggested_name": "Nenagh Choral Society",
     "confidence": 1,
     "row_count": 3,
     "evidence_capture": "20040623091916",
     "evidence_url": "http://aims.ie:80/awards/2004/noms2004.pdf"
-  },
-  {
-    "society_id": 5,
-    "society_name": "Avonmore Musical Society",
-    "year": 2009,
-    "tier": "Sullivan",
-    "suggested_name": "Coolmine Musical Society, Dublin",
-    "confidence": 1,
-    "row_count": 3,
-    "evidence_capture": "20051217093710",
-    "evidence_url": "http://aims.ie:80/awards/2005/Nominations2005.pdf"
-  },
-  {
-    "society_id": 5,
-    "society_name": "Avonmore Musical Society",
-    "year": 2009,
-    "tier": "Sullivan",
-    "suggested_name": "Coolmine Musical Society",
-    "confidence": 1,
-    "row_count": 3,
-    "evidence_capture": "20050530013935",
-    "evidence_url": "http://aims.ie:80/awards/nominations_gilbert.asp"
   },
   {
     "society_id": 26,
@@ -224,17 +202,6 @@
     "society_name": "Clara Musical Society",
     "year": 2003,
     "tier": "Sullivan",
-    "suggested_name": "Portlaoise Musical Society",
-    "confidence": 1,
-    "row_count": 2,
-    "evidence_capture": "20060618164812",
-    "evidence_url": "http://www.aims.ie:80/awards/nominations_gilbert.asp"
-  },
-  {
-    "society_id": 26,
-    "society_name": "Clara Musical Society",
-    "year": 2003,
-    "tier": "Sullivan",
     "suggested_name": "Tallaght Musical Society, Dublin",
     "confidence": 1,
     "row_count": 2,
@@ -273,17 +240,6 @@
     "row_count": 2,
     "evidence_capture": "20060618164812",
     "evidence_url": "http://www.aims.ie:80/awards/nominations_gilbert.asp"
-  },
-  {
-    "society_id": 26,
-    "society_name": "Clara Musical Society",
-    "year": 2006,
-    "tier": "Sullivan",
-    "suggested_name": "Ballinasloe Musical Society",
-    "confidence": 1,
-    "row_count": 1,
-    "evidence_capture": "20090225182638",
-    "evidence_url": "http://www.aims.ie:80/awards/nominations_sullivan.asp"
   },
   {
     "society_id": 26,
@@ -394,6 +350,17 @@
     "row_count": 7,
     "evidence_capture": "20030610230433",
     "evidence_url": "http://aims.ie:80/awards/nominations_results_gilbert.asp"
+  },
+  {
+    "society_id": 56,
+    "society_name": "Kilcock Musical & Dramatic Society",
+    "year": 2003,
+    "tier": "Gilbert",
+    "suggested_name": "Musicl Society",
+    "confidence": 1,
+    "row_count": 7,
+    "evidence_capture": "20030801232908",
+    "evidence_url": "http://aims.ie:80/awards/winners.asp"
   },
   {
     "society_id": 116,

@@ -145,23 +145,25 @@ def collapsed_societies_queue():
 
 
 def _record_decision(db, society_id, year, tier, moved_to_id, no_change,
-                     previous_name, note=None, moved_show_ids=None):
+                     previous_name, note=None, moved_show_ids=None,
+                     unresolved=0):
     db.execute(
         """
         INSERT INTO collapsed_society_decisions
-               (society_id, year, tier, moved_to_id, no_change, previous_name,
-                moved_show_ids, note, decided_by, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               (society_id, year, tier, moved_to_id, no_change, unresolved,
+                previous_name, moved_show_ids, note, decided_by, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(society_id, year, tier) DO UPDATE SET
                moved_to_id = excluded.moved_to_id,
                no_change   = excluded.no_change,
+               unresolved  = excluded.unresolved,
                previous_name = excluded.previous_name,
                moved_show_ids = excluded.moved_show_ids,
                note        = excluded.note,
                decided_by  = excluded.decided_by,
                updated_at  = excluded.updated_at
         """,
-        (society_id, year, tier, moved_to_id, no_change, previous_name,
+        (society_id, year, tier, moved_to_id, no_change, unresolved, previous_name,
          moved_show_ids or None, note, current_user()["username"], utcnow_iso()),
     )
 
@@ -319,6 +321,29 @@ def keep_collapsed_group():
                      request.form.get("note") or None)
     db.commit()
     flash(f'{society["name"]} {year} {tier} settled as correctly filed.', "success")
+    return redirect(url_for("admin.collapsed_societies_queue"))
+
+
+@bp.route("/collapsed-societies/cannot-tell", methods=("POST",))
+@login_required
+def cannot_tell_collapsed_group():
+    """Park a season as known-wrong but unattributable. Touches no record.
+
+    For a conflicted season this is the honest answer where "correctly filed"
+    is not: a society cannot compete in both sections in one year, so one of
+    the two sides is misfiled - we simply cannot say which. Recording it as
+    correct would put a claim in the archive that the archive itself
+    contradicts.
+    """
+    db = get_db()
+    society_id, year, tier = _group_params(request.form)
+    society = _society_or_404(db, society_id)
+    _record_decision(db, society_id, year, tier, None, 0, society["name"],
+                     request.form.get("note") or None, unresolved=1)
+    db.commit()
+    flash('{} {} {} parked as "cannot be told apart from the evidence". '
+          "It stays on the page, and Undo puts it back in the queue.".format(
+              society["name"], year, tier), "success")
     return redirect(url_for("admin.collapsed_societies_queue"))
 
 
