@@ -367,3 +367,166 @@ def test_the_undo_still_works_once_the_conflict_is_gone(client, db, collapsed):
 
     assert rows_under(db, collapsed["athlone"], 2004, "Sullivan") == 2
     assert decision_count(db) == 0
+
+
+# --------------------------------------------------------------------------
+# The productions move with the award records
+# --------------------------------------------------------------------------
+
+def show_row(db, society_id, season, title, source="historical"):
+    return db.execute(
+        "INSERT INTO shows (society_id, season, region, show, source) "
+        "VALUES (?, ?, 'Midlands', ?, ?) RETURNING id",
+        (society_id, season, title, source)).fetchone()[0]
+
+
+def show_owner(db, show_id):
+    return db.execute("SELECT society_id FROM shows WHERE id = ?", (show_id,)).fetchone()[0]
+
+
+def test_the_production_moves_with_the_season(client, db, collapsed):
+    # `shows` carries a source='historical' row per awarded production, derived
+    # from the same data, so it holds the same error. Moving the award records
+    # alone leaves the other society's show on the wrong public page.
+    theirs = show_row(db, collapsed["athlone"], "03/04", "My Fair Lady")
+    ours = show_row(db, collapsed["athlone"], "03/04", "The Hired Man")
+    db.commit()
+
+    client.post("/admin/collapsed-societies/move", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan",
+        "moved_to_id": collapsed["other"]})
+
+    assert show_owner(db, theirs) == collapsed["other"]
+    # The other production that season is this society's own, and stays.
+    assert show_owner(db, ours) == collapsed["athlone"]
+
+
+def test_a_member_submitted_show_is_never_moved(client, db, collapsed):
+    # That row is a society writing about itself, not derived award data.
+    submitted = show_row(db, collapsed["athlone"], "03/04", "My Fair Lady",
+                         source="submission")
+    db.commit()
+
+    client.post("/admin/collapsed-societies/move", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan",
+        "moved_to_id": collapsed["other"]})
+
+    assert show_owner(db, submitted) == collapsed["athlone"]
+
+
+def test_undo_brings_the_production_back(client, db, collapsed):
+    theirs = show_row(db, collapsed["athlone"], "03/04", "My Fair Lady")
+    db.commit()
+
+    client.post("/admin/collapsed-societies/move", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan",
+        "moved_to_id": collapsed["other"]})
+    client.post("/admin/collapsed-societies/undo", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan"})
+
+    assert show_owner(db, theirs) == collapsed["athlone"]
+
+
+# --------------------------------------------------------------------------
+# Accepting a whole society's worth in one go
+# --------------------------------------------------------------------------
+
+def two_season_suggestion(db, collapsed, name="Clane Musical Society"):
+    """Two seasons the archive attributes to the same society."""
+    award(db, collapsed["athlone"], 2005, "Sullivan", "South Pacific", "Someone")
+    db.commit()
+    suggest(db, collapsed["athlone"], 2004, "Sullivan", name, collapsed["other"])
+    suggest(db, collapsed["athlone"], 2005, "Sullivan", name, collapsed["other"])
+    db.commit()
+
+
+def test_accept_all_moves_every_season_that_name_recurs_in(client, db, collapsed):
+    two_season_suggestion(db, collapsed)
+
+    client.post("/admin/collapsed-societies/accept-all", data={
+        "society_id": collapsed["athlone"], "moved_to_id": collapsed["other"]})
+
+    assert rows_under(db, collapsed["other"], 2004, "Sullivan") == 2
+    assert rows_under(db, collapsed["other"], 2005, "Sullivan") == 1
+    assert decision_count(db) == 2
+
+
+def test_accept_all_leaves_the_other_section_alone(client, db, collapsed):
+    two_season_suggestion(db, collapsed)
+
+    client.post("/admin/collapsed-societies/accept-all", data={
+        "society_id": collapsed["athlone"], "moved_to_id": collapsed["other"]})
+
+    # The Gilbert side is this society's own record and no evidence touches it.
+    assert rows_under(db, collapsed["athlone"], 2004, "Gilbert") == 1
+
+
+def test_accept_all_refuses_a_name_seen_in_only_one_season(client, db, collapsed):
+    # One page naming a society beside one nominee is what a common surname
+    # produces. That stays a human decision.
+    suggest(db, collapsed["athlone"], 2004, "Sullivan", "Clane Musical Society",
+            collapsed["other"])
+    db.commit()
+
+    client.post("/admin/collapsed-societies/accept-all", data={
+        "society_id": collapsed["athlone"], "moved_to_id": collapsed["other"]})
+
+    assert rows_under(db, collapsed["athlone"], 2004, "Sullivan") == 2
+    assert decision_count(db) == 0
+
+
+def test_accept_all_skips_a_season_already_decided(client, db, collapsed):
+    two_season_suggestion(db, collapsed)
+    client.post("/admin/collapsed-societies/keep", data={
+        "society_id": collapsed["athlone"], "year": 2004, "tier": "Sullivan"})
+
+    client.post("/admin/collapsed-societies/accept-all", data={
+        "society_id": collapsed["athlone"], "moved_to_id": collapsed["other"]})
+
+    # The kept season stays kept; only the undecided one moves.
+    assert rows_under(db, collapsed["athlone"], 2004, "Sullivan") == 2
+    assert rows_under(db, collapsed["other"], 2005, "Sullivan") == 1
+
+
+def test_each_bulk_moved_season_is_undoable_on_its_own(client, db, collapsed):
+    two_season_suggestion(db, collapsed)
+    client.post("/admin/collapsed-societies/accept-all", data={
+        "society_id": collapsed["athlone"], "moved_to_id": collapsed["other"]})
+
+    client.post("/admin/collapsed-societies/undo", data={
+        "society_id": collapsed["athlone"], "year": 2005, "tier": "Sullivan"})
+
+    assert rows_under(db, collapsed["athlone"], 2005, "Sullivan") == 1
+    assert rows_under(db, collapsed["other"], 2004, "Sullivan") == 2
+
+
+def test_the_bulk_button_is_offered_only_for_a_recurring_name(client, db, collapsed):
+    suggest(db, collapsed["athlone"], 2004, "Sullivan", "Clane Musical Society",
+            collapsed["other"])
+    db.commit()
+    assert "Accept all" not in client.get("/admin/collapsed-societies").get_data(as_text=True)
+
+    # A second season naming the same society is what turns it from a
+    # coincidence into a pattern, and only then is bulk offered.
+    award(db, collapsed["athlone"], 2005, "Sullivan", "South Pacific", "Someone")
+    db.commit()
+    suggest(db, collapsed["athlone"], 2005, "Sullivan", "Clane Musical Society",
+            collapsed["other"])
+    db.commit()
+
+    body = client.get("/admin/collapsed-societies").get_data(as_text=True)
+    assert "Accept all 2 Clane Musical Society seasons" in body
+
+
+def test_the_seasons_you_can_act_on_come_first(client, db, collapsed):
+    # The evidenced seasons were buried under rows with nothing in the archive,
+    # so the work sat below the noise.
+    award(db, collapsed["athlone"], 2016, "Gilbert", "Rock of Ages", "Recent Person")
+    award(db, collapsed["athlone"], 2016, "Sullivan", "Hairspray", "Other Person")
+    db.commit()
+    suggest(db, collapsed["athlone"], 2004, "Sullivan", "Clane Musical Society",
+            collapsed["other"])
+    db.commit()
+
+    body = client.get("/admin/collapsed-societies").get_data(as_text=True)
+    assert body.index("2004") < body.index("2016")

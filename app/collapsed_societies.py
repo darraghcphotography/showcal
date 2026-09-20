@@ -53,6 +53,63 @@ def conflicted_societies(db=None):
     ).fetchall()
 
 
+def season_label(year):
+    """An AIMS award year as a season: 2005 is the 04/05 season."""
+    return "{:02d}/{:02d}".format((year - 1) % 100, year % 100)
+
+
+def historical_shows_for(db, society_id, year, tier):
+    """The production rows that belong with one season of award records.
+
+    Scoped to `source='historical'` - those rows are derived from the same
+    award data and inherit the same error. A member-submitted row is a society
+    writing about itself and is never touched by any of this.
+
+    Matched on the titles the award records name, not on the season alone,
+    because a collapsed society's season holds two productions and only one of
+    them is moving.
+    """
+    titles = [row[0] for row in db.execute(
+        "SELECT DISTINCT show FROM historical_results "
+        "WHERE society_id = ? AND year = ? AND tier = ? AND show IS NOT NULL",
+        (society_id, year, tier))]
+    if not titles:
+        return []
+    return db.execute(
+        "SELECT id, show FROM shows WHERE society_id = ? AND season = ? "
+        "AND source = 'historical' AND show IN ({})".format(",".join("?" * len(titles))),
+        [society_id, season_label(year)] + titles,
+    ).fetchall()
+
+
+def seasons_attributed_to(db, society_id, suggested_name):
+    """Undecided seasons whose evidence names this society, if it recurs.
+
+    The recurrence test is the whole point: one page naming a society beside
+    one nominee is what a common surname produces, while the same society
+    turning up across several seasons of one collapsed record is not chance.
+    A one-off is left for a human to look at rather than swept up in bulk.
+    """
+    recurring = db.execute(
+        "SELECT COUNT(DISTINCT year || '/' || tier) FROM collapsed_society_suggestions "
+        "WHERE society_id = ? AND suggested_name = ?",
+        (society_id, suggested_name)).fetchone()[0]
+    if recurring < 2:
+        return []
+    return [(row["year"], row["tier"]) for row in db.execute(
+        """
+        SELECT DISTINCT s.year, s.tier
+          FROM collapsed_society_suggestions s
+         WHERE s.society_id = ? AND s.suggested_name = ?
+           AND NOT EXISTS (
+                 SELECT 1 FROM collapsed_society_decisions d
+                  WHERE d.society_id = s.society_id AND d.year = s.year AND d.tier = s.tier
+           )
+      ORDER BY s.year
+        """,
+        (society_id, suggested_name))]
+
+
 def societies_in_scope(db=None):
     """Every society the queue should list: still collapsed, or dealt with.
 

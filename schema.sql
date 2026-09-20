@@ -1098,6 +1098,14 @@ CREATE TABLE IF NOT EXISTS collapsed_society_decisions (
     -- database shell. Reassigning decades-old award records is exactly the
     -- kind of change that has to be undoable.
     previous_name   TEXT,
+    -- The shows rows this decision moved, as a comma-separated list of ids.
+    -- The collapse is in `shows` as well: it carries a source='historical' row
+    -- per awarded production, derived from the same data, so moving award
+    -- records alone leaves the other society's productions on the wrong public
+    -- page. Recording exactly which rows moved is what lets Undo put them back
+    -- without guessing - two societies can stage the same title in the same
+    -- season, so matching on title afterwards is not safe.
+    moved_show_ids  TEXT,
     note            TEXT,
     decided_by      TEXT,
     updated_at      TEXT NOT NULL DEFAULT (datetime('now')),

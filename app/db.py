@@ -130,6 +130,10 @@ COLUMN_MIGRATIONS = [
     # (VENUE_TYPES in app/blueprints/admin/venues.py) is the real gate, same as
     # it is for every other enum this admin form writes.
     ("venues", "venue_type", "ALTER TABLE venues ADD COLUMN venue_type TEXT"),
+    (
+        "collapsed_society_decisions", "moved_show_ids",
+        "ALTER TABLE collapsed_society_decisions ADD COLUMN moved_show_ids TEXT",
+    ),
 ]
 
 

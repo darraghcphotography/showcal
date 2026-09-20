@@ -51,7 +51,7 @@
 {% block content %}
   <p><a href="{{ url_for('admin.dashboard') }}">&larr; Back to admin</a></p>
   <h1>Collapsed societies</h1>
-  <p class="meta">{{ societies|length }} society{{ '' if societies|length == 1 else ' groups' }} whose
+  <p class="meta">{{ societies|length }} societ{{ 'y' if societies|length == 1 else 'ies' }} whose
      award records appear in both sections in the same season &mdash; which cannot happen, because a
      society competes in one section per season. {{ undecided }} season{{ '' if undecided == 1 else 's' }}
      {{ 'has' if undecided == 1 else 'have' }} evidence from the archive and no decision yet.</p>
@@ -97,6 +97,22 @@
           {{ r['suggested_name'] }} ({{ r['seasons'] }} seasons){% if not loop.last %}, {% endif %}
         {% endfor %}
       </p>
+
+      {% if item['bulk'] and item['bulk']['seasons'] %}
+        {# Only the recurring name, and only its undecided seasons. Never an
+           "accept everything" button: the one-season hits are exactly what a
+           common surname produces, and they stay a human decision. #}
+        <form method="post" action="{{ url_for('admin.accept_all_for_society') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="society_id" value="{{ society['id'] }}">
+          <input type="hidden" name="moved_to_id" value="{{ item['bulk']['id'] }}">
+          <button type="submit" class="button-primary"
+                  data-confirm="Move all {{ item['bulk']['seasons'] }} undecided season(s) the archive attributes to &quot;{{ item['bulk']['name'] }}&quot; out of {{ society['name'] }}? Their award records and productions both move. Each season can be undone individually afterwards.">
+            Accept all {{ item['bulk']['seasons'] }} {{ item['bulk']['name'] }} season{{ '' if item['bulk']['seasons'] == 1 else 's' }}
+          </button>
+          <span class="meta">Seasons named only once are left out &mdash; those stay your call.</span>
+        </form>
+      {% endif %}
     {% endif %}
 
     <table class="data-table table-wide">

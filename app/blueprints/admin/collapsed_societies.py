@@ -38,7 +38,8 @@ from . import bp
 
 
 def _society_or_404(db, society_id):
-    society = db.execute("SELECT id, name FROM societies WHERE id = ?", (society_id,)).fetchone()
+    society = db.execute(
+        "SELECT id, name, region FROM societies WHERE id = ?", (society_id,)).fetchone()
     if society is None:
         abort(404)
     return society
@@ -107,11 +108,26 @@ def collapsed_societies_queue():
                 for s in group["suggestions"]
             ]
 
+        # Decisions first in the sense that matters: the seasons somebody can
+        # act on go to the top. Sorting purely by year buried the eight
+        # evidenced Clara seasons under six rows of "nothing in the archive",
+        # so the work was below the noise.
+        groups.sort(key=lambda g: (
+            0 if (g["suggestions"] and not g["decision"]) else 2 if g["decision"] else 1,
+            -g["year"], g["tier"]))
+
         societies.append({
             "society": row,
             "groups": groups,
             "hidden": hidden,
             "recurring": [r for r in recurring if r["seasons"] > 1],
+            # What a bulk accept would act on: the recurring name, and how many
+            # of its seasons are still undecided.
+            "bulk": next(
+                ({"name": r["suggested_name"], "id": r["suggested_id"],
+                  "seasons": len(collapsed_societies.seasons_attributed_to(
+                      db, row["id"], r["suggested_name"]))}
+                 for r in recurring if r["seasons"] > 1 and r["suggested_id"]), None),
             # A society with no evidence against any of its groups is still
             # listed - the conflict is real and worth seeing - but it sorts
             # below the ones somebody can actually act on.
@@ -129,23 +145,24 @@ def collapsed_societies_queue():
 
 
 def _record_decision(db, society_id, year, tier, moved_to_id, no_change,
-                     previous_name, note=None):
+                     previous_name, note=None, moved_show_ids=None):
     db.execute(
         """
         INSERT INTO collapsed_society_decisions
                (society_id, year, tier, moved_to_id, no_change, previous_name,
-                note, decided_by, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                moved_show_ids, note, decided_by, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(society_id, year, tier) DO UPDATE SET
                moved_to_id = excluded.moved_to_id,
                no_change   = excluded.no_change,
                previous_name = excluded.previous_name,
+               moved_show_ids = excluded.moved_show_ids,
                note        = excluded.note,
                decided_by  = excluded.decided_by,
                updated_at  = excluded.updated_at
         """,
-        (society_id, year, tier, moved_to_id, no_change, previous_name, note,
-         current_user()["username"], utcnow_iso()),
+        (society_id, year, tier, moved_to_id, no_change, previous_name,
+         moved_show_ids or None, note, current_user()["username"], utcnow_iso()),
     )
 
 
@@ -158,32 +175,22 @@ def _group_params(form):
     return society_id, year, tier
 
 
-@bp.route("/collapsed-societies/move", methods=("POST",))
-@login_required
-def move_collapsed_group():
-    """Reassign one season-and-section of award rows to another society."""
-    db = get_db()
-    society_id, year, tier = _group_params(request.form)
-    from_society = _society_or_404(db, society_id)
+def _move_group(db, from_society, target, year, tier, note=None):
+    """Move one season-and-section, award records and production alike.
 
-    target_id = request.form.get("moved_to_id", type=int)
-    if target_id is None:
-        typed = request.form.get("moved_to", "").strip()
-        target = db.execute("SELECT id, name FROM societies WHERE name = ?", (typed,)).fetchone()
-        if target is None:
-            flash(f'"{typed}" is not a society on the list. Add it first if it is '
-                  f'genuinely missing - Athenry is, which is part of the problem.', "error")
-            return redirect(url_for("admin.collapsed_societies_queue"))
-    else:
-        target = _society_or_404(db, target_id)
-
-    if target["id"] == from_society["id"]:
-        flash("That is the society the rows are already under.", "warning")
-        return redirect(url_for("admin.collapsed_societies_queue"))
+    Returns (award_rows_moved, show_rows_moved), or (0, 0) if there was nothing
+    left to move. Shared by the single button and the bulk accept so the two
+    cannot drift - a bulk action that did less than the button it replaces
+    would be the worst kind of shortcut.
+    """
+    # Found BEFORE the award records move, because the titles to match on are
+    # read from those very rows - afterwards there is nothing left under this
+    # society to read. A test caught that; the productions silently stayed put.
+    shows = collapsed_societies.historical_shows_for(db, from_society["id"], year, tier)
 
     # society_name is the printed name carried through from the source CSV. It
-    # is moved with the rows so the archive still records what the source said,
-    # rather than leaving the old society's name attached to the new one's rows.
+    # moves with the rows so the record still says who staged the show, rather
+    # than leaving the old society's name attached to the new one's records.
     moved = db.execute(
         """
         UPDATE historical_results
@@ -193,19 +200,111 @@ def move_collapsed_group():
         (target["id"], target["name"], from_society["id"], year, tier),
     ).rowcount
     if not moved:
-        flash("Nothing to move - those rows have already been reassigned.", "warning")
-        return redirect(url_for("admin.collapsed_societies_queue"))
+        return 0, 0
+
+    # The collapse is in `shows` too. Without this the award records move and
+    # the productions stay, so the other society's shows keep appearing on the
+    # wrong public page - the half-fix a visitor notices first.
+    if shows:
+        db.execute(
+            "UPDATE shows SET society_id = ?, region = ? WHERE id IN ({})".format(
+                ",".join("?" * len(shows))),
+            [target["id"], target["region"]] + [row["id"] for row in shows])
 
     _record_decision(db, from_society["id"], year, tier, target["id"], 0,
-                     from_society["name"], request.form.get("note") or None)
+                     from_society["name"], note,
+                     ",".join(str(row["id"]) for row in shows))
+    return moved, len(shows)
+
+
+@bp.route("/collapsed-societies/move", methods=("POST",))
+@login_required
+def move_collapsed_group():
+    """Reassign one season-and-section of award records to another society."""
+    db = get_db()
+    society_id, year, tier = _group_params(request.form)
+    from_society = _society_or_404(db, society_id)
+
+    target_id = request.form.get("moved_to_id", type=int)
+    if target_id is None:
+        typed = request.form.get("moved_to", "").strip()
+        target = db.execute(
+            "SELECT id, name, region FROM societies WHERE name = ?", (typed,)).fetchone()
+        if target is None:
+            flash(f'"{typed}" is not a society on the list. Add it first if it is '
+                  f'genuinely missing - Athenry was, which is part of the problem.', "error")
+            return redirect(url_for("admin.collapsed_societies_queue"))
+    else:
+        target = _society_or_404(db, target_id)
+
+    if target["id"] == from_society["id"]:
+        flash("That is the society the records are already under.", "warning")
+        return redirect(url_for("admin.collapsed_societies_queue"))
+
+    moved, shows = _move_group(db, from_society, target, year, tier,
+                               request.form.get("note") or None)
+    if not moved:
+        flash("Nothing to move - those records have already been reassigned.", "warning")
+        return redirect(url_for("admin.collapsed_societies_queue"))
+
     # An in-place UPDATE moves neither COUNT(*) nor MAX(id), so the derived
-    # productions table would never notice this on its own - same reason
-    # historical_society_links marks stale after a link.
+    # productions table would never notice this on its own.
     productions_build.mark_stale(db)
     db.commit()
-    flash(f'Moved {moved} award record{"" if moved == 1 else "s"} - '
-          f'{from_society["name"]} {year} {tier} - to {target["name"]}. '
-          f'Undo is on this page.', "success")
+    flash("Moved {} award record{} - {} {} {} - to {}{}. Undo is on this page.".format(
+        moved, "" if moved == 1 else "s", from_society["name"], year, tier,
+        target["name"],
+        "" if not shows else ", with {} production{}".format(
+            shows, "" if shows == 1 else "s")), "success")
+    return redirect(url_for("admin.collapsed_societies_queue"))
+
+
+@bp.route("/collapsed-societies/accept-all", methods=("POST",))
+@login_required
+def accept_all_for_society():
+    """Move every undecided season the archive attributes to one society.
+
+    Deliberately not an "accept everything" button. It acts only on seasons
+    whose evidence names *this* society, and only where that name recurs across
+    more than one season - the signal that separates a finding from a
+    coincidence. A name that appears against a single season is left alone for
+    a human to look at, because one page naming somebody once is exactly what a
+    common surname produces.
+    """
+    db = get_db()
+    society_id = request.form.get("society_id", type=int)
+    target_id = request.form.get("moved_to_id", type=int)
+    if society_id is None or target_id is None:
+        abort(400)
+    from_society = _society_or_404(db, society_id)
+    target = _society_or_404(db, target_id)
+    if target["id"] == from_society["id"]:
+        abort(400)
+
+    seasons = collapsed_societies.seasons_attributed_to(db, society_id, target["name"])
+    moved_groups = moved_rows = moved_shows = 0
+    for year, tier in seasons:
+        rows, shows = _move_group(
+            db, from_society, target, year, tier,
+            "Accepted in bulk: the archive names {} across {} seasons of this "
+            "society's record.".format(target["name"], len(seasons)))
+        if rows:
+            moved_groups += 1
+            moved_rows += rows
+            moved_shows += shows
+
+    if not moved_groups:
+        flash("Nothing to accept - those seasons are already decided.", "warning")
+        return redirect(url_for("admin.collapsed_societies_queue"))
+
+    productions_build.mark_stale(db)
+    db.commit()
+    flash("Moved {} season{} - {} award record{} and {} production{} - from {} to {}. "
+          "Each one is undoable individually on this page.".format(
+              moved_groups, "" if moved_groups == 1 else "s",
+              moved_rows, "" if moved_rows == 1 else "s",
+              moved_shows, "" if moved_shows == 1 else "s",
+              from_society["name"], target["name"]), "success")
     return redirect(url_for("admin.collapsed_societies_queue"))
 
 
@@ -252,6 +351,17 @@ def undo_collapsed_decision():
             """,
             (society_id, decision["previous_name"], decision["moved_to_id"], year, tier),
         )
+        # The exact production rows this decision moved, by id. Matching on
+        # title instead would be a guess: two societies can stage the same show
+        # in the same season, which is precisely the situation here.
+        show_ids = [int(i) for i in (decision["moved_show_ids"] or "").split(",") if i.strip()]
+        if show_ids:
+            region = db.execute("SELECT region FROM societies WHERE id = ?",
+                                (society_id,)).fetchone()["region"]
+            db.execute(
+                "UPDATE shows SET society_id = ?, region = ? WHERE id IN ({}) "
+                "AND society_id = ?".format(",".join("?" * len(show_ids))),
+                [society_id, region] + show_ids + [decision["moved_to_id"]])
         productions_build.mark_stale(db)
     db.execute(
         "DELETE FROM collapsed_society_decisions WHERE society_id = ? AND year = ? AND tier = ?",
