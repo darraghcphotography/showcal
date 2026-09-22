@@ -871,6 +871,24 @@ listing something as open, every time.
    people-vs-bot split, so "is it growing" and "how much is a crawler" no longer need this table
    to change. Query strings remain unanswerable and nobody has asked.
 
+4. **From the 2026-09-22 audit - parked by Darragh ("back burner"), in priority order:**
+   - **A red CI build still deploys.** Portainer polls `main`, not the workflow's result. Fix: CI
+     fast-forwards a `production` branch on green; point Portainer stack 8 at that branch.
+   - **One failed derived-table rebuild takes the whole site down.** `verify()` raises
+     `VerificationError` inside the `before_request` rebuild (500 on every page, retried every
+     request) and at startup (container crash-loop). Should log loudly and keep serving the last
+     good tables.
+   - **Freshness depends on remembering `mark_stale()`** for any edit the count/`updated_at`
+     fingerprint can't see. A trigger-maintained change counter would make it automatic - same
+     argument that removed the sixteen per-route calls.
+   - **Oversized units:** `public.py` 2,444 lines; `create_app` 382, `stats()` 354,
+     `society_detail` 273. Split opportunistically when next touched, not as a project.
+   - Nits: `submit.photo` leaves earlier files on disk when a later one in the batch fails;
+     admin login only hashes when the username exists (timing reveals valid usernames);
+     `CF-Connecting-IP` is forgeable from the LAN via published port 8000.
+   - **Test restore from Google Drive** (HBS3 → Restore to a scratch folder) - see the backup
+     entry below.
+
 ## Housekeeping, low priority, no urgency signal
 
 - Audit other societies for similarly stale/presumptive data (same shape as the venue-data fixes already
