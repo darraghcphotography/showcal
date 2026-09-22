@@ -136,6 +136,14 @@ shell there:
   convincing failure: real data, merely out of date, with nothing signalling anything was wrong. It
   cost most of a session. **Check the mtime before trusting any database copy you pull down**, and
   do not assume a path is live because it looks right.
+- **Off-site backup path (fixed 2026-09-22).** QNAP HBS3 job "AWB" uploads nightly at 04:00 to
+  Google Drive (`AIMS WEB Backup/AWB.qdff`), but HBS3 can only select *registered shared folders*
+  and the SSD volume's `Data/` is not one. So `aims-backup` mirrors the newest 3 backups +
+  `uploads/` into `/share/CACHEDEV1_DATA/Data/aims-web-offsite` (see `docker-compose.yml`), and
+  that is the job's source. It sat on an emptied path for three weeks after the SSD move, failing
+  every night with nobody noticing - if you move data again, re-check the HBS3 job's source.
+  Never point it at `Data/config.old-premove-20260828` (frozen pre-move copy). Also: the
+  `claudeshowcal` account is now in the `administrators` group (observed 2026-09-22).
 - The `aims.db` file itself lives at `/share/CACHEDEV2_DATA/Data/config/aims-web/aims.db` on the NAS
   host - safe to `scp` down read-only for analysis (a live production audit doesn't need to run
   inside the container), but never edit that copy and push it back; use the container's own management

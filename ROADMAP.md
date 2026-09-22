@@ -882,7 +882,9 @@ listing something as open, every time.
   night. HBS3 can only pick registered shared folders and the SSD volume's `Data/` isn't one, so
   `aims-backup` now mirrors the newest 3 backups + `uploads/` into
   `/share/CACHEDEV1_DATA/Data/aims-web-offsite` and the job's source is re-pointed there.
-  **Still to confirm:** the job goes green and `AWB.qdff` grows in Drive; then a test restore.
+  Confirmed 2026-09-22: job green, ~77 MB of new chunks landed in Drive at 20:04.
+  **Still to do:** a test restore from Drive (HBS3 → Restore, to a scratch folder), then open the
+  restored `.db` - a backup nobody has restored is a hope.
   Do NOT point HBS3 at `Data/config.old-premove-20260828` - frozen pre-move copy.
 
 ## Working agreements (from the 2026-08-03 process review)
