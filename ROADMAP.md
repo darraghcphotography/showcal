@@ -876,10 +876,14 @@ listing something as open, every time.
 - Audit other societies for similarly stale/presumptive data (same shape as the venue-data fixes already
   done).
 - A formal `LAUNCH.md` spec, written up retroactively (the site launched organically instead).
-- **Backups sit on the same volume as the database** (`/data/backups` beside `/data/aims.db`). They
-  survive a bad script or a bad deploy, which is what they're mostly for - but not the disk. An
-  off-box copy (QNAP HBS3 pointed at `/share/CACHEDEV2_DATA/Data/config/aims-web`) is the missing
-  half, and it's a NAS configuration job rather than a code one.
+- **Off-site backup was silently broken 2026-08-28 → 2026-09-22 (not housekeeping).** HBS3 job
+  "AWB" (nightly 04:00, to Google Drive `AIMS WEB Backup/AWB.qdff`) still pointed at
+  `Data/config/aims-web` on volume 1, which the SSD move emptied: "Total files: 0", Error, every
+  night. HBS3 can only pick registered shared folders and the SSD volume's `Data/` isn't one, so
+  `aims-backup` now mirrors the newest 3 backups + `uploads/` into
+  `/share/CACHEDEV1_DATA/Data/aims-web-offsite` and the job's source is re-pointed there.
+  **Still to confirm:** the job goes green and `AWB.qdff` grows in Drive; then a test restore.
+  Do NOT point HBS3 at `Data/config.old-premove-20260828` - frozen pre-move copy.
 
 ## Working agreements (from the 2026-08-03 process review)
 

@@ -79,16 +79,34 @@ services:
     # A backup nobody has restored is a hope rather than a backup, and the point
     # of failure you don't want to discover is the one where you need it. The
     # result lands in `docker logs aims-backup` either way.
+    #
+    # Then the newest three backups plus uploads/ are mirrored into /offsite,
+    # which is the only thing QNAP's HBS3 job ("AWB", nightly 04:00, to Google
+    # Drive) can see. HBS3 picks sources from registered shared folders only,
+    # and the SSD volume's Data/ is not one - so after the 2026-08-28 move to
+    # CACHEDEV2 the job kept backing up an empty path and failed silently for
+    # three weeks. Three backups rather than all of them: HBS3 keeps its own
+    # version history, and volume 1 is nearly full. Built in a .tmp folder and
+    # swapped in, so HBS3 never reads a half-written copy.
     command:
       - |
         while true; do
           python backup_db.py --db /data/aims.db --backup-dir /data/backups
           python verify_backup.py --backup-dir /data/backups --db /data/aims.db \
             || echo "BACKUP VERIFICATION FAILED - see above"
+          rm -rf /offsite/.tmp && mkdir -p /offsite/.tmp/backups \
+            && cp $$(ls -t /data/backups/aims-*.db | head -3) /offsite/.tmp/backups/ \
+            && cp -r /data/uploads /offsite/.tmp/uploads \
+            && rm -rf /offsite/backups /offsite/uploads \
+            && mv /offsite/.tmp/backups /offsite/.tmp/uploads /offsite/ \
+            && echo "Offsite mirror updated: $$(ls /offsite/backups | tr '\n' ' ')" \
+            || echo "OFFSITE MIRROR FAILED - HBS3 will upload a stale copy"
           sleep 86400
         done
     volumes:
       - /share/CACHEDEV2_DATA/Data/config/aims-web:/data
+      # A registered QNAP shared folder (Data, on volume 1) - see above.
+      - /share/CACHEDEV1_DATA/Data/aims-web-offsite:/offsite
     # Prints verification output every ~24h forever with no rotation
     # otherwise - bounded so the log can't grow unbounded on an
     # unattended NAS.
