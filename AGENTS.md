@@ -81,7 +81,7 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1303 tests pass as of `141336c`**
+Before any push to `main`: `py -m pytest` must be green. **1304 tests pass as of the Resend SMTP commit (2026-09-23)**
 (2026-09-23).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
@@ -418,7 +418,7 @@ judgement call, not a defect; do not let it jump the queue).
 Every figure counted against the **live** database on that date (read-only, inside the container),
 never carried forward.
 
-- **`main` clean at the wrap-up commit. 1303 tests green. 0 foreign key violations.**
+- **`main` clean at the wrap-up commit. 1304 tests green. 0 foreign key violations.**
 - **196 societies** (28 with a logo), **121 venues**, **2,943 productions**, **5,019 award rows**,
   **876 reviews**, **66 upcoming shows** (14 with a ticket link — counted as closing/opening date
   today or later, so may differ slightly from the site's own filter), **10 of 11 FAQ entries

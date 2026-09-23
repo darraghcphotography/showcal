@@ -1477,3 +1477,23 @@ sponsor-directory idea (#8); set an HBS3 failure-email alert; the Drive test res
 
 **Flag to the next agent:** if data ever moves volumes again, re-check the HBS3 job's source —
 a backup that fails nightly with nobody watching is how this one was lost for three weeks.
+
+## 2026-09-23 — Claude (Opus 5.5, from the NAS workspace): email switched to Resend-ready SMTP
+
+**Commits:** this one — `app/notify.py` gains `SMTP_FROM` (From falls back to `SMTP_USER`);
+`docker-compose.yml` now passes `SMTP_HOST` (default `smtp.gmail.com`), `SMTP_PORT` (default
+`587`) and `SMTP_FROM` (default empty) through to the container; new test
+`test_send_uses_smtp_from_when_login_is_not_an_address`; `docs/deployment.md` documents the Resend
+values. 1304 tests green. Backward-compatible: with the new variables unset it still sends via Gmail.
+
+**Why:** Darragh is replacing the Gmail app password (disclosed in a chat transcript on 09-17) with
+Resend on the verified `darraghc.ie` domain. Resend's SMTP login is the literal username `resend`,
+so From could no longer be the login.
+
+**Needs Darragh:** Portainer stack 8 env vars — `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=587`,
+`SMTP_USER=resend`, `SMTP_PASSWORD=<re_… key>`, `SMTP_FROM=<name> <address@darraghc.ie>` (set
+2026-09-23); then trigger a test email and check SPF/DKIM PASS; then delete the old Gmail app
+password. **Nothing written to the live database.**
+
+**Flag to the next agent:** `docs/spikes.md` still lists "whether our emails actually reach an
+inbox" — the Resend test above is the chance to resolve it by checking.

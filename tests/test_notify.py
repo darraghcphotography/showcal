@@ -39,6 +39,26 @@ def test_send_calls_smtp_with_configured_credentials(monkeypatch, app):
     assert sent_msg["From"] == "sender@example.com"
 
 
+def test_send_uses_smtp_from_when_login_is_not_an_address(monkeypatch, app):
+    """Resend-style setup: the SMTP login is the fixed username "resend", so
+    From must come from SMTP_FROM rather than SMTP_USER."""
+    monkeypatch.setattr(notify, "SMTP_USER", "resend")
+    monkeypatch.setattr(notify, "SMTP_PASSWORD", "re_test_key")
+    monkeypatch.setattr(notify, "SMTP_FROM", "Irish Musicals DB <showcal@darraghc.ie>")
+
+    mock_server = MagicMock()
+    mock_smtp_cm = MagicMock()
+    mock_smtp_cm.__enter__.return_value = mock_server
+
+    with patch("app.notify.smtplib.SMTP", return_value=mock_smtp_cm):
+        with app.app_context():
+            notify.send("Subject", "Body")
+
+    mock_server.login.assert_called_once_with("resend", "re_test_key")
+    sent_msg = mock_server.send_message.call_args[0][0]
+    assert sent_msg["From"] == "Irish Musicals DB <showcal@darraghc.ie>"
+
+
 def test_send_swallows_smtp_failure(monkeypatch, app):
     monkeypatch.setattr(notify, "SMTP_USER", "sender@example.com")
     monkeypatch.setattr(notify, "SMTP_PASSWORD", "app-password")

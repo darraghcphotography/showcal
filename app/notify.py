@@ -18,6 +18,11 @@ SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("SMTP_USER")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+# The From address, when it differs from the login. Gmail logs in as the
+# mailbox itself, so unset falls back to SMTP_USER; Resend logs in as the
+# literal username "resend" and needs From to be an address on the verified
+# domain (e.g. "showcal@darraghc.ie") instead.
+SMTP_FROM = os.environ.get("SMTP_FROM")
 NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "info@darraghc.ie")
 SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
 
@@ -44,7 +49,7 @@ def send(subject, body, to=None):
         return None
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = SMTP_USER
+    msg["From"] = SMTP_FROM or SMTP_USER
     msg["To"] = to or NOTIFY_EMAIL
     msg.set_content(body)
     try:

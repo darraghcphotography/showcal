@@ -22,7 +22,7 @@ when it had shipped, and claiming a security finding was unfixed when it had bee
 
 ## START HERE - an audit, and the off-site backup was broken for three weeks (2026-09-23)
 
-> **1303 tests green.** `main` clean at the wrap-up commit. 0 foreign key violations, counted live.
+> **1304 tests green.** `main` clean at the wrap-up commit. 0 foreign key violations, counted live.
 >
 > - **The off-site backup had been failing silently since the 2026-08-28 SSD move** - HBS3's job
 >   pointed at an emptied path. Fixed (`0a789d4`): `aims-backup` mirrors into

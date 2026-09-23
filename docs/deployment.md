@@ -112,6 +112,19 @@ real time, via SMTP (Gmail's, by default - `app/notify.py`). To turn it on:
    - `SITE_URL` - `https://darraghc.ie` by default, so the link in the email
      points somewhere real.
 
+**Using Resend instead of Gmail** (the domain `darraghc.ie` verified in Resend,
+region EU; its DNS records sit on the `send` and `resend._domainkey` names in
+Cloudflare, so they don't touch the Titan mailbox's MX/SPF):
+   - `SMTP_HOST` - `smtp.resend.com`
+   - `SMTP_PORT` - `587` (STARTTLS, which `notify.py` always uses)
+   - `SMTP_USER` - `resend` (literally that word)
+   - `SMTP_PASSWORD` - a Resend API key with Sending access (`re_...`)
+   - `SMTP_FROM` - any address on the verified domain, e.g.
+     `Irish Musicals DB <showcal@darraghc.ie>`; it needn't be a real mailbox.
+
+`SMTP_HOST`/`SMTP_PORT` default to Gmail's, and `SMTP_FROM` falls back to
+`SMTP_USER`, so the Gmail setup above keeps working without them.
+
 Leaving `SMTP_USER`/`SMTP_PASSWORD` unset (the default, and how local dev
 always runs) just silently disables notifications rather than erroring -
 submissions/suggestions still work exactly as before, just without an email.
