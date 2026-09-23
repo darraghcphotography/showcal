@@ -20,7 +20,31 @@ cause is entering an item here and never re-checking it against the code. **Befo
 open, grep for it.** The file has now been wrong in both directions - claiming work was outstanding
 when it had shipped, and claiming a security finding was unfixed when it had been fixed.
 
-## START HERE - two of the seven collapsed societies are now answered (2026-09-18)
+## START HERE - an audit, and the off-site backup was broken for three weeks (2026-09-23)
+
+> **1303 tests green.** `main` clean at the wrap-up commit. 0 foreign key violations, counted live.
+>
+> - **The off-site backup had been failing silently since the 2026-08-28 SSD move** - HBS3's job
+>   pointed at an emptied path. Fixed (`0a789d4`): `aims-backup` mirrors into
+>   `Data/aims-web-offsite`, HBS3 uploads that nightly, verified landing in Google Drive. See the
+>   CLAUDE.md NAS section. **Still to do: a test restore from Drive.**
+> - **A full-codebase audit** (Opus 5.5, 2026-09-22). Verdict: security basics are sound (every
+>   admin/society route gated, SQL parameterised, CSP, hashed tokens); the weaknesses are
+>   operational. Findings are parked by Darragh under **Technical debt item 4** below, in priority
+>   order - red CI still deploys; one failed derived-table rebuild takes the whole site down;
+>   `mark_stale()` is remember-to-call.
+> - **The 2026-09-20 session wrote no handover.** From its commits: Athenry Musical Society created
+>   and live (`71a2c59`, `c6c6385`); the Wayback harvest finished and does not name the other three
+>   collapsed partners (`307a349`); `/admin/collapsed-societies` got bulk accept, productions that
+>   move with their award records, and a "can't tell" state (`dd09909`, `19e9088`, `754970b`);
+>   apostrophe/"St." name-matching faults fixed (`d90cadb`). Live now: **Athenry holds 10 award
+>   rows; 37 collapsed-society suggestions, 15 decisions.**
+> - **Waiting on Darragh:** reply to Jack Rawlings (suggestion #9 - his Athenry report, now fixed)
+>   and triage Cillian Fahy's sponsor-directory idea (#8); both still `New`.
+> - Most of this session went on Darragh's NAS media stack, not AIMS - see `HANDBACK.md`. None of
+>   it touched `aims.db`.
+
+## Superseded: START HERE - two of the seven collapsed societies are now answered (2026-09-18)
 
 > **1274 tests green** (was 1201). `main` clean at `cb737ea`. 0 foreign key violations, counted
 > against the live database.

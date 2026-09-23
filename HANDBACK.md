@@ -1440,3 +1440,40 @@ Also renamed `test_a_failed_capture_is_retried_on_the_next_run`, which asserted 
 what its name claimed.
 
 **1281 tests green.** Nothing was written to the live database by any of this.
+
+---
+
+## 2026-09-22/23 — Claude (Opus 5.5): audit, off-site backup fix, and a gap from 09-20
+
+**Commits:** `0a789d4` (mirror backups where HBS3 can see them), `68ef121` (CLAUDE.md/ROADMAP
+record of that), `141336c` (audit findings parked in ROADMAP), plus this wrap-up.
+**1303 tests green.**
+
+**Written to the live database: nothing.** `aims.db` was only ever read (counts below, and the
+two untriaged suggestions).
+
+**What was verified against production:**
+- **The off-site backup had been broken since the 2026-08-28 SSD move.** QNAP HBS3 job "AWB" still
+  pointed at `Data/config/aims-web` on volume 1, emptied by the move: "Total files: 0", Error,
+  every night for three weeks. The only copy in Google Drive was a one-off from 2026-08-30. HBS3
+  can only pick registered shared folders and the SSD `Data/` is not one, so `aims-backup` now
+  copies the newest 3 backups + `uploads/` into `/share/CACHEDEV1_DATA/Data/aims-web-offsite` and
+  the job's source is re-pointed there. Confirmed: job green, ~77 MB of new chunks in Drive at
+  20:04 on 09-22. **Not yet done: a test restore from Drive.**
+- **An audit of the whole codebase.** Findings are in ROADMAP's Technical debt item 4, parked by
+  Darragh. Security basics held up under checking (an enumeration of every route confirmed all
+  admin/society endpoints are gated).
+
+**The 2026-09-20 session left no entry here** — see ROADMAP's START HERE for what its commits did.
+
+**Off-topic, but you should know it happened.** Most of the session was Darragh's NAS media stack
+(Plex/Sonarr/Radarr/Tdarr/Tautulli), with his explicit go-ahead. Nothing in it touched AIMS. For
+anyone with the SSH key: `claudeshowcal` is now in the NAS `administrators` group and was given
+temporary RW on the `Data` and `Public` shares (Darragh is setting it back to RO). Details are
+in Claude's memory, not the repo.
+
+**Needs Darragh:** reply to Jack Rawlings (suggestion #9, Athenry, fixed); triage Cillian Fahy's
+sponsor-directory idea (#8); set an HBS3 failure-email alert; the Drive test restore.
+
+**Flag to the next agent:** if data ever moves volumes again, re-check the HBS3 job's source —
+a backup that fails nightly with nobody watching is how this one was lost for three weeks.

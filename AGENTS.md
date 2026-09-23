@@ -81,8 +81,8 @@ Darragh's decision for this week:
 **When unsure, branch.** A branch costs Darragh one merge click. A bad deploy costs a broken
 public site with nothing standing in front of it.
 
-Before any push to `main`: `py -m pytest` must be green. **1281 tests pass as of `b2cbdb8`**
-(2026-09-18).
+Before any push to `main`: `py -m pytest` must be green. **1303 tests pass as of `141336c`**
+(2026-09-23).
 
 **One addition Darragh made on 2026-09-02**, which sits on top of the table above rather than
 replacing it: anything a visitor or committee member can *see* gets **described to him before
@@ -290,7 +290,8 @@ pre-Christmas shows.
    sourced, plus 2008, which the detector could never see) and **Clara is collapsed with Clane**,
    which already exists as society id 25. See `docs/collapsed-societies.md`.
 
-   **What is left of it.** The harvest so far is the awards and roster pages — around **13,000
+   **~~What is left of it~~ — harvest FINISHED 2026-09-20 (`307a349`); it does not name the other
+   three partners. The paragraph below is kept only as history.** The harvest so far is the awards and roster pages — around **13,000
    documents remain**, including the old ASP show database and the review section, which is where
    the partners for Tralee, Avonmore and Kilcock would be. Resume with the same command; it skips
    what the manifest already holds:
@@ -412,7 +413,32 @@ judgement call, not a defect; do not let it jump the queue).
 
 ---
 
-## Current state, 2026-09-18
+## Current state, 2026-09-23
+
+Every figure counted against the **live** database on that date (read-only, inside the container),
+never carried forward.
+
+- **`main` clean at the wrap-up commit. 1303 tests green. 0 foreign key violations.**
+- **196 societies** (28 with a logo), **121 venues**, **2,943 productions**, **5,019 award rows**,
+  **876 reviews**, **66 upcoming shows** (14 with a ticket link — counted as closing/opening date
+  today or later, so may differ slightly from the site's own filter), **10 of 11 FAQ entries
+  published**, **30 people / 66 aliases**, **20 never-expiring invite codes**, **50,874
+  pageviews**, **16 society edit-log rows**, **37 collapsed-society suggestions and 15 decisions**.
+- **Athenry Musical Society exists** (created 2026-09-20) and holds 10 award rows moved from Athlone.
+
+### What changed since 2026-09-18
+
+- ~~The Wayback harvest (§10.2)~~ — **finished 2026-09-20** (`307a349`). It does not name the other
+  three collapsed partners (Tralee, Avonmore, Kilcock); Athlone/Athenry and Clara/Clane are applied
+  through `/admin/collapsed-societies`, which now has bulk accept and a "can't tell" state.
+- **The off-site backup was broken for three weeks and is fixed** — read the new "Off-site backup
+  path" bullet in CLAUDE.md before touching `docker-compose.yml`'s `aims-backup` service.
+- **An audit's findings are parked in ROADMAP Technical debt item 4.** The top one matters to you
+  directly: **a red CI build still deploys**, so §3's rule is the only gate.
+
+---
+
+## Superseded: current state, 2026-09-18
 
 Every figure counted against the **live** database on that date, never carried forward.
 
