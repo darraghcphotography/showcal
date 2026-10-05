@@ -1510,3 +1510,30 @@ NAS Docker root moved to `ContainerNVMe` on 2026-10-04.
 **Flag to the next agent:** since 2026-10-04 the `aims-web` containers were created by hand with
 `docker compose -p aims-web` from `portainer/compose/8`; Portainer stack 8 (same project name) still
 polls `main` every 5 min and takes them over on its next redeploy.
+
+## 2026-10-05 — Claude; deploy test result, and step 1 of the fresh-eyes audit
+
+**Who:** Claude (Remote Control session from the AIMS ShowCal project)
+**Commits:** c8f47a2 — Log a deploy test after the NAS Docker move
+58f905c — Quote the same figures on every page; stop "Published" without a review
+**Branches left open:** none
+**Verified live:** c8f47a2 reached production in ~3 min (Portainer stack 8 pulled, built and
+recreated both containers at 17:00; HANDBACK.md md5 matched, normalised). Since then Portainer owns
+the containers again (config path `/data/compose/8`). 58f905c deployed in ~3 min (17:39);
+`app/site_facts.py` md5 matches. Live text checked by curl: /more "All 143 societies", /stats
+"Societies on record" + "143 listed today" + "1912–present", /awards "archive, 1912", /stats/trends
+"only starts in 05/06" + "goes back to 1912", /venues "(09/10 on)", /shows/3094 has no Review line.
+**Production data written:** `scripts/backfills/reset_published_without_link.py` — dry run, then
+real: shows 3094 (All Shook Up, Mallow) and 3096 (Dear Evan Hansen, Newry YPA) Published -> None;
+0 Published-without-link left. `fix_run_note_venues.py` — dry run only: 385 Newsies 'Cork run' ->
+'The Everyman, Cork' (venue 170), 398 Sweet Charity '40th Anniversary (March run)' -> 'Swift
+Cultural Centre, Trim' (venue 197). The real run waits for Darragh's yes on that mapping.
+**Left unresolved / needs Darragh:** the venue mapping above; the Roadmap suggestion "costumes/
+props/sets" still shows Planned although the Exchange is live (mark it done in admin). Three more
+placeholder venues exist with no map pin: 'Wexford' (31), 'Cork' (76), 'Dublin Venue
+(Community/Theatre Stage)' (96).
+**Flag to the next agent:** the audit claimed show-card posters lacked alt text. They do, on
+purpose: `test_the_poster_on_a_card_is_hidden_from_assistive_tech` pins it. Don't "fix" it. Two
+society totals are deliberate (`app/site_facts.py` docstring): the record includes Inactive and
+hidden societies, the listing doesn't. The ~6-review gap between /reviews (1,106) and /stats
+(1,112 productions reviewed) is the same design: /stats keeps hidden societies in the record.
