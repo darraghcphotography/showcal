@@ -1538,3 +1538,18 @@ purpose: `test_the_poster_on_a_card_is_hidden_from_assistive_tech` pins it. Don'
 society totals are deliberate (`app/site_facts.py` docstring): the record includes Inactive and
 hidden societies, the listing doesn't. The ~6-review gap between /reviews (1,106) and /stats
 (1,112 productions reviewed) is the same design: /stats keeps hidden societies in the record.
+
+## 2026-10-05 (later) — Claude; emailed reset link for the admin password
+
+**Who:** Claude (Remote Control session from the AIMS ShowCal project)
+**Commits:** PR #6, merged as 926b99c — Emailed one-time reset link for the moderator/admin password
+**Branches left open:** none (claude/admin-reset-link merged)
+**Verified live:** deployed ~17:45; `admin_password_resets` table created on startup. Darragh
+asked for a link; `admin_reset_link.py darraghc --email <his gmail> --db /data/aims.db` reported
+it sent, and he confirmed it worked.
+**Production data written:** one admin_password_resets row (used).
+**Left unresolved / needs Darragh:** step 2 of the audit (mockups first); keep or undo the
+run-note venue fix (he said the earlier "yes" wasn't meant for it).
+**Flag to the next agent:** to reset an admin password, run admin_reset_link.py from /app in the
+container (`docker exec -w /app aims-web python admin_reset_link.py <user> --email <addr> --db
+/data/aims.db`). It never prints the link; a failed send cancels it.
