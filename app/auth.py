@@ -1,10 +1,11 @@
 import functools
 import hashlib
 import secrets
-from datetime import date
+from datetime import date, timedelta
 
 from flask import redirect, session, url_for
 
+from .clock import utcnow, utcnow_iso
 from .db import get_db
 
 # A society magic-link token is a bearer credential: whoever holds the URL is
@@ -29,6 +30,46 @@ def hash_magic_token(token):
     reader go through this, so the plaintext exists only in the email and in
     the URL the recipient clicks."""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+# Admin password-reset links. Same token and hashing as the society links
+# above, with two differences that matter for a password: a reset link works
+# exactly once, and for minutes rather than days. Only the POST that actually
+# sets the new password consumes it, so an email scanner prefetching the link
+# (a GET) doesn't burn it before the person clicks.
+ADMIN_RESET_MINUTES = 30
+
+
+def create_admin_reset(db, user_id, minutes=ADMIN_RESET_MINUTES):
+    """Mint a reset link for one user and return the plaintext token, which
+    exists only in the email from here on. Any earlier unused link for the
+    same user stops working, so only the newest email is ever live."""
+    token = generate_magic_token()
+    now = utcnow()
+    db.execute(
+        "UPDATE admin_password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL",
+        (now.replace(tzinfo=None).isoformat(), user_id),
+    )
+    db.execute(
+        "INSERT INTO admin_password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
+        (user_id, hash_magic_token(token),
+         (now + timedelta(minutes=minutes)).replace(tzinfo=None).isoformat()),
+    )
+    return token
+
+
+def find_admin_reset(db, token):
+    """The reset row for a still-usable token, joined to its user, or None."""
+    return db.execute(
+        """
+        SELECT admin_password_resets.id AS reset_id, users.id AS user_id, users.username
+          FROM admin_password_resets JOIN users ON users.id = admin_password_resets.user_id
+         WHERE admin_password_resets.token_hash = ?
+           AND admin_password_resets.used_at IS NULL
+           AND admin_password_resets.expires_at > ?
+        """,
+        (hash_magic_token(token), utcnow_iso()),
+    ).fetchone()
 
 
 def current_user():
