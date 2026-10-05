@@ -131,7 +131,12 @@
           <dd>{{ value }}</dd>
         {% endfor %}
 
-        {% if not (is_upcoming and show['review_status'] == 'None' and not historical_review) %}
+        {# 'Published' with no link is a data slip, not a review (show 3094, an
+           April 2027 production, said "Review: Published" - site audit
+           2026-10-05). It never earns a Review line on an upcoming show, and
+           on a past one it reads as no review rather than the bare status. #}
+        {% set review_link_missing = show['review_status'] == 'Published' and not show['review_url'] %}
+        {% if not (is_upcoming and (show['review_status'] == 'None' or review_link_missing) and not historical_review) %}
           <dt>Review</dt>
           <dd>
             {% if show['review_status'] == 'Published' and show['review_url'] %}
@@ -143,6 +148,8 @@
               {% endif %}
             {% elif historical_review %}
               <a href="#showtimes-review">Read the {{ 'ShowTimes ' if historical_review['source'] != 'manual' else '' }}review below</a>
+            {% elif review_link_missing %}
+              —
             {% else %}
               {{ show['review_status']|destub or '—' }}
             {% endif %}

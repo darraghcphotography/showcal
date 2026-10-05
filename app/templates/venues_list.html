@@ -14,7 +14,7 @@
 {% block content %}
   <h1>Theatres &amp; Venues</h1>
   <p class="meta" style="max-width: 62ch;">
-    Every venue on record from the shows database (05/06 on) &mdash; seating capacities, staging history, and what’s playing next across the circuit.
+    Every venue on record from the shows database{% if first_venue_season %} ({{ first_venue_season }} on){% endif %} &mdash; seating capacities, staging history, and what’s playing next across the circuit.
     {{ total }} venue{{ '' if total == 1 else 's' }}.
   </p>
 

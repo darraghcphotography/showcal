@@ -17,6 +17,7 @@ from ..constants import (
 from ..db import get_db
 from ..search import escape_like, fts_match_ids
 from ..season import current_season, season_start_year, season_weeks
+from ..site_facts import first_award_year, first_dated_season, listed_society_count, society_total
 
 bp = Blueprint("info", __name__)
 
@@ -93,7 +94,7 @@ def stats():
             return " AND COALESCE(hr_soc.region, hr_guess.confirmed_region) = ?"
         return ""
 
-    total_societies = db.execute("SELECT COUNT(*) FROM societies").fetchone()[0]
+    total_societies = society_total(db)
 
     params = [today]
     query = f"SELECT COUNT(*) FROM shows WHERE shows.show IS NOT NULL AND shows.moderation_status = 'approved' AND shows.source != 'historical' AND {happened}"
@@ -385,6 +386,8 @@ def stats():
     return render_template(
         "stats.html",
         total_societies=total_societies,
+        listed_societies=listed_society_count(db),
+        first_award_year=first_award_year(db),
         total_shows=total_shows,
         total_titles=total_titles,
         one_offs=one_offs,
@@ -504,6 +507,8 @@ def stats_trends():
     return render_template(
         "stats_trends.html",
         decades=decades,
+        first_award_year=first_award_year(db),
+        first_dated_season=first_dated_season(db),
         selected=decade,
         decade_end=decade_end,
         decade_in_progress=(decade == current_decade),
@@ -740,4 +745,5 @@ def awards():
         selected_year=year, selected_category=category, selected_tier=tier, selected_result=result, q=q,
         page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=AWARDS_PAGE_SIZES,
         society_award_category_names=SOCIETY_AWARD_CATEGORY_NAMES,
+        first_year=first_award_year(db),
     )

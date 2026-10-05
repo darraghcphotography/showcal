@@ -33,9 +33,7 @@
        <a href="{{ url_for('info.awards') }}">Browse the awards archive &rarr;</a></p>
   {% else %}
     <div class="site-notice">
-      <p><strong>Why the awards archive, not the shows catalogue:</strong> the show-by-show database only
-        goes back to 05/06 - too thin for a real "decades" story. The AIMS Awards archive goes back to
-        {{ decades[0]['decade'] }}, so that's what powers this page.</p>
+      <p><strong>Why the awards archive, not the shows catalogue:</strong> full show-by-show detail (dates, venues, production teams) only starts in {{ first_dated_season or 'recent seasons' }} - too thin for a real "decades" story. The AIMS Awards archive goes back to {{ first_award_year }}, so that's what powers this page.</p>
     </div>
 
     <div class="decade-scrubber">

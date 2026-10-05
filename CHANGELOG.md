@@ -1,3 +1,7 @@
+Every page now quotes the same figures. The awards archive was said to begin in 1977 on one page and 1910 on another - it begins in 1912, and every page now reads that from the archive itself, as it does the number of societies listed. Also fixed: an upcoming show could say its review was Published before it had even opened
+
+---
+
 Athenry Musical Society is on the site. Its AIMS awards had been recorded under Athlone Musical Society since the source data was first compiled, so the society itself was missing entirely and another society carried its wins. Seven seasons of nominations and productions from 2001 to 2008 have been moved back, each one checked against the official AIMS nominations list published at the time. Thanks to Jack Rawlings, who spotted it and told us
 
 ---

@@ -60,10 +60,10 @@
   </form>
 
   <div class="stat-tiles">
-    <div class="stat-tile"><span class="stat-value">{{ total_societies }}</span><span class="stat-label">Societies</span></div>
+    <div class="stat-tile"><span class="stat-value">{{ total_societies }}</span><span class="stat-label">Societies on record</span><span class="stat-sub">{{ listed_societies }} listed today</span></div>
     <div class="stat-tile stat-tile-gold">
       <span class="stat-value">{{ productions_total }}</span>
-      <span class="stat-label">Productions on record, 1912&ndash;present{% if selected_region %} ({{ selected_region }}){% endif %}</span>
+      <span class="stat-label">Productions on record, {{ first_award_year }}&ndash;present{% if selected_region %} ({{ selected_region }}){% endif %}</span>
       <span class="stat-sub">{{ reviewed_total }} with a review on file</span>
     </div>
     <div class="stat-tile"><span class="stat-value">{{ total_shows }}</span><span class="stat-label">Shows since 23/24{% if selected_region %} ({{ selected_region }}){% endif %}</span></div>

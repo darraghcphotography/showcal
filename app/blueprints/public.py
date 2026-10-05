@@ -29,6 +29,7 @@ from ..search import build_phrase_query, escape_like, fts_match_ids
 from ..season import current_season, season_has_ended, season_label, season_range, season_start_year
 from ..shows import is_still_on as _is_still_on, is_upcoming as _is_upcoming, still_on_sql
 from ..similarity import normalize_title
+from ..site_facts import first_award_year, first_venue_season, listed_society_count, society_total
 from ..venues import normalize_venue
 
 bp = Blueprint("public", __name__)
@@ -1996,6 +1997,7 @@ def venues_index():
         venue_types=VENUE_TYPES, selected_venue_type=venue_type,
         mapped_count=mapped_count, pins=pins, next_shows=next_shows,
         page=page, total_pages=total_pages, total=total, per_page=per_page, page_sizes=LIST_PAGE_SIZES,
+        first_venue_season=first_venue_season(db),
     )
 
 
@@ -2139,22 +2141,20 @@ def more():
     """Mobile-only "More" tab destination - everything that isn't one of the
     bottom bar's 5 main tabs. Renders fine at any width, just isn't linked
     from anywhere except the bottom bar (see base.html)."""
-    return render_template("more.html")
+    return render_template("more.html", listed_societies=listed_society_count(get_db()))
 
 
 @bp.route("/about")
 def about():
     db = get_db()
-    total_societies = db.execute("SELECT COUNT(*) FROM societies").fetchone()[0]
+    total_societies = society_total(db)
     # Same filter as /societies' default (anonymous) view - the number a
     # visitor actually finds if they click through, not the full archive
     # total (which includes Inactive/hidden societies kept for historical
     # record). See the 2026-08-05 site review: these two numbers used to
     # diverge with no explanation, reading as a mismatch rather than by design.
-    active_societies = db.execute(
-        "SELECT COUNT(*) FROM societies WHERE section != 'Inactive' AND NOT hidden"
-    ).fetchone()[0]
-    historical_from = db.execute("SELECT MIN(year) FROM historical_results").fetchone()[0]
+    active_societies = listed_society_count(db)
+    historical_from = first_award_year(db)
     return render_template(
         "about.html", total_societies=total_societies, active_societies=active_societies,
         historical_from=historical_from,

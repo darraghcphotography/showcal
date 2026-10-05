@@ -177,6 +177,10 @@ def new_show(society_id):
             review_status = "Published"
         elif review_status not in REVIEW_STATUSES:
             errors.append("Choose a valid review status.")
+        elif review_status == "Published":
+            # Published means "there is a review to read" - without its link the
+            # public page had nothing to show but the bare word (site audit, 2026-10-05).
+            errors.append("A review can only be Published once its link is added - paste the review URL, or pick another status.")
 
         poster_filename = None
         poster_file = request.files.get("poster")
@@ -352,6 +356,10 @@ def edit_show(show_id):
             review_status = "Published"
         elif review_status not in REVIEW_STATUSES:
             errors.append("Choose a valid review status.")
+        elif review_status == "Published":
+            # Published means "there is a review to read" - without its link the
+            # public page had nothing to show but the bare word (site audit, 2026-10-05).
+            errors.append("A review can only be Published once its link is added - paste the review URL, or pick another status.")
 
         poster_filename = show["poster_filename"]
         poster_file = request.files.get("poster")

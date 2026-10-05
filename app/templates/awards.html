@@ -4,8 +4,8 @@
 {% block title %}Awards - DC Show Tracker{% endblock %}
 {% block content %}
   <h1>Awards</h1>
-  <p>{{ total }} record{{ '' if total == 1 else 's' }} from the full AIMS awards archive, 1977
-     through the most recently adjudicated season{% if total_pages > 1 %} - showing page {{ page }} of {{ total_pages }}{% endif %}.</p>
+  <p>{{ total }} record{{ '' if total == 1 else 's' }} from the full AIMS awards archive, {% if first_year %}{{ first_year }}
+     through{% else %}up to{% endif %} the most recently adjudicated season{% if total_pages > 1 %} - showing page {{ page }} of {{ total_pages }}{% endif %}.</p>
 
   <form method="get" class="filter-form">
     <label>

@@ -123,7 +123,7 @@
         Review status
         <select name="review_status">
           {% for rs in review_statuses %}
-            <option value="{{ rs }}" {% if rs == show['review_status'] %}selected{% endif %}>{{ rs }}</option>
+            <option value="{{ rs }}" {% if rs == (show['review_status'] or 'None') %}selected{% endif %}>{{ rs }}</option>
           {% endfor %}
         </select>
       </label>
