@@ -1497,3 +1497,16 @@ password. **Nothing written to the live database.**
 
 **Flag to the next agent:** `docs/spikes.md` still lists "whether our emails actually reach an
 inbox" — the Resend test above is the chance to resolve it by checking.
+
+## 2026-10-05 — Claude; deploy test after the Docker move to the NVMe
+
+**Who:** Claude (Remote Control session from the AIMS ShowCal project)
+**Commits:** this entry only — a docs-only push to `main` to prove GitOps still ships after the
+NAS Docker root moved to `ContainerNVMe` on 2026-10-04.
+**Branches left open:** none
+**Verified live:** see the next entry, or the project thread, for the result.
+**Production data written:** none
+**Left unresolved / needs Darragh:** none
+**Flag to the next agent:** since 2026-10-04 the `aims-web` containers were created by hand with
+`docker compose -p aims-web` from `portainer/compose/8`; Portainer stack 8 (same project name) still
+polls `main` every 5 min and takes them over on its next redeploy.
