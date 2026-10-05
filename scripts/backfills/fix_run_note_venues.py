@@ -8,7 +8,7 @@ into a venue with its own public page:
   * shows.id 398  Sweet Charity - Trim Musical Society: "40th Anniversary (March run)"
 
 Each is set to its society's default venue. That is a judgement call, so the
-mapping goes to Darragh after the dry run and the real run waits for his yes. Nothing else is touched: the next venues rebuild (on app startup, or
+mapping went to Darragh after the dry run; he said yes and it ran 2026-10-05. Nothing else is touched: the next venues rebuild (on app startup, or
 lazily when shows move) re-points the shows and drops the two note "venues",
 which nobody has curated, so they have no capacity or map pin to lose.
 

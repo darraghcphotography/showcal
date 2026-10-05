@@ -1527,8 +1527,9 @@ the containers again (config path `/data/compose/8`). 58f905c deployed in ~3 min
 real: shows 3094 (All Shook Up, Mallow) and 3096 (Dear Evan Hansen, Newry YPA) Published -> None;
 0 Published-without-link left. `fix_run_note_venues.py` — dry run only: 385 Newsies 'Cork run' ->
 'The Everyman, Cork' (venue 170), 398 Sweet Charity '40th Anniversary (March run)' -> 'Swift
-Cultural Centre, Trim' (venue 197). The real run waits for Darragh's yes on that mapping.
-**Left unresolved / needs Darragh:** the venue mapping above; the Roadmap suggestion "costumes/
+Cultural Centre, Trim' (venue 197). Darragh said yes; real run 2026-10-05 ~18:27, both shows updated, and the lazy
+venues rebuild removed /venues/cork-run and /venues/40th-anniversary-march-run (404 now).
+**Left unresolved / needs Darragh:** the Roadmap suggestion "costumes/
 props/sets" still shows Planned although the Exchange is live (mark it done in admin). Three more
 placeholder venues exist with no map pin: 'Wexford' (31), 'Cork' (76), 'Dublin Venue
 (Community/Theatre Stage)' (96).
