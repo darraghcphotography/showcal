@@ -1118,3 +1118,18 @@ CREATE TABLE IF NOT EXISTS collapsed_society_decisions (
     updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (society_id, year, tier)
 );
+
+-- One-time links that let a moderator/admin set a new password without
+-- knowing the old one (there was no way back in short of a shell on the NAS).
+-- Minted only from the command line (admin_reset_link.py), emailed, never
+-- shown. token_hash is the SHA-256 of the token, same reasoning as
+-- society_access_requests above. A link works once (used_at) and only until
+-- expires_at, a naive UTC ISO timestamp like every other *_at column here.
+CREATE TABLE IF NOT EXISTS admin_password_resets (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash  TEXT UNIQUE NOT NULL,
+    expires_at  TEXT NOT NULL,
+    used_at     TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
