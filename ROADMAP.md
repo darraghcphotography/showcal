@@ -20,7 +20,27 @@ cause is entering an item here and never re-checking it against the code. **Befo
 open, grep for it.** The file has now been wrong in both directions - claiming work was outstanding
 when it had shipped, and claiming a security finding was unfixed when it had been fixed.
 
-## START HERE - an audit, and the off-site backup was broken for three weeks (2026-09-23)
+## START HERE - the archive split is planned and waiting on five decisions (2026-10-05)
+
+> **Darragh has decided the shape of the next big piece of work:** the history (awards since
+> 1912, ShowTimes and aims.ie reviews, past productions, adjudicators, repertoire, statistics)
+> moves to **`archive.aims.ie`**, built for historians and branded as AIMS; everything about
+> *now* (what's on, committee tools, submissions, exchange, watchlist) stays on a separate live
+> site that may later merge into the organisation's own website. **One codebase, one database,
+> two containers with a `SITE_ROLE` flag.** The full plan, with every route classified, the
+> phases and their acceptance tests, is **`docs/archive-split-plan.md`**. It is written for
+> whichever agent executes it. Phase 0 is five decisions for Darragh (domain for the live site,
+> DNS/tunnel access, council agreement on the AIMS palette and logo, whether aims.ie review
+> links appear on the archive, whether FAQ entries differ) and is tracked in Todoist.
+>
+> A UI refresh built from the AIMS brand kit was mocked up the same day
+> (https://claude.ai/artifact/MEqEn1N6rUJYnfowXUeMRw): light default, deep-red links, gold on
+> award wins only, and six quick fixes that need no permission (one name everywhere - the site
+> currently calls itself three things on one page; the theme's internal name printed in the
+> footer; the install banner on desktop; emoji as icons; green ticket buttons; Gilbert/Sullivan
+> told apart by colour alone). The quick fixes are Phase 3 of the split plan, or can go first.
+
+## Superseded: START HERE - an audit, and the off-site backup was broken for three weeks (2026-09-23)
 
 > **1304 tests green.** `main` clean at the wrap-up commit. 0 foreign key violations, counted live.
 >
