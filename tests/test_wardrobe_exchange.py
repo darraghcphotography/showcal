@@ -315,7 +315,7 @@ def test_public_exchange_detail_view(client):
     assert "mailto:wardrobe@trimms.com" not in html
     assert "Sign in to see contact details" in html
     assert "Community Disclaimer" in html
-    assert "ShowCal provides this listing as an introductory guideline only" in html
+    assert "Darragh is not responsible for any deal made through the exchange" in html
 
 
 def test_public_exchange_detail_404_for_delisted(client):
@@ -383,3 +383,18 @@ def test_title_detail_displays_matching_show_wardrobe_strip(client):
     assert "Galileo Laser Guitar Prop" in html
     assert "Trim Musical Society" in html
 
+
+
+@pytest.mark.parametrize("path, needs_login", [
+    ("/exchange", False),
+    ("/society/vault", True),
+    ("/society/vault/new", True),
+])
+def test_exchange_pages_say_darragh_is_not_responsible(client, path, needs_login):
+    """Darragh's ask, 2026-10-10: everywhere items are browsed, listed or
+    answered, the page says plainly that he isn't responsible for deals made
+    through the exchange (the detail page is covered above)."""
+    if needs_login:
+        login_as_society(client)
+    html = client.get(path).get_data(as_text=True)
+    assert "Darragh is not responsible for any deal made through the exchange" in html

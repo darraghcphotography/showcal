@@ -114,7 +114,8 @@
         <input type="checkbox" name="agree_terms" required value="1" {% if item %}checked{% endif %} style="margin-top: 0.2rem; accent-color: var(--gold);">
         <span>
           <strong>Community Notice &amp; Non-Liability Acknowledgment:</strong><br>
-          I confirm our society owns or is authorized to lend/hire this item, and understand that ShowCal operates solely as an introductory directory. ShowCal and its operators accept zero liability for hire agreements, pricing, item condition, loss, or disputes between societies.
+          I confirm our society owns or is authorized to lend/hire this item, and I understand the following.
+          {% include "_exchange_disclaimer.html" %}
         </span>
       </label>
     </div>
