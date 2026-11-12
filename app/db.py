@@ -1,3 +1,4 @@
+import re
 import sqlite3
 
 import click
@@ -72,7 +73,7 @@ COLUMN_MIGRATIONS = [
     (
         "historical_reviews", "source",
         "ALTER TABLE historical_reviews ADD COLUMN source TEXT NOT NULL DEFAULT 'showtimes' "
-        "CHECK (source IN ('showtimes', 'manual'))",
+        "CHECK (source IN ('showtimes', 'manual', 'aims_ie'))",
     ),
     ("adjudicators", "photo_filename", "ALTER TABLE adjudicators ADD COLUMN photo_filename TEXT"),
     # Links into the productions table (see schema.sql). Populated only by
@@ -287,6 +288,57 @@ def _migrate_shows_source_check(db):
     db.execute("CREATE INDEX IF NOT EXISTS idx_shows_season ON shows(season)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_shows_moderation_status ON shows(moderation_status)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_shows_review_status ON shows(review_status)")
+
+
+def _migrate_historical_reviews_source_check(db):
+    """historical_reviews.source originally allowed only 'showtimes'/'manual'.
+    Reviews from the old aims.ie (Wix) blog need a third value, 'aims_ie', so
+    the show page can credit them properly, and SQLite can't ALTER a CHECK
+    constraint in place - so this rebuilds the table (new table, copy, drop,
+    rename), same pattern as _migrate_shows_source_check.
+
+    Built from the live table's own CREATE statement rather than a copy of
+    schema.sql's, because on an older database `source` and `production_id`
+    were added by ALTER TABLE and sit at the end, in a different column order
+    from a fresh one. Every row keeps its id, which matters twice over:
+    historical_reviews_fts is an external-content index keyed on that rowid,
+    and the FTS triggers are recreated (with the indexes) from the exact SQL
+    they had before the drop. No trigger fires during the copy - the new
+    table has none yet - so the FTS index is neither duplicated nor emptied.
+
+    Keyed off whether the live CHECK text already mentions 'aims_ie' (read
+    from sqlite_master), so it is a no-op once migrated, and on any fresh
+    database, where schema.sql already creates the final shape. Must run
+    after _apply_column_migrations, which is what adds `source` to a
+    database old enough not to have it."""
+    row = db.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'historical_reviews'"
+    ).fetchone()
+    if row is None or "aims_ie" in row[0]:
+        return
+    old_check = "CHECK (source IN ('showtimes', 'manual'))"
+    if old_check not in row[0]:
+        # Not a shape this migration knows - leave it alone rather than guess.
+        return
+
+    new_sql = row[0].replace(old_check, "CHECK (source IN ('showtimes', 'manual', 'aims_ie'))")
+    new_sql = re.sub(
+        r"^CREATE TABLE\s+\"?historical_reviews\"?", "CREATE TABLE historical_reviews_new", new_sql, count=1
+    )
+    dependents = [
+        r[0] for r in db.execute(
+            "SELECT sql FROM sqlite_master WHERE tbl_name = 'historical_reviews' "
+            "AND type IN ('index', 'trigger') AND sql IS NOT NULL"
+        )
+    ]
+    columns = ", ".join(r[1] for r in db.execute("PRAGMA table_info(historical_reviews)"))
+
+    db.execute(new_sql)
+    db.execute(f"INSERT INTO historical_reviews_new ({columns}) SELECT {columns} FROM historical_reviews")
+    db.execute("DROP TABLE historical_reviews")
+    db.execute("ALTER TABLE historical_reviews_new RENAME TO historical_reviews")
+    for sql in dependents:
+        db.execute(sql)
 
 
 def _migrate_photo_submission_kinds(db):
@@ -538,6 +590,7 @@ def init_schema():
     _migrate_society_access_requests(db)
     _migrate_wardrobe_tables(db)
     _apply_column_migrations(db)
+    _migrate_historical_reviews_source_check(db)
     _create_migrated_column_indexes(db)
     db.commit()
 

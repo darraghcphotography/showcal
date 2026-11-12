@@ -1485,6 +1485,9 @@ def show_detail(show_id):
     historical_review = db.execute(
         """
         SELECT historical_reviews.review_text, historical_reviews.source_issue, historical_reviews.source,
+               -- source_file is moderator-facing (a PDF filename) except for an
+               -- aims.ie review, where it is the post's public URL - see schema.sql.
+               CASE WHEN historical_reviews.source = 'aims_ie' THEN historical_reviews.source_file END AS source_url,
                adjudicators.id AS adjudicator_id, adjudicators.name AS adjudicator_name
         FROM historical_reviews
         LEFT JOIN adjudicators ON adjudicators.id = historical_reviews.adjudicator_id

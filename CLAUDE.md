@@ -41,7 +41,12 @@ docker compose exec aims-web python seed_admin.py yourname --role admin --db /da
 docker compose exec aims-web python import_awards.py --db /data/aims.db
 docker compose exec aims-web python export_awards.py --db /data/aims.db --csv "/data/AIMS_Awards - Results.csv"
 docker compose exec aims-web python load_historical_reviews.py --db /data/aims.db
+docker compose exec aims-web python load_aims_ie_backfill.py --db /data/aims.db --dry-run
 ```
+`load_aims_ie_backfill.py` loads `aims_ie_backfill.json` (exported read-only from the old aims.ie
+Wix site on 2026-11-12): 302 blog reviews into `historical_reviews` with `source='aims_ie'` (pending
+in the review queue unless `--approve`), `review_url` fixes, and blank-only director/MD/choreographer
+fills from the Wix events collection. Re-runnable; anything whose show has changed since is skipped.
 `export_awards.py` is `import_awards.py`'s inverse (same pattern as `export_csv.py`/`import_csv.py`)
 - run it after a correction made via `/admin/awards`, then pull the file back out (File Station/scp)
 to update the git-tracked copy, same as the CSV export workflow.
@@ -50,6 +55,7 @@ while `scripts/` sat empty. The root now keeps only the things you actually run 
 database, which are exactly the commands documented above and below - `import_csv.py`,
 `export_csv.py`, `import_awards.py`, `export_awards.py`, `seed_admin.py`, `backup_db.py`,
 `verify_backup.py`, `build_productions.py`, `add_changelog.py`, `load_historical_reviews.py`,
+`load_aims_ie_backfill.py`,
 `extract_historical_reviews.py`, `build_ticket_worklist.py`, plus `wsgi.py`. Everything else
 moved:
 
