@@ -664,8 +664,12 @@ CREATE TABLE IF NOT EXISTS historical_reviews (
     -- are a real magazine citation); 'manual' = typed in directly by a
     -- moderator via Edit Show, for a review that exists but was never in
     -- the archive - show_detail.html cites these differently (no "Originally
-    -- published in AIMS ShowTimes..." line, since that would be false).
-    source          TEXT NOT NULL DEFAULT 'showtimes' CHECK (source IN ('showtimes', 'manual')),
+    -- published in AIMS ShowTimes..." line, since that would be false);
+    -- 'aims_ie' = a review published on the old aims.ie (Wix) blog, 23/24
+    -- onwards. For these, source_issue is the publication date and
+    -- source_file is the post's URL, which the show page links to as the
+    -- citation ("Originally published on aims.ie").
+    source          TEXT NOT NULL DEFAULT 'showtimes' CHECK (source IN ('showtimes', 'manual', 'aims_ie')),
 
     -- The production this review is of. Reached via show_id (a review is
     -- always attached to a shows row before it can be approved), so an

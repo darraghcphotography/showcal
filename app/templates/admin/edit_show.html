@@ -139,7 +139,7 @@
       {% if existing_review %}
         <p class="hint">
           This show already has a full review attached
-          {% if existing_review['source'] == 'manual' %}(added manually){% else %}(from the ShowTimes archive){% endif %}.
+          {% if existing_review['source'] == 'manual' %}(added manually){% elif existing_review['source'] == 'aims_ie' %}(from the old aims.ie site){% else %}(from the ShowTimes archive){% endif %}.
         </p>
       {% elif show['show'] %}
         <p class="hint">Or add the full text directly, the same way a ShowTimes archive review appears on this page:</p>
