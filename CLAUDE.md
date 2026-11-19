@@ -42,7 +42,13 @@ docker compose exec aims-web python import_awards.py --db /data/aims.db
 docker compose exec aims-web python export_awards.py --db /data/aims.db --csv "/data/AIMS_Awards - Results.csv"
 docker compose exec aims-web python load_historical_reviews.py --db /data/aims.db
 docker compose exec aims-web python load_aims_ie_backfill.py --db /data/aims.db --dry-run
+docker compose exec aims-web python apply_review_links.py --db /data/aims.db --json /data/review_links.json --dry-run
 ```
+`apply_review_links.py` is the write-back half of the aims.ie review publisher sync (the publisher lives in
+Darragh's Google Drive, not here; its read half is the `id`/`society_id`/`poster_url` columns on
+`/export/shows.csv`). **Standing rule: a review syncs to ShowCal only after it is live on aims.ie, never
+before** - the script fetches every link and skips anything not returning 200 from an aims.ie `/post/`
+URL, fills blank `review_url`s only, and reports a different existing link rather than overwriting it.
 `load_aims_ie_backfill.py` loads `aims_ie_backfill.json` (exported read-only from the old aims.ie
 Wix site on 2026-11-12): 302 blog reviews into `historical_reviews` with `source='aims_ie'` (pending
 in the review queue unless `--approve`), `review_url` fixes, and blank-only director/MD/choreographer
@@ -55,7 +61,7 @@ while `scripts/` sat empty. The root now keeps only the things you actually run 
 database, which are exactly the commands documented above and below - `import_csv.py`,
 `export_csv.py`, `import_awards.py`, `export_awards.py`, `seed_admin.py`, `backup_db.py`,
 `verify_backup.py`, `build_productions.py`, `add_changelog.py`, `load_historical_reviews.py`,
-`load_aims_ie_backfill.py`,
+`load_aims_ie_backfill.py`, `apply_review_links.py`,
 `extract_historical_reviews.py`, `build_ticket_worklist.py`, plus `wsgi.py`. Everything else
 moved:
 

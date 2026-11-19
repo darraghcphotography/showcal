@@ -20,6 +20,11 @@ EXPORT_COLUMNS = [
     "opening_date", "closing_date", "adjudication_date",
     "venue", "director", "musical_director", "choreographer",
     "review_status", "review_url", "ticket_url",
+    # Appended (2026-11-19) for the aims.ie review publisher, which matches each
+    # review to a show once and then keys on its id - and takes the show's
+    # region and poster from here instead of a hand-kept config. Kept at the end
+    # so anything reading the older columns by position is unaffected.
+    "id", "society_id", "poster_url",
 ]
 
 
@@ -42,7 +47,12 @@ def export_shows_csv():
     writer = csv.DictWriter(buffer, fieldnames=EXPORT_COLUMNS, extrasaction="ignore")
     writer.writeheader()
     for row in rows:
-        writer.writerow(dict(row))
+        record = dict(row)
+        record["poster_url"] = (
+            notify.link(url_for("public.uploaded_file", filename=row["poster_filename"]))
+            if row["poster_filename"] else ""
+        )
+        writer.writerow(record)
 
     return Response(
         buffer.getvalue(),
