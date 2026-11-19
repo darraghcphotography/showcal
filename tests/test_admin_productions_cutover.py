@@ -6,7 +6,9 @@ and disagreed (115, 115, 29 against real data). They share one definition now
 (admin.NEEDS_REVIEW_WHERE), so the tests here mostly check that they agree.
 """
 import re
+from datetime import date, timedelta
 
+from app.season import season_for_date
 from conftest import seed_society, seed_user
 
 
@@ -79,9 +81,13 @@ def test_an_undated_show_counts_once_its_season_is_over(client, db):
     ended is the only evidence available, and dropping it outright would hide
     real work - there's a real 10/11 production in exactly this state."""
     _setup(client, db)
-    _add_show(db, season="26/27", show="Current Season Show", opening_date="2026-11-01")
+    # The current-season show must not have run yet, or it needs a review link
+    # itself. Hard-coded to 2026-11-01 it started failing once that had passed.
+    opening = (date.today() + timedelta(days=30)).isoformat()
+    season = season_for_date(opening)
+    _add_show(db, season=season, show="Current Season Show", opening_date=opening)
     old = _add_show(db, season="10/11", show="Old Undated Show")
-    current = _add_show(db, season="26/27", show="Undated This Season")
+    current = _add_show(db, season=season, show="Undated This Season")
     db.commit()
 
     assert _list_show_ids(client) == {old}

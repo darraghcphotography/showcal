@@ -3,7 +3,13 @@ publicly (only the reminder link, when applicable - see
 test_show_calendar_links.py), and "Review: None" is hidden for a show that
 hasn't happened yet, since an unpopulated review isn't useful information -
 see show_detail.html."""
+from datetime import date, timedelta
+
 from conftest import seed_society
+
+# An upcoming show is dated relative to today: this was hard-coded to
+# 2026-11-10 and started failing the day after, once the show had "run".
+UPCOMING = (date.today() + timedelta(days=120)).isoformat()
 
 
 def _insert_show(db, society_id, opening_date, review_status="None", adjudication_date=None):
@@ -19,7 +25,7 @@ def _insert_show(db, society_id, opening_date, review_status="None", adjudicatio
 
 def test_review_none_hidden_for_upcoming_show(client, db):
     society_id = seed_society(db)
-    show_id = _insert_show(db, society_id, "2026-11-10", review_status="None")
+    show_id = _insert_show(db, society_id, UPCOMING, review_status="None")
 
     body = client.get(f"/shows/{show_id}").get_data(as_text=True)
     # Scoped to the page content, not the whole document - the site nav now
@@ -36,7 +42,7 @@ def test_review_none_hidden_for_upcoming_show(client, db):
 
 def test_review_shown_for_upcoming_show_with_real_status(client, db):
     society_id = seed_society(db)
-    show_id = _insert_show(db, society_id, "2026-11-10", review_status="Scheduled")
+    show_id = _insert_show(db, society_id, UPCOMING, review_status="Scheduled")
 
     body = client.get(f"/shows/{show_id}").get_data(as_text=True)
     assert "Review" in body

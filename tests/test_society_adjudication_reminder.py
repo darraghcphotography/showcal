@@ -7,6 +7,11 @@ from datetime import date, timedelta
 
 from conftest import seed_invite_code, seed_society
 
+# Shows that must still be upcoming are dated relative to today. These were
+# hard-coded to 2026-11-10 and all started failing on 2026-11-11, once that
+# date was in the past and the show counted as finished.
+OPENING = date.today() + timedelta(days=120)
+
 
 def unlock_society(client, code_id):
     with client.session_transaction() as sess:
@@ -27,7 +32,7 @@ def test_reminder_shown_for_own_upcoming_show(client, db):
     society_id = seed_society(db)
     code_id = seed_invite_code(db, code="AIMS-SOC01", society_id=society_id)
     unlock_society(client, code_id)
-    opening = date(2026, 11, 10)
+    opening = OPENING
     show_id = _insert_show(db, society_id, opening.isoformat())
 
     body = client.get(f"/society/shows/{show_id}/edit").get_data(as_text=True)
@@ -40,7 +45,7 @@ def test_reminder_hidden_when_not_adjudicated(client, db):
     society_id = seed_society(db)
     code_id = seed_invite_code(db, code="AIMS-SOC02", society_id=society_id)
     unlock_society(client, code_id)
-    show_id = _insert_show(db, society_id, "2026-11-10", review_status="Not adjudicated")
+    show_id = _insert_show(db, society_id, OPENING.isoformat(), review_status="Not adjudicated")
 
     body = client.get(f"/society/shows/{show_id}/edit").get_data(as_text=True)
     assert "calendar.google.com" not in body
@@ -59,7 +64,7 @@ def test_reminder_hidden_for_finished_show(client, db):
 def test_reminder_not_visible_to_a_different_society(client, db):
     owner_id = seed_society(db, id=1, name="Owner Society")
     other_id = seed_society(db, id=2, name="Other Society")
-    show_id = _insert_show(db, owner_id, "2026-11-10")
+    show_id = _insert_show(db, owner_id, OPENING.isoformat())
 
     other_code_id = seed_invite_code(db, code="AIMS-SOC04", society_id=other_id)
     unlock_society(client, other_code_id)

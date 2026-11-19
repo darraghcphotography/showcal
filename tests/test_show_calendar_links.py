@@ -12,6 +12,11 @@ from datetime import date, timedelta
 
 from conftest import seed_invite_code, seed_society
 
+# Shows that must still be upcoming are dated relative to today. These were
+# hard-coded to 2026-11-10 and all started failing on 2026-11-11, once that
+# date was in the past and the show counted as finished.
+OPENING = date.today() + timedelta(days=120)
+
 
 def _insert_show(db, society_id, opening_date, closing_date=None, review_status="None"):
     db.execute(
@@ -25,17 +30,18 @@ def _insert_show(db, society_id, opening_date, closing_date=None, review_status=
 
 def test_show_calendar_link_covers_opening_to_closing(client, db):
     society_id = seed_society(db)
-    show_id = _insert_show(db, society_id, "2026-11-10", "2026-11-14")
+    closing = OPENING + timedelta(days=4)
+    show_id = _insert_show(db, society_id, OPENING.isoformat(), closing.isoformat())
 
     body = client.get(f"/shows/{show_id}").get_data(as_text=True)
     assert "calendar.google.com/calendar/render" in body
     # end date in a Google Calendar all-day link is exclusive (day after closing)
-    assert "20261110%2F20261115" in body
+    assert f"{OPENING:%Y%m%d}%2F{closing + timedelta(days=1):%Y%m%d}" in body
 
 
 def test_adjudication_cutoff_is_exactly_6_weeks_before_opening(client, db):
     society_id = seed_society(db)
-    opening = date(2026, 11, 10)
+    opening = OPENING
     show_id = _insert_show(db, society_id, opening.isoformat())
     # Shown to the society whose show it is, not the public - see
     # test_adjudication_cutoff_audience.py. The arithmetic is what's under test
@@ -57,7 +63,7 @@ def test_adjudication_cutoff_is_exactly_6_weeks_before_opening(client, db):
 
 def test_adjudication_cutoff_hidden_when_not_adjudicated(client, db):
     society_id = seed_society(db)
-    show_id = _insert_show(db, society_id, "2026-11-10", review_status="Not adjudicated")
+    show_id = _insert_show(db, society_id, OPENING.isoformat(), review_status="Not adjudicated")
 
     body = client.get(f"/shows/{show_id}").get_data(as_text=True)
     assert "Adjudication submission cut-off" not in body
