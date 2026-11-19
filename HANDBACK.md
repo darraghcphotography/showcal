@@ -1553,3 +1553,24 @@ run-note venue fix (he said the earlier "yes" wasn't meant for it).
 **Flag to the next agent:** to reset an admin password, run admin_reset_link.py from /app in the
 container (`docker exec -w /app aims-web python admin_reset_link.py <user> --email <addr> --db
 /data/aims.db`). It never prints the link; a failed send cancels it.
+
+## 2026-11-19 — Claude; review publisher <-> ShowCal sync, two missing 26/27 shows
+
+**Who:** Claude (AIMS ShowCal project thread, with Remote Control on Darragh's PC for NAS access)
+**Commits:** 537d9f5 (pushed to main with Darragh's OK) — `/export/shows.csv` gains `id`,
+`society_id`, `poster_url` (appended); new `apply_review_links.py` + tests.
+**Verified live:** production export header ends `...,ticket_url,id,society_id,poster_url`.
+**Production data written:** shows 3103 (Gypsy, Fusion Theatre Group) and 3104 (Little Shop of
+Horrors, Armagh Creative Theatre Group) inserted, 26/27 Sullivan, run dates blank (backup
+aims-20261119-113516.db). `apply_review_links.py` real run: review links on 403 (The Band) and
+349 (West Side Story), status Published (backup aims-20261119-122110.db); 4 others already right.
+**Outside this repo:** the publisher (`O:\My Drive\01 - AIMS & Choral\AIMS\01 - Reviews
+(2026-2027 Season)`) now imports `showcal_link.py`: matches reviews to ShowCal (saved in
+`showcal_links.json`), takes region/poster from the export, and writes `review_links.json` from the
+aims.ie blog feed (published posts only). Original script in `_config_backups`.
+**Standing rule (Darragh):** a review syncs to ShowCal only AFTER it is live on aims.ie, never
+before. The script re-checks every link; there is no bypass flag.
+**Left unresolved / needs Darragh:** applying new links is still a manual step (copy
+review_links.json to /data, run the script). 6 tests fail on main independent of this change
+(date-dependent: test_show_calendar_links x3, test_admin_productions_cutover, ...reminder,
+...review_adjudication) — pre-existing, not investigated.
